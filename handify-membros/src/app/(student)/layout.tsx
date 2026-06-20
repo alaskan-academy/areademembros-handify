@@ -41,13 +41,19 @@ export default async function StudentLayout({
         .order("position", { ascending: true }),
     ]);
 
-  const navItems: NavItem[] = (menuItemsRaw ?? []).map((i) => ({
-    label: i.label,
-    href: i.url,
-    icon: i.icon ?? null,
-    target: (i.target as "_self" | "_blank") ?? "_self",
-    visible_to: i.visible_to as "guest" | "student" | "admin",
-  }));
+  const navItems: NavItem[] = (menuItemsRaw ?? []).map((i) => {
+    let href = i.url;
+    if (user?.email && href.includes("[EMAIL]")) {
+      href = href.replace(/\[EMAIL\]/g, encodeURIComponent(user.email));
+    }
+    return {
+      label: i.label,
+      href,
+      icon: i.icon ?? null,
+      target: (i.target as "_self" | "_blank") ?? "_self",
+      visible_to: i.visible_to as "guest" | "student" | "admin",
+    };
+  });
 
   // Layout unificado — mesma estrutura HTML independente da rota.
   // Rotas públicas (/cursos) usam CatalogHeader quando não autenticadas.
