@@ -17,8 +17,8 @@ import {
   updateMenuItemAction,
   deleteMenuItemAction,
   toggleMenuItemActiveAction,
-  ICON_OPTIONS,
 } from "./actions";
+import { VALID_ICONS as ICON_OPTIONS } from "./constants";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, BookOpen, User, Bell, Users, Home,

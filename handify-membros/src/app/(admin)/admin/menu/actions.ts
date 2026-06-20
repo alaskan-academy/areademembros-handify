@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { z } from "zod";
+import { VALID_ICONS } from "./constants";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -18,13 +19,6 @@ async function assertAdmin() {
     .single();
   if (p?.role !== "admin") throw new Error("Sem permissão");
 }
-
-const VALID_ICONS = [
-  "LayoutDashboard", "BookOpen", "User", "Bell", "Users", "Home",
-  "ShoppingBag", "Star", "Heart", "Globe", "MessageSquare", "Video",
-  "Award", "Settings", "HelpCircle", "GraduationCap", "Layers",
-  "Zap", "Gift", "Map",
-] as const;
 
 const menuItemSchema = z.object({
   label: z.string().min(1, "Label obrigatório").max(60),
@@ -150,4 +144,3 @@ export async function toggleMenuItemActiveAction(
   }
 }
 
-export const ICON_OPTIONS = VALID_ICONS;
