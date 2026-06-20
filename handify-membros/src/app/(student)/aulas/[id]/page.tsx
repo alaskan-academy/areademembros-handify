@@ -110,7 +110,24 @@ export default async function LessonPage({
         .order("id"),
     ]);
 
-    contentBlocks = (blocksData as ContentBlock[] | null) ?? [];
+    const rawBlocks = (blocksData as ContentBlock[] | null) ?? [];
+    // Substitui [EMAIL] em URLs de embed pelo email da aluna (server-side)
+    contentBlocks = rawBlocks.map((block) => {
+      if (block.type !== "embed" || !user?.email) return block;
+      try {
+        const parsed = JSON.parse(block.content) as Record<string, unknown>;
+        if (typeof parsed.url === "string" && parsed.url.includes("[EMAIL]")) {
+          return {
+            ...block,
+            content: JSON.stringify({
+              ...parsed,
+              url: parsed.url.replace(/\[EMAIL\]/g, encodeURIComponent(user.email)),
+            }),
+          };
+        }
+      } catch { /* conteúdo inválido, mantém original */ }
+      return block;
+    });
 
     // Gera signed URL para cada material (acesso já verificado via videoId)
     materials = await Promise.all(
