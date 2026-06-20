@@ -69,7 +69,6 @@ export async function createMenuItemAction(
     if (error) return { error: error.message };
 
     revalidatePath("/admin/menu");
-    revalidatePath("/", "layout");
     return { success: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erro inesperado" };
@@ -109,7 +108,6 @@ export async function updateMenuItemAction(
     if (error) return { error: error.message };
 
     revalidatePath("/admin/menu");
-    revalidatePath("/", "layout");
     return { success: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erro inesperado" };
@@ -125,7 +123,6 @@ export async function deleteMenuItemAction(id: string): Promise<MenuItemFormStat
     if (error) return { error: error.message };
 
     revalidatePath("/admin/menu");
-    revalidatePath("/", "layout");
     return { success: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erro inesperado" };
@@ -147,7 +144,6 @@ export async function toggleMenuItemActiveAction(
     if (error) return { error: error.message };
 
     revalidatePath("/admin/menu");
-    revalidatePath("/", "layout");
     return { success: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Erro inesperado" };
