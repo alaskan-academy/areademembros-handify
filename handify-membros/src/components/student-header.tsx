@@ -162,7 +162,7 @@ export default function StudentHeader({
           </div>
 
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+          <Link href="/cursos" className="flex items-center gap-2 shrink-0">
             <Image
               src="/logo-vertical-azul.png"
               alt="Handify™"
