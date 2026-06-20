@@ -37,7 +37,7 @@ export default async function StudentLayout({
   // /cursos: logada usa StudentHeader (consistência), visitante usa CatalogHeader
   if (isPublic) {
     return (
-      <div className="min-h-screen flex flex-col bg-[#F5F5F0]">
+      <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
         {user ? (
           <StudentHeader
             fullName={profile?.full_name ?? ""}
@@ -59,7 +59,7 @@ export default async function StudentLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F5F0]">
+    <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
       <StudentHeader
         fullName={profile?.full_name ?? ""}
         avatarUrl={profile?.avatar_url ?? null}
