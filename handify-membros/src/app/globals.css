@@ -1,0 +1,199 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   HANDIFY™ — Design Tokens
+   Paleta oficial: nunca aproxime, use hex exatos
+   ============================================================ */
+:root {
+  /* Brand primárias */
+  --handify-blue:       #6699F3;  /* Azul Handify — CTA, links, destaques */
+  --handify-green:      #72CF92;  /* Verde Orgânico — sucesso, accent */
+  --handify-yellow:     #FEC649;  /* Amarelo Artesanal — detalhe, faixa */
+
+  /* Brand neutras */
+  --handify-black:      #0F0F0F;
+  --handify-gray-dark:  #2D2D2D;  /* Texto principal */
+  --handify-off-white:  #F5F5F0;  /* Fundo editorial */
+
+  /* ── Shadcn/UI theme mapeado para Handify ── */
+  --background:             oklch(1 0 0);                   /* branco */
+  --foreground:             oklch(0.22 0 0);                /* #2D2D2D */
+  --card:                   oklch(1 0 0);
+  --card-foreground:        oklch(0.22 0 0);
+  --popover:                oklch(1 0 0);
+  --popover-foreground:     oklch(0.22 0 0);
+  --primary:                oklch(0.637 0.178 269.5);       /* #6699F3 */
+  --primary-foreground:     oklch(1 0 0);                   /* branco */
+  --secondary:              oklch(0.968 0.003 100);         /* #F5F5F0 */
+  --secondary-foreground:   oklch(0.22 0 0);
+  --muted:                  oklch(0.968 0.003 100);         /* #F5F5F0 */
+  --muted-foreground:       oklch(0.50 0 0);
+  --accent:                 oklch(0.762 0.118 152.7);       /* #72CF92 */
+  --accent-foreground:      oklch(0.09 0 0);                /* #0F0F0F */
+  --destructive:            oklch(0.577 0.245 27.325);
+  --border:                 oklch(0.90 0.003 100);
+  --input:                  oklch(0.90 0.003 100);
+  --ring:                   oklch(0.637 0.178 269.5);       /* #6699F3 */
+  --radius:                 0.5rem;                         /* 8px */
+
+  /* Charts — paleta Handify */
+  --chart-1: oklch(0.637 0.178 269.5);   /* blue */
+  --chart-2: oklch(0.762 0.118 152.7);   /* green */
+  --chart-3: oklch(0.831 0.162 83.5);    /* yellow */
+  --chart-4: oklch(0.50 0.14 269.5);
+  --chart-5: oklch(0.40 0.10 269.5);
+
+  /* Sidebar */
+  --sidebar:                    oklch(0.968 0.003 100);
+  --sidebar-foreground:         oklch(0.22 0 0);
+  --sidebar-primary:            oklch(0.637 0.178 269.5);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:             oklch(0.94 0.003 100);
+  --sidebar-accent-foreground:  oklch(0.22 0 0);
+  --sidebar-border:             oklch(0.90 0.003 100);
+  --sidebar-ring:               oklch(0.637 0.178 269.5);
+}
+
+/* Dark mode — mantém identidade Handify */
+.dark {
+  --background:             oklch(0.09 0 0);                /* #0F0F0F */
+  --foreground:             oklch(0.93 0 0);
+  --card:                   oklch(0.14 0 0);
+  --card-foreground:        oklch(0.93 0 0);
+  --popover:                oklch(0.14 0 0);
+  --popover-foreground:     oklch(0.93 0 0);
+  --primary:                oklch(0.637 0.178 269.5);       /* #6699F3 mantido */
+  --primary-foreground:     oklch(1 0 0);
+  --secondary:              oklch(0.20 0 0);
+  --secondary-foreground:   oklch(0.93 0 0);
+  --muted:                  oklch(0.20 0 0);
+  --muted-foreground:       oklch(0.60 0 0);
+  --accent:                 oklch(0.762 0.118 152.7);
+  --accent-foreground:      oklch(0.09 0 0);
+  --destructive:            oklch(0.704 0.191 22.216);
+  --border:                 oklch(1 0 0 / 10%);
+  --input:                  oklch(1 0 0 / 12%);
+  --ring:                   oklch(0.637 0.178 269.5);
+  --sidebar:                oklch(0.14 0 0);
+  --sidebar-foreground:     oklch(0.93 0 0);
+  --sidebar-primary:        oklch(0.637 0.178 269.5);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:         oklch(0.20 0 0);
+  --sidebar-accent-foreground: oklch(0.93 0 0);
+  --sidebar-border:         oklch(1 0 0 / 10%);
+  --sidebar-ring:           oklch(0.637 0.178 269.5);
+}
+
+@theme inline {
+  --color-background:               var(--background);
+  --color-foreground:               var(--foreground);
+  --color-card:                     var(--card);
+  --color-card-foreground:          var(--card-foreground);
+  --color-popover:                  var(--popover);
+  --color-popover-foreground:       var(--popover-foreground);
+  --color-primary:                  var(--primary);
+  --color-primary-foreground:       var(--primary-foreground);
+  --color-secondary:                var(--secondary);
+  --color-secondary-foreground:     var(--secondary-foreground);
+  --color-muted:                    var(--muted);
+  --color-muted-foreground:         var(--muted-foreground);
+  --color-accent:                   var(--accent);
+  --color-accent-foreground:        var(--accent-foreground);
+  --color-destructive:              var(--destructive);
+  --color-border:                   var(--border);
+  --color-input:                    var(--input);
+  --color-ring:                     var(--ring);
+  --color-chart-1:                  var(--chart-1);
+  --color-chart-2:                  var(--chart-2);
+  --color-chart-3:                  var(--chart-3);
+  --color-chart-4:                  var(--chart-4);
+  --color-chart-5:                  var(--chart-5);
+  --color-sidebar:                  var(--sidebar);
+  --color-sidebar-foreground:       var(--sidebar-foreground);
+  --color-sidebar-primary:          var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:           var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border:           var(--sidebar-border);
+  --color-sidebar-ring:             var(--sidebar-ring);
+
+  /* Cores Handify acessíveis via Tailwind: bg-handify-blue, text-handify-green, etc. */
+  --color-handify-blue:   #6699F3;
+  --color-handify-green:  #72CF92;
+  --color-handify-yellow: #FEC649;
+  --color-handify-black:  #0F0F0F;
+  --color-handify-gray:   #2D2D2D;
+  --color-handify-muted:  #F5F5F0;
+
+  --font-sans:    var(--font-montserrat);
+  --font-mono:    var(--font-geist-mono);
+  --font-heading: var(--font-montserrat);
+
+  --radius-sm:  calc(var(--radius) * 0.6);
+  --radius-md:  calc(var(--radius) * 0.8);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-montserrat), Arial, Helvetica, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-montserrat), Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+}
+
+/* ============================================================
+   Componentes Handify globais
+   ============================================================ */
+
+/* Faixa decorativa tricolor (topo de página, rodapé, cards) */
+.brand-stripe {
+  display: flex;
+  height: 4px;
+  width: 100%;
+}
+.brand-stripe span:nth-child(1) { flex: 1; background: var(--handify-blue); }
+.brand-stripe span:nth-child(2) { flex: 1; background: var(--handify-green); }
+.brand-stripe span:nth-child(3) { flex: 1; background: var(--handify-yellow); }
+
+/* Card padrão Handify */
+.handify-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid oklch(0.90 0.003 100);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 200ms ease-out;
+}
+.handify-card:hover {
+  box-shadow: 0 4px 12px rgba(102, 153, 243, 0.12);
+}
+
+/* Palavra em destaque azul dentro de título */
+.accent-word {
+  color: var(--handify-blue);
+}
+
+/* Transições padrão Handify: 200-300ms ease-out */
+.handify-transition {
+  transition: all 250ms ease-out;
+}
