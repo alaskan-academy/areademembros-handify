@@ -85,10 +85,6 @@ export default async function MetricasPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Métricas</h1>
-        <p className="text-sm text-muted-foreground mt-1">Visão geral da plataforma</p>
-      </div>
 
       {/* Cards de totais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
