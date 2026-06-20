@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Menu, X, LogOut, ExternalLink,
-  LayoutDashboard, BookOpen, User, Bell, Users, Home,
+  Menu, X, LogOut, User, ExternalLink,
+  LayoutDashboard, BookOpen, Bell, Users, Home,
   ShoppingBag, Star, Heart, Globe, MessageSquare, Video,
   Award, Settings, HelpCircle, GraduationCap, Layers,
   Zap, Gift, Map, type LucideIcon,
@@ -62,8 +62,10 @@ export default function StudentHeader({
   navItems,
 }: StudentHeaderProps) {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
 
   const initial = fullName?.charAt(0)?.toUpperCase() || "A";
   const items = navItems && navItems.length > 0 ? navItems : FALLBACK_NAV;
@@ -75,46 +77,92 @@ export default function StudentHeader({
     return false;
   });
 
-  function NavLink({ item, mobile = false }: { item: NavItem; mobile?: boolean }) {
-    const Icon = item.icon ? ICON_MAP[item.icon] : null;
-    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-    const isAdmin = item.visible_to === "admin";
+  // Fecha os painéis ao navegar
+  useEffect(() => {
+    setNavOpen(false);
+    setAvatarOpen(false);
+  }, [pathname]);
 
-    return (
-      <Link
-        href={item.href}
-        target={item.target}
-        rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
-        onClick={() => mobile && setMobileOpen(false)}
-        title={item.label}
-        className={cn(
-          "flex items-center gap-2 rounded-md font-medium transition-colors whitespace-nowrap",
-          mobile
-            ? "px-3 py-2.5 text-sm w-full"
-            : "px-2.5 py-1.5 text-sm",
-          isAdmin
-            ? "text-[#FEC649] hover:bg-[#FEC649]/10"
-            : isActive
-            ? "text-[#6699F3] bg-[#6699F3]/10"
-            : "text-foreground/70 hover:text-foreground hover:bg-muted"
-        )}
-      >
-        {Icon && <Icon className="w-4 h-4 shrink-0" />}
-        {/* Desktop: só ícone (title faz tooltip); mobile: ícone + texto */}
-        {mobile && <span>{item.label}</span>}
-      </Link>
-    );
-  }
+  // Fecha ao clicar fora
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setNavOpen(false);
+      if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) setAvatarOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Fecha com Escape
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setNavOpen(false); setAvatarOpen(false); }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-border/60 shadow-sm">
       <div className="brand-stripe"><span /><span /><span /></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-14 gap-2">
+        <div className="flex items-center h-14 gap-3">
+
+          {/* Hambúrguer */}
+          <div className="relative" ref={navRef}>
+            <button
+              onClick={() => { setNavOpen((v) => !v); setAvatarOpen(false); }}
+              aria-label={navOpen ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={navOpen}
+              className="p-2 rounded-lg text-foreground/60 hover:text-foreground hover:bg-muted transition-colors"
+            >
+              {navOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+
+            {/* Painel de navegação */}
+            {navOpen && (
+              <div className="absolute left-0 top-11 z-50 w-64 bg-white rounded-xl border border-border shadow-xl py-2 overflow-hidden">
+                <nav className="space-y-0.5 px-2">
+                  {visibleItems.map((item) => {
+                    const Icon = item.icon ? ICON_MAP[item.icon] : null;
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                    const isAdmin = item.visible_to === "admin";
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        target={item.target}
+                        rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
+                        onClick={() => setNavOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                          isAdmin
+                            ? "text-[#FEC649] hover:bg-[#FEC649]/10"
+                            : isActive
+                            ? "text-[#6699F3] bg-[#6699F3]/10"
+                            : "text-foreground/75 hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        {Icon
+                          ? <Icon className="w-4 h-4 shrink-0" />
+                          : <span className="w-4 h-4 shrink-0" />
+                        }
+                        <span className="flex-1">{item.label}</span>
+                        {item.target === "_blank" && (
+                          <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-40" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            )}
+          </div>
 
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 shrink-0 mr-2">
+          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <Image
               src="/logo-vertical-azul.png"
               alt="Handify™"
@@ -128,15 +176,11 @@ export default function StudentHeader({
             </span>
           </Link>
 
-          {/* Nav desktop — ícones em md, ícone+texto em lg */}
-          <nav className="hidden md:flex items-center gap-0.5 flex-1 min-w-0">
-            {visibleItems.map((item) => (
-              <NavLink key={item.href} item={item} />
-            ))}
-          </nav>
+          {/* Spacer */}
+          <div className="flex-1" />
 
-          {/* Right side */}
-          <div className="flex items-center gap-1 ml-auto">
+          {/* Right: busca + sino + avatar */}
+          <div className="flex items-center gap-1">
             <GlobalSearch />
 
             <NotificationBell
@@ -145,11 +189,11 @@ export default function StudentHeader({
               initialUnread={initialUnread}
             />
 
-            {/* Avatar com dropdown — desktop */}
-            <div className="hidden md:block relative">
+            {/* Avatar com dropdown */}
+            <div className="relative" ref={avatarRef}>
               <button
-                onClick={() => setAvatarOpen((v) => !v)}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 hover:opacity-90 transition-opacity"
+                onClick={() => { setAvatarOpen((v) => !v); setNavOpen(false); }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity ml-1"
                 style={{ background: "#6699F3" }}
                 aria-label="Menu do usuário"
                 aria-expanded={avatarOpen}
@@ -158,79 +202,35 @@ export default function StudentHeader({
               </button>
 
               {avatarOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setAvatarOpen(false)} />
-                  <div className="absolute right-0 top-10 z-50 w-52 bg-white rounded-xl border border-border shadow-lg py-1 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-border/40">
-                      <p className="text-sm font-semibold truncate">{fullName}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Área de membros</p>
-                    </div>
-                    <Link
-                      href="/perfil"
-                      onClick={() => setAvatarOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted transition-colors"
-                    >
-                      <User className="w-4 h-4" />
-                      Meu perfil
-                    </Link>
-                    <div className="border-t border-border/40 mt-1 pt-1">
-                      <form action={logoutAction}>
-                        <button
-                          type="submit"
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Sair
-                        </button>
-                      </form>
-                    </div>
+                <div className="absolute right-0 top-10 z-50 w-56 bg-white rounded-xl border border-border shadow-xl py-1 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border/40">
+                    <p className="text-sm font-semibold truncate">{fullName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Área de membros</p>
                   </div>
-                </>
+                  <Link
+                    href="/perfil"
+                    onClick={() => setAvatarOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    Meu perfil
+                  </Link>
+                  <div className="border-t border-border/40 mt-1 pt-1">
+                    <form action={logoutAction}>
+                      <button
+                        type="submit"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sair
+                      </button>
+                    </form>
+                  </div>
+                </div>
               )}
             </div>
-
-            {/* Hamburger mobile */}
-            <button
-              className="md:hidden p-2 rounded-md text-foreground/60 hover:text-foreground hover:bg-muted transition-colors"
-              onClick={() => setMobileOpen((v) => !v)}
-              aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
-              aria-expanded={mobileOpen}
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="md:hidden border-t border-border/40 pb-4">
-            <nav className="pt-2 space-y-0.5">
-              {visibleItems.map((item) => (
-                <NavLink key={item.href} item={item} mobile />
-              ))}
-            </nav>
-            <div className="mt-3 pt-3 border-t border-border/40 px-3 flex items-center justify-between">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
-                  style={{ background: "#6699F3" }}
-                >
-                  {initial}
-                </div>
-                <span className="text-sm font-medium text-foreground/80 truncate">{fullName}</span>
-              </div>
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors px-2 py-1"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sair
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </header>
   );
