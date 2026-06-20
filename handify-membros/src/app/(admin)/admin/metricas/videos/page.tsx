@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
-import { getVideos, formatDuration, formatStorage } from "@/lib/video/panda-api";
+import { getVideos, formatDuration, formatStorage, extractPandaVideoId } from "@/lib/video/panda-api";
 import { InfoTooltip } from "../metric-tooltip";
 import { Video, Clock, HardDrive, Eye, Play, AlertCircle } from "lucide-react";
 import Image from "next/image";
@@ -37,7 +37,8 @@ export default async function VideosMetricasPage() {
   for (const l of lessons ?? []) {
     if (!l.video_panda_id) continue;
     const mod = l.module as unknown as { courses: { title: string; slug: string } | null } | null;
-    lessonByVideoId.set(l.video_panda_id, {
+    // video_panda_id pode ser UUID ou URL completa — extrai sempre o UUID
+    lessonByVideoId.set(extractPandaVideoId(l.video_panda_id), {
       lessonId: l.id,
       lessonTitle: l.title,
       courseTitle: mod?.courses?.title ?? "—",
@@ -94,8 +95,8 @@ export default async function VideosMetricasPage() {
           tooltip="Soma das durações de todos os vídeos vinculados à plataforma." />
         <SummaryCard icon={HardDrive} label="Armazenamento" value={formatStorage(totalStorage)} color="#FEC649"
           tooltip="Espaço ocupado pelos vídeos vinculados à plataforma no Panda Video." />
-        <SummaryCard icon={Eye} label="Total de visualizações" value={totalViews} color="#6699F3"
-          tooltip="Soma de todos os registros de progresso das aulas (iniciadas ou concluídas) — proxy interno de visualizações." />
+        <SummaryCard icon={Eye} label="Aulas iniciadas" value={totalViews} color="#6699F3"
+          tooltip="Soma de alunas que iniciaram cada aula (registros de lesson_progress). Analytics de views do Panda requer autenticação AWS não disponível via API key." />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -105,7 +106,7 @@ export default async function VideosMetricasPage() {
             <Eye className="w-4 h-4 text-[#6699F3]" />
             Mais assistidas
           </h2>
-          <p className="text-xs text-muted-foreground mb-4">por alunas que iniciaram a aula</p>
+          <p className="text-xs text-muted-foreground mb-4">por alunas com progresso registrado na plataforma</p>
           {topByStarted.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum dado ainda.</p>
           ) : (
@@ -176,8 +177,8 @@ export default async function VideosMetricasPage() {
                   <th className="pb-2 font-medium text-muted-foreground text-right">Tamanho</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">
                     <span className="flex items-center justify-end gap-1">
-                      Assistidas
-                      <InfoTooltip text="Alunas que iniciaram a aula (qualquer progresso registrado)." />
+                      Iniciadas
+                      <InfoTooltip text="Alunas com progresso registrado na aula. Analytics de views do Panda exige credenciais AWS — indisponível via API key." />
                     </span>
                   </th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">

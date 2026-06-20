@@ -35,6 +35,21 @@ export async function getVideos(
   );
 }
 
+/**
+ * Extrai o UUID do vídeo Panda de qualquer formato:
+ * - URL completa: https://player-vz-....pandavideo.com.br/embed/?v=UUID
+ * - UUID direto: f754a6b6-2221-4f37-baf9-f6e9fcbfbee2
+ */
+export function extractPandaVideoId(value: string): string {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    const v = url.searchParams.get("v");
+    if (v) return v;
+  } catch {}
+  return value.trim();
+}
+
 /** Formata segundos como "2h 30min" ou "45min" */
 export function formatDuration(seconds: number): string {
   if (!seconds) return "—";
