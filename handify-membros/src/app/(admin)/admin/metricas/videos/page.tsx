@@ -1,15 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
-import {
-  getAccountAnalytics,
-  getVideoRanking,
-  getVideoRetention,
-  formatWatchTime,
-  type PandaVideoRankItem,
-} from "@/lib/video/panda-api";
-import { Eye, Play, Clock, Users, TrendingUp, AlertCircle } from "lucide-react";
+import { getVideos, formatDuration, formatStorage } from "@/lib/video/panda-api";
 import { InfoTooltip } from "../metric-tooltip";
+import { Video, Clock, HardDrive, Link2, Play, AlertCircle } from "lucide-react";
+import Image from "next/image";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -23,71 +18,56 @@ export default async function VideosMetricasPage() {
   await assertAdmin();
   const service = createServiceClient();
 
-  // Busca lições com video_panda_id para cruzar com o ranking do Panda
-  const { data: lessons } = await service
-    .from("lessons")
-    .select("id, title, video_panda_id, duration_seconds, module:modules(course_id, courses(title, slug))")
-    .not("video_panda_id", "is", null);
-
-  // Mapa video_panda_id → info da aula
-  const videoMap = new Map<string, { lessonTitle: string; courseTitle: string; courseSlug: string; duration: number }>();
-  for (const l of lessons ?? []) {
-    if (!l.video_panda_id) continue;
-    const mod = l.module as unknown as { course_id: string; courses: { title: string; slug: string } | null } | null;
-    videoMap.set(l.video_panda_id, {
-      lessonTitle: l.title,
-      courseTitle: mod?.courses?.title ?? "—",
-      courseSlug: mod?.courses?.slug ?? "",
-      duration: l.duration_seconds ?? 0,
-    });
-  }
-
-  // Busca dados do Panda em paralelo
-  const [accountData, rankingData] = await Promise.all([
-    getAccountAnalytics(),
-    getVideoRanking(30),
+  // Busca vídeos do Panda e lições do Supabase em paralelo
+  const [pandaResult, { data: lessons }, { data: progressData }] = await Promise.all([
+    getVideos(200),
+    service
+      .from("lessons")
+      .select("id, title, video_panda_id, module:modules(course_id, courses(title, slug))")
+      .not("video_panda_id", "is", null),
+    service
+      .from("lesson_progress")
+      .select("lesson_id")
+      .eq("completed", true),
   ]);
 
   const pandaConfigured = !!process.env.PANDA_VIDEO_API_KEY;
-  const ranking = rankingData?.data ?? [];
+  const pandaVideos = pandaResult?.videos ?? [];
+  const pandaTotal = pandaResult?.total ?? 0;
 
-  // Enriquece ranking com info da aula
-  const enrichedRanking = ranking.map((item) => ({
-    ...item,
-    lesson: videoMap.get(item.video_id) ?? null,
-  }));
+  // Mapa video_panda_id → info da lição
+  type LessonInfo = { lessonId: string; lessonTitle: string; courseTitle: string; courseSlug: string };
+  const lessonByVideoId = new Map<string, LessonInfo>();
+  for (const l of lessons ?? []) {
+    if (!l.video_panda_id) continue;
+    const mod = l.module as unknown as { courses: { title: string; slug: string } | null } | null;
+    lessonByVideoId.set(l.video_panda_id, {
+      lessonId: l.id,
+      lessonTitle: l.title,
+      courseTitle: mod?.courses?.title ?? "—",
+      courseSlug: mod?.courses?.slug ?? "",
+    });
+  }
 
-  // Busca retenção das top 5 aulas mais assistidas
-  const top5 = enrichedRanking.slice(0, 5);
-  const retentionResults = await Promise.all(
-    top5.map((item) => getVideoRetention(item.video_id))
-  );
-
-  // Calcula retenção média (percentual médio ao longo do vídeo → taxa de conclusão estimada)
-  const retentionSummaries = top5.map((item, i) => {
-    const points = retentionResults[i]?.data ?? [];
-    if (!points.length) return { ...item, avgRetention: null, endRetention: null };
-    const avg = Math.round(points.reduce((s, p) => s + p.percentage, 0) / points.length);
-    // Retenção no último decil (90%+ do vídeo)
-    const lastDecil = points.filter((p) => p.second >= (item.lesson?.duration ?? 0) * 0.9);
-    const endRetention = lastDecil.length
-      ? Math.round(lastDecil.reduce((s, p) => s + p.percentage, 0) / lastDecil.length)
-      : null;
-    return { ...item, avgRetention: avg, endRetention };
-  });
-
-  // Progresso interno (aulas concluídas) para cruzar com views do Panda
-  const { data: progressData } = await service
-    .from("lesson_progress")
-    .select("lesson_id")
-    .eq("completed", true);
-
+  // Conclusões internas por lição
   const completedByLesson = new Map<string, number>();
   for (const p of progressData ?? []) {
     completedByLesson.set(p.lesson_id, (completedByLesson.get(p.lesson_id) ?? 0) + 1);
   }
 
-  // Top aulas por conclusão interna
+  // Enriquece vídeos Panda com dados de lição + conclusões
+  const enriched = pandaVideos.map((v) => {
+    const lesson = lessonByVideoId.get(v.video_external_id) ?? null;
+    const completions = lesson ? (completedByLesson.get(lesson.lessonId) ?? 0) : 0;
+    return { ...v, lesson, completions };
+  });
+
+  // Cards de resumo
+  const totalDuration = pandaVideos.reduce((s, v) => s + (v.length ?? 0), 0);
+  const totalStorage = pandaVideos.reduce((s, v) => s + (v.storage_size ?? 0), 0);
+  const linkedCount = enriched.filter((v) => v.lesson !== null).length;
+
+  // Ranking interno: top aulas por conclusão
   const topByCompletion = [...completedByLesson.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
@@ -102,69 +82,50 @@ export default async function VideosMetricasPage() {
       };
     });
 
+  // Ordena tabela por conclusões desc, depois por duração desc
+  const sortedVideos = [...enriched].sort((a, b) => b.completions - a.completions || b.length - a.length);
+
   return (
     <div className="space-y-8">
       {!pandaConfigured && (
         <div className="flex items-center gap-3 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span><strong>PANDA_VIDEO_API_KEY</strong> não configurada. Configure nas env vars da Vercel para ver dados de vídeo em tempo real.</span>
+          <span><strong>PANDA_VIDEO_API_KEY</strong> não configurada. Configure nas env vars para ver a biblioteca de vídeos.</span>
         </div>
       )}
 
-      {/* Cards conta Panda */}
-      {accountData && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <PandaCard icon={Eye} label="Visualizações totais" value={accountData.views.toLocaleString("pt-BR")} color="#6699F3"
-            tooltip="Número de vezes que qualquer vídeo foi carregado no player, incluindo recarregamentos da mesma sessão." />
-          <PandaCard icon={Play} label="Plays totais" value={accountData.plays.toLocaleString("pt-BR")} color="#72CF92"
-            tooltip="Número de vezes que o botão Play foi acionado. Diferente de visualizações — a aluna pode carregar o player e não dar play." />
-          <PandaCard icon={Clock} label="Tempo assistido" value={formatWatchTime(accountData.watch_time)} color="#FEC649"
-            tooltip="Soma acumulada do tempo efetivamente assistido por todas as alunas em todos os vídeos da plataforma." />
-          <PandaCard icon={Users} label="Espectadores únicos" value={accountData.unique_viewers.toLocaleString("pt-BR")} color="#6699F3"
-            tooltip="Visitantes distintos que assistiram pelo menos parte de algum vídeo. Baseado em cookie/fingerprint do Panda Video." />
-        </div>
-      )}
+      {/* Cards de resumo da biblioteca */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard
+          icon={Video} label="Total de vídeos" value={pandaTotal || pandaVideos.length}
+          color="#6699F3"
+          tooltip="Total de vídeos na biblioteca Panda Video da conta."
+        />
+        <SummaryCard
+          icon={Clock} label="Duração total" value={formatDuration(totalDuration)}
+          color="#72CF92"
+          tooltip="Soma das durações de todos os vídeos da biblioteca Panda Video."
+        />
+        <SummaryCard
+          icon={HardDrive} label="Armazenamento" value={formatStorage(totalStorage)}
+          color="#FEC649"
+          tooltip="Espaço total ocupado pelos vídeos na biblioteca Panda Video."
+        />
+        <SummaryCard
+          icon={Link2} label="Vinculados a aulas" value={linkedCount}
+          color="#6699F3"
+          tooltip="Vídeos do Panda que estão vinculados a uma aula cadastrada na plataforma."
+        />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Ranking de vídeos — Panda */}
+        {/* Ranking interno de conclusões */}
         <div className="handify-card p-6">
-          <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#6699F3]" />
-            Vídeos mais assistidos (Panda)
-          </h2>
-          {enrichedRanking.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{pandaConfigured ? "Nenhum dado disponível ainda." : "API não configurada."}</p>
-          ) : (
-            <div className="space-y-3">
-              {enrichedRanking.slice(0, 15).map((item, i) => (
-                <div key={item.video_id} className="flex items-start gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-5 text-right mt-0.5 shrink-0">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.lesson?.lessonTitle ?? item.title ?? item.video_id}</p>
-                    <p className="text-xs text-muted-foreground truncate">{item.lesson?.courseTitle ?? "—"}</p>
-                    <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#6699F3]"
-                        style={{ width: `${Math.round((item.views / (enrichedRanking[0]?.views || 1)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold tabular-nums">{item.views.toLocaleString("pt-BR")}</p>
-                    <p className="text-xs text-muted-foreground">{item.plays.toLocaleString("pt-BR")} plays</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Top aulas por conclusão interna */}
-        <div className="handify-card p-6">
-          <h2 className="font-semibold mb-4 flex items-center gap-2">
+          <h2 className="font-semibold mb-1 flex items-center gap-2">
             <Play className="w-4 h-4 text-[#72CF92]" />
-            Aulas mais concluídas (plataforma)
+            Aulas mais concluídas
           </h2>
+          <p className="text-xs text-muted-foreground mb-4">por registros internos da plataforma</p>
           {topByCompletion.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma aula concluída ainda.</p>
           ) : (
@@ -188,84 +149,92 @@ export default async function VideosMetricasPage() {
             </div>
           )}
         </div>
+
+        {/* Top vídeos por duração */}
+        <div className="handify-card p-6">
+          <h2 className="font-semibold mb-1 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#6699F3]" />
+            Vídeos mais longos
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">por duração na biblioteca Panda</p>
+          {pandaVideos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{pandaConfigured ? "Nenhum vídeo encontrado." : "API não configurada."}</p>
+          ) : (
+            <div className="space-y-3">
+              {[...enriched]
+                .sort((a, b) => b.length - a.length)
+                .slice(0, 10)
+                .map((v, i) => (
+                  <div key={v.id} className="flex items-start gap-3">
+                    <span className="text-xs font-bold text-muted-foreground w-5 text-right mt-0.5 shrink-0">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{v.lesson?.lessonTitle ?? v.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{v.lesson?.courseTitle ?? "Não vinculado"}</p>
+                      <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[#6699F3]"
+                          style={{ width: `${Math.round((v.length / ([...enriched].sort((a, b) => b.length - a.length)[0]?.length || 1)) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums shrink-0">{formatDuration(v.length)}</span>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Retenção das top 5 aulas */}
-      {retentionSummaries.some((r) => r.avgRetention !== null) && (
+      {/* Tabela completa de vídeos */}
+      {pandaVideos.length > 0 && (
         <div className="handify-card p-6">
           <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#FEC649]" />
-            Retenção de espectadores — Top 5 vídeos
-          </h2>
-          <div className="space-y-4">
-            {retentionSummaries.map((item) => (
-              <div key={item.video_id}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{item.lesson?.lessonTitle ?? item.title ?? item.video_id}</p>
-                    <p className="text-xs text-muted-foreground">{item.lesson?.courseTitle ?? "—"}</p>
-                  </div>
-                  <div className="text-right shrink-0 ml-4">
-                    {item.avgRetention !== null && (
-                      <span className="text-sm font-semibold">{item.avgRetention}% médio</span>
-                    )}
-                    {item.endRetention !== null && (
-                      <p className="text-xs text-muted-foreground">{item.endRetention}% chegam ao final</p>
-                    )}
-                  </div>
-                </div>
-                {item.avgRetention !== null && (
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${item.avgRetention}%`,
-                        background: item.avgRetention >= 70 ? "#72CF92" : item.avgRetention >= 40 ? "#FEC649" : "#f87171",
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            Verde ≥70% · Amarelo ≥40% · Vermelho &lt;40%
-          </p>
-        </div>
-      )}
-
-      {/* Tempo assistido por vídeo */}
-      {enrichedRanking.length > 0 && (
-        <div className="handify-card p-6">
-          <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#6699F3]" />
-            Tempo total assistido por vídeo
+            <Video className="w-4 h-4 text-[#6699F3]" />
+            Biblioteca completa — {pandaVideos.length} vídeos
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-2 font-medium text-muted-foreground">#</th>
-                  <th className="pb-2 font-medium text-muted-foreground">Aula</th>
+                  <th className="pb-2 font-medium text-muted-foreground w-10">#</th>
+                  <th className="pb-2 font-medium text-muted-foreground">Vídeo</th>
                   <th className="pb-2 font-medium text-muted-foreground">Curso</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Visualizações</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Únicos</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Tempo total</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Duração</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Tamanho</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Conclusões</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {enrichedRanking.slice(0, 20).map((item, i) => (
-                  <tr key={item.video_id}>
+                {sortedVideos.map((v, i) => (
+                  <tr key={v.id} className={!v.lesson ? "opacity-50" : ""}>
                     <td className="py-2.5 pr-3 text-muted-foreground text-xs">{i + 1}</td>
-                    <td className="py-2.5 pr-4 max-w-[180px]">
-                      <p className="truncate font-medium">{item.lesson?.lessonTitle ?? item.title ?? "—"}</p>
+                    <td className="py-2.5 pr-4">
+                      <div className="flex items-center gap-2.5">
+                        {v.thumbnail ? (
+                          <Image
+                            src={v.thumbnail}
+                            alt={v.title}
+                            width={48}
+                            height={27}
+                            className="rounded shrink-0 object-cover"
+                            style={{ width: 48, height: 27 }}
+                          />
+                        ) : (
+                          <div className="w-12 h-7 rounded bg-muted shrink-0" />
+                        )}
+                        <p className="truncate font-medium max-w-[180px]">
+                          {v.lesson?.lessonTitle ?? v.title}
+                        </p>
+                      </div>
                     </td>
-                    <td className="py-2.5 pr-4 text-muted-foreground truncate max-w-[140px]">
-                      {item.lesson?.courseTitle ?? "—"}
+                    <td className="py-2.5 pr-4 text-muted-foreground text-xs truncate max-w-[140px]">
+                      {v.lesson?.courseTitle ?? <span className="italic">Não vinculado</span>}
                     </td>
-                    <td className="py-2.5 pr-4 text-right tabular-nums">{item.views.toLocaleString("pt-BR")}</td>
-                    <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{item.unique_viewers.toLocaleString("pt-BR")}</td>
-                    <td className="py-2.5 text-right tabular-nums font-medium">{formatWatchTime(item.watch_time)}</td>
+                    <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatDuration(v.length)}</td>
+                    <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatStorage(v.storage_size)}</td>
+                    <td className="py-2.5 text-right tabular-nums font-medium">
+                      {v.completions > 0 ? v.completions : <span className="text-muted-foreground">—</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -277,8 +246,8 @@ export default async function VideosMetricasPage() {
   );
 }
 
-function PandaCard({ icon: Icon, label, value, color, tooltip }: {
-  icon: React.ElementType; label: string; value: string; color: string; tooltip?: string;
+function SummaryCard({ icon: Icon, label, value, color, tooltip }: {
+  icon: React.ElementType; label: string; value: number | string; color: string; tooltip?: string;
 }) {
   return (
     <div className="handify-card p-5">

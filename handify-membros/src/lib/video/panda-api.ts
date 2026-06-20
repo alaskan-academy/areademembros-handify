@@ -15,72 +15,41 @@ async function pandaFetch<T>(path: string): Promise<T | null> {
   }
 }
 
-export interface PandaAccountAnalytics {
-  views: number;
-  plays: number;
-  watch_time: number;
-  unique_viewers: number;
-}
-
-export interface PandaVideoRankItem {
-  video_id: string;
+export interface PandaVideo {
+  id: string;
+  video_external_id: string; // este é o ID usado no player (= video_panda_id nas lições)
   title: string;
-  views: number;
-  plays: number;
-  watch_time: number;
-  unique_viewers: number;
+  length: number;            // segundos
+  storage_size: number;      // bytes
+  thumbnail: string;
+  preview: string;
+  status: string;
+  created_at: string;
 }
 
-export interface PandaRetentionPoint {
-  second: number;
-  percentage: number;
-}
-
-export interface PandaVideoAnalytics {
-  views: number;
-  plays: number;
-  watch_time: number;
-  unique_viewers: number;
-}
-
-export async function getAccountAnalytics(
-  startDate?: string,
-  endDate?: string
-): Promise<PandaAccountAnalytics | null> {
-  const params = new URLSearchParams();
-  if (startDate) params.set("start_date", startDate);
-  if (endDate) params.set("end_date", endDate);
-  const qs = params.size ? `?${params}` : "";
-  return pandaFetch<PandaAccountAnalytics>(`/analytics${qs}`);
-}
-
-export async function getVideoRanking(
-  limit = 20
-): Promise<{ data: PandaVideoRankItem[] } | null> {
-  return pandaFetch<{ data: PandaVideoRankItem[] }>(
-    `/analytics/ranking?page_size=${limit}`
-  );
-}
-
-export async function getVideoAnalytics(
-  videoId: string
-): Promise<PandaVideoAnalytics | null> {
-  return pandaFetch<PandaVideoAnalytics>(`/analytics/${videoId}`);
-}
-
-export async function getVideoRetention(
-  videoId: string
-): Promise<{ data: PandaRetentionPoint[] } | null> {
-  return pandaFetch<{ data: PandaRetentionPoint[] }>(
-    `/analytics/${videoId}/retention`
+export async function getVideos(
+  limit = 200
+): Promise<{ videos: PandaVideo[]; total: number } | null> {
+  return pandaFetch<{ videos: PandaVideo[]; pages: number; total: number }>(
+    `/videos?limit=${limit}`
   );
 }
 
 /** Formata segundos como "2h 30min" ou "45min" */
-export function formatWatchTime(seconds: number): string {
-  if (!seconds) return "0min";
+export function formatDuration(seconds: number): string {
+  if (!seconds) return "—";
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
   if (h > 0) return `${h}h ${m > 0 ? `${m}min` : ""}`.trim();
-  return `${m}min`;
+  if (m > 0) return `${m}min ${s > 0 ? `${s}s` : ""}`.trim();
+  return `${s}s`;
+}
+
+/** Formata bytes como "1.2 GB" / "340 MB" */
+export function formatStorage(bytes: number): string {
+  if (!bytes) return "—";
+  if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
+  if (bytes >= 1_048_576) return `${(bytes / 1_048_576).toFixed(0)} MB`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
 }
