@@ -8,6 +8,7 @@ import { Bell, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
+import GlobalSearch from "@/components/search/GlobalSearch";
 import type { Role } from "@/types";
 
 const NAV_ITEMS = [
@@ -88,6 +89,8 @@ export default function StudentHeader({
 
           {/* Right side */}
           <div className="flex items-center gap-1.5">
+            <GlobalSearch />
+
             <button
               aria-label="Notificações"
               className="p-2 rounded-md text-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
