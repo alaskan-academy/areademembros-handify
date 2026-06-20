@@ -4,11 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Bell, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import GlobalSearch from "@/components/search/GlobalSearch";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import type { Role } from "@/types";
 
 const NAV_ITEMS = [
@@ -21,12 +22,22 @@ interface StudentHeaderProps {
   fullName: string;
   avatarUrl: string | null;
   role: Role;
+  userId: string;
+  initialNotifications: Array<{
+    id: string; type: string; title: string;
+    body: string | null; link: string | null;
+    read: boolean; created_at: string;
+  }>;
+  initialUnread: number;
 }
 
 export default function StudentHeader({
   fullName,
   avatarUrl: _avatarUrl,
   role,
+  userId,
+  initialNotifications,
+  initialUnread,
 }: StudentHeaderProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -91,12 +102,11 @@ export default function StudentHeader({
           <div className="flex items-center gap-1.5">
             <GlobalSearch />
 
-            <button
-              aria-label="Notificações"
-              className="p-2 rounded-md text-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <Bell className="w-5 h-5" />
-            </button>
+            <NotificationBell
+              userId={userId}
+              initialNotifications={initialNotifications}
+              initialUnread={initialUnread}
+            />
 
             <div className="hidden md:flex items-center gap-2 ml-1">
               <div

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentHeader from "@/components/student-header";
 import CatalogHeader from "@/components/catalog-header";
+import { getUnreadCount, getNotifications } from "@/lib/notifications/actions";
 import type { Role } from "@/types";
 
 // Rotas dentro de (student) acessíveis sem login
@@ -25,13 +26,13 @@ export default async function StudentLayout({
 
   if (!user && !isPublic) redirect("/login");
 
-  const { data: profile } = user
-    ? await supabase
-        .from("profiles")
-        .select("full_name, avatar_url, role")
-        .eq("id", user.id)
-        .single()
-    : { data: null };
+  const [{ data: profile }, initialNotifications, unreadCount] = await Promise.all([
+    user
+      ? supabase.from("profiles").select("full_name, avatar_url, role").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+    user ? getNotifications(user.id, 30) : Promise.resolve([]),
+    user ? getUnreadCount(user.id) : Promise.resolve(0),
+  ]);
 
   // /cursos usa o CatalogHeader (suporta visitante + logada)
   if (isPublic) {
@@ -56,6 +57,9 @@ export default async function StudentLayout({
         fullName={profile?.full_name ?? ""}
         avatarUrl={profile?.avatar_url ?? null}
         role={(profile?.role ?? "student") as Role}
+        userId={user!.id}
+        initialNotifications={initialNotifications}
+        initialUnread={unreadCount}
       />
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {children}
