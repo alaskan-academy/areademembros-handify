@@ -112,7 +112,7 @@ export default function GlobalSearch() {
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-xl bg-popover rounded-xl shadow-2xl border border-border overflow-hidden"
+        className="w-full max-w-xl bg-popover text-foreground rounded-xl shadow-2xl border border-border overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
