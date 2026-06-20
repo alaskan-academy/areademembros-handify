@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Settings, BookOpen, Users, BarChart3, ChevronRight, ShoppingBag, Image } from "lucide-react";
-import GlobalSearch from "@/components/search/GlobalSearch";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -23,12 +22,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Settings className="w-4 h-4 text-[#6699F3]" />
             <span className="font-bold text-sm">Handify Admin</span>
           </div>
-          <div className="flex items-center gap-3">
-            <GlobalSearch />
-            <Link href="/dashboard" className="text-xs text-white/60 hover:text-white transition-colors flex items-center gap-1">
-              Área de alunos <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
+          <Link href="/dashboard" className="text-xs text-white/60 hover:text-white transition-colors flex items-center gap-1">
+            Área de alunos <ChevronRight className="w-3 h-3" />
+          </Link>
         </div>
         <nav className="max-w-7xl mx-auto px-4 pb-3 flex gap-6">
           {[
