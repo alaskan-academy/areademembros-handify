@@ -154,5 +154,4 @@ export async function toggleMenuItemActiveAction(
   }
 }
 
-export type { typeof VALID_ICONS };
 export const ICON_OPTIONS = VALID_ICONS;
