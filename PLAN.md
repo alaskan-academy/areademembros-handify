@@ -196,6 +196,30 @@
 - [ ] **`CERTIFICATE_ENCRYPTION_KEY`** — gerar com `openssl rand -hex 32` e adicionar nas env vars da Vercel antes de gerar qualquer certificado
 - [ ] **Botão de acesso no site externo** — ao finalizar a plataforma, adicionar botão "Acessar Área de Membros" no site principal da Handify apontando para a URL da plataforma
 
+## Fase 17 — Checagem de Segurança e Organização de Backend (Pré-launch)
+
+### Segurança
+- [ ] **RLS — revisão completa:** confirmar que todas as tabelas têm RLS ativo e policies cobrindo todos os cenários (student lê só o próprio, admin lê tudo, sem acesso anônimo a dados sensíveis)
+- [ ] **Server Actions:** garantir que todas as mutações verificam role (`assertAdmin` / `assertStudent`) antes de qualquer operação
+- [ ] **Webhook Payt:** testar HMAC com payload inválido (deve retornar 401), payload duplicado (idempotência), produto inexistente
+- [ ] **Vídeo Panda:** confirmar que `video_panda_id` nunca chega ao client sem matrícula verificada — auditar todos os Server Actions de aula
+- [ ] **Storage privado:** confirmar que todos os buckets de materiais e certificados exigem signed URL — nenhum arquivo acessível por URL direta
+- [ ] **CPF:** verificar que nunca é logado, nunca aparece em resposta JSON, nunca é exposto no client — apenas no PDF do certificado
+- [ ] **Rate limiting:** revisar se `/api/webhooks/payt` e rotas de auth têm proteção contra abuso
+- [ ] **Sanitização HTML:** confirmar que todos os blocos de conteúdo `html`/`embed` passam por DOMPurify antes de renderizar
+- [ ] **Env vars:** confirmar que nenhum segredo está hardcoded — rodar `grep` por API keys e tokens no código
+- [ ] **HTTPS / headers de segurança:** verificar `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options` no `next.config.ts`
+
+### Organização de Backend
+- [ ] **Supabase:** revisar índices nas tabelas com mais queries (`enrollments.user_id`, `lesson_progress.user_id+lesson_id`, `payment_events.buyer_email`)
+- [ ] **Queries N+1:** auditar Server Components que fazem queries dentro de loops — consolidar em joins ou `Promise.all`
+- [ ] **`payment_events` pendentes:** implementar reprocessamento automático ao criar perfil com mesmo e-mail (trigger ou cron)
+- [ ] **Audit log:** confirmar que todas as ações admin críticas (dar/revogar acesso, banir aluna, deletar conteúdo) estão sendo registradas em `audit_log`
+- [ ] **Edge cases do webhook:** testar cancelamento/reembolso — enrollment revogado corretamente, `audit_log` registrado
+- [ ] **Variáveis de ambiente:** confirmar que todas as env vars estão preenchidas na Vercel (incluindo `CERTIFICATE_ENCRYPTION_KEY`)
+- [ ] **Logs e monitoramento:** revisar se erros críticos (falha de webhook, falha de geração de certificado) são logados adequadamente
+- [ ] **Backup e retenção:** verificar configuração de backup automático do Supabase (habilitado no plano?)
+
 ## Decisões Pendentes
 
 - [ ] Domínio da plataforma (ex: `membros.handify.com.br`)
