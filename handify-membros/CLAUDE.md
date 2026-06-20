@@ -16,6 +16,27 @@ npm run test     # Vitest
 
 Copiar `.env.local.example` → `.env.local` e preencher antes de rodar.
 
+## Princípio: Backend-first
+
+**Tudo que aparece no front end deve estar configurado no backend (Supabase).**
+Antes de hardcodar qualquer dado, verifique se existe (ou deve existir) uma tabela que o gerencie:
+
+| O que               | De onde deve vir                          |
+|---------------------|-------------------------------------------|
+| Itens de menu/nav   | `menu_items` (CRUD admin, sem deploy)     |
+| Banners             | `banners` (vigência, slot, product_codes) |
+| Vitrine             | `showcase_courses` (ordem, vídeo vendas)  |
+| Páginas estáticas   | `static_pages` (FAQ, Sobre, Termos)       |
+| Categorias de curso | `categories`                              |
+| Cursos e aulas      | `courses`, `modules`, `lessons`           |
+
+Labels de status, aria-labels e UI strings genéricas podem ser constantes no código. Dados que o admin deve controlar sem deploy nunca podem ser hardcoded.
+
+**Pendente de implementar (itens hardcoded identificados):**
+- `src/components/student-header.tsx` L15 — `NAV_ITEMS` hardcoded; deve vir de `menu_items` (feature "Menu Editável" do PRD)
+- `src/components/catalog-header.tsx` L28 — idem
+- `src/app/(student)/cursos/page.tsx` L252 — texto do Hero hardcoded; deveria vir de `static_pages` ou `site_config`
+
 ## Convenções
 
 - TypeScript strict — sem `any` explícito
