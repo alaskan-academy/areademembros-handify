@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useActionState, useEffect, useCallback } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, User, Bell, Users, Home,
   ShoppingBag, Star, Heart, Globe, MessageSquare, Video,
@@ -17,7 +18,6 @@ import {
   deleteMenuItemAction,
   toggleMenuItemActiveAction,
   ICON_OPTIONS,
-  type MenuItemFormState,
 } from "./actions";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -48,8 +48,6 @@ const VISIBILITY_LABELS: Record<string, string> = {
 const SELECT_CLASS =
   "w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring";
 
-const INITIAL_STATE: MenuItemFormState = {};
-
 function ItemForm({
   item,
   parentOptions,
@@ -60,15 +58,28 @@ function ItemForm({
   onClose: () => void;
 }) {
   const isEdit = !!item;
-  const action = isEdit ? updateMenuItemAction : createMenuItemAction;
-  const [state, formAction, pending] = useActionState(action, INITIAL_STATE);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
-  useEffect(() => {
-    if (state.success) onClose();
-  }, [state.success, onClose]);
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const action = isEdit ? updateMenuItemAction : createMenuItemAction;
+      const result = await action({}, formData);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        router.refresh();
+        onClose();
+      }
+    });
+  }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {isEdit && <input type="hidden" name="id" value={item.id} />}
 
       <div className="grid grid-cols-2 gap-3">
@@ -162,21 +173,21 @@ function ItemForm({
         </div>
       </div>
 
-      {state.error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{state.error}</p>
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-md px-3 py-2">{error}</p>
       )}
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+        <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
           Cancelar
         </Button>
         <Button
           type="submit"
-          disabled={pending}
+          disabled={isPending}
           style={{ background: "#6699F3" }}
           className="text-white"
         >
-          {pending ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar item"}
+          {isPending ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar item"}
         </Button>
       </div>
     </form>
@@ -229,6 +240,7 @@ function Modal({
 }
 
 export default function MenuClient({ items }: { items: MenuItem[] }) {
+  const router = useRouter();
   const [dialogItem, setDialogItem] = useState<MenuItem | null | "new">(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -244,12 +256,14 @@ export default function MenuClient({ items }: { items: MenuItem[] }) {
     setDeletingId(id);
     await deleteMenuItemAction(id);
     setDeletingId(null);
+    router.refresh();
   }
 
   async function handleToggle(id: string, active: boolean) {
     setTogglingId(id);
     await toggleMenuItemActiveAction(id, !active);
     setTogglingId(null);
+    router.refresh();
   }
 
   function renderRow(item: MenuItem, isChild = false) {
