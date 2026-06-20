@@ -62,7 +62,7 @@ export async function createMenuItemAction(
     });
 
     if (!parsed.success) {
-      return { error: parsed.error.errors[0].message };
+      return { error: parsed.error.issues[0].message };
     }
 
     const { error } = await service.from("menu_items").insert(parsed.data);
@@ -99,7 +99,7 @@ export async function updateMenuItemAction(
     });
 
     if (!parsed.success) {
-      return { error: parsed.error.errors[0].message };
+      return { error: parsed.error.issues[0].message };
     }
 
     const { error } = await service
