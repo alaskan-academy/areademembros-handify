@@ -154,6 +154,7 @@
   }
   html {
     @apply font-sans;
+    scrollbar-gutter: stable; /* evita layout shift quando scrollbar aparece */
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-montserrat), Arial, Helvetica, sans-serif;
