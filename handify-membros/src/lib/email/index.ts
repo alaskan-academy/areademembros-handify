@@ -1,7 +1,10 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "Handify <noreply@handify.com.br>";
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function sendCertificateEmail({
   to,
@@ -16,7 +19,7 @@ export async function sendCertificateEmail({
 }): Promise<void> {
   const firstName = studentName.split(" ")[0];
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to,
     subject: `Parabéns! Seu certificado de "${courseTitle}" está pronto`,
@@ -91,7 +94,7 @@ export async function sendWelcomeEmail({
   const firstName = studentName.split(" ")[0];
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://membros.handify.com.br";
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM,
     to,
     subject: "Bem-vinda à Handify! Um espaço feito para aprender e criar.",
