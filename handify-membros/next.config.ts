@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://player.pandavideo.com.br https://*.pandavideo.com.br https://*.tv.pandavideo.com.br",
-              "frame-src 'self' https://player.pandavideo.com.br https://*.pandavideo.com.br https://*.tv.pandavideo.com.br https://docs.google.com https://www.youtube.com https://notion.so https://www.canva.com https://biblioteca.handify.com.br",
+              "frame-src 'self' https://player.pandavideo.com.br https://*.pandavideo.com.br https://*.tv.pandavideo.com.br https://docs.google.com https://www.youtube.com https://notion.so https://www.canva.com https://biblioteca.handify.com.br https://custoelucro.handify.com.br",
               "img-src 'self' data: blob: https:",
               "style-src 'self' 'unsafe-inline'",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.pandavideo.com.br https://*.tv.pandavideo.com.br",

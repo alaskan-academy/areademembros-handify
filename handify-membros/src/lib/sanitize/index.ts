@@ -43,6 +43,7 @@ const EMBED_ALLOWLIST = [
   "youtu.be",
   "www.youtube.com",
   "biblioteca.handify.com.br",
+  "custoelucro.handify.com.br",
 ];
 
 export function isAllowedEmbedUrl(url: string): boolean {
