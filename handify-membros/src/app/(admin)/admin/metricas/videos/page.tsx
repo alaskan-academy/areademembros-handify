@@ -9,6 +9,7 @@ import {
   type PandaVideoRankItem,
 } from "@/lib/video/panda-api";
 import { Eye, Play, Clock, Users, TrendingUp, AlertCircle } from "lucide-react";
+import { InfoTooltip } from "../metric-tooltip";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -113,10 +114,14 @@ export default async function VideosMetricasPage() {
       {/* Cards conta Panda */}
       {accountData && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <PandaCard icon={Eye} label="Visualizações totais" value={accountData.views.toLocaleString("pt-BR")} color="#6699F3" />
-          <PandaCard icon={Play} label="Plays totais" value={accountData.plays.toLocaleString("pt-BR")} color="#72CF92" />
-          <PandaCard icon={Clock} label="Tempo assistido" value={formatWatchTime(accountData.watch_time)} color="#FEC649" />
-          <PandaCard icon={Users} label="Espectadores únicos" value={accountData.unique_viewers.toLocaleString("pt-BR")} color="#6699F3" />
+          <PandaCard icon={Eye} label="Visualizações totais" value={accountData.views.toLocaleString("pt-BR")} color="#6699F3"
+            tooltip="Número de vezes que qualquer vídeo foi carregado no player, incluindo recarregamentos da mesma sessão." />
+          <PandaCard icon={Play} label="Plays totais" value={accountData.plays.toLocaleString("pt-BR")} color="#72CF92"
+            tooltip="Número de vezes que o botão Play foi acionado. Diferente de visualizações — a aluna pode carregar o player e não dar play." />
+          <PandaCard icon={Clock} label="Tempo assistido" value={formatWatchTime(accountData.watch_time)} color="#FEC649"
+            tooltip="Soma acumulada do tempo efetivamente assistido por todas as alunas em todos os vídeos da plataforma." />
+          <PandaCard icon={Users} label="Espectadores únicos" value={accountData.unique_viewers.toLocaleString("pt-BR")} color="#6699F3"
+            tooltip="Visitantes distintos que assistiram pelo menos parte de algum vídeo. Baseado em cookie/fingerprint do Panda Video." />
         </div>
       )}
 
@@ -272,8 +277,8 @@ export default async function VideosMetricasPage() {
   );
 }
 
-function PandaCard({ icon: Icon, label, value, color }: {
-  icon: React.ElementType; label: string; value: string; color: string;
+function PandaCard({ icon: Icon, label, value, color, tooltip }: {
+  icon: React.ElementType; label: string; value: string; color: string; tooltip?: string;
 }) {
   return (
     <div className="handify-card p-5">
@@ -281,7 +286,8 @@ function PandaCard({ icon: Icon, label, value, color }: {
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: color + "20" }}>
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
+        <span className="text-xs text-muted-foreground font-medium flex-1">{label}</span>
+        {tooltip && <InfoTooltip text={tooltip} />}
       </div>
       <p className="text-2xl font-bold">{value}</p>
     </div>

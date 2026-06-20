@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { Trophy, BookOpen, Award, Activity, UserCheck, Clock } from "lucide-react";
+import { InfoTooltip } from "../metric-tooltip";
 import Image from "next/image";
 
 async function assertAdmin() {
@@ -104,10 +105,14 @@ export default async function AlunaRankingPage() {
     <div className="space-y-8">
       {/* Cards de engajamento */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={UserCheck} label="Alunas com progresso" value={alunaComProgresso} color="#6699F3" />
-        <StatCard icon={BookOpen} label="Aulas concluídas total" value={totalCompleted} color="#72CF92" />
-        <StatCard icon={Award} label="Com certificados" value={alunaComCertificado} color="#FEC649" />
-        <StatCard icon={Activity} label="Taxa de engajamento" value={`${engagementRate}%`} color="#6699F3" />
+        <StatCard icon={UserCheck} label="Alunas com progresso" value={alunaComProgresso} color="#6699F3"
+          tooltip="Alunas que iniciaram pelo menos uma aula — têm algum registro de progresso na plataforma." />
+        <StatCard icon={BookOpen} label="Aulas concluídas total" value={totalCompleted} color="#72CF92"
+          tooltip="Soma de todas as aulas marcadas como concluídas em toda a plataforma (pelo botão explícito ou ao atingir 90% do vídeo)." />
+        <StatCard icon={Award} label="Com certificados" value={alunaComCertificado} color="#FEC649"
+          tooltip="Número de alunas que receberam pelo menos um certificado de conclusão de curso." />
+        <StatCard icon={Activity} label="Taxa de engajamento" value={`${engagementRate}%`} color="#6699F3"
+          tooltip="Proporção de aulas concluídas em relação ao total de aulas iniciadas (concluídas ÷ total com progresso × 100)." />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -272,8 +277,8 @@ function RankingCard({
   );
 }
 
-function StatCard({ icon: Icon, label, value, color }: {
-  icon: React.ElementType; label: string; value: number | string; color: string;
+function StatCard({ icon: Icon, label, value, color, tooltip }: {
+  icon: React.ElementType; label: string; value: number | string; color: string; tooltip?: string;
 }) {
   return (
     <div className="handify-card p-5">
@@ -281,7 +286,8 @@ function StatCard({ icon: Icon, label, value, color }: {
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: color + "20" }}>
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
+        <span className="text-xs text-muted-foreground font-medium flex-1">{label}</span>
+        {tooltip && <InfoTooltip text={tooltip} />}
       </div>
       <p className="text-3xl font-bold">{value}</p>
     </div>

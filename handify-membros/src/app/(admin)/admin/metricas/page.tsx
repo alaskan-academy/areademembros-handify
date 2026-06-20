@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { Users, BookOpen, Award, Webhook, TrendingUp, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { InfoTooltip } from "./metric-tooltip";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -88,10 +89,14 @@ export default async function MetricasPage() {
 
       {/* Cards de totais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Alunas ativas" value={totalAlunas ?? 0} color="#6699F3" />
-        <StatCard icon={BookOpen} label="Matrículas ativas" value={totalMatriculas ?? 0} color="#72CF92" />
-        <StatCard icon={Award} label="Certificados emitidos" value={totalCertificados ?? 0} color="#FEC649" />
-        <StatCard icon={TrendingUp} label="Taxa de conclusão" value={`${taxaConclusao}%`} color="#6699F3" />
+        <StatCard icon={Users} label="Alunas ativas" value={totalAlunas ?? 0} color="#6699F3"
+          tooltip="Alunas com conta ativa e não banidas na plataforma." />
+        <StatCard icon={BookOpen} label="Matrículas ativas" value={totalMatriculas ?? 0} color="#72CF92"
+          tooltip="Matrículas com acesso vigente — vitalícias ou dentro do prazo de validade." />
+        <StatCard icon={Award} label="Certificados emitidos" value={totalCertificados ?? 0} color="#FEC649"
+          tooltip="Total de certificados de conclusão gerados na plataforma." />
+        <StatCard icon={TrendingUp} label="Taxa de conclusão" value={`${taxaConclusao}%`} color="#6699F3"
+          tooltip="Proporção de certificados em relação às matrículas ativas (certificados ÷ matrículas × 100)." />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -200,11 +205,12 @@ export default async function MetricasPage() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, color }: {
+function StatCard({ icon: Icon, label, value, color, tooltip }: {
   icon: React.ElementType;
   label: string;
   value: number | string;
   color: string;
+  tooltip?: string;
 }) {
   return (
     <div className="handify-card p-5">
@@ -212,7 +218,8 @@ function StatCard({ icon: Icon, label, value, color }: {
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: color + "20" }}>
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
+        <span className="text-xs text-muted-foreground font-medium flex-1">{label}</span>
+        {tooltip && <InfoTooltip text={tooltip} />}
       </div>
       <p className="text-3xl font-bold">{value}</p>
     </div>
