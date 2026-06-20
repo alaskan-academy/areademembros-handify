@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { getVideos, formatDuration, formatStorage } from "@/lib/video/panda-api";
 import { InfoTooltip } from "../metric-tooltip";
-import { Video, Clock, HardDrive, Link2, Play, AlertCircle } from "lucide-react";
+import { Video, Clock, HardDrive, Eye, Play, AlertCircle } from "lucide-react";
 import Image from "next/image";
 
 async function assertAdmin() {
@@ -18,24 +18,20 @@ export default async function VideosMetricasPage() {
   await assertAdmin();
   const service = createServiceClient();
 
-  // Busca vídeos do Panda e lições do Supabase em paralelo
-  const [pandaResult, { data: lessons }, { data: progressData }] = await Promise.all([
+  const [pandaResult, { data: lessons }, { data: allProgress }] = await Promise.all([
     getVideos(200),
     service
       .from("lessons")
       .select("id, title, video_panda_id, module:modules(course_id, courses(title, slug))")
       .not("video_panda_id", "is", null),
-    service
-      .from("lesson_progress")
-      .select("lesson_id")
-      .eq("completed", true),
+    // Todos os registros de progresso (completed ou não) = proxy de "visualizações"
+    service.from("lesson_progress").select("lesson_id, completed"),
   ]);
 
   const pandaConfigured = !!process.env.PANDA_VIDEO_API_KEY;
   const pandaVideos = pandaResult?.videos ?? [];
-  const pandaTotal = pandaResult?.total ?? 0;
 
-  // Mapa video_panda_id → info da lição
+  // Mapa video_external_id → info da lição
   type LessonInfo = { lessonId: string; lessonTitle: string; courseTitle: string; courseSlug: string };
   const lessonByVideoId = new Map<string, LessonInfo>();
   for (const l of lessons ?? []) {
@@ -49,191 +45,178 @@ export default async function VideosMetricasPage() {
     });
   }
 
-  // Conclusões internas por lição
-  const completedByLesson = new Map<string, number>();
-  for (const p of progressData ?? []) {
-    completedByLesson.set(p.lesson_id, (completedByLesson.get(p.lesson_id) ?? 0) + 1);
+  // Agrega progresso por lição
+  const startedByLesson = new Map<string, number>();   // qualquer progresso = "assistiu"
+  const completedByLesson = new Map<string, number>(); // concluídas
+  for (const p of allProgress ?? []) {
+    startedByLesson.set(p.lesson_id, (startedByLesson.get(p.lesson_id) ?? 0) + 1);
+    if (p.completed) completedByLesson.set(p.lesson_id, (completedByLesson.get(p.lesson_id) ?? 0) + 1);
   }
 
-  // Enriquece vídeos Panda com dados de lição + conclusões
-  const enriched = pandaVideos.map((v) => {
-    const lesson = lessonByVideoId.get(v.video_external_id) ?? null;
-    const completions = lesson ? (completedByLesson.get(lesson.lessonId) ?? 0) : 0;
-    return { ...v, lesson, completions };
-  });
+  // Apenas vídeos vinculados a lições da plataforma
+  const linked = pandaVideos
+    .map((v) => {
+      const lesson = lessonByVideoId.get(v.video_external_id) ?? null;
+      if (!lesson) return null;
+      const started = startedByLesson.get(lesson.lessonId) ?? 0;
+      const completed = completedByLesson.get(lesson.lessonId) ?? 0;
+      return { ...v, lesson, started, completed };
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
 
-  // Cards de resumo
-  const totalDuration = pandaVideos.reduce((s, v) => s + (v.length ?? 0), 0);
-  const totalStorage = pandaVideos.reduce((s, v) => s + (v.storage_size ?? 0), 0);
-  const linkedCount = enriched.filter((v) => v.lesson !== null).length;
+  // Cards de resumo — apenas vídeos vinculados
+  const totalDuration = linked.reduce((s, v) => s + (v.length ?? 0), 0);
+  const totalStorage = linked.reduce((s, v) => s + (v.storage_size ?? 0), 0);
+  const totalViews = linked.reduce((s, v) => s + v.started, 0);
 
-  // Ranking interno: top aulas por conclusão
-  const topByCompletion = [...completedByLesson.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([lessonId, count]) => {
-      const lesson = (lessons ?? []).find((l) => l.id === lessonId);
-      const mod = lesson?.module as unknown as { courses: { title: string } | null } | null;
-      return {
-        lessonId,
-        lessonTitle: lesson?.title ?? "—",
-        courseTitle: mod?.courses?.title ?? "—",
-        count,
-      };
-    });
+  // Rankings
+  const topByStarted = [...linked].sort((a, b) => b.started - a.started).slice(0, 10);
+  const topByCompleted = [...linked].sort((a, b) => b.completed - a.completed).slice(0, 10);
 
-  // Ordena tabela por conclusões desc, depois por duração desc
-  const sortedVideos = [...enriched].sort((a, b) => b.completions - a.completions || b.length - a.length);
+  // Tabela completa ordenada por visualizações
+  const sortedLinked = [...linked].sort((a, b) => b.started - a.started || b.length - a.length);
+  const maxStarted = topByStarted[0]?.started || 1;
 
   return (
     <div className="space-y-8">
       {!pandaConfigured && (
         <div className="flex items-center gap-3 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span><strong>PANDA_VIDEO_API_KEY</strong> não configurada. Configure nas env vars para ver a biblioteca de vídeos.</span>
+          <span><strong>PANDA_VIDEO_API_KEY</strong> não configurada.</span>
         </div>
       )}
 
-      {/* Cards de resumo da biblioteca */}
+      {/* Cards — apenas vídeos da plataforma */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard
-          icon={Video} label="Total de vídeos" value={pandaTotal || pandaVideos.length}
-          color="#6699F3"
-          tooltip="Total de vídeos na biblioteca Panda Video da conta."
-        />
-        <SummaryCard
-          icon={Clock} label="Duração total" value={formatDuration(totalDuration)}
-          color="#72CF92"
-          tooltip="Soma das durações de todos os vídeos da biblioteca Panda Video."
-        />
-        <SummaryCard
-          icon={HardDrive} label="Armazenamento" value={formatStorage(totalStorage)}
-          color="#FEC649"
-          tooltip="Espaço total ocupado pelos vídeos na biblioteca Panda Video."
-        />
-        <SummaryCard
-          icon={Link2} label="Vinculados a aulas" value={linkedCount}
-          color="#6699F3"
-          tooltip="Vídeos do Panda que estão vinculados a uma aula cadastrada na plataforma."
-        />
+        <SummaryCard icon={Video} label="Vídeos na plataforma" value={linked.length} color="#6699F3"
+          tooltip="Vídeos do Panda vinculados a uma aula cadastrada na plataforma." />
+        <SummaryCard icon={Clock} label="Duração total" value={formatDuration(totalDuration)} color="#72CF92"
+          tooltip="Soma das durações de todos os vídeos vinculados à plataforma." />
+        <SummaryCard icon={HardDrive} label="Armazenamento" value={formatStorage(totalStorage)} color="#FEC649"
+          tooltip="Espaço ocupado pelos vídeos vinculados à plataforma no Panda Video." />
+        <SummaryCard icon={Eye} label="Total de visualizações" value={totalViews} color="#6699F3"
+          tooltip="Soma de todos os registros de progresso das aulas (iniciadas ou concluídas) — proxy interno de visualizações." />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Ranking interno de conclusões */}
+        {/* Mais assistidas */}
         <div className="handify-card p-6">
           <h2 className="font-semibold mb-1 flex items-center gap-2">
-            <Play className="w-4 h-4 text-[#72CF92]" />
-            Aulas mais concluídas
+            <Eye className="w-4 h-4 text-[#6699F3]" />
+            Mais assistidas
           </h2>
-          <p className="text-xs text-muted-foreground mb-4">por registros internos da plataforma</p>
-          {topByCompletion.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma aula concluída ainda.</p>
+          <p className="text-xs text-muted-foreground mb-4">por alunas que iniciaram a aula</p>
+          {topByStarted.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum dado ainda.</p>
           ) : (
             <div className="space-y-3">
-              {topByCompletion.map((item, i) => (
-                <div key={item.lessonId} className="flex items-start gap-3">
+              {topByStarted.map((v, i) => (
+                <div key={v.id} className="flex items-start gap-3">
                   <span className="text-xs font-bold text-muted-foreground w-5 text-right mt-0.5 shrink-0">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.lessonTitle}</p>
-                    <p className="text-xs text-muted-foreground truncate">{item.courseTitle}</p>
+                    <p className="text-sm font-medium truncate">{v.lesson.lessonTitle}</p>
+                    <p className="text-xs text-muted-foreground truncate">{v.lesson.courseTitle}</p>
                     <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#72CF92]"
-                        style={{ width: `${Math.round((item.count / (topByCompletion[0]?.count || 1)) * 100)}%` }}
-                      />
+                      <div className="h-full rounded-full bg-[#6699F3]"
+                        style={{ width: `${Math.round((v.started / maxStarted) * 100)}%` }} />
                     </div>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums shrink-0">{item.count}</span>
+                  <span className="text-sm font-semibold tabular-nums shrink-0">{v.started}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Top vídeos por duração */}
+        {/* Mais concluídas */}
         <div className="handify-card p-6">
           <h2 className="font-semibold mb-1 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#6699F3]" />
-            Vídeos mais longos
+            <Play className="w-4 h-4 text-[#72CF92]" />
+            Mais concluídas
           </h2>
-          <p className="text-xs text-muted-foreground mb-4">por duração na biblioteca Panda</p>
-          {pandaVideos.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{pandaConfigured ? "Nenhum vídeo encontrado." : "API não configurada."}</p>
+          <p className="text-xs text-muted-foreground mb-4">por alunas que finalizaram a aula</p>
+          {topByCompleted.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma aula concluída ainda.</p>
           ) : (
             <div className="space-y-3">
-              {[...enriched]
-                .sort((a, b) => b.length - a.length)
-                .slice(0, 10)
-                .map((v, i) => (
-                  <div key={v.id} className="flex items-start gap-3">
-                    <span className="text-xs font-bold text-muted-foreground w-5 text-right mt-0.5 shrink-0">{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{v.lesson?.lessonTitle ?? v.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{v.lesson?.courseTitle ?? "Não vinculado"}</p>
-                      <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[#6699F3]"
-                          style={{ width: `${Math.round((v.length / ([...enriched].sort((a, b) => b.length - a.length)[0]?.length || 1)) * 100)}%` }}
-                        />
-                      </div>
+              {topByCompleted.map((v, i) => (
+                <div key={v.id} className="flex items-start gap-3">
+                  <span className="text-xs font-bold text-muted-foreground w-5 text-right mt-0.5 shrink-0">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{v.lesson.lessonTitle}</p>
+                    <p className="text-xs text-muted-foreground truncate">{v.lesson.courseTitle}</p>
+                    <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full bg-[#72CF92]"
+                        style={{ width: `${Math.round((v.completed / (topByCompleted[0]?.completed || 1)) * 100)}%` }} />
                     </div>
-                    <span className="text-sm font-semibold tabular-nums shrink-0">{formatDuration(v.length)}</span>
                   </div>
-                ))}
+                  <span className="text-sm font-semibold tabular-nums shrink-0">{v.completed}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Tabela completa de vídeos */}
-      {pandaVideos.length > 0 && (
+      {/* Tabela completa — só vídeos vinculados */}
+      {linked.length > 0 && (
         <div className="handify-card p-6">
           <h2 className="font-semibold mb-4 flex items-center gap-2">
             <Video className="w-4 h-4 text-[#6699F3]" />
-            Biblioteca completa — {pandaVideos.length} vídeos
+            Todas as aulas em vídeo — {linked.length} vídeos
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-2 font-medium text-muted-foreground w-10">#</th>
-                  <th className="pb-2 font-medium text-muted-foreground">Vídeo</th>
+                  <th className="pb-2 font-medium text-muted-foreground w-8">#</th>
+                  <th className="pb-2 font-medium text-muted-foreground">Aula</th>
                   <th className="pb-2 font-medium text-muted-foreground">Curso</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">Duração</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">Tamanho</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Conclusões</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      Assistidas
+                      <InfoTooltip text="Alunas que iniciaram a aula (qualquer progresso registrado)." />
+                    </span>
+                  </th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      Concluídas
+                      <InfoTooltip text="Alunas que marcaram a aula como concluída (botão explícito ou 90% do vídeo)." />
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {sortedVideos.map((v, i) => (
-                  <tr key={v.id} className={!v.lesson ? "opacity-50" : ""}>
+                {sortedLinked.map((v, i) => (
+                  <tr key={v.id}>
                     <td className="py-2.5 pr-3 text-muted-foreground text-xs">{i + 1}</td>
                     <td className="py-2.5 pr-4">
                       <div className="flex items-center gap-2.5">
                         {v.thumbnail ? (
-                          <Image
-                            src={v.thumbnail}
-                            alt={v.title}
-                            width={48}
-                            height={27}
+                          <Image src={v.thumbnail} alt={v.lesson.lessonTitle}
+                            width={48} height={27}
                             className="rounded shrink-0 object-cover"
-                            style={{ width: 48, height: 27 }}
-                          />
+                            style={{ width: 48, height: 27 }} />
                         ) : (
                           <div className="w-12 h-7 rounded bg-muted shrink-0" />
                         )}
-                        <p className="truncate font-medium max-w-[180px]">
-                          {v.lesson?.lessonTitle ?? v.title}
-                        </p>
+                        <p className="truncate font-medium max-w-[180px]">{v.lesson.lessonTitle}</p>
                       </div>
                     </td>
-                    <td className="py-2.5 pr-4 text-muted-foreground text-xs truncate max-w-[140px]">
-                      {v.lesson?.courseTitle ?? <span className="italic">Não vinculado</span>}
-                    </td>
+                    <td className="py-2.5 pr-4 text-muted-foreground text-xs truncate max-w-[140px]">{v.lesson.courseTitle}</td>
                     <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatDuration(v.length)}</td>
                     <td className="py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatStorage(v.storage_size)}</td>
+                    <td className="py-2.5 pr-4 text-right tabular-nums font-medium">
+                      {v.started > 0 ? v.started : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="py-2.5 text-right tabular-nums font-medium">
-                      {v.completions > 0 ? v.completions : <span className="text-muted-foreground">—</span>}
+                      {v.completed > 0 ? (
+                        <span style={{ color: "#72CF92" }}>{v.completed}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
