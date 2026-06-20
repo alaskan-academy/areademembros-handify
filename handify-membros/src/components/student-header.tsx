@@ -4,7 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import {
+  Menu, X,
+  LayoutDashboard, BookOpen, User, Bell, Users, Home,
+  ShoppingBag, Star, Heart, Globe, MessageSquare, Video,
+  Award, Settings, HelpCircle, GraduationCap, Layers,
+  Zap, Gift, Map, type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -12,10 +18,26 @@ import GlobalSearch from "@/components/search/GlobalSearch";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import type { Role } from "@/types";
 
-const NAV_ITEMS = [
-  { label: "Minha Jornada", href: "/dashboard" },
-  { label: "Cursos", href: "/cursos" },
-  { label: "Perfil", href: "/perfil" },
+const ICON_MAP: Record<string, LucideIcon> = {
+  LayoutDashboard, BookOpen, User, Bell, Users, Home,
+  ShoppingBag, Star, Heart, Globe, MessageSquare, Video,
+  Award, Settings, HelpCircle, GraduationCap, Layers,
+  Zap, Gift, Map,
+};
+
+export type NavItem = {
+  label: string;
+  href: string;
+  icon: string | null;
+  target: "_self" | "_blank";
+  visible_to: "guest" | "student" | "admin";
+};
+
+// Fallback used when menu_items table is empty (before migration)
+const FALLBACK_NAV: NavItem[] = [
+  { label: "Minha Jornada", href: "/dashboard", icon: "LayoutDashboard", target: "_self", visible_to: "student" },
+  { label: "Cursos", href: "/cursos", icon: "BookOpen", target: "_self", visible_to: "guest" },
+  { label: "Perfil", href: "/perfil", icon: "User", target: "_self", visible_to: "student" },
 ];
 
 interface StudentHeaderProps {
@@ -29,6 +51,7 @@ interface StudentHeaderProps {
     read: boolean; created_at: string;
   }>;
   initialUnread: number;
+  navItems?: NavItem[];
 }
 
 export default function StudentHeader({
@@ -38,11 +61,48 @@ export default function StudentHeader({
   userId,
   initialNotifications,
   initialUnread,
+  navItems,
 }: StudentHeaderProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   const initial = fullName?.charAt(0)?.toUpperCase() || "A";
+
+  const items = navItems && navItems.length > 0 ? navItems : FALLBACK_NAV;
+
+  // Filter items by visibility for the current user
+  const visibleItems = items.filter((item) => {
+    if (item.visible_to === "guest") return true;
+    if (item.visible_to === "student") return true; // layout only renders StudentHeader when logged in
+    if (item.visible_to === "admin") return role === "admin";
+    return false;
+  });
+
+  function NavLink({ item, block = false }: { item: NavItem; block?: boolean }) {
+    const Icon = item.icon ? ICON_MAP[item.icon] : null;
+    const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+    const isAdmin = item.visible_to === "admin";
+
+    return (
+      <Link
+        href={item.href}
+        target={item.target}
+        rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
+        onClick={() => block && setOpen(false)}
+        className={cn(
+          block ? "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors" : "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+          isAdmin
+            ? "text-[#FEC649] hover:bg-[#FEC649]/10"
+            : isActive
+            ? "text-[#6699F3] bg-[#6699F3]/10"
+            : "text-foreground/70 hover:text-foreground hover:bg-muted"
+        )}
+      >
+        {Icon && <Icon className="w-4 h-4 shrink-0" />}
+        {item.label}
+      </Link>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-border/60 shadow-sm">
@@ -74,28 +134,9 @@ export default function StudentHeader({
 
           {/* Nav desktop */}
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  pathname === item.href || pathname.startsWith(item.href + "/")
-                    ? "text-[#6699F3] bg-[#6699F3]/10"
-                    : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                )}
-              >
-                {item.label}
-              </Link>
+            {visibleItems.map((item) => (
+              <NavLink key={item.href} item={item} />
             ))}
-            {role === "admin" && (
-              <Link
-                href="/admin"
-                className="px-3 py-1.5 rounded-md text-sm font-medium text-[#FEC649] hover:bg-[#FEC649]/10 transition-colors"
-              >
-                Admin
-              </Link>
-            )}
           </nav>
 
           {/* Right side */}
@@ -141,30 +182,9 @@ export default function StudentHeader({
         {/* Mobile menu */}
         {open && (
           <div className="md:hidden py-3 border-t border-border/40 space-y-1 pb-4">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "block px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                  pathname === item.href || pathname.startsWith(item.href + "/")
-                    ? "text-[#6699F3] bg-[#6699F3]/10"
-                    : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                )}
-              >
-                {item.label}
-              </Link>
+            {visibleItems.map((item) => (
+              <NavLink key={item.href} item={item} block />
             ))}
-            {role === "admin" && (
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="block px-3 py-2 rounded-md text-sm font-medium text-[#FEC649] hover:bg-[#FEC649]/10"
-              >
-                Admin
-              </Link>
-            )}
             <div className="pt-3 border-t border-border/40 flex items-center justify-between px-3">
               <div className="flex items-center gap-2">
                 <div

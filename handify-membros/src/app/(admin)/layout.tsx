@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Settings, BookOpen, Users, BarChart3, ChevronRight, ShoppingBag, Image, Bell } from "lucide-react";
+import { Settings, BookOpen, Users, BarChart3, ChevronRight, ShoppingBag, Image, Bell, Menu } from "lucide-react";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -34,6 +34,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             { href: "/admin/banners", icon: Image, label: "Banners" },
             { href: "/admin/metricas", icon: BarChart3, label: "Métricas" },
             { href: "/admin/notificacoes", icon: Bell, label: "Notificações" },
+            { href: "/admin/menu", icon: Menu, label: "Menu" },
           ].map(({ href, icon: Icon, label }) => (
             <Link key={href} href={href} className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors">
               <Icon className="w-3.5 h-3.5" />

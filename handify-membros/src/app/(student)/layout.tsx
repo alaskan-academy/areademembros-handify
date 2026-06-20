@@ -6,6 +6,7 @@ import StudentHeader from "@/components/student-header";
 import CatalogHeader from "@/components/catalog-header";
 import { getUnreadCount, getNotifications } from "@/lib/notifications/actions";
 import type { Role } from "@/types";
+import type { NavItem } from "@/components/student-header";
 
 // Rotas dentro de (student) acessíveis sem login
 const PUBLIC_PATHS = ["/cursos"];
@@ -26,13 +27,27 @@ export default async function StudentLayout({
 
   if (!user && !isPublic) redirect("/login");
 
-  const [{ data: profile }, initialNotifications, unreadCount] = await Promise.all([
-    user
-      ? supabase.from("profiles").select("full_name, avatar_url, role").eq("id", user.id).single()
-      : Promise.resolve({ data: null }),
-    user ? getNotifications(user.id, 30) : Promise.resolve([]),
-    user ? getUnreadCount(user.id) : Promise.resolve(0),
-  ]);
+  const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }] =
+    await Promise.all([
+      user
+        ? supabase.from("profiles").select("full_name, avatar_url, role").eq("id", user.id).single()
+        : Promise.resolve({ data: null }),
+      user ? getNotifications(user.id, 30) : Promise.resolve([]),
+      user ? getUnreadCount(user.id) : Promise.resolve(0),
+      supabase
+        .from("menu_items")
+        .select("label, url, icon, target, visible_to, position")
+        .eq("active", true)
+        .order("position", { ascending: true }),
+    ]);
+
+  const navItems: NavItem[] = (menuItemsRaw ?? []).map((i) => ({
+    label: i.label,
+    href: i.url,
+    icon: i.icon ?? null,
+    target: (i.target as "_self" | "_blank") ?? "_self",
+    visible_to: i.visible_to as "guest" | "student" | "admin",
+  }));
 
   // /cursos: logada usa StudentHeader (consistência), visitante usa CatalogHeader
   if (isPublic) {
@@ -46,6 +61,7 @@ export default async function StudentLayout({
             userId={user.id}
             initialNotifications={initialNotifications}
             initialUnread={unreadCount}
+            navItems={navItems}
           />
         ) : (
           <CatalogHeader isLoggedIn={false} />
@@ -67,6 +83,7 @@ export default async function StudentLayout({
         userId={user!.id}
         initialNotifications={initialNotifications}
         initialUnread={unreadCount}
+        navItems={navItems}
       />
       <main className="flex-1 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

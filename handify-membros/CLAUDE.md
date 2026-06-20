@@ -33,9 +33,7 @@ Antes de hardcodar qualquer dado, verifique se existe (ou deve existir) uma tabe
 Labels de status, aria-labels e UI strings genéricas podem ser constantes no código. Dados que o admin deve controlar sem deploy nunca podem ser hardcoded.
 
 **Pendente de implementar (itens hardcoded identificados):**
-- `src/components/student-header.tsx` L15 — `NAV_ITEMS` hardcoded; deve vir de `menu_items` (feature "Menu Editável" do PRD)
-- `src/components/catalog-header.tsx` L28 — idem
-- `src/app/(student)/cursos/page.tsx` L252 — texto do Hero hardcoded; deveria vir de `static_pages` ou `site_config`
+- `src/app/(student)/cursos/page.tsx` — texto do Hero hardcoded; deveria vir de `static_pages` ou `site_config`
 
 ## Convenções
 
