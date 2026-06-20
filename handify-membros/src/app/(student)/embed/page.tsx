@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import { isAllowedEmbedUrl } from "@/lib/sanitize";
+import { isAllowedEmbedUrl } from "@/lib/sanitize/allowlist";
 
 export const metadata = { title: "Conteúdo — Handify" };
 
