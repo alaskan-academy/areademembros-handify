@@ -192,7 +192,7 @@ export default function PerfilView() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 pb-12">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-12">
       {/* Banner certificado */}
       {newCert && (
         <div className="handify-card p-4 border-[#72CF92]/40 bg-[#72CF92]/10 flex items-center gap-3">

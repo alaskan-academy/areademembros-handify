@@ -49,47 +49,25 @@ export default async function StudentLayout({
     visible_to: i.visible_to as "guest" | "student" | "admin",
   }));
 
-  // /cursos: logada usa StudentHeader (consistência), visitante usa CatalogHeader
-  if (isPublic) {
-    return (
-      <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
-        {user ? (
-          <StudentHeader
-            fullName={profile?.full_name ?? ""}
-            avatarUrl={profile?.avatar_url ?? null}
-            role={(profile?.role ?? "student") as Role}
-            userId={user.id}
-            initialNotifications={initialNotifications}
-            initialUnread={unreadCount}
-            navItems={navItems}
-          />
-        ) : (
-          <CatalogHeader isLoggedIn={false} />
-        )}
-        <main className="flex-1">{children}</main>
-        <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
-          © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
-        </footer>
-      </div>
-    );
-  }
-
+  // Layout unificado — mesma estrutura HTML independente da rota.
+  // Rotas públicas (/cursos) usam CatalogHeader quando não autenticadas.
+  // Cada page gerencia sua própria centralização para evitar cache parcial do RSC.
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
-      <StudentHeader
-        fullName={profile?.full_name ?? ""}
-        avatarUrl={profile?.avatar_url ?? null}
-        role={(profile?.role ?? "student") as Role}
-        userId={user!.id}
-        initialNotifications={initialNotifications}
-        initialUnread={unreadCount}
-        navItems={navItems}
-      />
-      <main className="flex-1 w-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </div>
-      </main>
+      {user ? (
+        <StudentHeader
+          fullName={profile?.full_name ?? ""}
+          avatarUrl={profile?.avatar_url ?? null}
+          role={(profile?.role ?? "student") as Role}
+          userId={user.id}
+          initialNotifications={initialNotifications}
+          initialUnread={unreadCount}
+          navItems={navItems}
+        />
+      ) : (
+        <CatalogHeader isLoggedIn={false} />
+      )}
+      <main className="flex-1 w-full">{children}</main>
       <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
       </footer>

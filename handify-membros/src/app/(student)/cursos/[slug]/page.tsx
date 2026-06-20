@@ -113,7 +113,7 @@ export default async function CourseDetailPage({
   const firstLesson = modules[0]?.lessons?.[0];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Info principal */}

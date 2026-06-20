@@ -167,7 +167,7 @@ export default async function MinhaJornadaPage() {
   const refazer = cards.filter((c) => c.progress.percentage === 100);
 
   return (
-    <div className="space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
       {/* Saudação */}
       <div>
         <h1 className="text-2xl font-bold">
