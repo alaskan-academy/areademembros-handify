@@ -100,13 +100,8 @@ export default function StudentHeader({
         )}
       >
         {Icon && <Icon className="w-4 h-4 shrink-0" />}
-        {/* Desktop: label visível só em lg+; mobile: sempre visível */}
-        <span className={mobile ? undefined : "hidden lg:inline"}>
-          {item.label}
-        </span>
-        {item.target === "_blank" && !mobile && (
-          <ExternalLink className="w-3 h-3 shrink-0 opacity-40 hidden lg:inline" />
-        )}
+        {/* Desktop: só ícone (title faz tooltip); mobile: ícone + texto */}
+        {mobile && <span>{item.label}</span>}
       </Link>
     );
   }
