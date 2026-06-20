@@ -93,14 +93,11 @@ export default function GlobalSearch() {
     return (
       <button
         onClick={() => setOpen(true)}
-        aria-label="Buscar (Ctrl+K)"
+        aria-label="Buscar"
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/60 bg-muted/50 text-sm text-muted-foreground hover:bg-muted hover:border-border transition-colors"
       >
         <Search className="w-3.5 h-3.5 shrink-0" />
         <span className="hidden sm:inline">Buscar…</span>
-        <kbd className="hidden sm:inline text-[10px] font-mono px-1 py-0.5 rounded bg-border/60 text-muted-foreground/80 leading-none">
-          Ctrl+K
-        </kbd>
       </button>
     );
   }
@@ -141,12 +138,13 @@ export default function GlobalSearch() {
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          <kbd
+          <button
             onClick={() => setOpen(false)}
-            className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-border text-muted-foreground cursor-pointer hover:bg-muted transition-colors leading-none"
+            className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Fechar busca"
           >
-            Esc
-          </kbd>
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Results */}
@@ -207,12 +205,6 @@ export default function GlobalSearch() {
           )}
         </div>
 
-        {/* Footer hint */}
-        <div className="px-4 py-2 border-t border-border flex items-center gap-3 text-[10px] text-muted-foreground/60">
-          <span><kbd className="font-mono">↑↓</kbd> navegar</span>
-          <span><kbd className="font-mono">Enter</kbd> abrir</span>
-          <span><kbd className="font-mono">Esc</kbd> fechar</span>
-        </div>
       </div>
     </div>
   );
