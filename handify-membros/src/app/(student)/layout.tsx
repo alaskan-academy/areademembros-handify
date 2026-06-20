@@ -34,15 +34,22 @@ export default async function StudentLayout({
     user ? getUnreadCount(user.id) : Promise.resolve(0),
   ]);
 
-  // /cursos usa o CatalogHeader (suporta visitante + logada)
+  // /cursos: logada usa StudentHeader (consistência), visitante usa CatalogHeader
   if (isPublic) {
     return (
       <div className="min-h-screen flex flex-col bg-[#F5F5F0]">
-        <CatalogHeader
-          isLoggedIn={!!user}
-          fullName={profile?.full_name}
-          role={(profile?.role ?? null) as Role | null}
-        />
+        {user ? (
+          <StudentHeader
+            fullName={profile?.full_name ?? ""}
+            avatarUrl={profile?.avatar_url ?? null}
+            role={(profile?.role ?? "student") as Role}
+            userId={user.id}
+            initialNotifications={initialNotifications}
+            initialUnread={unreadCount}
+          />
+        ) : (
+          <CatalogHeader isLoggedIn={false} />
+        )}
         <main className="flex-1">{children}</main>
         <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
           © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
