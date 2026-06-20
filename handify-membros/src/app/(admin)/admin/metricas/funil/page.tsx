@@ -298,41 +298,13 @@ export default async function FunilPage() {
               <thead>
                 <tr className="border-b border-border text-left">
                   <th className="pb-2 font-medium text-muted-foreground">Curso</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      Matrículas
-                      <InfoTooltip text="Total de alunas com acesso vigente ao curso." />
-                    </span>
-                  </th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      Iniciaram
-                      <InfoTooltip text="Alunas que assistiram pelo menos 1 aula." />
-                    </span>
-                  </th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      50%+
-                      <InfoTooltip text="Alunas que completaram metade ou mais das aulas." />
-                    </span>
-                  </th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      75%+
-                      <InfoTooltip text="Alunas que completaram 75% ou mais das aulas." />
-                    </span>
-                  </th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      Certificadas
-                      <InfoTooltip text="Alunas que concluíram 100% e receberam o certificado." />
-                    </span>
-                  </th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      1ª aula em
-                      <InfoTooltip text="Média de dias entre matrícula e primeira aula assistida." />
-                    </span>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Matrículas</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Iniciaram</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">50%+</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">75%+</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Certificadas</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right whitespace-nowrap">
+                    Dias até 1ª aula
                   </th>
                 </tr>
               </thead>

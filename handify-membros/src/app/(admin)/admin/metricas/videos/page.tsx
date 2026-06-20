@@ -175,18 +175,8 @@ export default async function VideosMetricasPage() {
                   <th className="pb-2 font-medium text-muted-foreground">Curso</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">Duração</th>
                   <th className="pb-2 font-medium text-muted-foreground text-right">Tamanho</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      Iniciadas
-                      <InfoTooltip text="Alunas com progresso registrado na aula. Analytics de views do Panda exige credenciais AWS — indisponível via API key." />
-                    </span>
-                  </th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">
-                    <span className="flex items-center justify-end gap-1">
-                      Concluídas
-                      <InfoTooltip text="Alunas que marcaram a aula como concluída (botão explícito ou 90% do vídeo)." />
-                    </span>
-                  </th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Iniciadas</th>
+                  <th className="pb-2 font-medium text-muted-foreground text-right">Concluídas</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -224,6 +214,9 @@ export default async function VideosMetricasPage() {
               </tbody>
             </table>
           </div>
+          <p className="text-[11px] text-muted-foreground mt-3">
+            * Iniciadas = alunas com progresso registrado na plataforma. Analytics de views direto do Panda Video requer autenticação AWS, indisponível via API key.
+          </p>
         </div>
       )}
     </div>
