@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Menu, X,
+  Menu, X, LogOut, ExternalLink,
   LayoutDashboard, BookOpen, User, Bell, Users, Home,
   ShoppingBag, Star, Heart, Globe, MessageSquare, Video,
   Award, Settings, HelpCircle, GraduationCap, Layers,
@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
-import { Button } from "@/components/ui/button";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import type { Role } from "@/types";
@@ -33,7 +32,6 @@ export type NavItem = {
   visible_to: "guest" | "student" | "admin";
 };
 
-// Fallback used when menu_items table is empty (before migration)
 const FALLBACK_NAV: NavItem[] = [
   { label: "Minha Jornada", href: "/dashboard", icon: "LayoutDashboard", target: "_self", visible_to: "student" },
   { label: "Cursos", href: "/cursos", icon: "BookOpen", target: "_self", visible_to: "guest" },
@@ -64,21 +62,20 @@ export default function StudentHeader({
   navItems,
 }: StudentHeaderProps) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
 
   const initial = fullName?.charAt(0)?.toUpperCase() || "A";
-
   const items = navItems && navItems.length > 0 ? navItems : FALLBACK_NAV;
 
-  // Filter items by visibility for the current user
   const visibleItems = items.filter((item) => {
     if (item.visible_to === "guest") return true;
-    if (item.visible_to === "student") return true; // layout only renders StudentHeader when logged in
+    if (item.visible_to === "student") return true;
     if (item.visible_to === "admin") return role === "admin";
     return false;
   });
 
-  function NavLink({ item, block = false }: { item: NavItem; block?: boolean }) {
+  function NavLink({ item, mobile = false }: { item: NavItem; mobile?: boolean }) {
     const Icon = item.icon ? ICON_MAP[item.icon] : null;
     const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
     const isAdmin = item.visible_to === "admin";
@@ -88,9 +85,13 @@ export default function StudentHeader({
         href={item.href}
         target={item.target}
         rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
-        onClick={() => block && setOpen(false)}
+        onClick={() => mobile && setMobileOpen(false)}
+        title={item.label}
         className={cn(
-          block ? "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors" : "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+          "flex items-center gap-2 rounded-md font-medium transition-colors whitespace-nowrap",
+          mobile
+            ? "px-3 py-2.5 text-sm w-full"
+            : "px-2.5 py-1.5 text-sm",
           isAdmin
             ? "text-[#FEC649] hover:bg-[#FEC649]/10"
             : isActive
@@ -99,23 +100,26 @@ export default function StudentHeader({
         )}
       >
         {Icon && <Icon className="w-4 h-4 shrink-0" />}
-        {item.label}
+        {/* Desktop: label visível só em lg+; mobile: sempre visível */}
+        <span className={mobile ? undefined : "hidden lg:inline"}>
+          {item.label}
+        </span>
+        {item.target === "_blank" && !mobile && (
+          <ExternalLink className="w-3 h-3 shrink-0 opacity-40 hidden lg:inline" />
+        )}
       </Link>
     );
   }
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-border/60 shadow-sm">
-      <div className="brand-stripe">
-        <span />
-        <span />
-        <span />
-      </div>
+      <div className="brand-stripe"><span /><span /><span /></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center h-14 gap-2">
+
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-2 shrink-0 mr-2">
             <Image
               src="/logo-vertical-azul.png"
               alt="Handify™"
@@ -124,23 +128,20 @@ export default function StudentHeader({
               unoptimized
               className="object-contain"
             />
-            <span
-              className="font-black text-base tracking-tight hidden sm:block"
-              style={{ color: "#6699F3" }}
-            >
+            <span className="font-black text-base tracking-tight hidden sm:block" style={{ color: "#6699F3" }}>
               Handify<sup className="text-xs ml-px">™</sup>
             </span>
           </Link>
 
-          {/* Nav desktop */}
-          <nav className="hidden md:flex items-center gap-1">
+          {/* Nav desktop — ícones em md, ícone+texto em lg */}
+          <nav className="hidden md:flex items-center gap-0.5 flex-1 min-w-0">
             {visibleItems.map((item) => (
               <NavLink key={item.href} item={item} />
             ))}
           </nav>
 
           {/* Right side */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 ml-auto">
             <GlobalSearch />
 
             <NotificationBell
@@ -149,58 +150,88 @@ export default function StudentHeader({
               initialUnread={initialUnread}
             />
 
-            <div className="hidden md:flex items-center gap-2 ml-1">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+            {/* Avatar com dropdown — desktop */}
+            <div className="hidden md:block relative">
+              <button
+                onClick={() => setAvatarOpen((v) => !v)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0 hover:opacity-90 transition-opacity"
                 style={{ background: "#6699F3" }}
-                aria-hidden
+                aria-label="Menu do usuário"
+                aria-expanded={avatarOpen}
               >
                 {initial}
-              </div>
-              <span className="text-sm font-medium max-w-[120px] truncate text-foreground/80">
-                {fullName}
-              </span>
-              <form action={logoutAction}>
-                <Button variant="ghost" size="sm" type="submit" className="text-sm text-foreground/60">
-                  Sair
-                </Button>
-              </form>
+              </button>
+
+              {avatarOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setAvatarOpen(false)} />
+                  <div className="absolute right-0 top-10 z-50 w-52 bg-white rounded-xl border border-border shadow-lg py-1 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-border/40">
+                      <p className="text-sm font-semibold truncate">{fullName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Área de membros</p>
+                    </div>
+                    <Link
+                      href="/perfil"
+                      onClick={() => setAvatarOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/80 hover:bg-muted transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      Meu perfil
+                    </Link>
+                    <div className="border-t border-border/40 mt-1 pt-1">
+                      <form action={logoutAction}>
+                        <button
+                          type="submit"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors w-full text-left"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sair
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Hamburger mobile */}
             <button
               className="md:hidden p-2 rounded-md text-foreground/60 hover:text-foreground hover:bg-muted transition-colors"
-              onClick={() => setOpen((v) => !v)}
-              aria-label={open ? "Fechar menu" : "Abrir menu"}
-              aria-expanded={open}
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={mobileOpen}
             >
-              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
         {/* Mobile menu */}
-        {open && (
-          <div className="md:hidden py-3 border-t border-border/40 space-y-1 pb-4">
-            {visibleItems.map((item) => (
-              <NavLink key={item.href} item={item} block />
-            ))}
-            <div className="pt-3 border-t border-border/40 flex items-center justify-between px-3">
-              <div className="flex items-center gap-2">
+        {mobileOpen && (
+          <div className="md:hidden border-t border-border/40 pb-4">
+            <nav className="pt-2 space-y-0.5">
+              {visibleItems.map((item) => (
+                <NavLink key={item.href} item={item} mobile />
+              ))}
+            </nav>
+            <div className="mt-3 pt-3 border-t border-border/40 px-3 flex items-center justify-between">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
                   style={{ background: "#6699F3" }}
                 >
                   {initial}
                 </div>
-                <span className="text-sm text-foreground/70 truncate max-w-[160px]">
-                  {fullName}
-                </span>
+                <span className="text-sm font-medium text-foreground/80 truncate">{fullName}</span>
               </div>
               <form action={logoutAction}>
-                <Button variant="ghost" size="sm" type="submit" className="text-sm">
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors px-2 py-1"
+                >
+                  <LogOut className="w-4 h-4" />
                   Sair
-                </Button>
+                </button>
               </form>
             </div>
           </div>
