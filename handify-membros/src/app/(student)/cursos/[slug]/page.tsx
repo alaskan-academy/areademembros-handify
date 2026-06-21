@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { formatPrice, formatDuration } from "@/lib/format";
 import Link from "next/link";
 import Image from "next/image";
-import { Lock, Play, CheckCircle, Clock, BookOpen, RotateCcw } from "lucide-react";
+import { Lock, Play, CheckCircle, Clock, BookOpen, RotateCcw, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -205,6 +205,14 @@ export default async function CourseDetailPage({
                   )}
                 </Link>
               )}
+
+              <Link
+                href={`/comunidade/forum/${course.slug}`}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium border border-border text-foreground/70 hover:text-[#6699F3] hover:border-[#6699F3]/40 hover:bg-[#6699F3]/5 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Fórum do curso
+              </Link>
             </div>
           ) : (
             <>
