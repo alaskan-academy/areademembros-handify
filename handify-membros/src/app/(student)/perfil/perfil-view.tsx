@@ -63,6 +63,15 @@ const DEFAULT_PREFS: EmailPrefs = {
   news_post: true,
 };
 
+// Garante que chaves ausentes no banco virem true (opt-in por padrão)
+function mergeWithDefaults(raw: EmailPrefs | null): EmailPrefs {
+  return {
+    certificate: raw?.certificate ?? true,
+    reengagement: raw?.reengagement ?? true,
+    news_post: raw?.news_post ?? true,
+  };
+}
+
 // ─── Page root ────────────────────────────────────────────────────────────────
 
 export default function PerfilView() {
@@ -214,7 +223,7 @@ export default function PerfilView() {
 
       {/* Preferências de e-mail */}
       <EmailPrefsSection
-        prefs={(profile?.email_prefs as EmailPrefs | null) ?? DEFAULT_PREFS}
+        prefs={mergeWithDefaults(profile?.email_prefs as EmailPrefs | null)}
       />
     </div>
   );
