@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { generateEmbedToken } from "@/lib/embed-token";
 
 export const metadata = { title: "Biblioteca — Handify" };
 
@@ -12,8 +11,7 @@ export default async function BibliotecaPage() {
 
   if (!user) redirect("/login");
 
-  const token = generateEmbedToken(user.email ?? "");
-  const src = `https://biblioteca.handify.com.br/?token=${token}`;
+  const src = `https://biblioteca.handify.com.br/?email=${encodeURIComponent(user.email ?? "")}`;
 
   return (
     <div className="w-full" style={{ height: "calc(100svh - 104px)" }}>
