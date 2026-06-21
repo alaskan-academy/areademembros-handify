@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -9,6 +10,25 @@ async function getAuthUser() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autorizado");
   return { supabase, user };
+}
+
+export async function uploadForumFile(
+  formData: FormData
+): Promise<{ url?: string; name?: string; error?: string }> {
+  const { user } = await getAuthUser();
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { error: "Arquivo obrigatório" };
+  if (file.size > 10_485_760) return { error: "Arquivo muito grande (max 10MB)" };
+
+  const service = createServiceClient();
+  const ext = file.name.split(".").pop() ?? "bin";
+  const path = `forum/${user.id}/${Date.now()}.${ext}`;
+  const { error } = await service.storage.from("community").upload(path, file, { upsert: false });
+  if (error) return { error: "Erro ao fazer upload" };
+
+  const { data: urlData } = service.storage.from("community").getPublicUrl(path);
+  const isImage = file.type.startsWith("image/");
+  return { url: urlData.publicUrl, name: isImage ? undefined : file.name };
 }
 
 const postSchema = z.object({
@@ -29,6 +49,10 @@ export async function createForumPost(
 
   const { supabase, user } = await getAuthUser();
 
+  const imageUrl = (formData.get("image_url") as string) || null;
+  const attachmentUrl = (formData.get("attachment_url") as string) || null;
+  const attachmentName = (formData.get("attachment_name") as string) || null;
+
   const { error } = await supabase
     .from("forum_posts")
     .insert({
@@ -36,6 +60,10 @@ export async function createForumPost(
       user_id: user.id,
       title: parsed.data.title,
       body: parsed.data.body,
+      image_url: imageUrl,
+      attachment_url: attachmentUrl,
+      attachment_name: attachmentName,
+      approved: false,
     });
 
   if (error) return { error: "Erro ao criar post" };
@@ -68,7 +96,7 @@ const commentSchema = z.object({
 export async function addForumComment(
   postId: string,
   body: string
-): Promise<{ id: string; body: string; created_at: string; user_id: string; parent_id: string | null; profiles: { full_name: string; avatar_url: string | null } | null } | { error: string }> {
+): Promise<{ id: string; body: string; created_at: string; user_id: string; parent_id: string | null; profiles: { full_name: string; avatar_url: string | null; role: string } | null } | { error: string }> {
   const parsed = commentSchema.safeParse({ body });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -77,12 +105,12 @@ export async function addForumComment(
   const { data, error } = await supabase
     .from("forum_comments")
     .insert({ post_id: postId, user_id: user.id, body: parsed.data.body })
-    .select("id, body, created_at, user_id, parent_id, profiles!user_id (full_name, avatar_url)")
+    .select("id, body, created_at, user_id, parent_id, profiles!user_id (full_name, avatar_url, role)")
     .single();
 
   if (error) return { error: "Erro ao comentar" };
 
-  return data as unknown as { id: string; body: string; created_at: string; user_id: string; parent_id: string | null; profiles: { full_name: string; avatar_url: string | null } | null };
+  return data as unknown as { id: string; body: string; created_at: string; user_id: string; parent_id: string | null; profiles: { full_name: string; avatar_url: string | null; role: string } | null };
 }
 
 export async function deleteForumComment(commentId: string): Promise<{ error?: string }> {

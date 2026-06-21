@@ -40,7 +40,7 @@ export default async function ForumPage({ params }: { params: Promise<{ cursoSlu
     supabase
       .from("forum_posts")
       .select(`
-        id, title, body, image_url, pinned, created_at, user_id,
+        id, title, body, image_url, attachment_url, attachment_name, pinned, approved, created_at, user_id,
         author:profiles!user_id (full_name, avatar_url),
         forum_comments(count)
       `)
@@ -68,7 +68,8 @@ export default async function ForumPage({ params }: { params: Promise<{ cursoSlu
 
   type PostRaw = {
     id: string; title: string; body: string; image_url: string | null;
-    pinned: boolean; created_at: string; user_id: string;
+    attachment_url: string | null; attachment_name: string | null;
+    pinned: boolean; approved: boolean; created_at: string; user_id: string;
     author: { full_name: string; avatar_url: string | null } | null;
     forum_comments: [{ count: number }];
   };
@@ -78,7 +79,10 @@ export default async function ForumPage({ params }: { params: Promise<{ cursoSlu
     title: p.title,
     body: p.body,
     image_url: p.image_url ?? null,
+    attachment_url: p.attachment_url ?? null,
+    attachment_name: p.attachment_name ?? null,
     pinned: p.pinned,
+    approved: p.approved ?? true,
     created_at: p.created_at,
     user_id: p.user_id,
     author: p.author,

@@ -1,8 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
-import { MessageSquare, Trash2, Pin, PinOff } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { MessageSquare } from "lucide-react";
 import ForumModerationClient from "./ForumModerationClient";
 
 export const metadata = { title: "Fórum — Moderação Admin Handify" };
@@ -13,16 +10,20 @@ export default async function AdminForumPage() {
   const { data: postsRaw } = await supabase
     .from("forum_posts")
     .select(`
-      id, title, body, pinned, created_at, course_id,
+      id, title, body, pinned, approved, created_at, course_id,
+      attachment_url, attachment_name,
       author:profiles!user_id (full_name),
       courses!course_id (title, slug),
       forum_comments(count)
     `)
+    .order("approved", { ascending: true })
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(200);
 
   type PostRaw = {
-    id: string; title: string; body: string; pinned: boolean; created_at: string; course_id: string;
+    id: string; title: string; body: string; pinned: boolean; approved: boolean;
+    created_at: string; course_id: string;
+    attachment_url: string | null; attachment_name: string | null;
     author: { full_name: string } | null;
     courses: { title: string; slug: string } | null;
     forum_comments: [{ count: number }];
@@ -33,13 +34,18 @@ export default async function AdminForumPage() {
     title: p.title,
     body: p.body,
     pinned: p.pinned,
+    approved: p.approved ?? true,
     created_at: p.created_at,
     course_id: p.course_id,
+    attachment_url: p.attachment_url,
+    attachment_name: p.attachment_name,
     author_name: p.author?.full_name ?? "—",
     course_title: p.courses?.title ?? "—",
     course_slug: p.courses?.slug ?? "",
     comment_count: (p.forum_comments as unknown as [{ count: number }])[0]?.count ?? 0,
   }));
+
+  const pendingCount = posts.filter((p) => !p.approved).length;
 
   return (
     <div>
@@ -49,7 +55,14 @@ export default async function AdminForumPage() {
         </div>
         <div>
           <h1 className="font-black text-xl text-foreground">Moderação do Fórum</h1>
-          <p className="text-sm text-muted-foreground">Últimos 100 posts de todos os cursos</p>
+          <p className="text-sm text-muted-foreground">
+            {pendingCount > 0 ? (
+              <span className="text-[#FEC649] font-semibold">{pendingCount} aguardando aprovação</span>
+            ) : (
+              "Nenhum post pendente"
+            )}
+            {" · "}{posts.length} posts no total
+          </p>
         </div>
       </div>
       <ForumModerationClient posts={posts} />
