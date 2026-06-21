@@ -10,10 +10,47 @@ export default async function ForumLandingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fóruns acessíveis (RLS filtra apenas os que a aluna tem acesso via matrícula)
+  // Busca os forum_ids vinculados a cursos em que a aluna está matriculada.
+  // Não depende de RLS — garante o filtro mesmo que as policies estejam incompletas.
+  const { data: enrolledCourses } = await supabase
+    .from("enrollments")
+    .select("course_id")
+    .eq("user_id", user.id)
+    .or("expires_at.is.null,expires_at.gt.now()");
+
+  const courseIds = (enrolledCourses ?? []).map((e) => e.course_id);
+
+  let forumIds: string[] = [];
+  if (courseIds.length > 0) {
+    const { data: linkedCourses } = await supabase
+      .from("courses")
+      .select("forum_id")
+      .in("id", courseIds)
+      .not("forum_id", "is", null);
+
+    forumIds = [
+      ...new Set(
+        (linkedCourses ?? [])
+          .map((c) => c.forum_id as string | null)
+          .filter((id): id is string => id !== null)
+      ),
+    ];
+  }
+
   const [{ data: forums }, { data: postCountsRaw }] = await Promise.all([
-    supabase.from("forums").select("id, title, slug, description").order("title"),
-    supabase.from("forum_posts").select("forum_id").eq("approved", true).not("forum_id", "is", null),
+    forumIds.length > 0
+      ? supabase
+          .from("forums")
+          .select("id, title, slug, description")
+          .in("id", forumIds)
+          .eq("archived", false)
+          .order("title")
+      : Promise.resolve({ data: [] as { id: string; title: string; slug: string; description: string | null }[] }),
+    supabase
+      .from("forum_posts")
+      .select("forum_id")
+      .eq("approved", true)
+      .not("forum_id", "is", null),
   ]);
 
   const postCounts: Record<string, number> = {};
@@ -36,7 +73,7 @@ export default async function ForumLandingPage() {
       {(forums ?? []).length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">Nenhum fórum disponível ainda</p>
+          <p className="font-medium">Nenhum fórum disponível</p>
           <p className="text-sm mt-1">Os fóruns ficam disponíveis assim que você se matricula em um curso que possui fórum.</p>
           <Link href="/cursos" className="mt-4 inline-block text-sm font-medium text-[#6699F3] hover:underline">
             Ver cursos disponíveis →

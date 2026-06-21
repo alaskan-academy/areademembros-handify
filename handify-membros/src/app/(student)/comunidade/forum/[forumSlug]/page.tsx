@@ -16,14 +16,33 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Buscar fórum (RLS garante acesso apenas a fóruns da matrícula)
+  // Buscar fórum pelo slug
   const { data: forum } = await supabase
     .from("forums")
-    .select("id, title, slug, description")
+    .select("id, title, slug, description, archived")
     .eq("slug", forumSlug)
     .single();
 
-  if (!forum) notFound();
+  if (!forum || forum.archived) notFound();
+
+  // Verificação explícita de acesso: usuário deve estar matriculado em ao menos
+  // um curso vinculado a este fórum (independente do RLS).
+  const { data: profile } = await supabase
+    .from("profiles").select("role").eq("id", user.id).single();
+
+  if (profile?.role !== "admin") {
+    const { data: access } = await supabase
+      .from("enrollments")
+      .select("course_id, courses!inner(forum_id)")
+      .eq("user_id", user.id)
+      .or("expires_at.is.null,expires_at.gt.now()");
+
+    type EnrollmentRow = { course_id: string; courses: { forum_id: string | null } };
+    const hasAccess = (access as unknown as EnrollmentRow[] ?? []).some(
+      (e) => e.courses?.forum_id === forum.id
+    );
+    if (!hasAccess) notFound();
+  }
 
   // Buscar posts do fórum com contagens
   const [postsResult, allLikesResult, userLikesResult] = await Promise.all([
