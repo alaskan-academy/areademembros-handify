@@ -47,6 +47,14 @@ export async function updateForum(
   return {};
 }
 
+export async function archiveForum(id: string, archived: boolean): Promise<{ error?: string }> {
+  const supabase = await assertAdmin();
+  const { error } = await supabase.from("forums").update({ archived }).eq("id", id);
+  if (error) return { error: "Erro ao arquivar fórum: " + error.message };
+  revalidatePath("/admin/forums");
+  return {};
+}
+
 export async function deleteForum(id: string): Promise<{ error?: string }> {
   const supabase = await assertAdmin();
   const { error } = await supabase.from("forums").delete().eq("id", id);

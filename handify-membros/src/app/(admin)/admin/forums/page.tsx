@@ -12,7 +12,7 @@ export default async function AdminForumsPage() {
   if (profile?.role !== "admin") redirect("/dashboard");
 
   const [{ data: forums }, { data: courseCountsRaw }] = await Promise.all([
-    supabase.from("forums").select("id, title, slug, description").order("title"),
+    supabase.from("forums").select("id, title, slug, description, archived").order("archived").order("title"),
     supabase.from("courses").select("forum_id").not("forum_id", "is", null),
   ]);
 
@@ -23,7 +23,7 @@ export default async function AdminForumsPage() {
 
   return (
     <ForumsAdminClient
-      forums={(forums ?? []).map((f) => ({ ...f, course_count: courseCounts[f.id] ?? 0 }))}
+      forums={(forums ?? []).map((f) => ({ ...f, archived: f.archived ?? false, course_count: courseCounts[f.id] ?? 0 }))}
     />
   );
 }
