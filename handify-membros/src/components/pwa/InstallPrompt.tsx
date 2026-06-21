@@ -34,14 +34,12 @@ export default function InstallPrompt() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Já instalado ou já dispensou nesta sessão
     if (isRunningAsPWA()) return;
     if (sessionStorage.getItem(DISMISSED_KEY)) return;
 
     const detected = detectPlatform();
     setPlatform(detected);
 
-    // Android/Chrome: aguarda o evento nativo
     function handleBeforeInstall(e: Event) {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -50,7 +48,6 @@ export default function InstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
-    // iOS Safari: não tem beforeinstallprompt — mostra instruções manuais
     if (detected === "ios") {
       setVisible(true);
     }
@@ -75,23 +72,27 @@ export default function InstallPrompt() {
 
   return (
     <div
-      role="dialog"
-      aria-modal="false"
-      aria-label="Instalar aplicativo"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={dismiss}
     >
-      <div className="bg-white rounded-2xl shadow-2xl border border-border/60 overflow-hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Instalar aplicativo"
+        className="w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-border/60 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Faixa tricolor */}
         <div className="brand-stripe"><span /><span /><span /></div>
 
-        <div className="p-4">
-          <div className="flex items-start gap-3">
+        <div className="p-5">
+          <div className="flex items-start gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-[#6699F3]/10 flex items-center justify-center shrink-0">
               <Smartphone className="w-5 h-5 text-[#6699F3]" />
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-foreground">Instale o app Handify™</p>
+              <p className="font-bold text-sm text-foreground">Instale o app Handify™</p>
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                 Acesse seus cursos direto da tela inicial, sem abrir o navegador.
               </p>
@@ -106,36 +107,52 @@ export default function InstallPrompt() {
             </button>
           </div>
 
-          {/* Android / Chrome: botão nativo */}
+          {/* Android / Chrome */}
           {platform !== "ios" && deferredPrompt && (
-            <button
-              onClick={handleInstall}
-              className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#6699F3] text-white text-sm font-bold hover:opacity-90 active:scale-95 transition-all"
-            >
-              <Download className="w-4 h-4" />
-              Instalar aplicativo
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleInstall}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#6699F3] text-white text-sm font-bold hover:opacity-90 active:scale-95 transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Instalar aplicativo
+              </button>
+              <button
+                onClick={dismiss}
+                className="px-4 py-2.5 rounded-xl border border-border text-muted-foreground text-sm hover:text-foreground hover:border-foreground/30 transition-colors"
+              >
+                Depois
+              </button>
+            </div>
           )}
 
-          {/* iOS Safari: instruções manuais */}
+          {/* iOS Safari */}
           {platform === "ios" && (
-            <div className="mt-3 bg-[#F5F5F0] rounded-xl px-3 py-2.5 space-y-1.5">
-              <p className="text-xs font-semibold text-foreground/80">Como instalar no iPhone / iPad:</p>
-              <ol className="text-xs text-muted-foreground space-y-1">
-                <li className="flex items-start gap-1.5">
-                  <span className="font-bold text-[#6699F3] shrink-0">1.</span>
-                  Toque no botão <strong>Compartilhar</strong> <span className="inline-block">⬆</span> na barra do Safari
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="font-bold text-[#6699F3] shrink-0">2.</span>
-                  Role e toque em <strong>"Adicionar à Tela de Início"</strong>
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="font-bold text-[#6699F3] shrink-0">3.</span>
-                  Toque em <strong>Adicionar</strong> no canto superior direito
-                </li>
-              </ol>
-            </div>
+            <>
+              <div className="bg-[#F5F5F0] rounded-xl px-3 py-3 space-y-2 mb-3">
+                <p className="text-xs font-semibold text-foreground/80">Como instalar no iPhone / iPad:</p>
+                <ol className="text-xs text-muted-foreground space-y-1.5">
+                  <li className="flex items-start gap-1.5">
+                    <span className="font-bold text-[#6699F3] shrink-0">1.</span>
+                    Toque no botão <strong>Compartilhar</strong> <span className="inline-block">⬆</span> na barra do Safari
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="font-bold text-[#6699F3] shrink-0">2.</span>
+                    Role e toque em <strong>"Adicionar à Tela de Início"</strong>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="font-bold text-[#6699F3] shrink-0">3.</span>
+                    Toque em <strong>Adicionar</strong> no canto superior direito
+                  </li>
+                </ol>
+              </div>
+              <button
+                onClick={dismiss}
+                className="w-full py-2.5 rounded-xl border border-border text-muted-foreground text-sm hover:text-foreground transition-colors"
+              >
+                Entendido
+              </button>
+            </>
           )}
         </div>
       </div>

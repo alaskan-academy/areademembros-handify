@@ -11,12 +11,9 @@ export default function UpdatePrompt() {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
     function checkForWaiting(reg: ServiceWorkerRegistration) {
-      // Já tem um SW aguardando (página recarregada com update pendente)
       if (reg.waiting && navigator.serviceWorker.controller) {
         setWaitingWorker(reg.waiting);
       }
-
-      // Novo SW sendo instalado
       reg.addEventListener("updatefound", () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
@@ -32,7 +29,6 @@ export default function UpdatePrompt() {
       if (reg) checkForWaiting(reg);
     });
 
-    // Recarrega automaticamente quando o SW novo assumir o controle
     let reloading = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (!reloading) { reloading = true; window.location.reload(); }
@@ -48,30 +44,52 @@ export default function UpdatePrompt() {
 
   return (
     <div
-      role="alert"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={() => setDismissed(true)}
     >
-      <div className="flex items-center gap-3 bg-[#0F0F0F] text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10">
-        <div className="w-8 h-8 rounded-full bg-[#6699F3]/20 flex items-center justify-center shrink-0">
-          <RefreshCw className="w-4 h-4 text-[#6699F3]" />
+      <div
+        role="alert"
+        className="w-full max-w-sm bg-[#0F0F0F] text-white rounded-2xl shadow-2xl border border-white/10 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Faixa tricolor */}
+        <div className="brand-stripe"><span /><span /><span /></div>
+
+        <div className="p-5">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#6699F3]/20 flex items-center justify-center shrink-0">
+              <RefreshCw className="w-5 h-5 text-[#6699F3]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm">Nova versão disponível</p>
+              <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
+                Atualize para ter as últimas melhorias da plataforma.
+              </p>
+            </div>
+            <button
+              onClick={() => setDismissed(true)}
+              aria-label="Dispensar"
+              className="p-1 text-white/30 hover:text-white transition-colors shrink-0 -mt-0.5"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleUpdate}
+              className="flex-1 py-2.5 rounded-xl bg-[#6699F3] text-white text-sm font-bold hover:opacity-90 active:scale-95 transition-all"
+            >
+              Atualizar agora
+            </button>
+            <button
+              onClick={() => setDismissed(true)}
+              className="px-4 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white hover:border-white/30 transition-colors"
+            >
+              Depois
+            </button>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold">Nova versão disponível</p>
-          <p className="text-[11px] text-white/50 mt-0.5">Atualize para ter as últimas melhorias</p>
-        </div>
-        <button
-          onClick={handleUpdate}
-          className="shrink-0 px-3 py-1.5 rounded-lg bg-[#6699F3] text-white text-xs font-bold hover:opacity-90 active:scale-95 transition-all"
-        >
-          Atualizar
-        </button>
-        <button
-          onClick={() => setDismissed(true)}
-          aria-label="Dispensar"
-          className="shrink-0 p-1 text-white/40 hover:text-white transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );
