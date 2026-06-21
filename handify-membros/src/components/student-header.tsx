@@ -107,9 +107,10 @@ export default function StudentHeader({
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-border/60 shadow-sm">
+    <header className="sticky top-0 z-40 bg-white shadow-sm">
       <div className="brand-stripe"><span /><span /><span /></div>
 
+      <div className="border-b border-border/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-14 gap-3">
 
@@ -162,18 +163,6 @@ export default function StudentHeader({
                   })}
                 </nav>
 
-                {/* Plano Anual — mobile (dentro do nav drawer) */}
-                {annualPromo && (
-                  <div className="px-2 pb-2 mt-1 border-t border-border/40 pt-2">
-                    <button
-                      onClick={() => { setNavOpen(false); setPromoOpen(true); }}
-                      className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg bg-[#FEC649]/15 text-xs font-bold text-[#c9930a] hover:bg-[#FEC649]/25 transition-colors"
-                    >
-                      <Star className="w-4 h-4 fill-[#FEC649] text-[#FEC649] shrink-0" />
-                      {annualPromo.badge_text}
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -196,7 +185,7 @@ export default function StudentHeader({
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Botão Plano Anual (quando ativo) */}
+          {/* Botão Plano Anual — desktop */}
           {annualPromo && (
             <button
               onClick={() => setPromoOpen(true)}
@@ -260,6 +249,19 @@ export default function StudentHeader({
           </div>
         </div>
       </div>
+      </div>
+
+      {/* Faixa promo — mobile only */}
+      {annualPromo && (
+        <button
+          onClick={() => setPromoOpen(true)}
+          className="sm:hidden w-full flex items-center justify-center gap-2 py-2 bg-[#FEC649]/20 text-[#b07d00] text-xs font-bold border-b border-[#FEC649]/30 hover:bg-[#FEC649]/30 active:bg-[#FEC649]/40 transition-colors"
+        >
+          <Star className="w-3.5 h-3.5 fill-[#FEC649] text-[#FEC649]" />
+          {annualPromo.badge_text}
+          <span className="opacity-60">— toque para saber mais</span>
+        </button>
+      )}
 
       {promoOpen && annualPromo && (
         <AnnualPromoModal promo={annualPromo} onClose={() => setPromoOpen(false)} />
