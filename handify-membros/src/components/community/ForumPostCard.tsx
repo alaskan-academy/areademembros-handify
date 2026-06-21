@@ -123,8 +123,9 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
         </div>
       )}
 
-      <div className="p-5 pb-3">
-        <div className="flex items-start gap-3 mb-3">
+      {/* Header do post */}
+      <div className="px-5 pt-5 pb-3">
+        <div className="flex items-start gap-3">
           <Avatar name={authorName} url={post.author?.avatar_url} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -144,7 +145,17 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
             </button>
           )}
         </div>
+      </div>
 
+      {/* Imagem — acima do texto */}
+      {post.image_url && (
+        <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
+          <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
+        </div>
+      )}
+
+      {/* Texto */}
+      <div className="px-5 pt-3 pb-3">
         <h2 className="font-bold text-base mb-2">{post.title}</h2>
         <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{bodyPreview}</p>
         {post.body.length > 300 && (
@@ -162,12 +173,6 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
           </a>
         )}
       </div>
-
-      {post.image_url && (
-        <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
-          <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
-        </div>
-      )}
 
       {/* Ações — desabilitadas se pendente */}
       <div className="px-5 py-3 flex items-center gap-4 border-t border-border/40">

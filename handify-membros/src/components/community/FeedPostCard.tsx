@@ -108,8 +108,8 @@ export default function FeedPostCard({ post, userId, initialLiked }: Props) {
   return (
     <article className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
       {/* Header do post */}
-      <div className="p-5 pb-3">
-        <div className="flex items-start gap-3 mb-3">
+      <div className="px-5 pt-5 pb-3">
+        <div className="flex items-start gap-3">
           <Avatar name={authorName} url={post.author?.avatar_url} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -123,7 +123,17 @@ export default function FeedPostCard({ post, userId, initialLiked }: Props) {
             <span className="text-xs text-muted-foreground">{timeAgo}</span>
           </div>
         </div>
+      </div>
 
+      {/* Imagem — acima do texto */}
+      {post.image_url && (
+        <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
+          <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
+        </div>
+      )}
+
+      {/* Texto */}
+      <div className="px-5 pt-3 pb-3">
         <h2 className="font-bold text-base text-foreground mb-2">{post.title}</h2>
 
         <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{bodyPreview}</p>
@@ -136,13 +146,6 @@ export default function FeedPostCard({ post, userId, initialLiked }: Props) {
           </button>
         )}
       </div>
-
-      {/* Imagem */}
-      {post.image_url && (
-        <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
-          <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
-        </div>
-      )}
 
       {/* Ações */}
       <div className="px-5 py-3 flex items-center gap-4 border-t border-border/40">
