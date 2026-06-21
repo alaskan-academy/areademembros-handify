@@ -48,6 +48,16 @@ Labels de status, aria-labels e UI strings genéricas podem ser constantes no c�
 
 - Ao final de cada alteração, sempre fazer `commit` e `push` para o remote.
 
+## Embeds no menu
+
+Quando a usuária pedir para embedar um site externo no menu, ela envia o link e eu crio uma página dedicada em `src/app/(student)/[nome]/page.tsx` que:
+1. Autentica via Supabase server-side (`createClient`)
+2. Redireciona para `/login` se não autenticada
+3. Monta a URL com `?email=${encodeURIComponent(user.email ?? "")}` hardcoded no servidor
+4. Renderiza um `<iframe>` que ocupa `calc(100svh - 104px)` entre header e footer
+
+Nunca usar `/embed?url=...` — a URL de destino e o email ficam invisíveis na barra do navegador com páginas dedicadas.
+
 ## Segurança — checklist por PR
 
 - [ ] Toda nova tabela Supabase tem RLS ativo
