@@ -270,67 +270,81 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
         {posts.map((post) => (
           <div
             key={post.id}
-            className="bg-white rounded-xl border border-border/60 shadow-sm p-4 flex gap-4"
+            className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden"
           >
-            {/* Thumbnail */}
-            {post.image_url ? (
-              <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
-                <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
-              </div>
-            ) : (
-              <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <ImageIcon className="w-6 h-6 text-muted-foreground/40" />
-              </div>
-            )}
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-2 mb-1">
-                <h3 className="font-semibold text-sm text-foreground flex-1 line-clamp-1">{post.title}</h3>
-                <div className="flex items-center gap-1 shrink-0">
-                  {post.pinned && (
-                    <span className="text-[10px] font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">Fixado</span>
-                  )}
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${post.published ? "text-[#72CF92] bg-[#72CF92]/10" : "text-muted-foreground bg-muted"}`}>
-                    {post.published ? "Publicado" : "Rascunho"}
-                  </span>
+            <div className="flex gap-4 p-4">
+              {/* Thumbnail */}
+              {post.image_url ? (
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                  <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
                 </div>
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <ImageIcon className="w-5 h-5 text-muted-foreground/40" />
+                </div>
+              )}
+
+              {/* Conteúdo */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2 mb-1">
+                  <h3 className="font-semibold text-sm text-foreground flex-1 line-clamp-1">{post.title}</h3>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {post.pinned && (
+                      <span className="text-[10px] font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">Fixado</span>
+                    )}
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${post.published ? "text-[#72CF92] bg-[#72CF92]/10" : "text-muted-foreground bg-muted"}`}>
+                      {post.published ? "Publicado" : "Rascunho"}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">{post.body || "(sem texto)"}</p>
+                <p className="text-[10px] text-muted-foreground/50 mt-1">
+                  {post.comment_count} {post.comment_count === 1 ? "comentário" : "comentários"} ·{" "}
+                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{post.body || "(sem texto)"}</p>
-              <p className="text-[10px] text-muted-foreground/60">
-                {post.comment_count} comentários ·{" "}
-                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}
-              </p>
             </div>
 
-            {/* Ações */}
-            <div className="flex flex-col gap-1.5 shrink-0">
+            {/* Barra de ações */}
+            <div className="border-t border-border/40 px-4 py-2 flex items-center gap-1">
               <button
                 onClick={() => openEdit(post)}
-                title="Editar"
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
-                <Edit2 className="w-4 h-4" />
+                <Edit2 className="w-3.5 h-3.5" /> Editar
               </button>
+
               <button
                 onClick={() => handleTogglePublished(post.id, post.published)}
-                title={post.published ? "Despublicar" : "Publicar"}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-[#6699F3] hover:bg-[#6699F3]/10 transition-colors"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  post.published
+                    ? "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    : "text-[#6699F3] bg-[#6699F3]/10 hover:bg-[#6699F3]/20"
+                }`}
               >
-                {post.published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {post.published ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {post.published ? "Despublicar" : "Publicar"}
               </button>
+
               <button
                 onClick={() => handleTogglePinned(post.id, post.pinned)}
-                title={post.pinned ? "Desfixar" : "Fixar"}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-[#FEC649] hover:bg-[#FEC649]/10 transition-colors"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  post.pinned
+                    ? "text-[#FEC649] bg-[#FEC649]/10 hover:bg-[#FEC649]/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
               >
-                {post.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                {post.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                {post.pinned ? "Desfixar" : "Fixar"}
               </button>
+
+              <div className="flex-1" />
+
               <button
                 onClick={() => handleDelete(post.id)}
-                title="Deletar"
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" /> Excluir
               </button>
             </div>
           </div>
