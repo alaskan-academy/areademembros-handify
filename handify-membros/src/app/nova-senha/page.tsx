@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { novaSenhaAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -49,10 +49,9 @@ export default function NovaSenhaPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Nova senha</Label>
-                <Input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   placeholder="Mínimo 8 caracteres"
                   autoComplete="new-password"
                   required
@@ -62,10 +61,9 @@ export default function NovaSenhaPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Confirmar nova senha</Label>
-                <Input
+                <PasswordInput
                   id="confirm_password"
                   name="confirm_password"
-                  type="password"
                   placeholder="••••••••"
                   autoComplete="new-password"
                   required

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cadastroAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -79,10 +80,9 @@ export default function CadastroPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
-                <Input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   placeholder="Mínimo 8 caracteres"
                   autoComplete="new-password"
                   required
@@ -92,10 +92,9 @@ export default function CadastroPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Confirmar senha</Label>
-                <Input
+                <PasswordInput
                   id="confirm_password"
                   name="confirm_password"
-                  type="password"
                   placeholder="••••••••"
                   autoComplete="new-password"
                   required
