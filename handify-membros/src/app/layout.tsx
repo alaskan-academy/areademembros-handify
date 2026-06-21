@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Montserrat, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -45,6 +46,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <UpdatePrompt />
+        <InstallPrompt />
       </body>
     </html>
   );
