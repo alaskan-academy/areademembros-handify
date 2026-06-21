@@ -7,6 +7,7 @@ import CatalogHeader from "@/components/catalog-header";
 import { getUnreadCount, getNotifications } from "@/lib/notifications/actions";
 import type { Role } from "@/types";
 import type { NavItem } from "@/components/student-header";
+import type { AnnualPromoData } from "@/components/promo/AnnualPromoModal";
 
 // Rotas dentro de (student) acessíveis sem login
 const PUBLIC_PATHS = ["/cursos"];
@@ -27,7 +28,7 @@ export default async function StudentLayout({
 
   if (!user && !isPublic) redirect("/login");
 
-  const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }] =
+  const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }, { data: promoRaw }] =
     await Promise.all([
       user
         ? supabase.from("profiles").select("full_name, avatar_url, role").eq("id", user.id).single()
@@ -39,7 +40,16 @@ export default async function StudentLayout({
         .select("label, url, icon, target, visible_to, position")
         .eq("active", true)
         .order("position", { ascending: true }),
+      supabase
+        .from("annual_promo")
+        .select("active, badge_text, modal_title, modal_desc, button_text, link_url")
+        .eq("active", true)
+        .maybeSingle(),
     ]);
+
+  const annualPromo: AnnualPromoData | null = promoRaw
+    ? { ...promoRaw }
+    : null;
 
   const navItems: NavItem[] = (menuItemsRaw ?? []).map((i) => {
     let href = i.url;
@@ -69,6 +79,7 @@ export default async function StudentLayout({
           initialNotifications={initialNotifications}
           initialUnread={unreadCount}
           navItems={navItems}
+          annualPromo={annualPromo}
         />
       ) : (
         <CatalogHeader isLoggedIn={false} />

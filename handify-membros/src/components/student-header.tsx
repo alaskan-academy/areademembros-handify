@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
 import GlobalSearch from "@/components/search/GlobalSearch";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import AnnualPromoModal, { type AnnualPromoData } from "@/components/promo/AnnualPromoModal";
 import type { Role } from "@/types";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -50,6 +51,7 @@ interface StudentHeaderProps {
   }>;
   initialUnread: number;
   navItems?: NavItem[];
+  annualPromo?: AnnualPromoData | null;
 }
 
 export default function StudentHeader({
@@ -60,10 +62,12 @@ export default function StudentHeader({
   initialNotifications,
   initialUnread,
   navItems,
+  annualPromo,
 }: StudentHeaderProps) {
   const pathname = usePathname();
   const [navOpen, setNavOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [promoOpen, setPromoOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +161,19 @@ export default function StudentHeader({
                     );
                   })}
                 </nav>
+
+                {/* Plano Anual — mobile (dentro do nav drawer) */}
+                {annualPromo && (
+                  <div className="px-2 pb-2 mt-1 border-t border-border/40 pt-2">
+                    <button
+                      onClick={() => { setNavOpen(false); setPromoOpen(true); }}
+                      className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-lg bg-[#FEC649]/15 text-xs font-bold text-[#c9930a] hover:bg-[#FEC649]/25 transition-colors"
+                    >
+                      <Star className="w-4 h-4 fill-[#FEC649] text-[#FEC649] shrink-0" />
+                      {annualPromo.badge_text}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -178,6 +195,17 @@ export default function StudentHeader({
 
           {/* Spacer */}
           <div className="flex-1" />
+
+          {/* Botão Plano Anual (quando ativo) */}
+          {annualPromo && (
+            <button
+              onClick={() => setPromoOpen(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FEC649]/15 text-[#c9930a] text-xs font-bold hover:bg-[#FEC649]/25 transition-colors shrink-0"
+            >
+              <Star className="w-3.5 h-3.5 fill-[#FEC649] text-[#FEC649]" />
+              {annualPromo.badge_text}
+            </button>
+          )}
 
           {/* Right: busca + sino + avatar */}
           <div className="flex items-center gap-1">
@@ -232,6 +260,10 @@ export default function StudentHeader({
           </div>
         </div>
       </div>
+
+      {promoOpen && annualPromo && (
+        <AnnualPromoModal promo={annualPromo} onClose={() => setPromoOpen(false)} />
+      )}
     </header>
   );
 }

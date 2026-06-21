@@ -133,6 +133,18 @@
 - [ ] E-mail lembrete de reengajamento: 7 dias sem acessar curso em andamento (Edge Function com cron Supabase ou Vercel Cron)
 - [ ] Templates Resend com identidade visual Handify
 
+## Fase 11b — Notificações Push (Web Push API)
+
+- [ ] Solicitar permissão de notificação push ao usuário (prompt contextual, não na entrada)
+- [ ] Registrar service worker com suporte a push (`next-pwa` já configurado)
+- [ ] Salvar `PushSubscription` do usuário no banco (`push_subscriptions` table) com `user_id`, `endpoint`, `keys`)
+- [ ] Edge Function / Server Action para enviar push via Web Push API (biblioteca `web-push`)
+- [ ] Eventos que disparam push (mesmos das notificações in-app): novo post no feed, resposta ao comentário, novo conteúdo no curso, certificado disponível
+- [ ] Admin: painel para testar envio de push broadcast para todas as alunas
+- [ ] Admin: enable/disable notificações push globalmente
+- [ ] Aluna: botão "Ativar notificações" nas preferências do perfil (e opção de revogar)
+- [ ] Graceful degradation: se push não for suportado/negado, apenas silencia (não quebra nada)
+
 ## Fase 12 — Busca Global (Semana 8)
 
 - [ ] Endpoint/Server Action de busca usando `pg_trgm` (cursos + aulas + posts do feed)
