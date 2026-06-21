@@ -37,8 +37,8 @@ const postSchema = z.object({
 });
 
 export async function createForumPost(
-  courseId: string,
-  courseSlug: string,
+  forumId: string,
+  forumSlug: string,
   formData: FormData
 ): Promise<{ error?: string }> {
   const parsed = postSchema.safeParse({
@@ -56,7 +56,7 @@ export async function createForumPost(
   const { error } = await supabase
     .from("forum_posts")
     .insert({
-      course_id: courseId,
+      forum_id: forumId,
       user_id: user.id,
       title: parsed.data.title,
       body: parsed.data.body,
@@ -68,13 +68,13 @@ export async function createForumPost(
 
   if (error) return { error: "Erro ao criar post" };
 
-  revalidatePath(`/comunidade/forum/${courseSlug}`);
+  revalidatePath(`/comunidade/forum/${forumSlug}`);
   return {};
 }
 
 export async function deleteForumPost(
   postId: string,
-  courseSlug: string
+  forumSlug: string
 ): Promise<{ error?: string }> {
   const { supabase, user } = await getAuthUser();
 
@@ -85,7 +85,7 @@ export async function deleteForumPost(
     .eq("user_id", user.id);
 
   if (error) return { error: "Erro ao deletar post" };
-  revalidatePath(`/comunidade/forum/${courseSlug}`);
+  revalidatePath(`/comunidade/forum/${forumSlug}`);
   return {};
 }
 

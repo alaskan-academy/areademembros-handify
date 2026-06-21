@@ -1,50 +1,41 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
-import ForumCoursePage from "./ForumCoursePage";
+import ForumPage from "./ForumPage";
 
-export async function generateMetadata({ params }: { params: Promise<{ cursoSlug: string }> }) {
-  const { cursoSlug } = await params;
-  return { title: `Fórum — Handify` };
+export async function generateMetadata({ params }: { params: Promise<{ forumSlug: string }> }) {
+  const { forumSlug } = await params;
+  const supabase = await createClient();
+  const { data: forum } = await supabase.from("forums").select("title").eq("slug", forumSlug).single();
+  return { title: forum ? `${forum.title} — Handify` : "Fórum — Handify" };
 }
 
-export default async function ForumPage({ params }: { params: Promise<{ cursoSlug: string }> }) {
-  const { cursoSlug } = await params;
+export default async function ForumSlugPage({ params }: { params: Promise<{ forumSlug: string }> }) {
+  const { forumSlug } = await params;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Buscar curso
-  const { data: course } = await supabase
-    .from("courses")
-    .select("id, slug, title, thumbnail_url")
-    .eq("slug", cursoSlug)
-    .eq("published", true)
+  // Buscar fórum (RLS garante acesso apenas a fóruns da matrícula)
+  const { data: forum } = await supabase
+    .from("forums")
+    .select("id, title, slug, description")
+    .eq("slug", forumSlug)
     .single();
 
-  if (!course) notFound();
-
-  // Verificar matrícula
-  const { data: enrollment } = await supabase
-    .from("enrollments")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("course_id", course.id)
-    .or("expires_at.is.null,expires_at.gt.now()")
-    .maybeSingle();
-
-  if (!enrollment) redirect(`/cursos/${cursoSlug}`);
+  if (!forum) notFound();
 
   // Buscar posts do fórum com contagens
   const [postsResult, allLikesResult, userLikesResult] = await Promise.all([
     supabase
       .from("forum_posts")
       .select(`
-        id, title, body, image_url, attachment_url, attachment_name, pinned, approved, created_at, user_id,
+        id, title, body, image_url, attachment_url, attachment_name,
+        pinned, approved, created_at, user_id,
         author:profiles!user_id (full_name, avatar_url),
         forum_comments(count)
       `)
-      .eq("course_id", course.id)
+      .eq("forum_id", forum.id)
       .order("pinned", { ascending: false })
       .order("created_at", { ascending: false }),
 
@@ -91,8 +82,8 @@ export default async function ForumPage({ params }: { params: Promise<{ cursoSlu
   }));
 
   return (
-    <ForumCoursePage
-      course={{ id: course.id, slug: course.slug, title: course.title }}
+    <ForumPage
+      forum={{ id: forum.id, slug: forum.slug, title: forum.title, description: forum.description }}
       posts={posts}
       userId={user.id}
       likedIds={[...likedIds]}

@@ -10,10 +10,10 @@ export default async function AdminForumPage() {
   const { data: postsRaw } = await supabase
     .from("forum_posts")
     .select(`
-      id, title, body, pinned, approved, created_at, course_id,
+      id, title, body, pinned, approved, created_at, forum_id,
       attachment_url, attachment_name,
       author:profiles!user_id (full_name),
-      courses!course_id (title, slug),
+      forums!forum_id (title, slug),
       forum_comments(count)
     `)
     .order("approved", { ascending: true })
@@ -22,10 +22,10 @@ export default async function AdminForumPage() {
 
   type PostRaw = {
     id: string; title: string; body: string; pinned: boolean; approved: boolean;
-    created_at: string; course_id: string;
+    created_at: string; forum_id: string | null;
     attachment_url: string | null; attachment_name: string | null;
     author: { full_name: string } | null;
-    courses: { title: string; slug: string } | null;
+    forums: { title: string; slug: string } | null;
     forum_comments: [{ count: number }];
   };
 
@@ -36,12 +36,12 @@ export default async function AdminForumPage() {
     pinned: p.pinned,
     approved: p.approved ?? true,
     created_at: p.created_at,
-    course_id: p.course_id,
+    forum_id: p.forum_id,
     attachment_url: p.attachment_url,
     attachment_name: p.attachment_name,
     author_name: p.author?.full_name ?? "—",
-    course_title: p.courses?.title ?? "—",
-    course_slug: p.courses?.slug ?? "",
+    forum_title: p.forums?.title ?? "—",
+    forum_slug: p.forums?.slug ?? "",
     comment_count: (p.forum_comments as unknown as [{ count: number }])[0]?.count ?? 0,
   }));
 

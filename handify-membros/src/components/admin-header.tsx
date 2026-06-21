@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/metricas",         icon: BarChart3,     label: "Métricas" },
   { href: "/admin/notificacoes",     icon: Bell,          label: "Notificações" },
   { href: "/admin/menu",             icon: Menu,          label: "Menu" },
+  { href: "/admin/forums",           icon: MessageSquare, label: "Fóruns",            section: "Comunidade" },
   { href: "/admin/comunidade/feed",  icon: Newspaper,     label: "Feed de Notícias",  section: "Comunidade" },
   { href: "/admin/comunidade/forum", icon: MessageSquare, label: "Fórum (Moderação)", section: "Comunidade" },
 ];

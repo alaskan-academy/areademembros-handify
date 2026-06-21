@@ -8,13 +8,13 @@ import ForumPostCard, { type ForumPostData } from "@/components/community/ForumP
 import { createForumPost, deleteForumPost, uploadForumFile } from "@/app/(student)/comunidade/forum/actions";
 
 interface Props {
-  course: { id: string; slug: string; title: string };
+  forum: { id: string; slug: string; title: string; description: string | null };
   posts: ForumPostData[];
   userId: string;
   likedIds: string[];
 }
 
-export default function ForumCoursePage({ course, posts: initialPosts, userId, likedIds }: Props) {
+export default function ForumPage({ forum, posts: initialPosts, userId, likedIds }: Props) {
   const [posts, setPosts] = useState<ForumPostData[]>(initialPosts);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -45,7 +45,6 @@ export default function ForumCoursePage({ course, posts: initialPosts, userId, l
       setAttachmentUrl(result.url ?? "");
       setAttachmentName(result.name ?? file.name);
     }
-    // Reset input
     e.target.value = "";
   }
 
@@ -62,12 +61,10 @@ export default function ForumCoursePage({ course, posts: initialPosts, userId, l
     fd.append("attachment_url", attachmentUrl);
     fd.append("attachment_name", attachmentName);
 
-    const result = await createForumPost(course.id, course.slug, fd);
+    const result = await createForumPost(forum.id, forum.slug, fd);
     setSubmitting(false);
 
     if (result.error) { setError(result.error); return; }
-
-    // Mostrar mensagem de sucesso e fechar form
     closeForm();
     alert("Post enviado! Aguarde a aprovação da equipe Handify para aparecer no fórum.");
   }
@@ -81,7 +78,7 @@ export default function ForumCoursePage({ course, posts: initialPosts, userId, l
 
   async function handleDeletePost(postId: string) {
     if (!confirm("Deletar este post?")) return;
-    await deleteForumPost(postId, course.slug);
+    await deleteForumPost(postId, forum.slug);
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   }
 
@@ -92,7 +89,7 @@ export default function ForumCoursePage({ course, posts: initialPosts, userId, l
           <ArrowLeft className="w-3.5 h-3.5" /> Fóruns
         </Link>
         <span className="text-muted-foreground/40">/</span>
-        <span className="text-sm font-medium text-foreground truncate">{course.title}</span>
+        <span className="text-sm font-medium text-foreground truncate">{forum.title}</span>
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -101,8 +98,10 @@ export default function ForumCoursePage({ course, posts: initialPosts, userId, l
             <MessageSquare className="w-5 h-5 text-[#6699F3]" />
           </div>
           <div>
-            <h1 className="font-black text-xl text-foreground line-clamp-1">{course.title}</h1>
-            <p className="text-sm text-muted-foreground">{posts.filter(p => p.approved).length} posts</p>
+            <h1 className="font-black text-xl text-foreground">{forum.title}</h1>
+            <p className="text-sm text-muted-foreground">
+              {forum.description ?? `${posts.filter(p => p.approved).length} posts`}
+            </p>
           </div>
         </div>
         <button
@@ -133,7 +132,6 @@ export default function ForumCoursePage({ course, posts: initialPosts, userId, l
               className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30" />
           </div>
 
-          {/* Upload imagem */}
           <div>
             <label className="block text-xs font-medium text-foreground/70 mb-1">Imagem (opcional)</label>
             <input ref={imageInputRef} type="file" accept="image/*" onChange={(e) => handleUpload(e, "image")} className="hidden" />
@@ -154,7 +152,6 @@ export default function ForumCoursePage({ course, posts: initialPosts, userId, l
             )}
           </div>
 
-          {/* Upload arquivo */}
           <div>
             <label className="block text-xs font-medium text-foreground/70 mb-1">Arquivo (opcional — PDF, ZIP…)</label>
             <input ref={fileInputRef} type="file" onChange={(e) => handleUpload(e, "file")} className="hidden" />

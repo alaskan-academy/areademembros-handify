@@ -111,6 +111,7 @@ const CourseSchema = z.object({
   has_certificate: z.boolean().default(false),
   published: z.boolean().default(false),
   category_id: z.string().uuid().nullable().optional(),
+  forum_id: z.string().uuid().nullable().optional(),
   thumbnail_url: z.string().optional().nullable(),
 });
 
@@ -130,6 +131,7 @@ export async function createCourse(
     has_certificate: formData.get("has_certificate") === "true",
     published: false,
     category_id: (formData.get("category_id") as string) || null,
+    forum_id: (formData.get("forum_id") as string) || null,
     thumbnail_url: (formData.get("thumbnail_url") as string) || null,
   };
 
@@ -161,6 +163,7 @@ export async function updateCourse(
     has_certificate: formData.get("has_certificate") === "true",
     published: formData.get("published") === "true",
     category_id: (formData.get("category_id") as string) || null,
+    forum_id: (formData.get("forum_id") as string) || null,
     thumbnail_url: (formData.get("thumbnail_url") as string) || null,
   };
 

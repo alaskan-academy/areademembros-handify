@@ -15,12 +15,12 @@ type ForumPostRow = {
   pinned: boolean;
   approved: boolean;
   created_at: string;
-  course_id: string;
+  forum_id: string | null;
   attachment_url: string | null;
   attachment_name: string | null;
   author_name: string;
-  course_title: string;
-  course_slug: string;
+  forum_title: string;
+  forum_slug: string;
   comment_count: number;
 };
 
@@ -82,7 +82,7 @@ export default function ForumModerationClient({ posts: initialPosts }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-xs font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">
-              {post.course_title}
+              {post.forum_title}
             </span>
             {!post.approved && (
               <span className="flex items-center gap-1 text-xs font-semibold text-[#b8900d] bg-[#FEC649]/15 px-2 py-0.5 rounded-full">
@@ -114,14 +114,14 @@ export default function ForumModerationClient({ posts: initialPosts }: Props) {
           {!post.approved && (
             <div className="flex gap-1 mb-1">
               <button
-                onClick={() => handleApprove(post.id, post.course_slug)}
+                onClick={() => handleApprove(post.id, post.forum_slug)}
                 title="Aprovar post"
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-[#72CF92] hover:opacity-90 transition-opacity"
               >
                 <CheckCircle className="w-3.5 h-3.5" /> Aprovar
               </button>
               <button
-                onClick={() => handleReject(post.id, post.course_slug)}
+                onClick={() => handleReject(post.id, post.forum_slug)}
                 title="Rejeitar e deletar"
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-red-500 hover:opacity-90 transition-opacity"
               >
@@ -131,9 +131,9 @@ export default function ForumModerationClient({ posts: initialPosts }: Props) {
           )}
 
           <div className="flex gap-1">
-            {post.course_slug && (
+            {post.forum_slug && (
               <Link
-                href={`/comunidade/forum/${post.course_slug}`}
+                href={`/comunidade/forum/${post.forum_slug}`}
                 target="_blank"
                 title="Ver no fórum"
                 className="p-1.5 rounded-lg text-muted-foreground hover:text-[#6699F3] hover:bg-[#6699F3]/10 transition-colors"
@@ -151,7 +151,7 @@ export default function ForumModerationClient({ posts: initialPosts }: Props) {
               </button>
             )}
             <button
-              onClick={() => handleDelete(post.id, post.course_slug)}
+              onClick={() => handleDelete(post.id, post.forum_slug)}
               title="Deletar post"
               className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
             >

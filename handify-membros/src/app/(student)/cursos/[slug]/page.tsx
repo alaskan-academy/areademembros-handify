@@ -41,6 +41,7 @@ export default async function CourseDetailPage({
       id, slug, title, description, thumbnail_url,
       price, workload_hours, is_subscription_only, product_code, checkout_url,
       category:categories(name, slug),
+      forum:forums(slug),
       modules(
         id, title, position, archived,
         lessons(id, title, duration_seconds, is_preview, position, archived)
@@ -110,6 +111,7 @@ export default async function CourseDetailPage({
   );
 
   const category = course.category as unknown as { name: string; slug: string } | null;
+  const forumSlug = (course.forum as unknown as { slug: string } | null)?.slug ?? null;
   const firstLesson = modules[0]?.lessons?.[0];
 
   return (
@@ -206,13 +208,15 @@ export default async function CourseDetailPage({
                 </Link>
               )}
 
-              <Link
-                href={`/comunidade/forum/${course.slug}`}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium border border-border text-foreground/70 hover:text-[#6699F3] hover:border-[#6699F3]/40 hover:bg-[#6699F3]/5 transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                Fórum do curso
-              </Link>
+              {forumSlug && (
+                <Link
+                  href={`/comunidade/forum/${forumSlug}`}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium border border-border text-foreground/70 hover:text-[#6699F3] hover:border-[#6699F3]/40 hover:bg-[#6699F3]/5 transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Fórum do curso
+                </Link>
+              )}
             </div>
           ) : (
             <>

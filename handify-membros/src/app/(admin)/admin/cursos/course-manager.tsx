@@ -11,12 +11,14 @@ import { formatPrice } from "@/lib/format";
 import Image from "next/image";
 
 interface Category { id: string; name: string }
+interface Forum { id: string; title: string; slug: string }
 interface Course {
   id: string; title: string; slug: string; description: string | null;
   price: number | null; product_code: string | null; workload_hours: number | null;
   is_subscription_only: boolean; has_certificate: boolean; published: boolean;
-  category_id: string | null; thumbnail_url: string | null;
+  category_id: string | null; forum_id: string | null; thumbnail_url: string | null;
   category: { name: string } | null;
+  forum: { title: string; slug: string } | null;
 }
 
 // ─── Seletor de categoria com criação inline ──────────────────────────────────
@@ -185,6 +187,40 @@ function CategorySelect({
   );
 }
 
+// ─── Seletor de fórum ────────────────────────────────────────────────────────
+
+function ForumSelect({
+  forums,
+  defaultValue,
+}: {
+  forums: Forum[];
+  defaultValue?: string | null;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">Fórum vinculado</label>
+        <a href="/admin/forums" target="_blank" className="text-xs text-[#6699F3] hover:underline">
+          Gerenciar fóruns →
+        </a>
+      </div>
+      <select
+        name="forum_id"
+        defaultValue={defaultValue ?? ""}
+        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+      >
+        <option value="">— Nenhum —</option>
+        {forums.map((f) => (
+          <option key={f.id} value={f.id}>{f.title}</option>
+        ))}
+      </select>
+      <p className="text-[11px] text-muted-foreground">
+        Alunas matriculadas neste curso poderão acessar o fórum selecionado.
+      </p>
+    </div>
+  );
+}
+
 // ─── Upload de thumbnail ──────────────────────────────────────────────────────
 
 function ThumbnailUpload({ defaultUrl }: { defaultUrl?: string | null }) {
@@ -260,9 +296,10 @@ function ThumbnailUpload({ defaultUrl }: { defaultUrl?: string | null }) {
 // ─── Formulário de curso ──────────────────────────────────────────────────────
 
 function CourseForm({
-  categories, initial, onSave, onCancel, courseId,
+  categories, forums, initial, onSave, onCancel, courseId,
 }: {
   categories: Category[];
+  forums: Forum[];
   initial?: Partial<Course>;
   onSave: () => void;
   onCancel: () => void;
@@ -359,6 +396,7 @@ function CourseForm({
       </div>
 
       <CategorySelect categories={categories} defaultValue={initial?.category_id} />
+      <ForumSelect forums={forums} defaultValue={initial?.forum_id} />
 
       <div className="flex flex-wrap items-center gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
@@ -413,9 +451,11 @@ function CourseForm({
 export default function CourseManager({
   courses,
   categories,
+  forums,
 }: {
   courses: Course[];
   categories: Category[];
+  forums: Forum[];
 }) {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -458,6 +498,7 @@ export default function CourseManager({
           </div>
           <CourseForm
             categories={categories}
+            forums={forums}
             onSave={() => { setShowCreate(false); router.refresh(); }}
             onCancel={() => setShowCreate(false)}
           />
@@ -482,6 +523,7 @@ export default function CourseManager({
                   </div>
                   <CourseForm
                     categories={categories}
+                    forums={forums}
                     initial={course}
                     courseId={course.id}
                     onSave={() => { setEditingId(null); router.refresh(); }}
@@ -512,6 +554,7 @@ export default function CourseManager({
                       {course.category?.name && <span>{course.category.name} · </span>}
                       {formatPrice(course.price ?? 0)} · {course.workload_hours ?? 0}h
                       {course.product_code && <span> · cod: {course.product_code}</span>}
+                      {course.forum?.title && <span className="text-[#6699F3]"> · fórum: {course.forum.title}</span>}
                     </p>
                   </div>
 
