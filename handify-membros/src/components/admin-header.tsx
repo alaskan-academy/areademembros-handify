@@ -5,18 +5,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Menu, X, Settings, BookOpen, Users, BarChart3,
-  ShoppingBag, Image, Bell, ChevronRight, type LucideIcon,
+  ShoppingBag, Image, Bell, ChevronRight, Newspaper, MessageSquare, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS: { href: string; icon: LucideIcon; label: string }[] = [
-  { href: "/admin/cursos",       icon: BookOpen,    label: "Cursos" },
-  { href: "/admin/vitrine",      icon: ShoppingBag, label: "Vitrine" },
-  { href: "/admin/alunos",       icon: Users,       label: "Alunas" },
-  { href: "/admin/banners",      icon: Image,       label: "Banners" },
-  { href: "/admin/metricas",     icon: BarChart3,   label: "Métricas" },
-  { href: "/admin/notificacoes", icon: Bell,        label: "Notificações" },
-  { href: "/admin/menu",         icon: Menu,        label: "Menu" },
+type NavItem = { href: string; icon: LucideIcon; label: string; section?: string };
+
+const NAV_ITEMS: NavItem[] = [
+  { href: "/admin/cursos",           icon: BookOpen,      label: "Cursos" },
+  { href: "/admin/vitrine",          icon: ShoppingBag,   label: "Vitrine" },
+  { href: "/admin/alunos",           icon: Users,         label: "Alunas" },
+  { href: "/admin/banners",          icon: Image,         label: "Banners" },
+  { href: "/admin/metricas",         icon: BarChart3,     label: "Métricas" },
+  { href: "/admin/notificacoes",     icon: Bell,          label: "Notificações" },
+  { href: "/admin/menu",             icon: Menu,          label: "Menu" },
+  { href: "/admin/comunidade/feed",  icon: Newspaper,     label: "Feed de Notícias",  section: "Comunidade" },
+  { href: "/admin/comunidade/forum", icon: MessageSquare, label: "Fórum (Moderação)", section: "Comunidade" },
 ];
 
 export default function AdminHeader() {
@@ -65,12 +69,13 @@ export default function AdminHeader() {
             </button>
 
             {open && (
-              <div className="absolute left-0 top-11 z-50 w-56 bg-[#1A1A1A] rounded-xl border border-white/10 shadow-2xl py-2 overflow-hidden">
+              <div className="absolute left-0 top-11 z-50 w-64 bg-[#1A1A1A] rounded-xl border border-white/10 shadow-2xl py-2 overflow-hidden">
                 <p className="px-4 py-2 text-xs font-semibold text-white/30 uppercase tracking-widest">
                   Painel admin
                 </p>
                 <nav className="space-y-0.5 px-2">
-                  {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+                  {/* Itens sem seção */}
+                  {NAV_ITEMS.filter((i) => !i.section).map(({ href, icon: Icon, label }) => {
                     const isActive = pathname === href || pathname.startsWith(href + "/");
                     return (
                       <Link
@@ -89,6 +94,31 @@ export default function AdminHeader() {
                       </Link>
                     );
                   })}
+                  {/* Seção Comunidade */}
+                  <div className="pt-1 mt-1 border-t border-white/10">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-white/20 uppercase tracking-widest">
+                      Comunidade
+                    </p>
+                    {NAV_ITEMS.filter((i) => i.section === "Comunidade").map(({ href, icon: Icon, label }) => {
+                      const isActive = pathname === href || pathname.startsWith(href + "/");
+                      return (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                            isActive
+                              ? "text-[#6699F3] bg-[#6699F3]/15"
+                              : "text-white/70 hover:text-white hover:bg-white/10"
+                          )}
+                        >
+                          <Icon className="w-4 h-4 shrink-0" />
+                          {label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </nav>
               </div>
             )}

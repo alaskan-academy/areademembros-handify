@@ -1,0 +1,341 @@
+"use client";
+
+import { useState, useRef, useTransition } from "react";
+import Image from "next/image";
+import { Plus, X, Edit2, Trash2, Pin, PinOff, Eye, EyeOff, Loader2, Upload, ImageIcon } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  createNewsPost, updateNewsPost, deleteNewsPost,
+  toggleNewsPublished, toggleNewsPinned, uploadCommunityImage,
+} from "./actions";
+
+export type AdminNewsPost = {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  pinned: boolean;
+  published: boolean;
+  created_at: string;
+  author: { full_name: string } | null;
+  comment_count: number;
+};
+
+interface Props {
+  posts: AdminNewsPost[];
+}
+
+const EMPTY_FORM = { title: "", body: "", image_url: "", published: true, pinned: false };
+
+export default function FeedAdminClient({ posts: initialPosts }: Props) {
+  const [posts, setPosts] = useState<AdminNewsPost[]>(initialPosts);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [, startTransition] = useTransition();
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setError(null);
+    setShowForm(true);
+  }
+
+  function openEdit(post: AdminNewsPost) {
+    setEditingId(post.id);
+    setForm({
+      title: post.title,
+      body: post.body,
+      image_url: post.image_url ?? "",
+      published: post.published,
+      pinned: post.pinned,
+    });
+    setError(null);
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setError(null);
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const result = await uploadCommunityImage(fd);
+    setUploading(false);
+    if (result.error) { setError(result.error); return; }
+    setForm((f) => ({ ...f, image_url: result.url ?? "" }));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+
+    const fd = new FormData();
+    fd.append("title", form.title);
+    fd.append("body", form.body);
+    fd.append("image_url", form.image_url);
+    fd.append("published", String(form.published));
+    fd.append("pinned", String(form.pinned));
+
+    const result = editingId
+      ? await updateNewsPost(editingId, fd)
+      : await createNewsPost(fd);
+
+    setSubmitting(false);
+    if (result.error) { setError(result.error); return; }
+
+    // Reload to get fresh server data
+    window.location.reload();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Deletar este post permanentemente?")) return;
+    const result = await deleteNewsPost(id);
+    if (!result.error) setPosts((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function handleTogglePublished(id: string, current: boolean) {
+    startTransition(async () => {
+      await toggleNewsPublished(id, !current);
+      setPosts((prev) => prev.map((p) => p.id === id ? { ...p, published: !current } : p));
+    });
+  }
+
+  function handleTogglePinned(id: string, current: boolean) {
+    startTransition(async () => {
+      await toggleNewsPinned(id, !current);
+      setPosts((prev) => prev.map((p) => p.id === id ? { ...p, pinned: !current } : p));
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Botão criar */}
+      <div className="flex justify-end">
+        <button
+          onClick={openCreate}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6699F3] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+        >
+          <Plus className="w-4 h-4" />
+          Novo post
+        </button>
+      </div>
+
+      {/* Formulário inline */}
+      {showForm && (
+        <div className="bg-white rounded-xl border border-[#6699F3]/30 shadow-sm p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-base">{editingId ? "Editar post" : "Criar novo post"}</h2>
+            <button onClick={closeForm} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-foreground/70 mb-1">Título *</label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Título do post"
+                required
+                maxLength={200}
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground/70 mb-1">Conteúdo</label>
+              <textarea
+                value={form.body}
+                onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                placeholder="Escreva o conteúdo do post…"
+                rows={6}
+                maxLength={10000}
+                className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+              />
+            </div>
+
+            {/* Imagem */}
+            <div>
+              <label className="block text-xs font-medium text-foreground/70 mb-1">Imagem (opcional)</label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={form.image_url}
+                  onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
+                  placeholder="https://... ou faça upload →"
+                  className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="px-3 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1.5 shrink-0"
+                >
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  Upload
+                </button>
+              </div>
+              {form.image_url && (
+                <div className="mt-2 relative rounded-lg overflow-hidden border border-border" style={{ height: 140 }}>
+                  <Image src={form.image_url} alt="Preview" fill className="object-cover" unoptimized />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, image_url: "" }))}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Toggles */}
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.published}
+                  onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
+                  className="w-4 h-4 rounded accent-[#6699F3]"
+                />
+                <span className="text-sm font-medium">Publicar agora</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.pinned}
+                  onChange={(e) => setForm((f) => ({ ...f, pinned: e.target.checked }))}
+                  className="w-4 h-4 rounded accent-[#6699F3]"
+                />
+                <span className="text-sm font-medium">Fixar no topo</span>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={closeForm}
+                className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || !form.title.trim()}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#6699F3] text-white text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
+              >
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {editingId ? "Salvar" : "Publicar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Lista de posts */}
+      {posts.length === 0 && !showForm && (
+        <div className="text-center py-16 text-muted-foreground">
+          <p className="font-medium">Nenhum post ainda</p>
+          <p className="text-sm mt-1">Crie o primeiro post do feed de notícias.</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {posts.map((post) => (
+          <div
+            key={post.id}
+            className="bg-white rounded-xl border border-border/60 shadow-sm p-4 flex gap-4"
+          >
+            {/* Thumbnail */}
+            {post.image_url ? (
+              <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
+                <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                <ImageIcon className="w-6 h-6 text-muted-foreground/40" />
+              </div>
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-2 mb-1">
+                <h3 className="font-semibold text-sm text-foreground flex-1 line-clamp-1">{post.title}</h3>
+                <div className="flex items-center gap-1 shrink-0">
+                  {post.pinned && (
+                    <span className="text-[10px] font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">Fixado</span>
+                  )}
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${post.published ? "text-[#72CF92] bg-[#72CF92]/10" : "text-muted-foreground bg-muted"}`}>
+                    {post.published ? "Publicado" : "Rascunho"}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{post.body || "(sem texto)"}</p>
+              <p className="text-[10px] text-muted-foreground/60">
+                {post.comment_count} comentários ·{" "}
+                {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}
+              </p>
+            </div>
+
+            {/* Ações */}
+            <div className="flex flex-col gap-1.5 shrink-0">
+              <button
+                onClick={() => openEdit(post)}
+                title="Editar"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleTogglePublished(post.id, post.published)}
+                title={post.published ? "Despublicar" : "Publicar"}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-[#6699F3] hover:bg-[#6699F3]/10 transition-colors"
+              >
+                {post.published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => handleTogglePinned(post.id, post.pinned)}
+                title={post.pinned ? "Desfixar" : "Fixar"}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-[#FEC649] hover:bg-[#FEC649]/10 transition-colors"
+              >
+                {post.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+              </button>
+              <button
+                onClick={() => handleDelete(post.id)}
+                title="Deletar"
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
