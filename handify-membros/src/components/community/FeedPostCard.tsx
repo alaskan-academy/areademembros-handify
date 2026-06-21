@@ -37,9 +37,10 @@ interface Props {
 
 function Avatar({ name, url, size = 8 }: { name: string; url?: string | null; size?: number }) {
   const initial = name?.charAt(0)?.toUpperCase() || "?";
-  const cls = `w-${size} h-${size} rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0`;
-  if (url) return <Image src={url} alt={name} width={size * 4} height={size * 4} className={`${cls} object-cover`} />;
-  return <div className={cls} style={{ background: "#6699F3", fontSize: size < 8 ? "0.6rem" : undefined }}>{initial}</div>;
+  const px = size * 4;
+  const cls = "rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0";
+  if (url) return <Image src={url} alt={name} width={px} height={px} className={`${cls} object-cover`} style={{ width: px, height: px }} />;
+  return <div className={cls} style={{ width: px, height: px, background: "#6699F3", fontSize: size < 8 ? "0.6rem" : undefined }}>{initial}</div>;
 }
 
 export default function FeedPostCard({ post, userId, initialLiked }: Props) {

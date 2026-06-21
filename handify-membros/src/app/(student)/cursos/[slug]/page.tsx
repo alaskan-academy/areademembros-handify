@@ -118,31 +118,8 @@ export default async function CourseDetailPage({
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Info principal */}
-        <div className="lg:col-span-2 space-y-4">
-          {category && (
-            <span className="text-sm font-medium uppercase tracking-wide text-[#6699F3]">
-              {category.name}
-            </span>
-          )}
-          <h1 className="text-3xl font-bold leading-tight">{course.title}</h1>
-          <p className="text-muted-foreground leading-relaxed">
-            {course.description}
-          </p>
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4" />
-              {totalLessons} aulas
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4" />
-              {formatDuration(totalDuration)} de conteúdo
-            </span>
-          </div>
-        </div>
-
-        {/* Card de compra */}
-        <div className="handify-card p-6 space-y-4 self-start lg:sticky lg:top-24">
+        {/* Card de compra — aparece primeiro no mobile */}
+        <div className="handify-card p-6 space-y-4 self-start order-first lg:order-last lg:sticky lg:top-24">
           {course.thumbnail_url && (
             <div className="aspect-video relative rounded-lg overflow-hidden bg-muted">
               <Image
@@ -236,6 +213,27 @@ export default async function CourseDetailPage({
               </p>
             </>
           )}
+        </div>
+
+        {/* Info principal — aparece depois do card no mobile */}
+        <div className="lg:col-span-2 space-y-4 order-last lg:order-first">
+          {category && (
+            <span className="text-sm font-medium uppercase tracking-wide text-[#6699F3]">
+              {category.name}
+            </span>
+          )}
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{course.title}</h1>
+          <p className="text-muted-foreground leading-relaxed">{course.description}</p>
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4" />
+              {totalLessons} aulas
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              {formatDuration(totalDuration)} de conteúdo
+            </span>
+          </div>
         </div>
       </div>
 

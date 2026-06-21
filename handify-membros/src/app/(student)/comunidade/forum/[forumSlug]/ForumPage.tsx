@@ -92,21 +92,21 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
         <span className="text-sm font-medium text-foreground truncate">{forum.title}</span>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#6699F3]/10 flex items-center justify-center">
+      <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-[#6699F3]/10 flex items-center justify-center shrink-0">
             <MessageSquare className="w-5 h-5 text-[#6699F3]" />
           </div>
-          <div>
-            <h1 className="font-black text-xl text-foreground">{forum.title}</h1>
-            <p className="text-sm text-muted-foreground">
+          <div className="min-w-0">
+            <h1 className="font-black text-xl text-foreground line-clamp-1">{forum.title}</h1>
+            <p className="text-sm text-muted-foreground line-clamp-1">
               {forum.description ?? `${posts.filter(p => p.approved).length} posts`}
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#6699F3] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-lg bg-[#6699F3] text-white text-sm font-semibold hover:opacity-90 transition-opacity shrink-0"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {showForm ? "Cancelar" : "Novo post"}

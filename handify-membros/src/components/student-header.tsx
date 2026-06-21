@@ -122,7 +122,7 @@ export default function StudentHeader({
 
             {/* Painel de navegação */}
             {navOpen && (
-              <div className="absolute left-0 top-11 z-50 w-64 bg-white rounded-xl border border-border shadow-xl py-2 overflow-hidden">
+              <div className="absolute left-0 top-11 z-50 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-border shadow-xl py-2 overflow-hidden">
                 <nav className="space-y-0.5 px-2">
                   {visibleItems.map((item) => {
                     const Icon = item.icon ? ICON_MAP[item.icon] : null;
@@ -202,7 +202,7 @@ export default function StudentHeader({
               </button>
 
               {avatarOpen && (
-                <div className="absolute right-0 top-10 z-50 w-56 bg-white rounded-xl border border-border shadow-xl py-1 overflow-hidden">
+                <div className="absolute right-0 top-10 z-50 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-border shadow-xl py-1 overflow-hidden">
                   <div className="px-4 py-3 border-b border-border/40">
                     <p className="text-sm font-semibold truncate">{fullName}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Área de membros</p>
