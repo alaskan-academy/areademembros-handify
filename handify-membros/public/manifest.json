@@ -2,7 +2,7 @@
   "name": "Handify — Área de Membros",
   "short_name": "Handify",
   "description": "Cursos de artesanato online da Handify",
-  "start_url": "/dashboard",
+  "start_url": "/cursos",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#6699F3",
