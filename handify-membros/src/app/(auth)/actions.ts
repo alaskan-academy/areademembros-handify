@@ -10,6 +10,7 @@ import {
 } from "@/lib/validations/auth";
 import { sendWelcomeEmail } from "@/lib/email";
 import { encryptCpf } from "@/lib/cpf-crypto";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export type ActionResult = {
   error?: string;
@@ -126,18 +127,18 @@ export async function recuperarSenhaAction(
     return { error: parsed.error.issues[0].message };
   }
 
-  // Verifica se o e-mail existe antes de tentar enviar
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("email", parsed.data.email)
-    .maybeSingle();
+  // Verifica se o e-mail existe no Auth (service client ignora RLS)
+  const service = createServiceClient();
+  const { data: usersData } = await service.auth.admin.listUsers();
+  const exists = usersData?.users?.some(
+    (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase()
+  );
 
-  if (!profile) {
+  if (!exists) {
     return { error: "Este e-mail não está cadastrado. Verifique e tente novamente." };
   }
 
+  const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/nova-senha`,
   });
