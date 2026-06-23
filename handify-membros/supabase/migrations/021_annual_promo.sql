@@ -21,6 +21,9 @@ ON CONFLICT DO NOTHING;
 -- RLS
 ALTER TABLE public.annual_promo ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admin gerencia annual_promo" ON public.annual_promo;
+DROP POLICY IF EXISTS "Aluna lê annual_promo ativo" ON public.annual_promo;
+
 CREATE POLICY "Admin gerencia annual_promo" ON public.annual_promo
   FOR ALL TO authenticated
   USING   (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'))
