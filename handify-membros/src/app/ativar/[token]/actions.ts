@@ -2,7 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendWelcomeEmail } from "@/lib/email";
-import { encryptCpf } from "@/lib/cpf-crypto";
+import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { z } from "zod";
 
 const ActivateSchema = z.object({
@@ -117,6 +117,7 @@ export async function activateAccount(
     if (rawCpf && rawCpf.length === 11) {
       try {
         profileUpdate.cpf_encrypted = encryptCpf(rawCpf);
+        profileUpdate.cpf_hash = hashCpf(rawCpf);
       } catch {
         console.warn("[activate] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
       }

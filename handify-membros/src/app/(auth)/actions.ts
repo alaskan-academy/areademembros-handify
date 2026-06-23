@@ -9,7 +9,7 @@ import {
   novaSenhaSchema,
 } from "@/lib/validations/auth";
 import { sendWelcomeEmail } from "@/lib/email";
-import { encryptCpf } from "@/lib/cpf-crypto";
+import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export type ActionResult = {
@@ -95,6 +95,7 @@ export async function cadastroAction(
     if (rawCpf && rawCpf.length === 11) {
       try {
         profileUpdate.cpf_encrypted = encryptCpf(rawCpf);
+        profileUpdate.cpf_hash = hashCpf(rawCpf);
       } catch {
         console.warn("[cadastro] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
       }

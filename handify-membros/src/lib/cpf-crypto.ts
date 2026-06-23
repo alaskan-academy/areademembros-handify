@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 
 function getKey(): Buffer {
   const key = process.env.CERTIFICATE_ENCRYPTION_KEY;
@@ -26,6 +26,10 @@ export function decryptCpf(encryptedBase64: string): string {
   const decipher = createDecipheriv("aes-256-gcm", key, iv);
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString("utf8");
+}
+
+export function hashCpf(cpfDigits: string): string {
+  return createHash("sha256").update(cpfDigits).digest("hex");
 }
 
 export function formatCpf(raw: string): string {

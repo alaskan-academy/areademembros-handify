@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Search, Download, UserCircle, UserPlus } from "lucide-react";
+import { hashCpf } from "@/lib/cpf-crypto";
 
 const PAGE_SIZE = 25;
 
@@ -53,25 +54,39 @@ export default async function AlunosPage({
   let cpfSearch = false;
 
   if (q && isCpf(q)) {
-    // Busca por CPF no payment_events (payload JSON do Payt)
     cpfSearch = true;
     const cpfDigits = formatCpfRaw(q);
-    const { data: events } = await service
-      .from("payment_events")
-      .select("buyer_email")
-      .filter("payload->customer->>doc", "eq", cpfDigits)
-      .limit(10);
+    const cpfH = hashCpf(cpfDigits);
 
-    const emails = [...new Set((events ?? []).map((e) => e.buyer_email).filter(Boolean))];
+    // 1. Busca pelo hash em profiles (cadastros manuais com CPF)
+    const { data: byHash, count: hashCount } = await service
+      .from("profiles")
+      .select("id, full_name, email, role, banned, created_at", { count: "exact" })
+      .eq("cpf_hash", cpfH)
+      .neq("role", "admin");
 
-    if (emails.length > 0) {
-      const { data, count: c } = await service
-        .from("profiles")
-        .select("id, full_name, email, role, banned, created_at", { count: "exact" })
-        .in("email", emails)
-        .neq("role", "admin");
-      profiles = (data ?? []) as ProfileRow[];
-      count = c ?? 0;
+    if ((byHash ?? []).length > 0) {
+      profiles = (byHash ?? []) as ProfileRow[];
+      count = hashCount ?? 0;
+    } else {
+      // 2. Fallback: busca no payload do Payt (compras sem cadastro manual de CPF)
+      const { data: events } = await service
+        .from("payment_events")
+        .select("buyer_email")
+        .filter("payload->customer->>doc", "eq", cpfDigits)
+        .limit(10);
+
+      const emails = [...new Set((events ?? []).map((e) => e.buyer_email).filter(Boolean))];
+
+      if (emails.length > 0) {
+        const { data, count: c } = await service
+          .from("profiles")
+          .select("id, full_name, email, role, banned, created_at", { count: "exact" })
+          .in("email", emails)
+          .neq("role", "admin");
+        profiles = (data ?? []) as ProfileRow[];
+        count = c ?? 0;
+      }
     }
   } else {
     let query = service
