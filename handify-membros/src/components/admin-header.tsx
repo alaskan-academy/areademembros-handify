@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Menu, X, Settings, BookOpen, Users, BarChart3,
-  ShoppingBag, Image, Bell, ChevronRight, Newspaper, MessageSquare, Star, type LucideIcon,
+  ShoppingBag, Image, Bell, ChevronRight, Newspaper, MessageSquare, Star, Mail, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/notificacoes",     icon: Bell,          label: "Notificações" },
   { href: "/admin/menu",             icon: Menu,          label: "Menu" },
   { href: "/admin/plano-anual",       icon: Star,          label: "Plano Anual" },
+  { href: "/admin/emails",            icon: Mail,          label: "E-mails" },
   { href: "/admin/forums",           icon: MessageSquare, label: "Fóruns",            section: "Comunidade" },
   { href: "/admin/comunidade/feed",  icon: Newspaper,     label: "Feed de Notícias",  section: "Comunidade" },
   { href: "/admin/comunidade/forum", icon: MessageSquare, label: "Fórum (Moderação)", section: "Comunidade" },
