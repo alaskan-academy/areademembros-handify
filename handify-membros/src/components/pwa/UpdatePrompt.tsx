@@ -36,8 +36,12 @@ export default function UpdatePrompt() {
   }, []);
 
   function handleUpdate() {
-    if (!waitingWorker) return;
-    waitingWorker.postMessage({ type: "SKIP_WAITING" });
+    setDismissed(true);
+    if (waitingWorker) {
+      waitingWorker.postMessage({ type: "SKIP_WAITING" });
+    }
+    // Fallback: recarrega após 400ms caso controllerchange não dispare
+    setTimeout(() => window.location.reload(), 400);
   }
 
   if (!waitingWorker || dismissed) return null;
