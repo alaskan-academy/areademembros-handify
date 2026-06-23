@@ -158,13 +158,13 @@ export default function ActivateForm({
             <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
               <Phone className="w-4 h-4 text-[#6699F3]" />
               WhatsApp
-              <span className="text-muted-foreground font-normal text-xs ml-1">(opcional)</span>
             </label>
             <input
               name="phone"
               type="tel"
               placeholder="(11) 99999-9999"
               autoComplete="tel"
+              required
               className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
             />
           </div>

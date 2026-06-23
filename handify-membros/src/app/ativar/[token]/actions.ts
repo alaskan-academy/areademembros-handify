@@ -10,7 +10,7 @@ const ActivateSchema = z.object({
   full_name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
   confirm_password: z.string(),
-  phone: z.string().optional().or(z.literal("")),
+  phone: z.string().min(10, "WhatsApp é obrigatório"),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal("")),
 }).refine((d) => d.password === d.confirm_password, {
   message: "As senhas não coincidem",

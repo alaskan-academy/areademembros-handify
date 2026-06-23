@@ -87,7 +87,6 @@ export default function CadastroEmailForm({
                 <Label htmlFor="phone" className="flex items-center gap-1.5">
                   <Phone className="w-4 h-4 text-[#6699F3]" />
                   WhatsApp
-                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
                 </Label>
                 <Input
                   id="phone"
@@ -96,6 +95,7 @@ export default function CadastroEmailForm({
                   placeholder="(11) 99999-9999"
                   autoComplete="tel"
                   defaultValue={defaultPhone ?? ""}
+                  required
                   disabled={isPending}
                 />
                 {defaultPhone && (
@@ -110,7 +110,6 @@ export default function CadastroEmailForm({
                 <Label htmlFor="cpf" className="flex items-center gap-1.5">
                   <CreditCard className="w-4 h-4 text-[#6699F3]" />
                   CPF
-                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
                 </Label>
                 <Input
                   id="cpf"
@@ -121,6 +120,7 @@ export default function CadastroEmailForm({
                   inputMode="numeric"
                   maxLength={14}
                   defaultValue={defaultCpf ?? ""}
+                  required
                   disabled={isPending}
                 />
                 {defaultCpf && (

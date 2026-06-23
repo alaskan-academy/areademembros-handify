@@ -87,8 +87,8 @@ export async function cadastroAction(
     const dateOfBirth = formData.get("date_of_birth") as string | null;
     if (dateOfBirth) profileUpdate.date_of_birth = dateOfBirth;
 
-    const phone = formData.get("phone") as string | null;
-    if (phone?.trim()) profileUpdate.phone = phone.trim();
+    const phone = (formData.get("phone") as string | null)?.trim();
+    if (phone) profileUpdate.phone = phone;
 
     const rawCpf = (formData.get("cpf") as string | null)?.replace(/\D/g, "");
     if (rawCpf && rawCpf.length === 11) {
@@ -97,6 +97,8 @@ export async function cadastroAction(
       } catch {
         console.warn("[cadastro] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
       }
+    } else if (rawCpf && rawCpf.length !== 11) {
+      return { error: "CPF inválido. Verifique e tente novamente." };
     }
 
     if (Object.keys(profileUpdate).length > 0) {

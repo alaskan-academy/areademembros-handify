@@ -83,7 +83,6 @@ export default function CadastroPage() {
                 <Label htmlFor="phone" className="flex items-center gap-1.5">
                   <Phone className="w-4 h-4 text-[#6699F3]" />
                   WhatsApp
-                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
                 </Label>
                 <Input
                   id="phone"
@@ -91,6 +90,7 @@ export default function CadastroPage() {
                   type="tel"
                   placeholder="(11) 99999-9999"
                   autoComplete="tel"
+                  required
                   disabled={isPending}
                 />
               </div>
@@ -99,7 +99,6 @@ export default function CadastroPage() {
                 <Label htmlFor="cpf" className="flex items-center gap-1.5">
                   <CreditCard className="w-4 h-4 text-[#6699F3]" />
                   CPF
-                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
                 </Label>
                 <Input
                   id="cpf"
@@ -109,6 +108,7 @@ export default function CadastroPage() {
                   autoComplete="off"
                   inputMode="numeric"
                   maxLength={14}
+                  required
                   disabled={isPending}
                 />
               </div>
