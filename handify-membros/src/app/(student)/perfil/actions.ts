@@ -109,6 +109,7 @@ export type EmailPrefs = {
   certificate: boolean;
   reengagement: boolean;
   news_post: boolean;
+  new_course: boolean;
 };
 
 export async function updateEmailPrefs(

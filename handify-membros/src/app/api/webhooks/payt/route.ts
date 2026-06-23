@@ -7,6 +7,7 @@ import {
   type PaytPayload,
 } from "@/lib/payments/payt";
 import { encryptCpf, formatCpf } from "@/lib/cpf-crypto";
+import { sendAccessConfirmedEmail } from "@/lib/email";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
   // 5. Buscar curso pelo product_code (inclui access_days para calcular expiração)
   const { data: course } = await supabase
     .from("courses")
-    .select("id, title, access_days")
+    .select("id, title, slug, access_days")
     .eq("product_code", payload.product_code)
     .maybeSingle();
 
@@ -171,6 +172,21 @@ export async function POST(req: NextRequest) {
     console.info(
       `[payt-webhook] Matrícula concedida: user=${user.id} curso=${course.id} expires=${expiresAt ?? "vitalício"}`
     );
+
+    // Notifica aluna sobre acesso liberado (background, não bloqueia a resposta)
+    ;(async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      await sendAccessConfirmedEmail({
+        to: payload.buyer_email,
+        studentName: profile?.full_name ?? payload.buyer_email,
+        courseTitle: course.title,
+        courseSlug: course.slug,
+      });
+    })().catch((e) => console.error("[payt-webhook] access email:", e));
   } else {
     // revoke: marcar matrícula como expirada agora (revoga vitalícias e periódicas)
     const { error } = await supabase

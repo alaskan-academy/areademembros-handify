@@ -61,6 +61,7 @@ const DEFAULT_PREFS: EmailPrefs = {
   certificate: true,
   reengagement: true,
   news_post: true,
+  new_course: true,
 };
 
 // Garante que chaves ausentes no banco virem true (opt-in por padrão)
@@ -69,6 +70,7 @@ function mergeWithDefaults(raw: EmailPrefs | null): EmailPrefs {
     certificate: raw?.certificate ?? true,
     reengagement: raw?.reengagement ?? true,
     news_post: raw?.news_post ?? true,
+    new_course: raw?.new_course ?? true,
   };
 }
 
@@ -654,7 +656,12 @@ const PREF_LABELS: { key: keyof EmailPrefs; label: string; description: string }
   {
     key: "news_post",
     label: "Novidades da Handify",
-    description: "Novos cursos, avisos e destaques da comunidade",
+    description: "Avisos e destaques publicados no feed da comunidade",
+  },
+  {
+    key: "new_course",
+    label: "Novos cursos",
+    description: "E-mail quando um curso novo for lançado na plataforma",
   },
 ];
 

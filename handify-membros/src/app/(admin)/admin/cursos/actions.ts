@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { sendNewCourseEmail } from "@/lib/email";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -183,6 +184,49 @@ export async function togglePublished(courseId: string, published: boolean): Pro
   const supabase = await assertAdmin();
   await supabase.from("courses").update({ published }).eq("id", courseId);
   revalidatePath("/admin/cursos");
+
+  if (!published) return;
+
+  // Ao publicar: notificar alunas que optaram por e-mail de novos cursos
+  void notifyNewCourse(courseId);
+}
+
+async function notifyNewCourse(courseId: string) {
+  try {
+    const service = createServiceClient();
+    const { data: course } = await service
+      .from("courses")
+      .select("title, slug, description, thumbnail_url")
+      .eq("id", courseId)
+      .single();
+    if (!course) return;
+
+    // Busca perfis com new_course != false (null = opt-in por padrão)
+    const { data: profiles } = await service
+      .from("profiles")
+      .select("full_name, email, email_prefs")
+      .eq("role", "student")
+      .not("email", "is", null);
+
+    if (!profiles?.length) return;
+
+    const eligible = profiles.filter(
+      (p) => (p.email_prefs as Record<string, boolean> | null)?.new_course !== false
+    );
+
+    for (const p of eligible) {
+      await sendNewCourseEmail({
+        to: p.email,
+        studentName: p.full_name ?? "Aluna",
+        courseTitle: course.title,
+        courseSlug: course.slug,
+        courseDescription: course.description ?? undefined,
+        thumbnailUrl: course.thumbnail_url,
+      });
+    }
+  } catch (e) {
+    console.error("[email] notifyNewCourse:", e);
+  }
 }
 
 export async function deleteCourse(courseId: string): Promise<void> {

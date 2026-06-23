@@ -8,6 +8,7 @@ import {
   recuperarSenhaSchema,
   novaSenhaSchema,
 } from "@/lib/validations/auth";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export type ActionResult = {
   error?: string;
@@ -76,6 +77,11 @@ export async function cadastroAction(
     }
     return { error: "Erro ao criar conta. Tente novamente." };
   }
+
+  // Dispara boas-vindas em background (não bloqueia a resposta)
+  sendWelcomeEmail({ to: parsed.data.email, studentName: parsed.data.full_name }).catch(
+    (e) => console.error("[cadastro] welcome email:", e)
+  );
 
   return {
     success: "Conta criada! Verifique seu e-mail para confirmar o acesso.",

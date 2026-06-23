@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sendNewsPostEmail } from "@/lib/email";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -117,7 +118,45 @@ export async function toggleNewsPublished(
   if (error) return { error: "Erro ao atualizar status" };
   revalidatePath("/admin/comunidade/feed");
   revalidatePath("/comunidade/feed");
+
+  if (published) void notifyNewsPost(id);
   return {};
+}
+
+async function notifyNewsPost(postId: string) {
+  try {
+    const service = createServiceClient();
+    const { data: post } = await service
+      .from("news_posts")
+      .select("title, body")
+      .eq("id", postId)
+      .single();
+    if (!post) return;
+
+    const { data: profiles } = await service
+      .from("profiles")
+      .select("full_name, email, email_prefs")
+      .eq("role", "student")
+      .not("email", "is", null);
+
+    if (!profiles?.length) return;
+
+    const eligible = profiles.filter(
+      (p) => (p.email_prefs as Record<string, boolean> | null)?.news_post !== false
+    );
+
+    for (const p of eligible) {
+      await sendNewsPostEmail({
+        to: p.email,
+        studentName: p.full_name ?? "Aluna",
+        postTitle: post.title,
+        postBody: post.body ?? undefined,
+        postId,
+      });
+    }
+  } catch (e) {
+    console.error("[email] notifyNewsPost:", e);
+  }
 }
 
 export async function toggleNewsPinned(
