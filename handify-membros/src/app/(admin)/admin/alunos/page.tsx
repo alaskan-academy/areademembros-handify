@@ -6,6 +6,14 @@ import { Search, Download, UserCircle, UserPlus } from "lucide-react";
 
 const PAGE_SIZE = 25;
 
+function isCpf(q: string) {
+  return q.replace(/\D/g, "").length === 11;
+}
+
+function formatCpfRaw(q: string) {
+  return q.replace(/\D/g, "");
+}
+
 export default async function AlunosPage({
   searchParams,
 }: {
@@ -31,21 +39,59 @@ export default async function AlunosPage({
 
   const service = createServiceClient();
 
-  let query = service
-    .from("profiles")
-    .select("id, full_name, email, role, banned, created_at", { count: "exact" })
-    .neq("role", "admin")
-    .order("created_at", { ascending: false })
-    .range(from, to);
+  type ProfileRow = {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    role: string;
+    banned: boolean | null;
+    created_at: string;
+  };
 
-  if (q) {
-    query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
+  let profiles: ProfileRow[] = [];
+  let count = 0;
+  let cpfSearch = false;
+
+  if (q && isCpf(q)) {
+    // Busca por CPF no payment_events (payload JSON do Payt)
+    cpfSearch = true;
+    const cpfDigits = formatCpfRaw(q);
+    const { data: events } = await service
+      .from("payment_events")
+      .select("buyer_email")
+      .filter("payload->customer->>doc", "eq", cpfDigits)
+      .limit(10);
+
+    const emails = [...new Set((events ?? []).map((e) => e.buyer_email).filter(Boolean))];
+
+    if (emails.length > 0) {
+      const { data, count: c } = await service
+        .from("profiles")
+        .select("id, full_name, email, role, banned, created_at", { count: "exact" })
+        .in("email", emails)
+        .neq("role", "admin");
+      profiles = (data ?? []) as ProfileRow[];
+      count = c ?? 0;
+    }
+  } else {
+    let query = service
+      .from("profiles")
+      .select("id, full_name, email, role, banned, created_at", { count: "exact" })
+      .neq("role", "admin")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (q) {
+      query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
+    }
+
+    const { data, count: c } = await query;
+    profiles = (data ?? []) as ProfileRow[];
+    count = c ?? 0;
   }
 
-  const { data: profiles, count } = await query;
-
   // Contagem de matrículas
-  const profileIds = (profiles ?? []).map((p) => p.id);
+  const profileIds = profiles.map((p) => p.id);
   const { data: enrollments } = profileIds.length
     ? await service
         .from("enrollments")
@@ -58,16 +104,7 @@ export default async function AlunosPage({
     enrollCount[e.user_id] = (enrollCount[e.user_id] ?? 0) + 1;
   }
 
-  const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
-
-  type ProfileRow = {
-    id: string;
-    full_name: string | null;
-    email: string | null;
-    role: string;
-    banned: boolean | null;
-    created_at: string;
-  };
+  const totalPages = Math.ceil(count / PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -76,8 +113,8 @@ export default async function AlunosPage({
         <div>
           <h1 className="text-2xl font-bold">Alunas</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {count ?? 0}{" "}
-            {(count ?? 0) !== 1 ? "alunas cadastradas" : "aluna cadastrada"}
+            {count}{" "}
+            {count !== 1 ? "alunas cadastradas" : "aluna cadastrada"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -104,20 +141,28 @@ export default async function AlunosPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder="Buscar por nome ou e-mail…"
+          placeholder="Buscar por nome, e-mail ou CPF…"
           className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 focus:border-[#6699F3]"
         />
       </form>
 
+      {cpfSearch && (
+        <p className="text-xs text-[#6699F3]">
+          Buscando por CPF nos registros de compra.
+        </p>
+      )}
+
       {/* Tabela */}
       <div className="handify-card overflow-hidden">
-        {(profiles ?? []).length === 0 ? (
+        {profiles.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <UserCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />
             <p className="font-medium">Nenhuma aluna encontrada</p>
             {q && (
               <p className="text-sm mt-1">
-                Tente um termo diferente.
+                {cpfSearch
+                  ? "CPF não encontrado nos registros de compra."
+                  : "Tente um termo diferente."}
               </p>
             )}
           </div>
@@ -144,7 +189,7 @@ export default async function AlunosPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {((profiles ?? []) as ProfileRow[]).map((p) => (
+              {profiles.map((p) => (
                 <tr key={p.id} className="hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -194,8 +239,8 @@ export default async function AlunosPage({
         )}
       </div>
 
-      {/* Paginação */}
-      {totalPages > 1 && (
+      {/* Paginação — só na busca normal */}
+      {!cpfSearch && totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           {page > 1 && (
             <Link
