@@ -9,6 +9,7 @@ import {
   novaSenhaSchema,
 } from "@/lib/validations/auth";
 import { sendWelcomeEmail } from "@/lib/email";
+import { encryptCpf } from "@/lib/cpf-crypto";
 
 export type ActionResult = {
   error?: string;
@@ -78,16 +79,32 @@ export async function cadastroAction(
     return { error: "Erro ao criar conta. Tente novamente." };
   }
 
-  // Salva data de nascimento se informada
-  const dateOfBirth = formData.get("date_of_birth") as string | null;
-  if (dateOfBirth && signUpData?.user?.id) {
-    await supabase
-      .from("profiles")
-      .update({ date_of_birth: dateOfBirth })
-      .eq("id", signUpData.user.id);
+  const userId = signUpData?.user?.id;
+
+  if (userId) {
+    const profileUpdate: Record<string, string> = {};
+
+    const dateOfBirth = formData.get("date_of_birth") as string | null;
+    if (dateOfBirth) profileUpdate.date_of_birth = dateOfBirth;
+
+    const phone = formData.get("phone") as string | null;
+    if (phone?.trim()) profileUpdate.phone = phone.trim();
+
+    const rawCpf = (formData.get("cpf") as string | null)?.replace(/\D/g, "");
+    if (rawCpf && rawCpf.length === 11) {
+      try {
+        profileUpdate.cpf_encrypted = encryptCpf(rawCpf);
+      } catch {
+        console.warn("[cadastro] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
+      }
+    }
+
+    if (Object.keys(profileUpdate).length > 0) {
+      await supabase.from("profiles").update(profileUpdate).eq("id", userId);
+    }
   }
 
-  // Dispara boas-vindas em background (não bloqueia a resposta)
+  // Dispara boas-vindas em background
   sendWelcomeEmail({ to: parsed.data.email, studentName: parsed.data.full_name }).catch(
     (e) => console.error("[cadastro] welcome email:", e)
   );

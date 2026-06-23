@@ -2,12 +2,15 @@
 
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendWelcomeEmail } from "@/lib/email";
+import { encryptCpf } from "@/lib/cpf-crypto";
 import { z } from "zod";
 
 const ActivateSchema = z.object({
   token: z.string().uuid("Token inválido"),
+  full_name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
   confirm_password: z.string(),
+  phone: z.string().optional().or(z.literal("")),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida").optional().or(z.literal("")),
 }).refine((d) => d.password === d.confirm_password, {
   message: "As senhas não coincidem",
@@ -33,14 +36,15 @@ export async function validateToken(
   return { email: data.email };
 }
 
-
 export async function activateAccount(
   formData: FormData
 ): Promise<ActivateResult> {
   const raw = {
     token: formData.get("token"),
+    full_name: formData.get("full_name"),
     password: formData.get("password"),
     confirm_password: formData.get("confirm_password"),
+    phone: formData.get("phone") ?? "",
     date_of_birth: formData.get("date_of_birth") ?? "",
   };
 
@@ -69,35 +73,68 @@ export async function activateAccount(
   );
 
   if (alreadyExists) {
-    // Marca token como usado e pede para fazer login
     await service.from("activation_tokens").update({ used: true }).eq("token", parsed.data.token);
     return { error: "Você já possui uma conta com este e-mail. Faça login normalmente." };
   }
 
-  // Cria conta no Supabase Auth
+  // Cria conta no Supabase Auth (email_confirm: true — fluxo de ativação substitui verificação)
   const { data: created, error: signUpError } = await service.auth.admin.createUser({
     email,
     password: parsed.data.password,
-    email_confirm: true, // já confirma direto — fluxo de ativação substitui a verificação
+    email_confirm: true,
+    user_metadata: { full_name: parsed.data.full_name },
   });
 
   if (signUpError || !created?.user) {
     return { error: "Erro ao criar conta. Tente novamente ou entre em contato com o suporte." };
   }
 
-  // Salva data de nascimento no perfil (se informada)
-  if (parsed.data.date_of_birth) {
-    await service
-      .from("profiles")
-      .update({ date_of_birth: parsed.data.date_of_birth })
-      .eq("id", created.user.id);
+  const userId = created.user.id;
+
+  // Monta atualização do perfil
+  const profileUpdate: Record<string, string> = {
+    full_name: parsed.data.full_name,
+  };
+  if (parsed.data.phone) profileUpdate.phone = parsed.data.phone;
+  if (parsed.data.date_of_birth) profileUpdate.date_of_birth = parsed.data.date_of_birth;
+
+  // Busca CPF e telefone do Payt (payment_events pelo e-mail)
+  const { data: paymentEvent } = await service
+    .from("payment_events")
+    .select("payload")
+    .eq("buyer_email", email)
+    .eq("processed", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (paymentEvent?.payload) {
+    const payload = paymentEvent.payload as Record<string, unknown>;
+    const customer = payload.customer as Record<string, string> | undefined;
+
+    // CPF do Payt — criptografar antes de salvar
+    const rawCpf = customer?.doc?.replace(/\D/g, "");
+    if (rawCpf && rawCpf.length === 11) {
+      try {
+        profileUpdate.cpf_encrypted = encryptCpf(rawCpf);
+      } catch {
+        console.warn("[activate] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
+      }
+    }
+
+    // Telefone do Payt — só usa se a aluna não preencheu o campo
+    if (!parsed.data.phone && customer?.phone) {
+      profileUpdate.phone = customer.phone;
+    }
   }
 
-  // Concede matrícula pendente (caso tenha comprado antes de criar conta)
+  await service.from("profiles").update(profileUpdate).eq("id", userId);
+
+  // Concede matrícula pendente
   if (tokenRow.course_id) {
     await service.from("enrollments").upsert(
       {
-        user_id: created.user.id,
+        user_id: userId,
         course_id: tokenRow.course_id,
         source: "payt",
         granted_at: new Date().toISOString(),
@@ -114,15 +151,9 @@ export async function activateAccount(
     .eq("token", parsed.data.token);
 
   // Boas-vindas
-  const { data: profile } = await service
-    .from("profiles")
-    .select("full_name")
-    .eq("id", created.user.id)
-    .maybeSingle();
-
   sendWelcomeEmail({
     to: email,
-    studentName: profile?.full_name ?? email,
+    studentName: parsed.data.full_name,
   }).catch((e) => console.error("[activate] welcome email:", e));
 
   return { success: true };

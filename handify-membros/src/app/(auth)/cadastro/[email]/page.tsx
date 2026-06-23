@@ -3,12 +3,12 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { use } from "react";
+import { Lock, Cake, Phone, CreditCard } from "lucide-react";
 import { cadastroAction } from "../../actions";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Cake } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -80,6 +80,42 @@ export default function CadastroComEmailPage({
                 <p className="text-xs text-muted-foreground">
                   E-mail vinculado à sua compra — não pode ser alterado.
                 </p>
+              </div>
+
+              {/* WhatsApp */}
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-1.5">
+                  <Phone className="w-4 h-4 text-[#6699F3]" />
+                  WhatsApp
+                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+                </Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="(11) 99999-9999"
+                  autoComplete="tel"
+                  disabled={isPending}
+                />
+              </div>
+
+              {/* CPF */}
+              <div className="space-y-2">
+                <Label htmlFor="cpf" className="flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-[#6699F3]" />
+                  CPF
+                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+                </Label>
+                <Input
+                  id="cpf"
+                  name="cpf"
+                  type="text"
+                  placeholder="000.000.000-00"
+                  autoComplete="off"
+                  inputMode="numeric"
+                  maxLength={14}
+                  disabled={isPending}
+                />
               </div>
 
               {/* Data de nascimento */}

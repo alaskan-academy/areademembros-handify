@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Lock, Eye, EyeOff, CheckCircle2, Cake } from "lucide-react";
+import { Lock, Eye, EyeOff, CheckCircle2, Cake, Phone } from "lucide-react";
 import { activateAccount } from "./actions";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -55,7 +55,6 @@ export default function ActivateForm({
       const res = await activateAccount(formData);
       if (res.success) {
         setSuccess(true);
-        // Faz login automático após criação da conta
         setSigningIn(true);
         const password = formData.get("password") as string;
         const supabase = createClient();
@@ -93,7 +92,7 @@ export default function ActivateForm({
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-border p-8 w-full max-w-md space-y-6">
-        {/* Logo / cabeçalho */}
+        {/* Cabeçalho */}
         <div className="text-center space-y-1">
           <p className="text-[#6699F3] text-2xl font-black tracking-tight">
             Handify™
@@ -102,12 +101,27 @@ export default function ActivateForm({
             Criar sua conta
           </h1>
           <p className="text-muted-foreground text-sm">
-            Seu acesso já está liberado! Crie sua senha para entrar.
+            Seu acesso já está liberado! Complete seus dados para entrar.
           </p>
         </div>
 
         <form action={action} className="space-y-4">
           <input type="hidden" name="token" value={token} />
+
+          {/* Nome completo */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground">
+              Nome completo <span className="text-red-500">*</span>
+            </label>
+            <input
+              name="full_name"
+              type="text"
+              placeholder="Maria Silva"
+              required
+              autoComplete="name"
+              className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+            />
+          </div>
 
           {/* E-mail bloqueado */}
           <div className="space-y-1">
@@ -139,6 +153,22 @@ export default function ActivateForm({
             <PasswordInput name="confirm_password" placeholder="Repita a senha" required />
           </div>
 
+          {/* Telefone / WhatsApp */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+              <Phone className="w-4 h-4 text-[#6699F3]" />
+              WhatsApp
+              <span className="text-muted-foreground font-normal text-xs ml-1">(opcional)</span>
+            </label>
+            <input
+              name="phone"
+              type="tel"
+              placeholder="(11) 99999-9999"
+              autoComplete="tel"
+              className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+            />
+          </div>
+
           {/* Data de nascimento */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
@@ -155,7 +185,7 @@ export default function ActivateForm({
               className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
             />
             <p className="text-xs text-muted-foreground">
-              Usada para ofertas e promoções especiais na data certa!
+              Para ofertas e promoções especiais na data certa!
             </p>
           </div>
 

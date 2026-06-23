@@ -17,7 +17,8 @@ export const PaytPayloadSchema = z.object({
     .object({
       email: z.string().email().optional(),
       name: z.string().optional(),
-      doc: z.string().optional(), // CPF do comprador (11 dígitos)
+      doc: z.string().optional(),   // CPF do comprador (11 dígitos)
+      phone: z.string().optional(), // Telefone/WhatsApp do comprador
     })
     .optional(),
 });

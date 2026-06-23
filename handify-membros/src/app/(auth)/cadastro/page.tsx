@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { Cake, Phone, CreditCard } from "lucide-react";
 import { cadastroAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +77,60 @@ export default function CadastroPage() {
                   required
                   disabled={isPending}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-1.5">
+                  <Phone className="w-4 h-4 text-[#6699F3]" />
+                  WhatsApp
+                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+                </Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="(11) 99999-9999"
+                  autoComplete="tel"
+                  disabled={isPending}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cpf" className="flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-[#6699F3]" />
+                  CPF
+                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+                </Label>
+                <Input
+                  id="cpf"
+                  name="cpf"
+                  type="text"
+                  placeholder="000.000.000-00"
+                  autoComplete="off"
+                  inputMode="numeric"
+                  maxLength={14}
+                  disabled={isPending}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date_of_birth" className="flex items-center gap-1.5">
+                  <Cake className="w-4 h-4 text-[#6699F3]" />
+                  Data de nascimento
+                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+                </Label>
+                <Input
+                  id="date_of_birth"
+                  name="date_of_birth"
+                  type="date"
+                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 10))
+                    .toISOString()
+                    .slice(0, 10)}
+                  disabled={isPending}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Para promoções especiais na sua data!
+                </p>
               </div>
 
               <div className="space-y-2">
