@@ -77,7 +77,7 @@ export default function NotificationBell({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  // Realtime: escuta novos INSERT na tabela notifications deste usuário
+  // Realtime: INSERT (nova notificação) e UPDATE (marcar como lida em outro dispositivo)
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -94,6 +94,25 @@ export default function NotificationBell({
           const n = payload.new as Notification;
           setNotifications((prev) => [n, ...prev]);
           setUnread((c) => c + 1);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Notification;
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === updated.id ? { ...n, read: updated.read } : n))
+          );
+          // Recalcula badge a partir do estado atualizado
+          setUnread((c) =>
+            updated.read ? Math.max(0, c - 1) : c
+          );
         }
       )
       .subscribe();
