@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { recuperarSenhaAction } from "../actions";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,13 +16,41 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const initialState = { error: undefined, success: undefined };
-
 export default function RecuperarSenhaPage() {
-  const [state, formAction, isPending] = useActionState(
-    recuperarSenhaAction,
-    initialState
-  );
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string)?.trim();
+
+    startTransition(async () => {
+      // 1. Verifica server-side se o e-mail existe
+      const result = await recuperarSenhaAction(null, formData);
+
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      // 2. Dispara o reset do lado do browser (garante PKCE code_verifier no browser)
+      const supabase = createClient();
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/nova-senha`,
+      });
+
+      if (resetError) {
+        setError("Erro ao enviar e-mail. Tente novamente.");
+        return;
+      }
+
+      setSuccess(true);
+    });
+  }
 
   return (
     <Card>
@@ -32,27 +61,27 @@ export default function RecuperarSenhaPage() {
         </CardDescription>
       </CardHeader>
 
-      <form action={formAction}>
+      <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          {state?.error && (
+          {error && (
             <div
               role="alert"
               className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive"
             >
-              {state.error}
+              {error}
             </div>
           )}
 
-          {state?.success && (
+          {success && (
             <div
               role="status"
               className="rounded-md bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-700 dark:text-green-400"
             >
-              {state.success}
+              Instruções enviadas! Verifique sua caixa de entrada — se não encontrar, confira também a pasta de spam e lixeira.
             </div>
           )}
 
-          {!state?.success && (
+          {!success && (
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -69,7 +98,7 @@ export default function RecuperarSenhaPage() {
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4">
-          {!state?.success && (
+          {!success && (
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? "Enviando…" : "Enviar instruções"}
             </Button>

@@ -118,6 +118,17 @@ export async function cadastroAction(
   };
 }
 
+/** Verifica se o e-mail está cadastrado (sem expor token de reset). */
+export async function checkEmailExistsAction(email: string): Promise<boolean> {
+  const service = createServiceClient();
+  const { data: usersData } = await service.auth.admin.listUsers();
+  return (
+    usersData?.users?.some(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    ) ?? false
+  );
+}
+
 export async function recuperarSenhaAction(
   _prevState: ActionResult,
   formData: FormData
@@ -128,29 +139,15 @@ export async function recuperarSenhaAction(
     return { error: parsed.error.issues[0].message };
   }
 
-  // Verifica se o e-mail existe no Auth (service client ignora RLS)
-  const service = createServiceClient();
-  const { data: usersData } = await service.auth.admin.listUsers();
-  const exists = usersData?.users?.some(
-    (u) => u.email?.toLowerCase() === parsed.data.email.toLowerCase()
-  );
-
+  // Verifica se o e-mail existe (service client ignora RLS)
+  const exists = await checkEmailExistsAction(parsed.data.email);
   if (!exists) {
     return { error: "Este e-mail não está cadastrado. Verifique e tente novamente." };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/nova-senha`,
-  });
-
-  if (error) {
-    return { error: "Erro ao enviar e-mail. Tente novamente." };
-  }
-
-  return {
-    success: "Instruções enviadas! Verifique sua caixa de entrada — se não encontrar, confira também a pasta de spam e lixeira.",
-  };
+  // Retorna "ok" para o client disparar resetPasswordForEmail do browser
+  // (PKCE exige que o code_verifier seja gerado no contexto do browser)
+  return { success: "email-verified" };
 }
 
 export async function novaSenhaAction(
