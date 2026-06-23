@@ -62,7 +62,7 @@ export async function cadastroAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
@@ -76,6 +76,15 @@ export async function cadastroAction(
       return { error: "Este e-mail já está cadastrado. Tente fazer login." };
     }
     return { error: "Erro ao criar conta. Tente novamente." };
+  }
+
+  // Salva data de nascimento se informada
+  const dateOfBirth = formData.get("date_of_birth") as string | null;
+  if (dateOfBirth && signUpData?.user?.id) {
+    await supabase
+      .from("profiles")
+      .update({ date_of_birth: dateOfBirth })
+      .eq("id", signUpData.user.id);
   }
 
   // Dispara boas-vindas em background (não bloqueia a resposta)
