@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Clock, Play, X, Lock, RotateCcw, ChevronDown, CheckCircle } from "lucide-react";
+import { Clock, Play, X, Lock, RotateCcw, ChevronDown, CheckCircle, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/format";
 import type { CatalogCourse, CatalogCategory } from "./page";
@@ -23,7 +23,8 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
     : courses;
 
   const enrolled = filtered.filter((c) => c.isEnrolled);
-  const others = filtered.filter((c) => !c.isEnrolled);
+  const exploreCourses = filtered.filter((c) => !c.isEnrolled && c.course_type === "course");
+  const exploreMaterials = filtered.filter((c) => !c.isEnrolled && c.course_type === "material");
 
   return (
     <>
@@ -64,32 +65,42 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
           <h2 className="text-lg font-bold mb-4">Seus cursos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrolled.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                onClick={() => setSelected(course)}
-              />
+              <CourseCard key={course.id} course={course} isLoggedIn={isLoggedIn} onClick={() => setSelected(course)} />
             ))}
           </div>
         </section>
       )}
 
-      {/* Banner condicional — entre cursos matriculados e catálogo */}
+      {/* Banner condicional */}
       {headerBanner && <div className="mb-8">{headerBanner}</div>}
 
-      {/* Seção: Explorar */}
-      {others.length > 0 && (
-        <section>
-          {enrolled.length > 0 && (
-            <h2 className="text-lg font-bold mb-4">Explorar cursos</h2>
+      {/* Seção: Cursos */}
+      {exploreCourses.length > 0 && (
+        <section className="mb-10">
+          {(enrolled.length > 0 || exploreMaterials.length > 0) && (
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Play className="w-5 h-5 text-[#6699F3]" />
+              Cursos
+            </h2>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {others.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                onClick={() => setSelected(course)}
-              />
+            {exploreCourses.map((course) => (
+              <CourseCard key={course.id} course={course} isLoggedIn={isLoggedIn} onClick={() => setSelected(course)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Seção: Materiais Didáticos */}
+      {exploreMaterials.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-amber-600" />
+            Materiais Didáticos
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {exploreMaterials.map((course) => (
+              <CourseCard key={course.id} course={course} isLoggedIn={isLoggedIn} onClick={() => setSelected(course)} />
             ))}
           </div>
         </section>
@@ -99,9 +110,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
         <div className="text-center py-24 space-y-3">
           <p className="text-2xl">🎨</p>
           <p className="font-semibold text-lg">Nenhum curso nesta categoria</p>
-          <p className="text-muted-foreground">
-            Novos cursos chegando em breve!
-          </p>
+          <p className="text-muted-foreground">Novos cursos chegando em breve!</p>
         </div>
       )}
 
@@ -120,13 +129,17 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
 
 function CourseCard({
   course,
+  isLoggedIn,
   onClick,
 }: {
   course: CatalogCourse;
+  isLoggedIn: boolean;
   onClick: () => void;
 }) {
   const isComplete = course.progress?.percentage === 100;
   const hasStarted = !!course.lastLessonId;
+  const isLocked = !course.isEnrolled;
+  const isMaterial = course.course_type === "material";
 
   return (
     <button
@@ -140,22 +153,36 @@ function CourseCard({
           <img
             src={course.thumbnail_url}
             alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className={cn(
+              "w-full h-full object-cover transition-transform duration-300 group-hover:scale-105",
+              isLocked && "brightness-75"
+            )}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl">
-            🎨
+            {isMaterial ? "📄" : "🎨"}
           </div>
         )}
 
-        {/* Play overlay */}
+        {/* Play / lock overlay (hover) */}
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-            <Play className="w-5 h-5 text-[#6699F3] fill-[#6699F3] ml-0.5" />
+            {isLocked ? (
+              <Lock className="w-5 h-5 text-[#6699F3]" />
+            ) : (
+              <Play className="w-5 h-5 text-[#6699F3] fill-[#6699F3] ml-0.5" />
+            )}
           </div>
         </div>
 
-        {/* Badges */}
+        {/* Cadeado permanente (canto sup. direito) para cursos bloqueados */}
+        {isLocked && (
+          <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
+            <Lock className="w-3.5 h-3.5 text-white" />
+          </div>
+        )}
+
+        {/* Badges (canto sup. esq.) */}
         {course.isEnrolled ? (
           <span className="absolute top-2 left-2 bg-[#6699F3] text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
             <CheckCircle className="w-3 h-3" />
@@ -166,6 +193,16 @@ function CourseCard({
             Prévia grátis
           </span>
         ) : null}
+
+        {/* Badge de tipo (canto inf. esq.) */}
+        <span className={cn(
+          "absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full",
+          isMaterial
+            ? "bg-[#FEC649] text-[#0F0F0F]"
+            : "bg-white/90 text-[#6699F3]"
+        )}>
+          {isMaterial ? "Material Didático" : "Curso"}
+        </span>
       </div>
 
       {/* Info */}
@@ -183,13 +220,8 @@ function CourseCard({
         {course.isEnrolled && course.progress && course.progress.total > 0 ? (
           <div className="space-y-1 pt-1">
             <div className="flex justify-between items-center text-[11px] text-muted-foreground">
-              <span>
-                {course.progress.completed}/{course.progress.total} aulas
-              </span>
-              <span
-                className="font-semibold"
-                style={{ color: isComplete ? "#72CF92" : "#6699F3" }}
-              >
+              <span>{course.progress.completed}/{course.progress.total} aulas</span>
+              <span className="font-semibold" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
                 {course.progress.percentage}%
               </span>
             </div>
@@ -235,6 +267,7 @@ function CourseModal({
 }) {
   const [videoKey, setVideoKey] = useState(0);
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
+  const isMaterial = course.course_type === "material";
 
   useEffect(() => {
     setVideoKey((k) => k + 1);
@@ -242,9 +275,7 @@ function CourseModal({
   }, [course.id]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
     document.body.style.overflow = "hidden";
     return () => {
@@ -280,9 +311,7 @@ function CourseModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="dialog"
       aria-modal="true"
       aria-label={`Detalhes: ${course.title}`}
@@ -290,13 +319,19 @@ function CourseModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          {course.categoryName ? (
-            <span className="text-xs font-medium text-[#6699F3] uppercase tracking-wide">
-              {course.categoryName}
+          <div className="flex items-center gap-2">
+            {course.categoryName && (
+              <span className="text-xs font-medium text-[#6699F3] uppercase tracking-wide">
+                {course.categoryName}
+              </span>
+            )}
+            <span className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-full",
+              isMaterial ? "bg-[#FEC649] text-[#0F0F0F]" : "bg-[#6699F3]/15 text-[#6699F3]"
+            )}>
+              {isMaterial ? "Material Didático" : "Curso"}
             </span>
-          ) : (
-            <span />
-          )}
+          </div>
           <button
             onClick={onClose}
             className="ml-auto p-1.5 rounded-full text-muted-foreground hover:bg-muted transition-colors"
@@ -321,11 +356,7 @@ function CourseModal({
         ) : course.thumbnail_url ? (
           <div className="w-full aspect-video overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={course.thumbnail_url}
-              alt={course.title}
-              className="w-full h-full object-cover"
-            />
+            <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
           </div>
         ) : null}
 
@@ -334,9 +365,7 @@ function CourseModal({
           <h2 className="text-xl font-bold leading-snug">{course.title}</h2>
 
           {course.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {course.description}
-            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{course.description}</p>
           )}
 
           {/* Meta */}
@@ -363,38 +392,25 @@ function CourseModal({
               <h3 className="text-sm font-semibold mb-2">Conteúdo do curso</h3>
               {course.modules.map((mod, i) => {
                 const isOpen = openModules.has(mod.id);
-                const modDuration = mod.lessons.reduce(
-                  (acc, l) => acc + (l.duration_seconds ?? 0),
-                  0
-                );
+                const modDuration = mod.lessons.reduce((acc, l) => acc + (l.duration_seconds ?? 0), 0);
                 return (
                   <div key={mod.id} className="rounded-lg border border-border/60 overflow-hidden">
                     <button
                       onClick={() => toggleModule(mod.id)}
                       className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/50 hover:bg-muted transition-colors text-left"
                     >
-                      <span className="text-sm font-medium">
-                        Módulo {i + 1} — {mod.title}
-                      </span>
+                      <span className="text-sm font-medium">Módulo {i + 1} — {mod.title}</span>
                       <span className="flex items-center gap-2 text-xs text-muted-foreground shrink-0 ml-2">
                         {mod.lessons.length} aulas
                         {modDuration > 0 && ` · ${formatDuration(modDuration)}`}
-                        <ChevronDown
-                          className={cn(
-                            "w-3.5 h-3.5 transition-transform",
-                            isOpen && "rotate-180"
-                          )}
-                        />
+                        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
                       </span>
                     </button>
 
                     {isOpen && (
                       <div className="divide-y divide-border/30">
                         {mod.lessons.map((lesson) => (
-                          <div
-                            key={lesson.id}
-                            className="flex items-center justify-between px-3 py-2 text-xs"
-                          >
+                          <div key={lesson.id} className="flex items-center justify-between px-3 py-2 text-xs">
                             <span className="flex items-center gap-2 text-muted-foreground min-w-0">
                               {lesson.is_preview ? (
                                 <Play className="w-3 h-3 text-[#72CF92] shrink-0" />
@@ -403,9 +419,7 @@ function CourseModal({
                               )}
                               <span className="truncate">{lesson.title}</span>
                               {lesson.is_preview && (
-                                <span className="text-[#72CF92] font-medium shrink-0">
-                                  Prévia
-                                </span>
+                                <span className="text-[#72CF92] font-medium shrink-0">Prévia</span>
                               )}
                             </span>
                             {lesson.duration_seconds > 0 && (
@@ -427,27 +441,18 @@ function CourseModal({
           <div className="border-t border-border/60 pt-4">
             {course.isEnrolled ? (
               <div className="space-y-3">
-                {/* Progress bar */}
                 {course.progress && course.progress.total > 0 && (
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>
-                        {course.progress.completed}/{course.progress.total} aulas
-                      </span>
-                      <span
-                        className="font-semibold"
-                        style={{ color: isComplete ? "#72CF92" : "#6699F3" }}
-                      >
+                      <span>{course.progress.completed}/{course.progress.total} aulas</span>
+                      <span className="font-semibold" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
                         {course.progress.percentage}%
                       </span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
-                        style={{
-                          width: `${course.progress.percentage}%`,
-                          background: isComplete ? "#72CF92" : "#6699F3",
-                        }}
+                        style={{ width: `${course.progress.percentage}%`, background: isComplete ? "#72CF92" : "#6699F3" }}
                       />
                     </div>
                   </div>
@@ -457,9 +462,7 @@ function CourseModal({
                   onClick={onClose}
                   className={cn(
                     "w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors",
-                    isComplete
-                      ? "bg-[#72CF92] hover:bg-[#5bb577]"
-                      : "bg-[#6699F3] hover:bg-[#5580d4]"
+                    isComplete ? "bg-[#72CF92] hover:bg-[#5bb577]" : "bg-[#6699F3] hover:bg-[#5580d4]"
                   )}
                 >
                   {isComplete ? (
@@ -474,20 +477,15 @@ function CourseModal({
             ) : (
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-2xl font-black text-[#0F0F0F]">
-                    {course.priceFormatted}
-                  </p>
+                  <p className="text-2xl font-black text-[#0F0F0F]">{course.priceFormatted}</p>
                   {!isLoggedIn && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Precisa de uma conta para comprar
-                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Precisa de uma conta para comprar</p>
                   )}
                 </div>
-
                 <div className="flex flex-col sm:flex-row gap-2">
                   {!isLoggedIn && (
                     <Link
-                      href={`/cadastro`}
+                      href="/cadastro"
                       onClick={onClose}
                       className="text-sm font-medium text-[#6699F3] hover:underline px-3 py-2 text-center"
                     >

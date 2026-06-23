@@ -15,7 +15,8 @@ interface Forum { id: string; title: string; slug: string }
 interface Course {
   id: string; title: string; slug: string; description: string | null;
   price: number | null; product_code: string | null; workload_hours: number | null;
-  is_subscription_only: boolean; has_certificate: boolean; published: boolean;
+  course_type: "course" | "material"; is_subscription_only: boolean;
+  has_certificate: boolean; published: boolean;
   category_id: string | null; forum_id: string | null; thumbnail_url: string | null;
   category: { name: string } | null;
   forum: { title: string; slug: string } | null;
@@ -337,6 +338,27 @@ function CourseForm({
 
       <ThumbnailUpload defaultUrl={initial?.thumbnail_url} />
 
+      {/* Tipo de conteúdo */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">Tipo de conteúdo</label>
+        <div className="flex gap-3">
+          {(["course", "material"] as const).map((t) => (
+            <label key={t} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="course_type"
+                value={t}
+                defaultChecked={(initial?.course_type ?? "course") === t}
+                className="accent-[#6699F3]"
+              />
+              <span className="text-sm">
+                {t === "course" ? "📚 Curso" : "📄 Material Didático"}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Título *</label>
@@ -548,6 +570,9 @@ export default function CourseManager({
                       <p className="font-medium text-sm">{course.title}</p>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${course.published ? "bg-[#72CF92]/20 text-[#72CF92]" : "bg-muted text-muted-foreground"}`}>
                         {course.published ? "Publicado" : "Rascunho"}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${course.course_type === "material" ? "bg-[#FEC649]/20 text-amber-700" : "bg-[#6699F3]/15 text-[#6699F3]"}`}>
+                        {course.course_type === "material" ? "Material Didático" : "Curso"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">

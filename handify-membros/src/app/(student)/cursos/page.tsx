@@ -32,6 +32,7 @@ export type CatalogCourse = {
   checkout_url: string | null;
   categoryName: string | null;
   categorySlug: string | null;
+  course_type: "course" | "material";
   hasPreview: boolean;
   sales_video_panda_id: string | null;
   modules: CatalogModule[];
@@ -60,7 +61,7 @@ export default async function CursosPage() {
         .select(
           `
           id, slug, title, description, thumbnail_url,
-          price, workload_hours, checkout_url,
+          price, workload_hours, checkout_url, course_type,
           category:categories(id, name, slug),
           modules(
             id, title, position, archived,
@@ -107,6 +108,7 @@ export default async function CursosPage() {
     price: number | null;
     workload_hours: number;
     checkout_url: string | null;
+    course_type: "course" | "material";
     category: { id: string; name: string; slug: string } | null;
     modules: RawModule[] | null;
   };
@@ -144,6 +146,7 @@ export default async function CursosPage() {
       checkout_url: c.checkout_url,
       categoryName: cat?.name ?? null,
       categorySlug: cat?.slug ?? null,
+      course_type: c.course_type ?? "course",
       hasPreview,
       sales_video_panda_id: showcaseMap[c.id] ?? null,
       modules: mods,

@@ -44,6 +44,23 @@ export async function upsertShowcaseCourse(formData: FormData) {
   revalidatePath("/admin/vitrine");
 }
 
+export async function reorderShowcaseCourses(items: { course_id: string; position: number }[]) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Não autenticado");
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") throw new Error("Sem permissão");
+
+  await Promise.all(
+    items.map(({ course_id, position }) =>
+      supabase.from("showcase_courses").update({ position }).eq("course_id", course_id)
+    )
+  );
+
+  revalidatePath("/vitrine");
+  revalidatePath("/admin/vitrine");
+}
+
 export async function removeShowcaseCourse(courseId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

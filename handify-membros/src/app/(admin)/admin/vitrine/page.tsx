@@ -8,7 +8,7 @@ export default async function AdminVitrinePage() {
   const [{ data: allCourses }, { data: showcaseRows }] = await Promise.all([
     supabase
       .from("courses")
-      .select("id, title, slug, thumbnail_url, price, checkout_url")
+      .select("id, title, slug, thumbnail_url, price, checkout_url, course_type")
       .eq("published", true)
       .order("title"),
     supabase
@@ -24,6 +24,7 @@ export default async function AdminVitrinePage() {
     thumbnail_url: string | null;
     price: number | null;
     checkout_url: string | null;
+    course_type: "course" | "material";
   };
 
   type ShowcaseRow = {
