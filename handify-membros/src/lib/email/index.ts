@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 
-const FROM = "Handify <noreply@handify.com.br>";
+const FROM = "Handify <noreply@mail.handify.com.br>";
+const REPLY_TO = "contato@handify.com.br";
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
@@ -61,6 +62,7 @@ export async function sendWelcomeEmail({
 
   const { error } = await getResend().emails.send({
     from: FROM,
+    reply_to: REPLY_TO,
     to,
     subject: "Bem-vinda à Handify! Um espaço feito para aprender e criar.",
     html: emailWrapper(`
@@ -98,6 +100,7 @@ export async function sendAccessConfirmedEmail({
 
   const { error } = await getResend().emails.send({
     from: FROM,
+    reply_to: REPLY_TO,
     to,
     subject: `Seu acesso ao curso "${courseTitle}" foi liberado!`,
     html: emailWrapper(`
@@ -136,6 +139,7 @@ export async function sendCertificateEmail({
 
   const { error } = await getResend().emails.send({
     from: FROM,
+    reply_to: REPLY_TO,
     to,
     subject: `Parabéns! Seu certificado de "${courseTitle}" está pronto`,
     html: emailWrapper(`
@@ -178,6 +182,7 @@ export async function sendReengagementEmail({
 
   const { error } = await getResend().emails.send({
     from: FROM,
+    reply_to: REPLY_TO,
     to,
     subject: `${firstName}, seu curso te espera! Você já está ${pct}% lá 🌟`,
     html: emailWrapper(`
@@ -231,6 +236,7 @@ export async function sendNewCourseEmail({
 
   const { error } = await getResend().emails.send({
     from: FROM,
+    reply_to: REPLY_TO,
     to,
     subject: `Novo curso na Handify: ${courseTitle}`,
     html: emailWrapper(`
@@ -281,6 +287,7 @@ export async function sendNewsPostEmail({
 
   const { error } = await getResend().emails.send({
     from: FROM,
+    reply_to: REPLY_TO,
     to,
     subject: `Novidade na Handify: ${postTitle}`,
     html: emailWrapper(`
