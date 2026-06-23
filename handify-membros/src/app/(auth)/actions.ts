@@ -126,7 +126,18 @@ export async function recuperarSenhaAction(
     return { error: parsed.error.issues[0].message };
   }
 
+  // Verifica se o e-mail existe antes de tentar enviar
   const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", parsed.data.email)
+    .maybeSingle();
+
+  if (!profile) {
+    return { error: "Este e-mail não está cadastrado. Verifique e tente novamente." };
+  }
+
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/nova-senha`,
   });
@@ -136,7 +147,7 @@ export async function recuperarSenhaAction(
   }
 
   return {
-    success: "Se este e-mail estiver cadastrado, você receberá as instruções.",
+    success: "Instruções enviadas! Verifique sua caixa de entrada.",
   };
 }
 
