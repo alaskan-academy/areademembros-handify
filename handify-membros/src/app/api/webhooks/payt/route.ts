@@ -113,17 +113,35 @@ export async function POST(req: NextRequest) {
   );
 
   if (!user) {
-    const msg = `Usuário não encontrado para e-mail: ${payload.buyer_email}`;
-    console.warn("[payt-webhook]", msg, "— evento salvo para processamento manual");
+    // Sem conta ainda — gera token de ativação e envia e-mail de acesso
+    if (action === "grant") {
+      const { data: tokenRow } = await supabase
+        .from("activation_tokens")
+        .insert({ email: payload.buyer_email, course_id: course.id })
+        .select("token")
+        .single();
+
+      if (tokenRow?.token) {
+        await sendAccessConfirmedEmail({
+          to: payload.buyer_email,
+          studentName: payload.buyer_email,
+          courseTitle: course.title,
+          courseSlug: course.slug,
+          activationToken: tokenRow.token,
+        });
+        console.info(`[payt-webhook] Token de ativação criado para ${payload.buyer_email}`);
+      }
+    }
+
     await logPaymentEvent(supabase, {
       product_code: payload.product_code,
       event_type: payload.event,
       buyer_email: payload.buyer_email,
       payload,
       processed: false,
-      error: msg,
+      error: "Conta não existe — token de ativação enviado por e-mail",
     });
-    return NextResponse.json({ received: true, warning: msg });
+    return NextResponse.json({ received: true });
   }
 
   // 7. Executar ação de acesso

@@ -89,14 +89,18 @@ export async function sendAccessConfirmedEmail({
   studentName,
   courseTitle,
   courseSlug,
+  activationToken,
 }: {
   to: string;
   studentName: string;
   courseTitle: string;
   courseSlug: string;
+  activationToken?: string;
 }): Promise<void> {
   const firstName = studentName.split(" ")[0];
-  const courseUrl = `${appUrl()}/cursos/${courseSlug}`;
+  const courseUrl = activationToken
+    ? `${appUrl()}/ativar/${activationToken}`
+    : `${appUrl()}/cursos/${courseSlug}`;
 
   const { error } = await getResend().emails.send({
     from: FROM,
@@ -108,12 +112,14 @@ export async function sendAccessConfirmedEmail({
         Acesso liberado, ${firstName}! 🎉
       </h1>
       <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 14px;">
-        Sua compra foi confirmada e o curso <strong>${courseTitle}</strong> já está disponível na sua conta.
+        Sua compra foi confirmada e o curso <strong>${courseTitle}</strong> já está disponível!
       </p>
       <p style="color:#555;font-size:14px;line-height:1.65;margin:0 0 28px;">
-        Clique no botão abaixo para começar a aprender agora mesmo. Bons estudos!
+        ${activationToken
+          ? "Clique no botão abaixo para criar sua senha e acessar a plataforma. O link é pessoal e expira em 7 dias."
+          : "Clique no botão abaixo para acessar o curso. Bons estudos!"}
       </p>
-      ${ctaButton(courseUrl, "Acessar o curso")}
+      ${ctaButton(courseUrl, activationToken ? "Criar minha conta e acessar" : "Acessar o curso")}
     `),
   });
 
