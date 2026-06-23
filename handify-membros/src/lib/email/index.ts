@@ -250,9 +250,8 @@ export async function sendNewCourseEmail({
         Confira o novo curso e comece a aprender quando quiser.
       </p>
       ${ctaButton(courseUrl, "Ver curso")}
-      <p style="color:#bbb;font-size:11px;margin:24px 0 0;">
-        Para não receber e-mails sobre novos cursos, ajuste suas preferências na
-        <a href="${appUrl()}/perfil" style="color:#6699F3;">área de perfil</a>.
+      <p style="color:#ddd;font-size:10px;margin:20px 0 0;">
+        <a href="${appUrl()}/perfil" style="color:#ccc;text-decoration:none;">Cancelar inscrição</a>
       </p>
     `),
   });
