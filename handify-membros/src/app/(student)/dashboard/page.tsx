@@ -331,7 +331,7 @@ function CourseProgressCard({ card }: { card: CourseCard }) {
         <Link
           href={href}
           className={cn(
-            "mt-auto flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-colors",
+            "mt-auto flex items-center justify-center gap-2 py-2.5 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors",
             isComplete
               ? "bg-[#72CF92]/15 text-[#72CF92] hover:bg-[#72CF92]/25"
               : hasStarted

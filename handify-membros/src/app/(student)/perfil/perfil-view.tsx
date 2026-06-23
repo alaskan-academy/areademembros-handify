@@ -501,7 +501,7 @@ function CoursesSection({ courses }: { courses: CourseCard[] }) {
                 <Link
                   href={href}
                   className={cn(
-                    "shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-colors",
+                    "shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-2.5 min-h-[44px] rounded-lg transition-colors",
                     isComplete
                       ? "bg-[#72CF92]/15 text-[#72CF92] hover:bg-[#72CF92]/25"
                       : "bg-[#6699F3] text-white hover:bg-[#5580d4]"
@@ -590,38 +590,30 @@ function CertificateCard({ cert }: { cert: Certificate }) {
       : `/verificar/${cert.verify_hash}`;
 
   return (
-    <div className="handify-card p-4 flex items-start gap-4">
-      <div className="w-10 h-10 rounded-lg bg-[#6699F3]/15 flex items-center justify-center shrink-0">
-        <Award className="w-5 h-5 text-[#6699F3]" />
+    <div className="handify-card p-4">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-[#6699F3]/15 flex items-center justify-center shrink-0">
+          <Award className="w-5 h-5 text-[#6699F3]" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm line-clamp-2">
+            {cert.course?.title ?? "Curso"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {cert.course?.workload_hours ?? 0}h · Emitido em {formattedDate}
+          </p>
+          {error && (
+            <p className="text-xs text-red-500 mt-1">Erro ao gerar link. Tente novamente.</p>
+          )}
+        </div>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm line-clamp-1">
-          {cert.course?.title ?? "Curso"}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {cert.course?.workload_hours ?? 0}h · Emitido em {formattedDate}
-        </p>
-        {error && (
-          <p className="text-xs text-red-500 mt-1">Erro ao gerar link. Tente novamente.</p>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        <a
-          href={verifyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1.5 text-muted-foreground hover:text-[#6699F3] transition-colors rounded"
-          aria-label="Verificar autenticidade"
-          title="Verificar autenticidade"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-        </a>
+      <div className="flex items-center gap-2 mt-3">
         <button
           onClick={handleDownload}
           disabled={isPending}
-          className="flex items-center gap-1.5 text-xs font-medium text-[#6699F3] hover:bg-[#6699F3]/10 px-2.5 py-1.5 rounded-lg transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-[#6699F3] hover:opacity-90 min-h-[44px] px-3 rounded-lg transition-colors"
           aria-label="Baixar certificado em PDF"
         >
           {isPending ? (
@@ -631,6 +623,16 @@ function CertificateCard({ cert }: { cert: Certificate }) {
           )}
           Baixar PDF
         </button>
+        <a
+          href={verifyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center min-h-[44px] min-w-[44px] text-muted-foreground hover:text-[#6699F3] border border-border rounded-lg transition-colors"
+          aria-label="Verificar autenticidade"
+          title="Verificar autenticidade"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </a>
       </div>
     </div>
   );
@@ -695,7 +697,7 @@ function EmailPrefsSection({ prefs }: { prefs: EmailPrefs }) {
 
       <div className="handify-card divide-y divide-border/60">
         {PREF_LABELS.map(({ key, label, description }) => (
-          <div key={key} className="flex items-center justify-between p-4 gap-4">
+          <div key={key} className="flex items-center justify-between px-4 py-3 gap-4 min-h-[56px]">
             <div className="min-w-0">
               <p className="text-sm font-medium">{label}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
@@ -705,14 +707,14 @@ function EmailPrefsSection({ prefs }: { prefs: EmailPrefs }) {
               aria-checked={current[key]}
               onClick={() => toggle(key)}
               className={cn(
-                "relative shrink-0 w-10 h-5.5 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6699F3] focus-visible:ring-offset-2",
+                "relative shrink-0 w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6699F3] focus-visible:ring-offset-2",
                 current[key] ? "bg-[#6699F3]" : "bg-muted-foreground/30"
               )}
             >
               <span
                 className={cn(
-                  "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform",
-                  current[key] ? "translate-x-4.5" : "translate-x-0"
+                  "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform",
+                  current[key] ? "translate-x-5" : "translate-x-0"
                 )}
               />
             </button>
