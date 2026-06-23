@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
+import UpdatePrompt from "@/components/pwa/UpdatePrompt";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentHeader from "@/components/student-header";
@@ -88,6 +90,8 @@ export default async function StudentLayout({
       <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
       </footer>
+      <UpdatePrompt />
+      <InstallPrompt />
     </div>
   );
 }
