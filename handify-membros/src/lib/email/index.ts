@@ -64,7 +64,7 @@ export async function sendWelcomeEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
-    subject: "Bem-vinda à Handify! Seu curso de artesanato chegou 🎉",
+    subject: "Bem-vinda à Handify! Um espaço feito para aprender e criar.",
     html: emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 12px;font-weight:700;">Bem-vinda, ${firstName}! 👋</h1>
       <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 14px;">
