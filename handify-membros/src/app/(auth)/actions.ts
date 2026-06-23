@@ -148,7 +148,7 @@ export async function recuperarSenhaAction(
   }
 
   return {
-    success: "Instruções enviadas! Verifique sua caixa de entrada.",
+    success: "Instruções enviadas! Verifique sua caixa de entrada — se não encontrar, confira também a pasta de spam e lixeira.",
   };
 }
 
