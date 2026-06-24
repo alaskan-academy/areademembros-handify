@@ -14,6 +14,10 @@ import {
   Mail,
   Pencil,
   CheckCircle2,
+  Phone,
+  Calendar,
+  CreditCard,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -59,6 +63,9 @@ interface Props {
     email: string | null;
     banned: boolean;
     created_at: string;
+    phone: string | null;
+    date_of_birth: string | null;
+    cpf_masked: string | null;
   };
   courses: CourseEntry[];
   certificates: Certificate[];
@@ -154,14 +161,6 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog }
               <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
             </button>
           )}
-          <p className="text-xs text-muted-foreground mt-1">
-            Cadastro em{" "}
-            {new Date(profile.created_at).toLocaleDateString("pt-BR", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {banned && (
@@ -185,6 +184,56 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog }
               <><ShieldOff className="w-3.5 h-3.5" /> Banir</>
             )}
           </button>
+        </div>
+      </div>
+
+      {/* Dados cadastrais */}
+      <div className="handify-card p-5">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-4">
+          <UserCircle className="w-4 h-4" />
+          Dados cadastrais
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5" /> E-mail
+            </p>
+            <p className="text-sm font-medium break-all">{profile.email ?? "—"}</p>
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5" /> Telefone
+            </p>
+            <p className="text-sm font-medium">{profile.phone ?? <span className="text-muted-foreground/50">Não informado</span>}</p>
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" /> Nascimento
+            </p>
+            <p className="text-sm font-medium">
+              {profile.date_of_birth
+                ? new Date(profile.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR")
+                : <span className="text-muted-foreground/50">Não informado</span>}
+            </p>
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5" /> CPF
+            </p>
+            <p className="text-sm font-medium font-mono">
+              {profile.cpf_masked ?? <span className="text-muted-foreground/50">Não informado</span>}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-border/40">
+          <p className="text-xs text-muted-foreground">
+            Membro desde{" "}
+            <span className="font-medium text-foreground">
+              {new Date(profile.created_at).toLocaleDateString("pt-BR", {
+                day: "2-digit", month: "long", year: "numeric",
+              })}
+            </span>
+          </p>
         </div>
       </div>
 

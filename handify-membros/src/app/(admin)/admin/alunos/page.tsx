@@ -2,8 +2,9 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Search, Download, UserCircle, UserPlus } from "lucide-react";
+import { Download, UserCircle, UserPlus, Phone, Calendar } from "lucide-react";
 import { hashCpf, decryptCpf } from "@/lib/cpf-crypto";
+import AlunosSearch from "./alunos-search";
 
 const PAGE_SIZE = 25;
 
@@ -67,6 +68,8 @@ export default async function AlunosPage({
     id: string;
     full_name: string | null;
     email: string | null;
+    phone: string | null;
+    date_of_birth: string | null;
     role: string;
     banned: boolean | null;
     created_at: string;
@@ -84,7 +87,7 @@ export default async function AlunosPage({
     // 1. Busca pelo hash em profiles (cadastros manuais com CPF)
     const { data: byHash, count: hashCount } = await service
       .from("profiles")
-      .select("id, full_name, email, role, banned, created_at", { count: "exact" })
+      .select("id, full_name, email, phone, date_of_birth, role, banned, created_at", { count: "exact" })
       .eq("cpf_hash", cpfH)
       .neq("role", "admin");
 
@@ -104,7 +107,7 @@ export default async function AlunosPage({
       if (emails.length > 0) {
         const { data, count: c } = await service
           .from("profiles")
-          .select("id, full_name, email, role, banned, created_at", { count: "exact" })
+          .select("id, full_name, email, phone, date_of_birth, role, banned, created_at", { count: "exact" })
           .in("email", emails)
           .neq("role", "admin");
         profiles = (data ?? []) as ProfileRow[];
@@ -114,7 +117,7 @@ export default async function AlunosPage({
   } else {
     let query = service
       .from("profiles")
-      .select("id, full_name, email, role, banned, created_at", { count: "exact" })
+      .select("id, full_name, email, phone, date_of_birth, role, banned, created_at", { count: "exact" })
       .neq("role", "admin")
       .order("created_at", { ascending: false })
       .range(from, to);
@@ -174,20 +177,10 @@ export default async function AlunosPage({
       </div>
 
       {/* Busca */}
-      <form method="GET" className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Buscar por nome, e-mail ou CPF…"
-          className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 focus:border-[#6699F3]"
-        />
-      </form>
+      <AlunosSearch defaultValue={q} />
 
       {cpfSearch && (
-        <p className="text-xs text-[#6699F3]">
-          Buscando por CPF nos registros de compra.
-        </p>
+        <p className="text-xs text-[#6699F3]">Buscando por CPF nos registros de compra.</p>
       )}
 
       {/* Tabela */}
@@ -198,9 +191,7 @@ export default async function AlunosPage({
             <p className="font-medium">Nenhuma aluna encontrada</p>
             {q && (
               <p className="text-sm mt-1">
-                {cpfSearch
-                  ? "CPF não encontrado nos registros de compra."
-                  : "Tente um termo diferente."}
+                {cpfSearch ? "CPF não encontrado nos registros." : "Tente um termo diferente."}
               </p>
             )}
           </div>
@@ -208,65 +199,73 @@ export default async function AlunosPage({
           <table className="w-full text-sm">
             <thead className="bg-muted/60">
               <tr>
-                <th className="text-left px-4 py-3 font-semibold text-foreground/70">
-                  Nome
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-foreground/70 hidden sm:table-cell">
-                  E-mail
-                </th>
-                <th className="text-center px-4 py-3 font-semibold text-foreground/70 hidden md:table-cell">
-                  Matrículas
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-foreground/70 hidden lg:table-cell">
-                  Cadastro
-                </th>
-                <th className="text-center px-4 py-3 font-semibold text-foreground/70">
-                  Status
-                </th>
+                <th className="text-left px-4 py-3 font-semibold text-foreground/70">Nome / E-mail</th>
+                <th className="text-left px-4 py-3 font-semibold text-foreground/70 hidden md:table-cell">Telefone</th>
+                <th className="text-left px-4 py-3 font-semibold text-foreground/70 hidden lg:table-cell">Nascimento</th>
+                <th className="text-left px-4 py-3 font-semibold text-foreground/70 hidden xl:table-cell">Cadastro</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/70 hidden sm:table-cell">Matrículas</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/70">Status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {profiles.map((p) => (
                 <tr key={p.id} className="hover:bg-muted/20 transition-colors">
+                  {/* Nome + e-mail empilhados */}
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                         style={{ background: "#6699F3" }}
                       >
                         {p.full_name?.charAt(0)?.toUpperCase() ?? "?"}
                       </div>
-                      <span className="font-medium truncate max-w-[140px]">
-                        {p.full_name ?? "—"}
-                      </span>
+                      <div className="min-w-0">
+                        <p className="font-medium truncate max-w-[160px]">{p.full_name ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[160px]">{p.email ?? "—"}</p>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell truncate max-w-[180px]">
-                    {p.email ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-center hidden md:table-cell">
-                    <span className="font-semibold">{enrollCount[p.id] ?? 0}</span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
-                    {new Date(p.created_at).toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {p.banned ? (
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-medium">
-                        Banida
+                  {/* Telefone */}
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {p.phone ? (
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Phone className="w-3.5 h-3.5 shrink-0" />
+                        {p.phone}
                       </span>
                     ) : (
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-[#72CF92]/15 text-[#5bb577] text-xs font-medium">
-                        Ativa
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
+                  </td>
+                  {/* Nascimento */}
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    {p.date_of_birth ? (
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5 shrink-0" />
+                        {new Date(p.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR")}
                       </span>
+                    ) : (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
+                  </td>
+                  {/* Cadastro */}
+                  <td className="px-4 py-3 text-muted-foreground hidden xl:table-cell">
+                    {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                  </td>
+                  {/* Matrículas */}
+                  <td className="px-4 py-3 text-center hidden sm:table-cell">
+                    <span className="font-semibold">{enrollCount[p.id] ?? 0}</span>
+                  </td>
+                  {/* Status */}
+                  <td className="px-4 py-3 text-center">
+                    {p.banned ? (
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-medium">Banida</span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded-full bg-[#72CF92]/15 text-[#5bb577] text-xs font-medium">Ativa</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/admin/alunos/${p.id}`}
-                      className="text-xs font-medium text-[#6699F3] hover:underline"
-                    >
+                    <Link href={`/admin/alunos/${p.id}`} className="text-xs font-medium text-[#6699F3] hover:underline">
                       Ver →
                     </Link>
                   </td>

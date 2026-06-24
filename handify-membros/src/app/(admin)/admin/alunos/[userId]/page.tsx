@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import AlunaDetail from "./aluna-detail";
+import { decryptCpf, formatCpf } from "@/lib/cpf-crypto";
 
 export default async function AlunaDetailPage({
   params,
@@ -28,11 +29,24 @@ export default async function AlunaDetailPage({
   // Perfil da aluna
   const { data: profile } = await service
     .from("profiles")
-    .select("id, full_name, email, role, banned, created_at, avatar_url")
+    .select("id, full_name, email, role, banned, created_at, avatar_url, phone, date_of_birth, cpf_encrypted")
     .eq("id", userId)
     .single();
 
   if (!profile || profile.role === "admin") notFound();
+
+  // Descriptografa CPF server-side para exibição mascarada no admin
+  let cpfMasked: string | null = null;
+  if ((profile as { cpf_encrypted?: string | null }).cpf_encrypted) {
+    try {
+      const raw = decryptCpf((profile as { cpf_encrypted: string }).cpf_encrypted);
+      const formatted = formatCpf(raw.replace(/\D/g, ""));
+      // Mascara os 3 primeiros dígitos: ***.456.789-09
+      cpfMasked = formatted.replace(/^\d{3}/, "***");
+    } catch {
+      cpfMasked = null;
+    }
+  }
 
   // Matrículas com curso
   const { data: enrollments } = await service
@@ -197,6 +211,9 @@ export default async function AlunaDetailPage({
           email: profile.email,
           banned: profile.banned ?? false,
           created_at: profile.created_at,
+          phone: (profile as { phone?: string | null }).phone ?? null,
+          date_of_birth: (profile as { date_of_birth?: string | null }).date_of_birth ?? null,
+          cpf_masked: cpfMasked,
         }}
         courses={courseEntries}
         certificates={(certificates ?? []) as unknown as {
