@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Search, Download, UserCircle, UserPlus } from "lucide-react";
-import { hashCpf } from "@/lib/cpf-crypto";
+import { hashCpf, decryptCpf } from "@/lib/cpf-crypto";
 
 const PAGE_SIZE = 25;
 
@@ -39,6 +39,29 @@ export default async function AlunosPage({
   const to = from + PAGE_SIZE - 1;
 
   const service = createServiceClient();
+
+  // Backfill: popula cpf_hash para perfis com cpf_encrypted mas sem hash (migração retroativa)
+  {
+    const { data: needsHash } = await service
+      .from("profiles")
+      .select("id, cpf_encrypted")
+      .not("cpf_encrypted", "is", null)
+      .is("cpf_hash", null);
+
+    if (needsHash && needsHash.length > 0) {
+      await Promise.all(
+        (needsHash as { id: string; cpf_encrypted: string }[]).map(async (p) => {
+          try {
+            const digits = decryptCpf(p.cpf_encrypted).replace(/\D/g, "");
+            const hash = hashCpf(digits);
+            await service.from("profiles").update({ cpf_hash: hash }).eq("id", p.id);
+          } catch {
+            // ignora se a descriptografia falhar
+          }
+        })
+      );
+    }
+  }
 
   type ProfileRow = {
     id: string;
