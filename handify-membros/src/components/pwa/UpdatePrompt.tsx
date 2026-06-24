@@ -3,12 +3,23 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 
+// Persiste enquanto o JS do tab estiver vivo (sobrevive a remontagens do componente)
+let swHandled = false;
+
 export default function UpdatePrompt() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    if (swHandled) return;
+
+    // Recém-recarregado após update — ignora e marca como tratado
+    if (sessionStorage.getItem("sw-updating")) {
+      sessionStorage.removeItem("sw-updating");
+      swHandled = true;
+      return;
+    }
 
     function checkForWaiting(reg: ServiceWorkerRegistration) {
       if (reg.waiting && navigator.serviceWorker.controller) {
@@ -26,12 +37,7 @@ export default function UpdatePrompt() {
     }
 
     navigator.serviceWorker.getRegistration().then((reg) => {
-      if (!reg) return;
-      if (sessionStorage.getItem("sw-updating")) {
-        sessionStorage.removeItem("sw-updating");
-        return;
-      }
-      checkForWaiting(reg);
+      if (reg) checkForWaiting(reg);
     });
 
     let reloading = false;
@@ -41,6 +47,7 @@ export default function UpdatePrompt() {
   }, []);
 
   function handleUpdate() {
+    swHandled = true;
     sessionStorage.setItem("sw-updating", "1");
     setDismissed(true);
     if (waitingWorker) {
@@ -49,12 +56,17 @@ export default function UpdatePrompt() {
     setTimeout(() => window.location.reload(), 400);
   }
 
+  function handleDismiss() {
+    swHandled = true;
+    setDismissed(true);
+  }
+
   if (!waitingWorker || dismissed) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={() => setDismissed(true)}
+      onClick={handleDismiss}
     >
       <div
         role="alert"
@@ -76,7 +88,7 @@ export default function UpdatePrompt() {
               </p>
             </div>
             <button
-              onClick={() => setDismissed(true)}
+              onClick={handleDismiss}
               aria-label="Dispensar"
               className="p-1 text-white/30 hover:text-white transition-colors shrink-0 -mt-0.5"
             >
@@ -92,7 +104,7 @@ export default function UpdatePrompt() {
               Atualizar agora
             </button>
             <button
-              onClick={() => setDismissed(true)}
+              onClick={handleDismiss}
               className="px-4 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white hover:border-white/30 transition-colors"
             >
               Depois
