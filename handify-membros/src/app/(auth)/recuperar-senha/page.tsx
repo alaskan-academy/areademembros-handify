@@ -30,7 +30,7 @@ export default function RecuperarSenhaPage() {
 
     startTransition(async () => {
       // 1. Verifica server-side se o e-mail existe
-      const result = await recuperarSenhaAction(null, formData);
+      const result = await recuperarSenhaAction({}, formData);
 
       if (result.error) {
         setError(result.error);
