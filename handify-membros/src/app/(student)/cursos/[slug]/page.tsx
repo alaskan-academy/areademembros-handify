@@ -118,8 +118,8 @@ export default async function CourseDetailPage({
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Hero */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Card de compra — aparece primeiro no mobile */}
-        <div className="handify-card p-6 space-y-4 self-start order-first lg:order-last lg:sticky lg:top-24">
+        {/* Card de compra — aparece depois no mobile, primeiro na sidebar desktop */}
+        <div className="handify-card p-6 space-y-4 self-start order-last lg:order-last lg:sticky lg:top-24">
           {course.thumbnail_url && (
             <div className="aspect-video relative rounded-lg overflow-hidden bg-muted">
               <Image
@@ -215,8 +215,8 @@ export default async function CourseDetailPage({
           )}
         </div>
 
-        {/* Info principal — aparece depois do card no mobile */}
-        <div className="lg:col-span-2 space-y-4 order-last lg:order-first">
+        {/* Info principal — aparece primeiro no mobile */}
+        <div className="lg:col-span-2 space-y-4 order-first lg:order-first">
           {category && (
             <span className="text-sm font-medium uppercase tracking-wide text-[#6699F3]">
               {category.name}
@@ -249,11 +249,11 @@ export default async function CourseDetailPage({
           <div className="space-y-3">
             {modules.map((mod, mIdx) => (
               <div key={mod.id} className="handify-card overflow-hidden">
-                <div className="px-4 py-3 bg-muted/60 flex items-center justify-between">
-                  <span className="font-semibold text-sm">
+                <div className="px-4 py-3 bg-muted/60 flex items-center justify-between gap-3">
+                  <span className="font-semibold text-sm min-w-0 truncate">
                     Módulo {mIdx + 1} — {mod.title}
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-muted-foreground shrink-0">
                     {mod.lessons?.length ?? 0} aula
                     {mod.lessons?.length !== 1 ? "s" : ""}
                   </span>

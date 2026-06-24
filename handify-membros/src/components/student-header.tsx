@@ -127,7 +127,7 @@ export default function StudentHeader({
 
             {/* Painel de navegação */}
             {navOpen && (
-              <div className="absolute left-0 top-11 z-50 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-border shadow-xl py-2 overflow-hidden">
+              <div className="absolute left-0 top-11 z-50 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-xl border border-border shadow-xl py-2 overflow-y-auto max-h-[calc(100vh-80px)]">
                 <nav className="space-y-0.5 px-2">
                   {visibleItems.map((item) => {
                     const Icon = item.icon ? ICON_MAP[item.icon] : null;

@@ -77,7 +77,7 @@ export function LessonSidebarMobile({ courseModules, lessonId, completedSet }: P
         {open ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
       </button>
       {open && (
-        <div className="mt-2">
+        <div className="mt-2 max-h-[50vh] overflow-y-auto">
           <ModuleList courseModules={courseModules} lessonId={lessonId} completedSet={completedSet} />
         </div>
       )}
