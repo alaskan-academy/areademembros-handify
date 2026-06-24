@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_ROUTES = ["/login", "/cadastro", "/recuperar-senha", "/nova-senha"];
-const ALWAYS_PUBLIC_PREFIXES = ["/p/", "/verificar/", "/vitrine", "/cursos", "/api/"];
+const ALWAYS_PUBLIC_PREFIXES = ["/p/", "/verificar/", "/vitrine", "/cursos", "/api/", "/auth/"];
 
 function isPublicRoute(pathname: string): boolean {
   if (ALWAYS_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;

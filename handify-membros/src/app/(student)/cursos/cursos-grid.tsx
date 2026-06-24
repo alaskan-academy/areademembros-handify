@@ -65,7 +65,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
           <h2 className="text-lg font-bold mb-4">Seus cursos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrolled.map((course) => (
-              <CourseCard key={course.id} course={course} isLoggedIn={isLoggedIn} onClick={() => setSelected(course)} />
+              <CourseCard key={course.id} course={course} onClick={() => setSelected(course)} />
             ))}
           </div>
         </section>
@@ -85,7 +85,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {exploreCourses.map((course) => (
-              <CourseCard key={course.id} course={course} isLoggedIn={isLoggedIn} onClick={() => setSelected(course)} />
+              <CourseCard key={course.id} course={course} onClick={() => setSelected(course)} />
             ))}
           </div>
         </section>
@@ -100,7 +100,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {exploreMaterials.map((course) => (
-              <CourseCard key={course.id} course={course} isLoggedIn={isLoggedIn} onClick={() => setSelected(course)} />
+              <CourseCard key={course.id} course={course} onClick={() => setSelected(course)} />
             ))}
           </div>
         </section>
@@ -129,11 +129,9 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
 
 function CourseCard({
   course,
-  isLoggedIn,
   onClick,
 }: {
   course: CatalogCourse;
-  isLoggedIn: boolean;
   onClick: () => void;
 }) {
   const isComplete = course.progress?.percentage === 100;

@@ -48,7 +48,7 @@ export default function VitrineManager({ courses }: { courses: Course[] }) {
             Nenhum curso na vitrine. Adicione abaixo.
           </div>
         )}
-        <DraggableSection items={vitrineCourses} typeLabel="course" />
+        <DraggableSection items={vitrineCourses} />
       </section>
 
       {/* ── Materiais Didáticos na vitrine ────────────────────────── */}
@@ -62,7 +62,7 @@ export default function VitrineManager({ courses }: { courses: Course[] }) {
             Nenhum material didático na vitrine. Adicione abaixo.
           </div>
         )}
-        <DraggableSection items={vitrineMaterials} typeLabel="material" />
+        <DraggableSection items={vitrineMaterials} />
       </section>
 
       {/* ── Adicionar à vitrine ───────────────────────────────────── */}
@@ -101,10 +101,8 @@ export default function VitrineManager({ courses }: { courses: Course[] }) {
 
 function DraggableSection({
   items: initialItems,
-  typeLabel,
 }: {
   items: Course[];
-  typeLabel: "course" | "material";
 }) {
   const [items, setItems] = useState(initialItems);
   const [isPending, startTransition] = useTransition();
@@ -135,14 +133,6 @@ function DraggableSection({
       await reorderShowcaseCourses(reordered);
     });
     dragIndex.current = null;
-  }
-
-  // Sincroniza quando initialItems muda (ex: após adicionar/remover)
-  if (
-    initialItems.length !== items.length ||
-    initialItems.some((item, i) => item.id !== items[i]?.id)
-  ) {
-    // só sincroniza se a lista mudou externamente
   }
 
   return (

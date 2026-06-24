@@ -26,7 +26,12 @@ export default function UpdatePrompt() {
     }
 
     navigator.serviceWorker.getRegistration().then((reg) => {
-      if (reg) checkForWaiting(reg);
+      if (!reg) return;
+      if (sessionStorage.getItem("sw-updating")) {
+        sessionStorage.removeItem("sw-updating");
+        return;
+      }
+      checkForWaiting(reg);
     });
 
     let reloading = false;
@@ -36,11 +41,11 @@ export default function UpdatePrompt() {
   }, []);
 
   function handleUpdate() {
+    sessionStorage.setItem("sw-updating", "1");
     setDismissed(true);
     if (waitingWorker) {
       waitingWorker.postMessage({ type: "SKIP_WAITING" });
     }
-    // Fallback: recarrega após 400ms caso controllerchange não dispare
     setTimeout(() => window.location.reload(), 400);
   }
 
