@@ -72,3 +72,31 @@ Nunca usar `/embed?url=...` — a URL de destino e o email ficam invisíveis na 
 | 2026-06-24 | `src/lib/sanitize/index.ts` | Atributo `style` no ALLOWED_ATTR permitia CSS injection via blocos de aula criados pelo admin | Removido `"style"` da lista; usar classes CSS ao invés de estilos inline |
 | 2026-06-24 | `src/app/(student)/comunidade/forum/actions.ts` | Upload aceitava qualquer tipo de arquivo — aluna podia fazer upload de arquivo malicioso renomeado como imagem | Adicionada validação de MIME type: só aceita `image/jpeg`, `image/png`, `image/webp`, `image/gif` |
 | 2026-06-24 | `src/lib/notifications/actions.ts` | `getUnreadCount` e `getNotifications` usavam service client com `userId` vindo do caller sem verificar a sessão — qualquer aluna autenticada podia ler notificações de outra | Adicionada verificação `user.id === userId` antes de consultar; retorna vazio silenciosamente se não bater |
+| 2026-06-24 | `next.config.ts` | Headers de segurança incompletos | Adicionados: HSTS (2 anos, só produção), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, Typeform no `frame-src` |
+
+### Headers de segurança configurados (`next.config.ts`)
+
+| Header | Valor | O que faz |
+|--------|-------|-----------|
+| `X-Frame-Options` | `DENY` | Impede que a plataforma seja carregada em `<iframe>` de outro site (anti-clickjacking) |
+| `X-Content-Type-Options` | `nosniff` | Impede que o browser execute um arquivo com tipo diferente do declarado (ex: `.txt` como JS) |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Ao navegar para site externo (ex: Payt), envia só o domínio no Referer, não a URL completa |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Desativa câmera, microfone e geolocalização — a plataforma não usa nenhum deles |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | Força HTTPS por 2 anos após a primeira visita. Browser rejeita HTTP sem nem chegar ao servidor. **Só ativo em produção** |
+| `Content-Security-Policy` | (ver abaixo) | Lista branca de tudo que a página pode carregar |
+
+**Diretivas do CSP:**
+
+| Diretiva | Fontes permitidas | Motivo |
+|----------|------------------|--------|
+| `default-src` | `'self'` | Padrão restritivo: tudo bloqueado salvo exceções abaixo |
+| `script-src` | `'self' 'unsafe-inline' 'unsafe-eval'` + Panda Video | Next.js exige `unsafe-inline`/`unsafe-eval`; Panda Video precisa carregar scripts do player |
+| `frame-src` | Panda Video, Google Forms, YouTube, Notion, Canva, Typeform, `*.handify.com.br` | Embeds permitidos nas aulas (allowlist do DOMPurify espelhada aqui) |
+| `img-src` | `'self' data: blob: https:` | Thumbnails do Supabase Storage e imagens externas nos posts |
+| `style-src` | `'self' 'unsafe-inline'` | Tailwind e shadcn/ui usam estilos inline |
+| `connect-src` | Supabase (HTTPS + WSS), Panda Video | Requisições de rede: banco, realtime e player |
+| `media-src` | `'self' blob:` + Panda Video | Vídeos do player |
+| `font-src` | `'self'` | Montserrat é servida localmente via `next/font` — sem chamada ao Google Fonts em runtime |
+| `object-src` | `'none'` | Bloqueia Flash, Java e qualquer plugin |
+| `base-uri` | `'self'` | Impede injeção de `<base href="...">` que redirecionaria todos os links da página |
+| `frame-ancestors` | `'none'` | Equivalente moderno do `X-Frame-Options` no CSP (mantidos os dois por compatibilidade) |
