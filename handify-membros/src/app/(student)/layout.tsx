@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import PushPromptBanner from "@/components/pwa/PushPromptBanner";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentHeader from "@/components/student-header";
@@ -104,6 +105,7 @@ export default async function StudentLayout({
       {user && !(profile as Record<string, unknown>)?.terms_accepted_at && (
         <TermsAcceptanceBanner />
       )}
+      {user && <PushPromptBanner />}
       <UpdatePrompt />
       <InstallPrompt />
     </div>

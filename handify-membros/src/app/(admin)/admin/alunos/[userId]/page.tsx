@@ -139,6 +139,14 @@ export default async function AlunaDetailPage({
     .eq("user_id", userId)
     .order("issued_at", { ascending: false });
 
+  // Push subscriptions
+  const { data: pushSubs } = await service
+    .from("push_subscriptions")
+    .select("id")
+    .eq("user_id", userId)
+    .limit(1);
+  const hasPushEnabled = (pushSubs?.length ?? 0) > 0;
+
   // Histórico de auditoria
   const { data: auditLog } = await service
     .from("audit_log")
@@ -214,6 +222,7 @@ export default async function AlunaDetailPage({
           phone: (profile as { phone?: string | null }).phone ?? null,
           date_of_birth: (profile as { date_of_birth?: string | null }).date_of_birth ?? null,
           cpf_masked: cpfMasked,
+          hasPushEnabled,
         }}
         courses={courseEntries}
         certificates={(certificates ?? []) as unknown as {

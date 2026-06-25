@@ -18,6 +18,8 @@ import {
   Calendar,
   CreditCard,
   UserCircle,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -66,6 +68,7 @@ interface Props {
     phone: string | null;
     date_of_birth: string | null;
     cpf_masked: string | null;
+    hasPushEnabled: boolean;
   };
   courses: CourseEntry[];
   certificates: Certificate[];
@@ -193,7 +196,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog }
           <UserCircle className="w-4 h-4" />
           Dados cadastrais
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div className="space-y-0.5">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5" /> E-mail
@@ -223,6 +226,20 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog }
             <p className="text-sm font-medium font-mono">
               {profile.cpf_masked ?? <span className="text-muted-foreground/50">Não informado</span>}
             </p>
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Bell className="w-3.5 h-3.5" /> Push
+            </p>
+            {profile.hasPushEnabled ? (
+              <p className="text-sm font-medium flex items-center gap-1 text-[#72CF92]">
+                <Bell className="w-3.5 h-3.5" /> Ativa
+              </p>
+            ) : (
+              <p className="text-sm font-medium flex items-center gap-1 text-muted-foreground/60">
+                <BellOff className="w-3.5 h-3.5" /> Inativa
+              </p>
+            )}
           </div>
         </div>
         <div className="mt-4 pt-4 border-t border-border/40">

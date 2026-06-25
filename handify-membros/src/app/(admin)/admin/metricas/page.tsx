@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
-import { Users, BookOpen, Award, Webhook, TrendingUp, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Users, BookOpen, Award, Webhook, TrendingUp, CheckCircle2, Clock, XCircle, Bell } from "lucide-react";
 import { InfoTooltip } from "./metric-tooltip";
 
 async function assertAdmin() {
@@ -24,6 +24,7 @@ export default async function MetricasPage() {
     { data: topCursos },
     { data: webhooksRecentes },
     { data: matriculasPorFonte },
+    { data: pushSubsData },
   ] = await Promise.all([
     // Alunas ativas (não banidas)
     service.from("profiles").select("*", { count: "exact", head: true })
@@ -54,6 +55,9 @@ export default async function MetricasPage() {
     service.from("enrollments")
       .select("source")
       .or("expires_at.is.null,expires_at.gte." + new Date().toISOString()),
+
+    // Alunas com push ativo (distinct user_id)
+    service.from("push_subscriptions").select("user_id"),
   ]);
 
   // Agrupa top cursos por course_id
@@ -66,6 +70,9 @@ export default async function MetricasPage() {
     else cursoContagem.set(e.course_id, { ...c, count: 1 });
   }
   const topCursosOrdenados = [...cursoContagem.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+
+  // Alunas com push ativo (distinct user_ids)
+  const pushAlunas = new Set((pushSubsData ?? []).map((s) => s.user_id)).size;
 
   // Taxa de conclusão = certificados / matrículas (%)
   const taxaConclusao = totalMatriculas && totalMatriculas > 0
@@ -97,6 +104,12 @@ export default async function MetricasPage() {
           tooltip="Total de certificados de conclusão gerados na plataforma." />
         <StatCard icon={TrendingUp} label="Taxa de conclusão" value={`${taxaConclusao}%`} color="#6699F3"
           tooltip="Proporção de certificados em relação às matrículas ativas (certificados ÷ matrículas × 100)." />
+      </div>
+
+      {/* Push */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={Bell} label="Push ativas" value={pushAlunas} color="#72CF92"
+          tooltip="Alunas com notificações push habilitadas em pelo menos um dispositivo." />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
