@@ -280,9 +280,9 @@ async function issueCertificateIfComplete(
     .eq("completed", true)
     .in("lesson_id", lessonIds);
 
-  // Emite certificado ao atingir 95% das aulas concluídas
-  const threshold = Math.max(1, Math.floor(lessonIds.length * 0.95));
-  if ((completedCount ?? 0) < threshold) return false;
+  // Emite certificado ao atingir 95% das aulas concluídas (ceil garante >= 95% real)
+  const threshold = Math.ceil(lessonIds.length * 0.95);
+  if (!threshold || (completedCount ?? 0) < threshold) return false;
 
   // Busca dados do aluno e do curso (inclui has_certificate para gate)
   const [{ data: profile }, { data: course }] = await Promise.all([
