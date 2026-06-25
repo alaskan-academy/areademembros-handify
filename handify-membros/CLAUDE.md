@@ -65,6 +65,72 @@ Labels de status, aria-labels e UI strings genéricas podem ser constantes no c�
 
 - Ao final de cada alteração, sempre fazer `commit` e `push` para o remote.
 
+## Webhook Payt — Formato do Payload Real
+
+**Arquivos:** `src/lib/payments/payt.ts` + `src/app/api/webhooks/payt/route.ts`
+
+### Campos importantes
+
+| Campo no payload | O que é |
+|-----------------|---------|
+| `status` | Estado da transação: `"paid"` (libera acesso), `"refunded"` / `"chargeback"` / `"cancelled"` (revoga) |
+| `transaction_id` | ID único da transação |
+| `customer.email` | E-mail do comprador |
+| `customer.name` | Nome do comprador |
+| `customer.doc` | CPF do comprador (11 dígitos, usado para criptografar no perfil) |
+| `customer.phone` | Telefone/WhatsApp |
+| `product.code` | Code do produto principal (ou do grupo, se type=grouped) |
+| `product.type` | `"digital"`, `"physical"` ou `"grouped"` |
+| `product.items[]` | Se type=grouped: itens individuais com seus próprios `code` |
+| `order_bumps[].product.code` | Code de cada order bump comprado junto |
+| `test` | `true` quando disparado em modo teste no painel Payt |
+
+### Como o sistema mapeia para cursos
+
+1. Extrai todos os product codes do payload via `extractProductCodes()`:
+   - Produto simples → `product.code`
+   - Produto agrupado → cada `product.items[].code`
+   - Order bumps → cada `order_bumps[].product.code`
+2. Faz `SELECT * FROM courses WHERE product_code IN (...)` 
+3. Para cada curso encontrado: cria ou revoga `enrollment`
+
+**Conclusão:** para cada curso vendido (principal, item de grupo ou OB), cadastrar o `product_code` correspondente no admin da área de membros.
+
+### Exemplo de payload real (Payt, nov/2024)
+
+```json
+{
+  "status": "paid",
+  "transaction_id": "PAYTS2",
+  "test": true,
+  "customer": {
+    "email": "yoda@testsuser.com",
+    "name": "Solaire of Astora M Walter White",
+    "doc": "12345678909",
+    "phone": "11999999999"
+  },
+  "product": {
+    "code": "4O9J39",
+    "type": "grouped",
+    "name": "Produto Agrupado",
+    "items": [
+      { "code": "R28BKV", "type": "digital", "name": "Produto Digital Membros" },
+      { "code": "45PK73", "type": "physical", "name": "Produto Fisico Frasco" }
+    ]
+  },
+  "order_bumps": [
+    { "code": "R3A674", "name": "Produto Order Bump", "product": { "code": "R6DAPD", "type": "digital", "name": "Ebook 1" } },
+    { "code": "47ZMAL", "name": "OBump | Produto 2",  "product": { "code": "LX9BQZ", "type": "physical", "name": "Fisico (Auto)" } }
+  ]
+}
+```
+
+> Upsells chegam como webhook separado (nova compra). Order bumps chegam no mesmo payload em `order_bumps[]`.
+
+### Correção aplicada (2026-06-24)
+
+O schema original estava errado: esperava `event`, `product_code` e `buyer_email` no topo — campos que não existem no payload real. Resultado: todos os webhooks falhavam com 400. Corrigido para usar `status`, `product.code` e `customer.email`. Order bumps e reembolsos também passaram a funcionar.
+
 ## Embeds no menu
 
 Quando a usuária pedir para embedar um site externo no menu, ela envia o link e eu crio uma página dedicada em `src/app/(student)/[nome]/page.tsx` que:
