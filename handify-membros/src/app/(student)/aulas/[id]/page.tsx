@@ -267,13 +267,11 @@ export default async function LessonPage({
           <BannerDisplay slot="pos-aula" />
         </div>
 
-        {/* Sidebar desktop */}
-        <LessonSidebarDesktop {...sidebarProps} />
-        {courseModules.length > 0 && (
-          <div className="hidden lg:block">
-            <BannerDisplay slot="lateral" />
-          </div>
-        )}
+        {/* Coluna lateral: sidebar + banner lateral num único filho do grid para não vazar para linha 2 */}
+        <div className="hidden lg:flex flex-col gap-4 self-start">
+          <LessonSidebarDesktop {...sidebarProps} />
+          <BannerDisplay slot="lateral" />
+        </div>
       </div>
     </div>
   );
