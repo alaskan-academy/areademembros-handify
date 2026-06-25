@@ -46,7 +46,7 @@ export default function OfflinePage() {
       </div>
 
       {/* Rodapé */}
-      <div className="pb-6 text-center text-xs text-[#2D2D2D]/30 tracking-wide uppercase">
+      <div className="py-6 border-t border-[#2D2D2D]/8 text-center text-xs text-[#2D2D2D]/30 tracking-wide uppercase">
         Handify™ · Um espaço feito para aprender e criar.
       </div>
 
