@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, BookOpen, ShoppingBag, Users, Star,
   Image as ImageIcon, Bell, Mail, Newspaper,
-  MessageSquare, Flag, BarChart3, Menu as MenuIcon, X,
+  MessageSquare, Flag, BarChart3, Menu as MenuIcon, X, FileText,
   ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Sistema",
     items: [
       { href: "/admin/menu",     icon: MenuIcon,  label: "Menu do Site" },
+      { href: "/admin/paginas",  icon: FileText,  label: "Páginas Estáticas" },
       { href: "/admin/metricas", icon: BarChart3, label: "Métricas" },
     ],
   },
