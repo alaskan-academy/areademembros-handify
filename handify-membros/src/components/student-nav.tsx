@@ -25,8 +25,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
 
 // Atalhos fixos do bottom tab mobile
 const BOTTOM_TABS = [
-  { href: "/dashboard",       icon: LayoutDashboard, label: "Jornada" },
   { href: "/cursos",          icon: BookOpen,         label: "Cursos" },
+  { href: "/dashboard",       icon: LayoutDashboard,  label: "Jornada" },
   { href: "/comunidade/feed", icon: MessageSquare,    label: "Comunidade" },
   { href: "/perfil",          icon: User,             label: "Perfil" },
 ];
