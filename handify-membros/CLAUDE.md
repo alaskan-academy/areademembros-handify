@@ -141,6 +141,40 @@ Quando a usuária pedir para embedar um site externo no menu, ela envia o link e
 
 Nunca usar `/embed?url=...` — a URL de destino e o email ficam invisíveis na barra do navegador com páginas dedicadas.
 
+## Web Push Notifications
+
+**Status (2026-06-25):** implementado e funcional.
+
+### Variáveis de ambiente
+```
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=  # chave pública VAPID (exposta ao client)
+VAPID_PRIVATE_KEY=             # chave privada VAPID (server-only)
+VAPID_EMAIL=admin@handify.com.br
+```
+Configuradas em `.env.local` e nas env vars da Vercel.
+
+### Tabela no Supabase
+`push_subscriptions (id, user_id, endpoint, p256dh, auth, created_at)` — RLS ativo.
+Migration: `supabase/migrations/20260625_push_subscriptions.sql`.
+
+### Arquivos-chave
+| Arquivo | O que faz |
+|---------|-----------|
+| `worker/index.ts` | Handler `push` + `notificationclick` no service worker |
+| `src/lib/push/index.ts` | `broadcastPush`, `sendPushToUser` — **VAPID init é lazy** (`ensureVapid()` chamada no primeiro uso, não no import) |
+| `src/lib/push/actions.ts` | Server Actions: `subscribePush`, `unsubscribePush`, `getUserPushEndpoints` |
+| `src/components/pwa/PushSubscribeButton.tsx` | Botão ativar/desativar push no perfil da aluna |
+| `src/components/pwa/PushPromptBanner.tsx` | Banner flutuante no student layout (inteligente: 15 dias, por dispositivo) |
+
+### Regra crítica de build
+`webpush.setVapidDetails()` **nunca** pode ser chamado no topo do módulo (module-level). Chamar no import quebra o build da Vercel porque a env var não existe em build time. Sempre usar `ensureVapid()` lazy dentro das funções de envio.
+
+### Lógica do PushPromptBanner
+- Aparece 1x para quem nunca viu
+- Se aprovado antes mas sem subscription no dispositivo atual (ex: novo celular) → aparece novamente
+- Se dispensado sem ativar → guarda timestamp em `localStorage` (`handify_push_prompt_dismissed_at`) e reexibe após 15 dias
+- Se permission === "denied" → nunca aparece
+
 ## Segurança — checklist por PR
 
 - [ ] Toda nova tabela Supabase tem RLS ativo
