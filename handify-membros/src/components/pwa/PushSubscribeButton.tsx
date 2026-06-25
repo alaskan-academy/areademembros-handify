@@ -87,9 +87,8 @@ export default function PushSubscribeButton({ initialEndpoints }: Props) {
           localStorage.setItem(LS_ACTIVATED, "true");
         }
       });
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
-      setError(`Não foi possível ativar: ${detail}`);
+    } catch {
+      setError("Não foi possível ativar as notificações. Tente novamente.");
     }
   }
 
