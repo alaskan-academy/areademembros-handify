@@ -4,7 +4,7 @@ import DOMPurify from "dompurify";
 
 const ALLOWED_TAGS = [
   "p", "br", "b", "i", "strong", "em", "u", "s",
-  "h2", "h3", "h4",
+  "h1", "h2", "h3", "h4",
   "ul", "ol", "li",
   "blockquote",
   "a",
