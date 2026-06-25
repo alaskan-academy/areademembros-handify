@@ -31,7 +31,7 @@ export default function AnnualPromoClient({ promo: initial }: Props) {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#FEC649]/15 flex items-center justify-center">

@@ -130,7 +130,7 @@ export default async function AdminHomePage() {
   ];
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-8">
 
       {/* Saudação */}
       <div>
