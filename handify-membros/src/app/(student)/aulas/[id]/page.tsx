@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getLessonAccess, getMaterialSignedUrl } from "@/app/(student)/aulas/actions";
 import PandaPlayer from "@/components/player/panda-player";
 import LessonCompleteButton from "@/components/player/lesson-complete-button";
-import ContentBlocks, { type ContentBlock, type LessonMaterial } from "@/components/lesson/content-blocks";
+import ContentBlocks, { type ContentBlock, type LessonMaterial, type VideoPlayerProps } from "@/components/lesson/content-blocks";
 import Link from "next/link";
 import { Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import BannerDisplay from "@/components/banner/banner-display";
@@ -208,7 +208,16 @@ export default async function LessonPage({
           ) : null}
 
           {/* Blocos de conteúdo e materiais */}
-          <ContentBlocks blocks={contentBlocks} materials={materials} />
+          <ContentBlocks
+            blocks={contentBlocks}
+            materials={materials}
+            videoPlayerProps={hasAccess ? {
+              lessonId: id,
+              initialPosition: lastPosition,
+              durationSeconds: lesson.duration_seconds ?? 0,
+              isCompleted,
+            } as VideoPlayerProps : undefined}
+          />
 
           {/* Ações da aula */}
           <div className="flex items-center justify-between flex-wrap gap-3 pt-1">

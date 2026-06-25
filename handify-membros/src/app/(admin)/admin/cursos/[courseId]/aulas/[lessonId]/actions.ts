@@ -25,7 +25,7 @@ async function assertAdmin() {
 // ─── Blocos ────────────────────────────────────────────────────────────────────
 
 const BlockSchema = z.object({
-  type: z.enum(["text", "html", "embed", "download"]),
+  type: z.enum(["text", "html", "embed", "download", "video"]),
   content: z.string().min(1, "Conteúdo obrigatório"),
   position: z.number().int().min(0),
 });
@@ -34,7 +34,7 @@ export async function upsertBlock(
   lessonId: string,
   blockId: string | null,
   data: { type: string; content: string; position: number }
-): Promise<{ id: string; type: "text" | "html" | "embed" | "download"; content: string; position: number }> {
+): Promise<{ id: string; type: "text" | "html" | "embed" | "download" | "video"; content: string; position: number }> {
   await assertAdmin();
   const validated = BlockSchema.parse(data);
 

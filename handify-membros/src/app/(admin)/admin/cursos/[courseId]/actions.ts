@@ -105,12 +105,9 @@ export async function toggleArchivedModule(
 
 const LessonSchema = z.object({
   title: z.string().min(1).max(200),
-  lesson_type: z.enum(LESSON_TYPES).default("video"),
-  video_panda_id: z.string().max(200).optional().default(""),
   duration_seconds: z.number().int().min(0).default(0),
   is_preview: z.boolean().default(false),
   position: z.number().int().min(0),
-  description: z.string().max(10000).optional().default(""),
 });
 
 async function fetchLessonWithMaterials(supabase: Awaited<ReturnType<typeof createClient>>, lessonId: string): Promise<LessonData | null> {
@@ -148,35 +145,20 @@ export async function createLesson(
   const supabase = await assertAdmin();
   const raw = {
     title: formData.get("title") as string,
-    lesson_type: (formData.get("lesson_type") as LessonType) ?? "video",
-    video_panda_id: (formData.get("video_panda_id") as string) || "",
     duration_seconds: Number(formData.get("duration_seconds") ?? 0),
     is_preview: formData.get("is_preview") === "true",
     position: Number(formData.get("position") ?? 0),
-    description: (formData.get("description") as string) || "",
   };
   const parsed = LessonSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { data, error } = await supabase
     .from("lessons")
-    .insert({ ...parsed.data, module_id: moduleId })
+    .insert({ ...parsed.data, module_id: moduleId, lesson_type: "mixed" })
     .select("id")
     .single();
 
   if (error) return { error: "Erro ao criar aula: " + error.message };
-
-  const file = formData.get("file") as File | null;
-  if (file && file.size > 0) await uploadLessonFile(data.id, file);
-
-  const htmlContent = (formData.get("html_content") as string | null)?.trim();
-  if (htmlContent) {
-    await supabase.from("lesson_content_blocks").insert({
-      lesson_id: data.id, type: "html",
-      content: JSON.stringify({ html: htmlContent }),
-      position: 1,
-    });
-  }
 
   revalidatePath(`/admin/cursos/${courseId}`);
   const lesson = await fetchLessonWithMaterials(supabase, data.id);
@@ -191,12 +173,9 @@ export async function updateLesson(
   const supabase = await assertAdmin();
   const raw = {
     title: formData.get("title") as string,
-    lesson_type: (formData.get("lesson_type") as LessonType) ?? "video",
-    video_panda_id: (formData.get("video_panda_id") as string) || "",
     duration_seconds: Number(formData.get("duration_seconds") ?? 0),
     is_preview: formData.get("is_preview") === "true",
     position: Number(formData.get("position") ?? 0),
-    description: (formData.get("description") as string) || "",
   };
   const parsed = LessonSchema.safeParse(raw);
   if (!parsed.success) return { error: parsed.error.issues[0].message };

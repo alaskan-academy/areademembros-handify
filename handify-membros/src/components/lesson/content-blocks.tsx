@@ -6,8 +6,9 @@ import { FileText, Code, Globe, Download } from "lucide-react";
 
 const HtmlBlock = dynamic(() => import("./html-block"), { ssr: false });
 const EmbedBlock = dynamic(() => import("./embed-block"), { ssr: false });
+const PandaPlayer = dynamic(() => import("@/components/player/panda-player"), { ssr: false });
 
-export type BlockType = "text" | "html" | "embed" | "download";
+export type BlockType = "text" | "html" | "embed" | "download" | "video";
 
 export interface ContentBlock {
   id: string;
@@ -22,6 +23,13 @@ export interface LessonMaterial {
   signed_url: string | null;
 }
 
+export interface VideoPlayerProps {
+  lessonId: string;
+  initialPosition: number;
+  durationSeconds: number;
+  isCompleted: boolean;
+}
+
 function parseContent(content: string): Record<string, unknown> {
   try {
     return JSON.parse(content);
@@ -30,8 +38,6 @@ function parseContent(content: string): Record<string, unknown> {
   }
 }
 
-// TextBlock agora suporta rich text ({"html":"..."}) e plain text ({"body":"..."})
-// HtmlBlock (importado abaixo) já cuida da sanitização e dos estilos prose
 function TextBlock({ content }: { content: string }) {
   const parsed = parseContent(content);
   const html = parsed.html as string | undefined;
@@ -49,6 +55,39 @@ function TextBlock({ content }: { content: string }) {
     <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
       {body ?? content}
     </div>
+  );
+}
+
+function VideoBlock({
+  content,
+  videoPlayerProps,
+}: {
+  content: string;
+  videoPlayerProps?: VideoPlayerProps;
+}) {
+  const parsed = parseContent(content);
+  const videoId = parsed.video_panda_id as string | undefined;
+
+  if (!videoId) return null;
+
+  if (!videoPlayerProps) {
+    return (
+      <div className="w-full aspect-video rounded-xl bg-muted flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Vídeo indisponível</p>
+      </div>
+    );
+  }
+
+  return (
+    <Suspense fallback={<div className="w-full aspect-video bg-muted animate-pulse rounded-xl" />}>
+      <PandaPlayer
+        videoId={videoId}
+        lessonId={videoPlayerProps.lessonId}
+        initialPosition={videoPlayerProps.initialPosition}
+        durationSeconds={videoPlayerProps.durationSeconds}
+        isCompleted={videoPlayerProps.isCompleted}
+      />
+    </Suspense>
   );
 }
 
@@ -82,14 +121,16 @@ const BLOCK_ICONS: Record<BlockType, React.ElementType> = {
   html: Code,
   embed: Globe,
   download: Download,
+  video: FileText,
 };
 
 interface ContentBlocksProps {
   blocks: ContentBlock[];
   materials: LessonMaterial[];
+  videoPlayerProps?: VideoPlayerProps;
 }
 
-export default function ContentBlocks({ blocks, materials }: ContentBlocksProps) {
+export default function ContentBlocks({ blocks, materials, videoPlayerProps }: ContentBlocksProps) {
   if (!blocks.length && !materials.length) return null;
 
   const materialById = Object.fromEntries(materials.map((m) => [m.id, m]));
@@ -101,6 +142,10 @@ export default function ContentBlocks({ blocks, materials }: ContentBlocksProps)
 
         return (
           <div key={block.id} className="space-y-2">
+            {block.type === "video" && (
+              <VideoBlock content={block.content} videoPlayerProps={videoPlayerProps} />
+            )}
+
             {block.type === "text" && (
               <TextBlock content={block.content} />
             )}

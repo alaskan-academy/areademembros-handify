@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import dynamic from "next/dynamic";
-import { Plus, Trash2, ChevronUp, ChevronDown, Save, Info } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Save, Info, Video } from "lucide-react";
 import { upsertBlock, deleteBlock, reorderBlocks } from "./actions";
 
 const RichTextEditor = dynamic(
@@ -10,7 +10,7 @@ const RichTextEditor = dynamic(
   { ssr: false, loading: () => <div className="h-40 bg-muted animate-pulse rounded-lg" /> }
 );
 
-type BlockType = "text" | "html" | "embed" | "download";
+type BlockType = "text" | "html" | "embed" | "download" | "video";
 
 interface Block {
   id: string;
@@ -41,6 +41,8 @@ function blockSummary(block: Block): string {
       return (parsed.url as string) ?? "(sem URL)";
     case "download":
       return `Material: ${(parsed.material_id as string) ?? "(sem ID)"}`;
+    case "video":
+      return `Vídeo: ${(parsed.video_panda_id as string) ?? "(sem ID)"}`;
     default:
       return "";
   }
@@ -170,6 +172,25 @@ function ContentInput({
     );
   }
 
+  if (type === "video") {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Cole o ID do vídeo do Panda Video (UUID) ou a URL completa do player.
+        </p>
+        <input
+          type="text"
+          className="w-full text-sm border border-border rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+          placeholder="abc123xyz... ou https://player.pandavideo.com.br/embed/?v=..."
+          value={(parsed.video_panda_id as string) ?? ""}
+          onChange={(e) =>
+            onChange(JSON.stringify({ video_panda_id: e.target.value }))
+          }
+        />
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -178,6 +199,7 @@ const BLOCK_LABELS: Record<BlockType, string> = {
   html: "HTML",
   embed: "Embed",
   download: "Download",
+  video: "Vídeo",
 };
 
 export default function AdminBlocksEditor({
@@ -231,7 +253,12 @@ export default function AdminBlocksEditor({
     if (!addingType) return;
     // Para HTML, conteúdo mínimo para passar validação min(1)
     const content = newContent || (addingType === "html" ? JSON.stringify({ html: "" }) : "");
-    if (!content || content === JSON.stringify({ body: "" }) || content === JSON.stringify({ url: "" })) {
+    const emptyValues = [
+      JSON.stringify({ body: "" }),
+      JSON.stringify({ url: "" }),
+      JSON.stringify({ video_panda_id: "" }),
+    ];
+    if (!content || emptyValues.includes(content)) {
       setError("Preencha o conteúdo antes de salvar.");
       return;
     }
@@ -302,7 +329,7 @@ export default function AdminBlocksEditor({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold">Blocos de Conteúdo</h2>
         <div className="flex flex-wrap gap-2">
-          {(["text", "html", "embed", "download"] as BlockType[]).map((t) => (
+          {(["video", "text", "html", "embed", "download"] as BlockType[]).map((t) => (
             <button
               key={t}
               onClick={() => openAddForm(t)}
@@ -415,7 +442,7 @@ export default function AdminBlocksEditor({
                     onChange={(e) => setEditType(e.target.value as BlockType)}
                     className="text-sm border border-border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
                   >
-                    {(["text", "html", "embed", "download"] as BlockType[]).map(
+                    {(["video", "text", "html", "embed", "download"] as BlockType[]).map(
                       (t) => (
                         <option key={t} value={t}>
                           {BLOCK_LABELS[t]}

@@ -10,8 +10,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  Plus, Pencil, Trash2, Save, BookOpen, Video, FileText,
-  Code, Link, Layers, GripVertical, Upload, Loader2, Archive, ArchiveRestore,
+  Plus, Pencil, Trash2, Save, BookOpen, Layers,
+  GripVertical, Upload, Loader2, Archive, ArchiveRestore, ExternalLink,
 } from "lucide-react";
 import {
   createModule, updateModule, deleteModule, toggleArchivedModule,
@@ -19,7 +19,7 @@ import {
   reorderModules, reorderLessons, uploadMaterialForLesson, deleteLessonMaterial,
   refreshLessonWithMaterials,
 } from "./actions";
-import type { LessonType, LessonData, LessonMaterial } from "./actions";
+import type { LessonData, LessonMaterial } from "./actions";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -29,14 +29,6 @@ interface Module {
   id: string; title: string; position: number; archived: boolean;
   lessons: Lesson[];
 }
-
-const LESSON_TYPE_LABELS: Record<LessonType, string> = {
-  video: "Vídeo", document: "Documento", html: "HTML",
-  link: "Link externo", mixed: "Misto",
-};
-const LESSON_TYPE_ICONS: Record<LessonType, React.ElementType> = {
-  video: Video, document: FileText, html: Code, link: Link, mixed: Layers,
-};
 
 // ─── Formulário de módulo ─────────────────────────────────────────────────────
 
@@ -94,12 +86,10 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [lessonType, setLessonType] = useState<LessonType>(initial?.lesson_type ?? "video");
-  const [titleValue, setTitleValue] = useState(initial?.title ?? "");
+  const [savedLessonId, setSavedLessonId] = useState<string | null>(lessonId ?? null);
   const [existingMaterials, setExistingMaterials] = useState<LessonMaterial[]>(initial?.materials ?? []);
   const [newMaterials, setNewMaterials] = useState<{ name: string; file: File }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
-  const contentFileRef = useRef<HTMLInputElement>(null);
 
   function handleAddMaterial(file: File) {
     setNewMaterials((prev) => [...prev, { name: file.name, file }]);
@@ -119,9 +109,6 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
     const fd = new FormData(e.currentTarget);
     if (!fd.get("is_preview")) fd.set("is_preview", "false");
 
-    const contentFile = contentFileRef.current?.files?.[0];
-    if (contentFile) fd.set("file", contentFile);
-
     startTransition(async () => {
       const result = lessonId
         ? await updateLesson(lessonId, courseId, fd)
@@ -129,27 +116,28 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
 
       if (result.error) { setError(result.error); return; }
 
-      const savedLessonId = result.lesson?.id ?? lessonId;
+      const id = result.lesson?.id ?? lessonId ?? null;
+      setSavedLessonId(id);
 
-      if (savedLessonId && newMaterials.length > 0) {
+      if (id && newMaterials.length > 0) {
         const uploadErrors: string[] = [];
         await Promise.allSettled(
           newMaterials.map(async (m) => {
             const mfd = new FormData();
             mfd.set("file", m.file);
             mfd.set("name", m.name);
-            const res = await uploadMaterialForLesson(savedLessonId, mfd);
+            const res = await uploadMaterialForLesson(id, mfd);
             if (res.error) uploadErrors.push(`${m.name}: ${res.error}`);
           })
         );
         if (uploadErrors.length > 0) {
           setError(`Erro no upload de materiais: ${uploadErrors.join("; ")}`);
         }
+        setNewMaterials([]);
       }
 
-      // Busca o estado final do servidor após todos os uploads
-      const finalLesson = savedLessonId
-        ? (await refreshLessonWithMaterials(savedLessonId)) ?? result.lesson
+      const finalLesson = id
+        ? (await refreshLessonWithMaterials(id)) ?? result.lesson
         : result.lesson;
       onSave(finalLesson ?? undefined);
     });
@@ -159,38 +147,12 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
     <form onSubmit={handleSubmit} className="space-y-4 pl-4 border-l-2 border-[#6699F3]/20">
       {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-1.5 rounded-lg">{error}</p>}
 
-      {/* Tipo de aula */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Tipo de aula</label>
-        <div className="flex gap-2 flex-wrap">
-          {(["video", "document", "html", "link", "mixed"] as LessonType[]).map((t) => {
-            const Icon = LESSON_TYPE_ICONS[t];
-            return (
-              <button
-                key={t} type="button"
-                onClick={() => setLessonType(t)}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                  lessonType === t
-                    ? "bg-[#6699F3] text-white border-[#6699F3]"
-                    : "border-border text-muted-foreground hover:border-[#6699F3] hover:text-[#6699F3]"
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {LESSON_TYPE_LABELS[t]}
-              </button>
-            );
-          })}
-        </div>
-        <input name="lesson_type" type="hidden" value={lessonType} />
-      </div>
-
       {/* Título e duração */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Título *</label>
           <input name="title" required
-            value={titleValue}
-            onChange={(e) => setTitleValue(e.target.value)}
+            defaultValue={initial?.title ?? ""}
             placeholder="Título da aula"
             className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
         </div>
@@ -202,99 +164,28 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
         </div>
       </div>
 
-      {/* Conteúdo condicional por tipo */}
-      {lessonType === "video" && (
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">ID do vídeo (Panda Video)</label>
-          <input name="video_panda_id" defaultValue={initial?.video_panda_id ?? ""}
-            placeholder="abc123xyz..."
-            className="w-full text-sm border border-border rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
-        </div>
+      {/* Editor de blocos — link após criar/salvar */}
+      {savedLessonId ? (
+        <a
+          href={`/admin/cursos/${courseId}/aulas/${savedLessonId}`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-[#6699F3] hover:underline font-medium"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          Editar conteúdo (vídeo, texto, HTML, downloads) no editor de blocos
+        </a>
+      ) : (
+        <p className="text-xs text-muted-foreground bg-muted/40 px-3 py-2.5 rounded-lg">
+          Todo o conteúdo (vídeo, texto, HTML, embeds, downloads) é adicionado no editor de blocos — disponível após criar a aula.
+        </p>
       )}
-
-      {lessonType === "document" && (
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            Arquivo principal <span className="text-muted-foreground/60">(PDF, DOC, PPT · max 50MB)</span>
-          </label>
-          <input ref={contentFileRef} type="file"
-            accept=".pdf,.doc,.docx,.ppt,.pptx,.zip"
-            className="w-full text-sm text-muted-foreground file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#6699F3]/10 file:text-[#6699F3] hover:file:bg-[#6699F3]/20 cursor-pointer" />
-        </div>
-      )}
-
-      {lessonType === "html" && (
-        lessonId ? (
-          <p className="text-xs text-muted-foreground bg-muted/40 px-3 py-2.5 rounded-lg">
-            Para editar o conteúdo HTML, use o editor de blocos.{" "}
-            <a href={`/admin/cursos/${courseId}/aulas/${lessonId}`}
-              className="text-[#6699F3] hover:underline font-medium">
-              Abrir editor de blocos →
-            </a>
-          </p>
-        ) : (
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Conteúdo HTML inicial <span className="text-muted-foreground/60">(opcional — edite blocos detalhados após criar)</span>
-            </label>
-            <textarea name="html_content" rows={4} placeholder="<p>Conteúdo HTML...</p>"
-              className="w-full text-xs font-mono border border-border rounded-lg px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
-          </div>
-        )
-      )}
-
-      {lessonType === "link" && (
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">URL do conteúdo</label>
-          <input name="link_url" type="url" defaultValue=""
-            placeholder="https://..."
-            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
-        </div>
-      )}
-
-      {lessonType === "mixed" && (
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              ID do vídeo (Panda Video) <span className="text-muted-foreground/60">(opcional)</span>
-            </label>
-            <input name="video_panda_id" defaultValue={initial?.video_panda_id ?? ""}
-              placeholder="abc123xyz..."
-              className="w-full text-sm border border-border rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
-          </div>
-          {lessonId ? (
-            <p className="text-xs text-muted-foreground bg-muted/40 px-3 py-2.5 rounded-lg">
-              Adicione textos, HTML, embeds e downloads via editor de blocos.{" "}
-              <a href={`/admin/cursos/${courseId}/aulas/${lessonId}`}
-                className="text-[#6699F3] hover:underline font-medium">
-                Abrir editor de blocos →
-              </a>
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground bg-muted/40 px-3 py-2.5 rounded-lg">
-              Após criar a aula, use o editor de blocos para adicionar textos, HTML, embeds e downloads além do vídeo.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Descrição */}
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">
-          Descrição <span className="text-muted-foreground/60">(texto, links, títulos)</span>
-        </label>
-        <textarea name="description" rows={3} defaultValue={initial?.description ?? ""}
-          placeholder="Descreva o que a aluna vai aprender nessa aula..."
-          className="w-full text-sm border border-border rounded-lg px-3 py-2 resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
-      </div>
 
       {/* Materiais complementares */}
       <div className="space-y-2">
         <label className="text-xs font-medium text-muted-foreground">
-          Materiais complementares
+          Materiais complementares <span className="text-muted-foreground/60">(arquivos para download)</span>
         </label>
 
-        {/* Materiais já salvos */}
         {existingMaterials.length > 0 && (
           <div className="space-y-1">
             <p className="text-[11px] text-muted-foreground">Salvos:</p>
@@ -312,7 +203,6 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
           </div>
         )}
 
-        {/* Novos materiais para upload */}
         <input ref={fileRef} type="file" multiple className="hidden"
           onChange={(e) => {
             Array.from(e.target.files ?? []).forEach(handleAddMaterial);
@@ -320,7 +210,7 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
           }} />
         <button type="button" onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-border hover:border-[#6699F3] text-muted-foreground hover:text-[#6699F3] transition-colors">
-          <Upload className="w-3.5 h-3.5" /> Adicionar material
+          <Upload className="w-3.5 h-3.5" /> Adicionar arquivo
         </button>
         {newMaterials.length > 0 && (
           <div className="space-y-1">
@@ -370,7 +260,7 @@ function SortableLesson({ lesson: initialLesson, courseId, moduleId, editingLess
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: lesson.id });
 
-  const Icon = LESSON_TYPE_ICONS[lesson.lesson_type] ?? Video;
+  const Icon = Layers;
 
   function handleToggleArchive() {
     const next = !lesson.archived;
@@ -407,9 +297,6 @@ function SortableLesson({ lesson: initialLesson, courseId, moduleId, editingLess
                 {lesson.title}
               </p>
               <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded">
-                  {LESSON_TYPE_LABELS[lesson.lesson_type]}
-                </span>
                 {lesson.is_preview && <span className="text-[#72CF92]">Prévia</span>}
                 {lesson.archived && <span className="text-orange-500">Arquivada</span>}
                 {lesson.materials.length > 0 && (
