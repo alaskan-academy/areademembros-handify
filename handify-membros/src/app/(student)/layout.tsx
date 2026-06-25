@@ -86,7 +86,7 @@ export default async function StudentLayout({
       ) : (
         <CatalogHeader isLoggedIn={false} />
       )}
-      <main className="flex-1 w-full">{children}</main>
+      <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
       <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
       </footer>
