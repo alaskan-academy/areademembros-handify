@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import StudentHeader from "@/components/student-header";
 import StudentNav from "@/components/student-nav";
 import CatalogHeader from "@/components/catalog-header";
+import TermsAcceptanceBanner from "@/components/TermsAcceptanceBanner";
 import { getUnreadCount, getNotifications } from "@/lib/notifications/actions";
 import type { Role } from "@/types";
 import type { NavItem } from "@/components/student-header";
@@ -34,7 +35,7 @@ export default async function StudentLayout({
   const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }, { data: promoRaw }] =
     await Promise.all([
       user
-        ? supabase.from("profiles").select("full_name, avatar_url, role").eq("id", user.id).single()
+        ? supabase.from("profiles").select("full_name, avatar_url, role, terms_accepted_at").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
       user ? getNotifications(user.id, 30) : Promise.resolve([]),
       user ? getUnreadCount(user.id) : Promise.resolve(0),
@@ -100,6 +101,9 @@ export default async function StudentLayout({
       <footer className="hidden md:block py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
       </footer>
+      {user && !(profile as Record<string, unknown>)?.terms_accepted_at && (
+        <TermsAcceptanceBanner />
+      )}
       <UpdatePrompt />
       <InstallPrompt />
     </div>
