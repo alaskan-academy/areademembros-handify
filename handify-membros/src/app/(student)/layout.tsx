@@ -87,7 +87,7 @@ export default async function StudentLayout({
       ) : (
         <CatalogHeader isLoggedIn={false} />
       )}
-      <div className="flex flex-1 w-full overflow-hidden">
+      <div className="flex flex-1 w-full">
         {user && (
           <StudentNav
             navItems={navItems}
