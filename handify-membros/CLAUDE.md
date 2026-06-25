@@ -44,6 +44,23 @@ Labels de status, aria-labels e UI strings genéricas podem ser constantes no c�
 - Nunca retornar `video_panda_id` ou URL de vídeo sem verificar `enrollment` server-side
 - CPF nunca exposto em JSON; apenas no PDF do certificado
 
+## Rate Limiting — Decisão e Roadmap
+
+**Status (2026-06-24):** não implementado. Decisão consciente para o lançamento.
+
+**Por que não bloqueou o lançamento:**
+- Rotas de auth (`/login`, `/cadastro`, `/recuperar-senha`) → Supabase Auth já tem rate limiting próprio no servidor deles
+- Webhook Payt (`/api/webhooks/payt`) → validação HMAC-SHA256 rejeita qualquer payload sem assinatura válida antes de qualquer processamento; risco real de sobrecarga é baixo para o porte atual
+
+**Como implementar quando necessário:**
+1. Criar conta gratuita no [Upstash](https://upstash.com) (plano free: 10.000 req/dia, sem cartão)
+2. Instalar `@upstash/ratelimit` e `@upstash/redis`
+3. Adicionar env vars `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`
+4. Criar helper em `src/lib/ratelimit.ts` e chamar no início de cada route handler/action sensível
+5. Limites sugeridos: webhook → 20 req/min por IP; login → 5 tentativas/min por IP
+
+**Quando revisar:** ao atingir escala (centenas de alunas ativas) ou se houver incidente de abuso.
+
 ## Fluxo de trabalho
 
 - Ao final de cada alteração, sempre fazer `commit` e `push` para o remote.
