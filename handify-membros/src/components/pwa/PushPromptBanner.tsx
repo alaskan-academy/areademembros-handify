@@ -49,7 +49,14 @@ export default function PushPromptBanner() {
       return;
     }
 
-    // Permissão concedida mas sem flag local → pode ser novo dispositivo ou sessão antiga
+    // Permissão concedida mas sem flag local → pode ser novo dispositivo ou tentativa que falhou
+    // Antes de checar o SW, respeitar o cooldown de 15 dias caso tenha dispensado recentemente
+    const rawGranted = localStorage.getItem(LS_DISMISSED);
+    if (rawGranted) {
+      const elapsed = Date.now() - parseInt(rawGranted, 10);
+      if (elapsed < INTERVAL_MS) return;
+    }
+
     // Verifica via Service Worker se há subscription ativa
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
@@ -102,7 +109,7 @@ export default function PushPromptBanner() {
         setTimeout(() => setVisible(false), 1800);
       });
     } catch {
-      dismiss();
+      setSaveError("Não foi possível ativar. Tente novamente ou habilite nas configurações do navegador.");
     }
   }
 
