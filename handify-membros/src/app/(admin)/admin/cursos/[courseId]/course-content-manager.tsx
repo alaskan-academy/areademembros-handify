@@ -11,7 +11,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   Plus, Pencil, Trash2, Save, BookOpen, Layers,
-  GripVertical, Upload, Loader2, Archive, ArchiveRestore, ExternalLink,
+  GripVertical, Upload, Loader2, Archive, ArchiveRestore,
 } from "lucide-react";
 import {
   createModule, updateModule, deleteModule, toggleArchivedModule,
@@ -168,11 +168,9 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
       {savedLessonId ? (
         <a
           href={`/admin/cursos/${courseId}/aulas/${savedLessonId}`}
-          target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs text-[#6699F3] hover:underline font-medium"
         >
-          <ExternalLink className="w-3.5 h-3.5" />
-          Editar conteúdo (vídeo, texto, HTML, downloads) no editor de blocos
+          Editar conteúdo (vídeo, texto, HTML, downloads) no editor de blocos →
         </a>
       ) : (
         <p className="text-xs text-muted-foreground bg-muted/40 px-3 py-2.5 rounded-lg">

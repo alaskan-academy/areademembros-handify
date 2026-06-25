@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import dynamic from "next/dynamic";
-import { Plus, Trash2, ChevronUp, ChevronDown, Save, Info, Video } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Save, Info } from "lucide-react";
 import { upsertBlock, deleteBlock, reorderBlocks } from "./actions";
 
 const RichTextEditor = dynamic(
@@ -73,31 +73,14 @@ function ContentInput({
 
   if (type === "html") {
     const rawHtml = (parsed.html as string) ?? (parsed.body as string) ?? "";
-    const isFullDoc = /^\s*(<!DOCTYPE|<html)/i.test(rawHtml);
-
     return (
-      <div className="space-y-2">
-        {isFullDoc ? (
-          <div className="flex items-start gap-2 text-xs text-[#6699F3] bg-[#6699F3]/8 px-3 py-2 rounded-lg border border-[#6699F3]/20">
-            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>
-              HTML completo detectado — exibido em iframe que se expande automaticamente ao tamanho do conteúdo.
-            </span>
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Escreva HTML diretamente. Para página completa com CSS/JS próprio, comece com{" "}
-            <code className="bg-muted px-1 rounded">{"<!DOCTYPE html>"}</code>.
-          </p>
-        )}
-        <textarea
-          rows={10}
-          className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-          placeholder="<p>Conteúdo HTML aqui...</p>"
-          value={rawHtml}
-          onChange={(e) => onChange(JSON.stringify({ html: e.target.value }))}
-        />
-      </div>
+      <textarea
+        rows={10}
+        className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+        placeholder="<p>Conteúdo HTML aqui...</p>"
+        value={rawHtml}
+        onChange={(e) => onChange(JSON.stringify({ html: e.target.value }))}
+      />
     );
   }
 
