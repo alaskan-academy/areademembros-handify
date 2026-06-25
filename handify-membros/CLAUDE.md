@@ -64,3 +64,11 @@ Nunca usar `/embed?url=...` — a URL de destino e o email ficam invisíveis na 
 - [ ] Server Actions verificam role antes de mutar
 - [ ] Inputs sanitizados (Zod + DOMPurify onde aplicável)
 - [ ] Nenhum segredo exposto no client (`NEXT_PUBLIC_` apenas para Supabase URL e anon key)
+
+## Segurança — correções aplicadas (pré-lançamento)
+
+| Data | Arquivo | Problema | Fix |
+|------|---------|----------|-----|
+| 2026-06-24 | `src/lib/sanitize/index.ts` | Atributo `style` no ALLOWED_ATTR permitia CSS injection via blocos de aula criados pelo admin | Removido `"style"` da lista; usar classes CSS ao invés de estilos inline |
+| 2026-06-24 | `src/app/(student)/comunidade/forum/actions.ts` | Upload aceitava qualquer tipo de arquivo — aluna podia fazer upload de arquivo malicioso renomeado como imagem | Adicionada validação de MIME type: só aceita `image/jpeg`, `image/png`, `image/webp`, `image/gif` |
+| 2026-06-24 | `src/lib/notifications/actions.ts` | `getUnreadCount` e `getNotifications` usavam service client com `userId` vindo do caller sem verificar a sessão — qualquer aluna autenticada podia ler notificações de outra | Adicionada verificação `user.id === userId` antes de consultar; retorna vazio silenciosamente se não bater |
