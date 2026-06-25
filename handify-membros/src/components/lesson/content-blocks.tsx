@@ -107,10 +107,7 @@ export default function ContentBlocks({ blocks, materials }: ContentBlocksProps)
 
             {block.type === "html" && (
               <Suspense fallback={<div className="h-20 bg-muted animate-pulse rounded-lg" />}>
-                <HtmlBlock
-                  html={(parsed.html as string) ?? (parsed.body as string) ?? ""}
-                  iframeHeight={(parsed.iframeHeight as number) ?? undefined}
-                />
+                <HtmlBlock html={(parsed.html as string) ?? (parsed.body as string) ?? ""} />
               </Suspense>
             )}
 

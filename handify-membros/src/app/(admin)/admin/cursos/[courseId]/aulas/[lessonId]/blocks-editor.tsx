@@ -80,8 +80,7 @@ function ContentInput({
           <div className="flex items-start gap-2 text-xs text-[#6699F3] bg-[#6699F3]/8 px-3 py-2 rounded-lg border border-[#6699F3]/20">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>
-              HTML completo detectado — exibido em iframe sandboxado (CSS e JS funcionam).
-              Ajuste a altura se necessário.
+              HTML completo detectado — exibido em iframe que se expande automaticamente ao tamanho do conteúdo.
             </span>
           </div>
           <textarea
@@ -89,32 +88,8 @@ function ContentInput({
             className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
             placeholder="<!DOCTYPE html>..."
             value={rawHtml}
-            onChange={(e) =>
-              onChange(
-                JSON.stringify({
-                  html: e.target.value,
-                  ...(parsed.iframeHeight ? { iframeHeight: parsed.iframeHeight } : {}),
-                })
-              )
-            }
+            onChange={(e) => onChange(JSON.stringify({ html: e.target.value }))}
           />
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-muted-foreground whitespace-nowrap">Altura do iframe (px):</label>
-            <input
-              type="number"
-              className="w-28 text-sm border border-border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-              placeholder="600"
-              value={(parsed.iframeHeight as number) ?? ""}
-              onChange={(e) =>
-                onChange(
-                  JSON.stringify({
-                    html: rawHtml,
-                    iframeHeight: e.target.value ? Number(e.target.value) : undefined,
-                  })
-                )
-              }
-            />
-          </div>
         </div>
       );
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sanitizeHtml } from "@/lib/sanitize";
 
 function HtmlSnippet({ html }: { html: string }) {
@@ -32,12 +32,54 @@ function HtmlSnippet({ html }: { html: string }) {
   );
 }
 
-// HTML completo (<!DOCTYPE ou <html>) → iframe srcdoc sandboxado (CSS + JS funcionam)
-function HtmlDocument({ html, height = 600 }: { html: string; height?: number }) {
+// Injeta script no HTML do iframe que reporta a altura real do conteúdo via postMessage
+function injectResizeScript(html: string, token: string): string {
+  const script = `<script>
+(function(){
+  var tok='${token}';
+  function report(){
+    var h=Math.max(
+      document.body.scrollHeight||0,
+      document.documentElement.scrollHeight||0,
+      document.body.offsetHeight||0,
+      document.documentElement.offsetHeight||0
+    );
+    window.parent.postMessage({type:'handify-iframe-resize',token:tok,height:h},'*');
+  }
+  if(document.readyState==='complete'){report();}
+  window.addEventListener('load',report);
+  if(typeof ResizeObserver!=='undefined'){new ResizeObserver(report).observe(document.body);}
+})();
+<\/script>`;
+  return html.includes("</body>")
+    ? html.replace("</body>", script + "</body>")
+    : html + script;
+}
+
+// HTML completo (<!DOCTYPE ou <html>) → iframe srcdoc que se auto-ajusta à altura do conteúdo
+function HtmlDocument({ html }: { html: string }) {
+  const [height, setHeight] = useState(300);
+  const token = useState(() => `ht-${Math.random().toString(36).slice(2)}`)[0];
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (
+        e.data?.type === "handify-iframe-resize" &&
+        e.data?.token === token &&
+        typeof e.data?.height === "number" &&
+        e.data.height > 0
+      ) {
+        setHeight(e.data.height);
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [token]);
+
   return (
-    <div className="rounded-xl overflow-hidden border border-border shadow-sm">
+    <div className="w-full overflow-hidden rounded-xl border border-border shadow-sm">
       <iframe
-        srcDoc={html}
+        srcDoc={injectResizeScript(html, token)}
         title="Conteúdo personalizado"
         className="w-full border-0 block"
         style={{ height }}
@@ -48,17 +90,11 @@ function HtmlDocument({ html, height = 600 }: { html: string; height?: number })
   );
 }
 
-export default function HtmlBlock({
-  html,
-  iframeHeight,
-}: {
-  html: string;
-  iframeHeight?: number;
-}) {
+export default function HtmlBlock({ html }: { html: string }) {
   const isFullDocument = /^\s*(<!DOCTYPE|<html)/i.test(html);
 
   if (isFullDocument) {
-    return <HtmlDocument html={html} height={iframeHeight} />;
+    return <HtmlDocument html={html} />;
   }
 
   return <HtmlSnippet html={html} />;
