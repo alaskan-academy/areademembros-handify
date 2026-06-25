@@ -5,9 +5,8 @@ import { Bell, X, Loader2 } from "lucide-react";
 import { subscribePush } from "@/lib/push/actions";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-// Chave salva quando a aluna ativa push neste dispositivo
+// Compartilhada com PushSubscribeButton — não alterar o nome
 const LS_ACTIVATED = "handify_push_activated";
-// Chave salva quando a aluna fecha o banner sem ativar
 const LS_DISMISSED = "handify_push_dismissed_at";
 const INTERVAL_MS = 15 * 24 * 60 * 60 * 1000; // 15 dias em ms
 
@@ -22,6 +21,7 @@ export default function PushPromptBanner() {
   const [visible, setVisible] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const supported =
@@ -91,8 +91,11 @@ export default function PushPromptBanner() {
       };
 
       startTransition(async () => {
-        await subscribePush(json);
-        // Marca como ativada neste dispositivo para não mostrar novamente
+        const result = await subscribePush(json);
+        if ("error" in result) {
+          setSaveError("Não foi possível salvar. Tente novamente.");
+          return;
+        }
         localStorage.setItem(LS_ACTIVATED, "true");
         localStorage.removeItem(LS_DISMISSED);
         setDone(true);
@@ -136,6 +139,9 @@ export default function PushPromptBanner() {
               <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                 Receba avisos sobre novos conteúdos e novidades da Handify.
               </p>
+              {saveError && (
+                <p className="text-xs text-red-600 mt-2">{saveError}</p>
+              )}
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={handleEnable}

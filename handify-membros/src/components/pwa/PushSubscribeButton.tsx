@@ -5,6 +5,8 @@ import { Bell, BellOff, Loader2 } from "lucide-react";
 import { subscribePush, unsubscribePush } from "@/lib/push/actions";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+// Chave compartilhada com PushPromptBanner para evitar exibição repetida no mobile
+const LS_ACTIVATED = "handify_push_activated";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -36,19 +38,22 @@ export default function PushSubscribeButton({ initialEndpoints }: Props) {
     if (ok) setPermission(Notification.permission);
 
     // Verifica se a subscription atual ainda é válida neste dispositivo
-    if (ok && initialEndpoints.length > 0) {
+    if (ok) {
       navigator.serviceWorker.ready
         .then((reg) => reg.pushManager.getSubscription())
         .then((sub) => {
           if (!sub) {
-            // Browser não tem subscription ativa — limpa estado local
             setActiveEndpoint(null);
-          } else if (!initialEndpoints.includes(sub.endpoint)) {
-            // Subscription diferente — atualiza
-            setActiveEndpoint(sub.endpoint);
+            localStorage.removeItem(LS_ACTIVATED);
+          } else {
+            // Subscription ativa — garante flag local sincronizada
+            localStorage.setItem(LS_ACTIVATED, "true");
+            if (!initialEndpoints.includes(sub.endpoint)) {
+              setActiveEndpoint(sub.endpoint);
+            }
           }
         })
-        .catch(() => setActiveEndpoint(null));
+        .catch(() => {}); // SW não disponível — mantém estado atual
     }
   }, [initialEndpoints]);
 
@@ -79,6 +84,7 @@ export default function PushSubscribeButton({ initialEndpoints }: Props) {
           setError(result.error ?? "Erro ao ativar.");
         } else {
           setActiveEndpoint(json.endpoint);
+          localStorage.setItem(LS_ACTIVATED, "true");
         }
       });
     } catch {
@@ -93,6 +99,7 @@ export default function PushSubscribeButton({ initialEndpoints }: Props) {
       const sub = await reg.pushManager.getSubscription();
       if (sub) await sub.unsubscribe();
 
+      localStorage.removeItem(LS_ACTIVATED);
       if (activeEndpoint) {
         startTransition(async () => {
           await unsubscribePush(activeEndpoint);
