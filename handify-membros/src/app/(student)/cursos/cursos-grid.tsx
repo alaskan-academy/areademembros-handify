@@ -473,14 +473,14 @@ function CourseModal({
                 </Link>
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-2xl font-black text-[#0F0F0F]">{course.priceFormatted}</p>
                   {!isLoggedIn && (
                     <p className="text-xs text-muted-foreground mt-0.5">Precisa de uma conta para comprar</p>
                   )}
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-row gap-2 flex-wrap">
                   {!isLoggedIn && (
                     <Link
                       href="/cadastro"

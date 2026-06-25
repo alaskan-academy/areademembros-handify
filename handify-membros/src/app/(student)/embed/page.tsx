@@ -26,7 +26,7 @@ export default async function EmbedPage({
   const src = `${url}${separator}email=${email}`;
 
   return (
-    <div className="w-full" style={{ height: "calc(100svh - 104px)" }}>
+    <div className="w-full h-[calc(100svh-133px)] md:h-[calc(100svh-104px)]">
       <iframe
         src={src}
         title="Conteúdo Handify"

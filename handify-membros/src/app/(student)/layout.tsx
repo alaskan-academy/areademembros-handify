@@ -97,7 +97,7 @@ export default async function StudentLayout({
         )}
         <main className="flex-1 min-w-0 pb-20 md:pb-0">{children}</main>
       </div>
-      <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
+      <footer className="hidden md:block py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
       </footer>
       <UpdatePrompt />

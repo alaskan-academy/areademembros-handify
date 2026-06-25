@@ -184,7 +184,7 @@ export default async function AlunosPage({
       )}
 
       {/* Tabela */}
-      <div className="handify-card overflow-hidden">
+      <div className="handify-card overflow-hidden overflow-x-auto">
         {profiles.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <UserCircle className="w-10 h-10 mx-auto mb-3 opacity-30" />

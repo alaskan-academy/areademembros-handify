@@ -14,7 +14,7 @@ export default async function BibliotecaPage() {
   const src = `https://biblioteca.handify.com.br/?email=${encodeURIComponent(user.email ?? "")}`;
 
   return (
-    <div className="w-full" style={{ height: "calc(100svh - 104px)" }}>
+    <div className="w-full h-[calc(100svh-133px)] md:h-[calc(100svh-104px)]">
       <iframe
         src={src}
         title="Biblioteca Handify"
