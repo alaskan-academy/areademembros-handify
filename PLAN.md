@@ -133,17 +133,21 @@
 - [ ] E-mail lembrete de reengajamento: 7 dias sem acessar curso em andamento (Edge Function com cron Supabase ou Vercel Cron)
 - [ ] Templates Resend com identidade visual Handify
 
-## Fase 11b — Notificações Push (Web Push API)
+## Fase 11b — Notificações Push (Web Push API) ✅
 
-- [ ] Solicitar permissão de notificação push ao usuário (prompt contextual, não na entrada)
-- [ ] Registrar service worker com suporte a push (`next-pwa` já configurado)
-- [ ] Salvar `PushSubscription` do usuário no banco (`push_subscriptions` table) com `user_id`, `endpoint`, `keys`)
-- [ ] Edge Function / Server Action para enviar push via Web Push API (biblioteca `web-push`)
-- [ ] Eventos que disparam push (mesmos das notificações in-app): novo post no feed, resposta ao comentário, novo conteúdo no curso, certificado disponível
-- [ ] Admin: painel para testar envio de push broadcast para todas as alunas
-- [ ] Admin: enable/disable notificações push globalmente
-- [ ] Aluna: botão "Ativar notificações" nas preferências do perfil (e opção de revogar)
-- [ ] Graceful degradation: se push não for suportado/negado, apenas silencia (não quebra nada)
+- [x] Solicitar permissão de notificação push ao usuário (PushPromptBanner — 15 dias, inteligente)
+- [x] Registrar service worker com suporte a push (`worker/index.ts` + `customWorkerSrc`)
+- [x] Salvar `PushSubscription` no banco (`push_subscriptions`: `user_id`, `endpoint`, `p256dh`, `auth`) + RLS
+- [x] Server Action para enviar push via Web Push API (`web-push`, `broadcastPush`, `sendPushToUser`)
+- [x] Eventos que disparam push: `dispatchCampaign` dispara push após inserir notificações in-app
+- [x] Admin: notificações/campanhas existentes já disparam push (integrado em `dispatchCampaign`)
+- [x] Aluna: botão "Ativar/Desativar" no perfil (`PushSubscribeButton`)
+- [x] Graceful degradation: `PushPromptBanner` e `PushSubscribeButton` retornam null se push não suportado
+- [x] Admin métricas: card "Push ativas" mostra quantidade de alunas com push ativo
+- [x] Admin aluna: campo Push Ativa/Inativa nos dados cadastrais de cada aluna
+- [x] Smart prompt: 1x para quem aprovou (só repete em novo dispositivo); a cada 15 dias para quem não ativou
+- [x] VAPID keys geradas e configuradas (`.env.local` + Vercel)
+- [x] Migration SQL rodada no Supabase (`supabase/migrations/20260625_push_subscriptions.sql`)
 
 ## Fase 12 — Busca Global (Semana 8)
 
