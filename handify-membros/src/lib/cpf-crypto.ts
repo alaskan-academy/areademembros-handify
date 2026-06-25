@@ -3,8 +3,11 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypt
 function getKey(): Buffer {
   const key = process.env.CERTIFICATE_ENCRYPTION_KEY;
   if (!key) throw new Error("CERTIFICATE_ENCRYPTION_KEY nao configurada");
-  const buf = Buffer.from(key, "base64");
-  if (buf.length !== 32) throw new Error("CERTIFICATE_ENCRYPTION_KEY deve ter 32 bytes (base64 de 44 chars)");
+  // Aceita hex (64 chars) ou base64 (44 chars) — ambos representam 32 bytes
+  const buf = /^[0-9a-f]{64}$/i.test(key)
+    ? Buffer.from(key, "hex")
+    : Buffer.from(key, "base64");
+  if (buf.length !== 32) throw new Error("CERTIFICATE_ENCRYPTION_KEY deve ter 32 bytes (hex de 64 chars ou base64 de 44 chars)");
   return buf;
 }
 
