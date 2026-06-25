@@ -95,6 +95,7 @@ export default async function LessonPage({
   // Blocos de conteúdo e materiais (só para usuários com acesso)
   let contentBlocks: ContentBlock[] = [];
   let materials: LessonMaterial[] = [];
+  let hasVideoBlocks = false;
 
   if (hasAccess) {
     const [{ data: blocksData }, { data: materialsData }] = await Promise.all([
@@ -111,6 +112,7 @@ export default async function LessonPage({
     ]);
 
     const rawBlocks = (blocksData as ContentBlock[] | null) ?? [];
+    hasVideoBlocks = rawBlocks.some((b) => b.type === "video");
     // Substitui [EMAIL] em URLs de embed pelo email da aluna (server-side)
     contentBlocks = rawBlocks.map((block) => {
       if (block.type !== "embed" || !user?.email) return block;
@@ -146,7 +148,7 @@ export default async function LessonPage({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 overflow-x-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
 
         {/* Coluna principal */}
@@ -174,7 +176,8 @@ export default async function LessonPage({
           <h1 className="text-xl font-bold leading-snug">{lesson.title}</h1>
 
           {/* Player ou tela de bloqueio */}
-          {videoId ? (
+          {/* Player legado (video_panda_id na lessons table) — só exibe se não há bloco de vídeo */}
+          {videoId && !hasVideoBlocks ? (
             <PandaPlayer
               videoId={videoId}
               lessonId={id}
