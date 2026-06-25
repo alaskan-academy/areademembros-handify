@@ -250,7 +250,7 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleComment(e as unknown as React.FormEvent); } }}
                 placeholder="Escreva sua resposta… (Enter para enviar)"
                 rows={1} className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 placeholder:text-muted-foreground"
-                style={{ minHeight: "38px" }} />
+                style={{ minHeight: "44px" }} />
               <button type="submit" disabled={!commentBody.trim() || submitting}
                 className="p-2 rounded-lg bg-[#6699F3] text-white disabled:opacity-40 hover:opacity-90 transition-opacity shrink-0 self-end">
                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

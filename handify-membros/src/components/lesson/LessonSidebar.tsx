@@ -31,7 +31,7 @@ function ModuleList({ courseModules, lessonId, completedSet }: Props) {
                   <Link
                     href={`/aulas/${l.id}`}
                     className={cn(
-                      "flex items-center gap-2.5 px-3 py-2.5 text-xs transition-colors min-h-[40px]",
+                      "flex items-center gap-2.5 px-3 py-2.5 text-xs transition-colors min-h-[44px]",
                       isCurrent
                         ? "bg-[#6699F3]/10 text-[#6699F3] font-semibold"
                         : "hover:bg-muted/60 text-foreground/80"

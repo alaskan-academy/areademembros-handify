@@ -401,7 +401,7 @@ function ProfileSection({
             <button
               onClick={handleSave}
               disabled={isPending}
-              className="flex items-center gap-1.5 text-sm font-medium bg-[#6699F3] text-white px-4 py-1.5 rounded-lg hover:bg-[#5580d4] disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1.5 text-sm font-medium bg-[#6699F3] text-white px-4 py-1.5 min-h-[44px] rounded-lg hover:bg-[#5580d4] disabled:opacity-60 transition-colors"
             >
               {isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -413,7 +413,7 @@ function ProfileSection({
             <button
               onClick={handleCancel}
               disabled={isPending}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 min-h-[44px] rounded-lg hover:bg-muted transition-colors"
             >
               <X className="w-3.5 h-3.5" />
               Cancelar

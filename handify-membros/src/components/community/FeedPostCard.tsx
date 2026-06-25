@@ -228,7 +228,7 @@ export default function FeedPostCard({ post, userId, initialLiked }: Props) {
                 placeholder="Escreva um comentário… (Enter para enviar)"
                 rows={1}
                 className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 placeholder:text-muted-foreground"
-                style={{ minHeight: "38px" }}
+                style={{ minHeight: "44px" }}
               />
               <button
                 type="submit"

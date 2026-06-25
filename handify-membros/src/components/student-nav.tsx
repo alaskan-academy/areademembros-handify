@@ -176,7 +176,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
             className="md:hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="md:hidden fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl flex flex-col">
+          <div className="md:hidden fixed inset-y-0 left-0 z-50 w-[min(18rem,85vw)] bg-white shadow-2xl flex flex-col">
             <div className="brand-stripe"><span /><span /><span /></div>
             <div className="flex items-center justify-between px-4 py-4 border-b border-border/60 shrink-0">
               <div>

@@ -104,7 +104,7 @@ export default function NotificacoesClient({
   return (
     <div className="space-y-4">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Notificações</h1>
           {unreadCount > 0 && (
@@ -130,7 +130,7 @@ export default function NotificacoesClient({
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-2 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${
               filter === f
                 ? "bg-[#6699F3] text-white"
                 : "border border-border text-muted-foreground hover:bg-muted"
