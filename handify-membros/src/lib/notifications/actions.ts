@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { broadcastPush } from "@/lib/push";
 
 // ── Auth helpers ──────────────────────────────────────────────────
 
@@ -205,7 +206,7 @@ export async function dispatchCampaign(campaignId: string) {
     return;
   }
 
-  // Insere notificações em batch (máx 500 por vez)
+  // Insere notificações in-app em batch (máx 500 por vez)
   const BATCH = 500;
   let totalSent = 0;
   for (let i = 0; i < userIds.length; i += BATCH) {
@@ -220,6 +221,12 @@ export async function dispatchCampaign(campaignId: string) {
     await service.from("notifications").insert(batch);
     totalSent += batch.length;
   }
+
+  // Dispara push para usuárias com subscription ativa (fire-and-forget)
+  broadcastPush(
+    { title: campaign.title, body: campaign.body, link: campaign.link ?? undefined },
+    userIds
+  ).catch((e) => console.error("[dispatch] push error:", e));
 
   await service
     .from("notification_campaigns")

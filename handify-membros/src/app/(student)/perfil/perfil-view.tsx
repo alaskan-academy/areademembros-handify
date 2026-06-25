@@ -27,6 +27,8 @@ import {
   updateEmailPrefs,
   type EmailPrefs,
 } from "./actions";
+import PushSubscribeButton from "@/components/pwa/PushSubscribeButton";
+import { getUserPushEndpoints } from "@/lib/push/actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -80,6 +82,7 @@ export default function PerfilView() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [courses, setCourses] = useState<CourseCard[]>([]);
+  const [pushEndpoints, setPushEndpoints] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const newCert = searchParams.get("certificado") === "1";
@@ -113,6 +116,9 @@ export default function PerfilView() {
 
       setProfile(profileRes.data as Profile | null);
       setCertificates((certRes.data ?? []) as unknown as Certificate[]);
+
+      // Endpoints de push deste usuário (para o botão de ativar/desativar)
+      getUserPushEndpoints().then(setPushEndpoints).catch(() => {});
 
       // Calcula progresso por curso
       type RawCourse = {
@@ -227,6 +233,17 @@ export default function PerfilView() {
       <EmailPrefsSection
         prefs={mergeWithDefaults(profile?.email_prefs as EmailPrefs | null)}
       />
+
+      {/* Notificações push */}
+      <div className="handify-card p-6 space-y-4">
+        <div>
+          <h2 className="font-semibold">Notificações push</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Receba avisos instantâneos no seu dispositivo mesmo com o navegador fechado.
+          </p>
+        </div>
+        <PushSubscribeButton initialEndpoints={pushEndpoints} />
+      </div>
     </div>
   );
 }

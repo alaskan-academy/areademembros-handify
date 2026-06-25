@@ -67,15 +67,15 @@
 
 ## Fase 5 — Materiais e Blocos de Conteúdo (Semana 4-5)
 
-- [ ] Admin: upload de materiais por aula → Storage (bucket privado)
-- [ ] Signed URL para download apenas para alunas matriculadas
-- [ ] Listagem de materiais na página da aula
-- [ ] CRUD de `lesson_content_blocks` no admin (tipo, conteúdo, posição)
-- [ ] Tipos: `text`, `html`, `embed`, `download`
-- [ ] Editor HTML no admin (Monaco Editor ou textarea expandida)
-- [ ] Allowlist de domínios para embed: Google Forms, Typeform, Notion, Canva, YouTube
-- [ ] Sanitização com DOMPurify + allowlist de tags antes de renderizar
-- [ ] Renderização dos blocos na página de aula
+- [x] Admin: upload de materiais por aula → Storage (bucket privado)
+- [x] Signed URL para download apenas para alunas matriculadas (TTL 3600s — `getMaterialSignedUrl`)
+- [x] Listagem de materiais na página da aula
+- [x] CRUD de `lesson_content_blocks` no admin (tipo, conteúdo, posição)
+- [x] Tipos: `text`, `html`, `embed`, `download`, `video`
+- [x] Editor HTML no admin (textarea com código bruto; Tiptap para texto rico)
+- [x] Allowlist de domínios para embed: Google Forms, Typeform, Notion, Canva, YouTube
+- [x] Sanitização com DOMPurify + allowlist de tags antes de renderizar
+- [x] Renderização dos blocos na página de aula
 
 ## Fase 6 — Vitrine / Showcase (Semana 5)
 
@@ -168,10 +168,10 @@
 
 ## Fase 14 — PWA e Polimento (Semana 9)
 
-- [ ] `next-pwa`: manifest.json, service worker, ícones Handify em múltiplos tamanhos
-- [ ] Splash screen com logo Handify
-- [ ] Offline fallback: página simples quando sem conexão
-- [ ] Teste "Adicionar à tela inicial" em Android e iOS
+- [x] `next-pwa` (`@ducanh2912/next-pwa`): manifest.json, service worker (`sw.js`), ícones 192×192 e 512×512
+- [x] Splash screen: controlada por `background_color`/`theme_color` no manifest (sem arquivo separado)
+- [x] Offline fallback: `src/app/~offline/page.tsx` com identidade visual Handify completa
+- [x] Teste "Adicionar à tela inicial" em Android e iOS (confirmado pela Jessica)
 
 ## Fase 15 — Testes, Segurança e Launch (Semana 9-10)
 
@@ -215,7 +215,7 @@
 - [ ] **Server Actions:** garantir que todas as mutações verificam role (`assertAdmin` / `assertStudent`) antes de qualquer operação
 - [ ] **Webhook Payt:** testar HMAC com payload inválido (deve retornar 401), payload duplicado (idempotência), produto inexistente
 - [ ] **Vídeo Panda:** confirmar que `video_panda_id` nunca chega ao client sem matrícula verificada — auditar todos os Server Actions de aula
-- [ ] **Storage privado:** confirmar que todos os buckets de materiais e certificados exigem signed URL — nenhum arquivo acessível por URL direta
+- [x] **Storage privado:** signed URLs confirmadas — materiais e certificados usam `createSignedUrl` TTL 3600s; nenhum arquivo acessível por URL direta
 - [ ] **CPF:** verificar que nunca é logado, nunca aparece em resposta JSON, nunca é exposto no client — apenas no PDF do certificado
 - [ ] **Rate limiting:** revisar se `/api/webhooks/payt` e rotas de auth têm proteção contra abuso
 - [ ] **Sanitização HTML:** confirmar que todos os blocos de conteúdo `html`/`embed` passam por DOMPurify antes de renderizar
