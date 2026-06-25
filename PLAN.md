@@ -133,7 +133,7 @@
 - [ ] E-mail lembrete de reengajamento: 7 dias sem acessar curso em andamento (Edge Function com cron Supabase ou Vercel Cron)
 - [ ] Templates Resend com identidade visual Handify
 
-## Fase 11b — Notificações Push (Web Push API) ✅
+## Fase 11b — Notificações Push (Web Push API) ✅ TESTADO EM PRODUÇÃO
 
 - [x] Solicitar permissão de notificação push ao usuário (PushPromptBanner — 15 dias, inteligente)
 - [x] Registrar service worker com suporte a push (`worker/index.ts` + `customWorkerSrc`)
@@ -145,9 +145,10 @@
 - [x] Graceful degradation: `PushPromptBanner` e `PushSubscribeButton` retornam null se push não suportado
 - [x] Admin métricas: card "Push ativas" mostra quantidade de alunas com push ativo
 - [x] Admin aluna: campo Push Ativa/Inativa nos dados cadastrais de cada aluna
-- [x] Smart prompt: 1x para quem aprovou (só repete em novo dispositivo); a cada 15 dias para quem não ativou
-- [x] VAPID keys geradas e configuradas (`.env.local` + Vercel)
+- [x] Smart prompt: 1x para quem aprovou (só repete em novo dispositivo); a cada 15 dias para quem não ativou — cooldown respeitado mesmo quando permission="granted" mas subscription falhou
+- [x] VAPID keys geradas e configuradas (`.env.local` + Vercel) — chave pública deve ser URL-safe base64 SEM `=`
 - [x] Migration SQL rodada no Supabase (`supabase/migrations/20260625_push_subscriptions.sql`)
+- [x] **Testado e funcionando em produção** — subscription salva no banco, admin mostra "Ativa" (jun/2026)
 
 ## Fase 12 — Busca Global (Semana 8)
 
