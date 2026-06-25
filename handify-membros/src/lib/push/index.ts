@@ -1,11 +1,19 @@
 import webpush from "web-push";
 import { createServiceClient } from "@/lib/supabase/service";
 
-webpush.setVapidDetails(
-  `mailto:${process.env.VAPID_EMAIL ?? "admin@handify.com.br"}`,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+let vapidConfigured = false;
+function ensureVapid() {
+  if (vapidConfigured) return;
+  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  if (!pub || !priv) throw new Error("VAPID keys not configured");
+  webpush.setVapidDetails(
+    `mailto:${process.env.VAPID_EMAIL ?? "admin@handify.com.br"}`,
+    pub,
+    priv
+  );
+  vapidConfigured = true;
+}
 
 export interface PushPayload {
   title: string;
@@ -16,6 +24,7 @@ export interface PushPayload {
 type SubRow = { endpoint: string; p256dh: string; auth: string };
 
 async function sendToSub(sub: SubRow, payload: PushPayload): Promise<void> {
+  ensureVapid();
   await webpush.sendNotification(
     { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
     JSON.stringify(payload)
