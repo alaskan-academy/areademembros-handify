@@ -252,6 +252,32 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
         </div>
       )}
 
+      {lessonType === "mixed" && (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">
+              ID do vídeo (Panda Video) <span className="text-muted-foreground/60">(opcional)</span>
+            </label>
+            <input name="video_panda_id" defaultValue={initial?.video_panda_id ?? ""}
+              placeholder="abc123xyz..."
+              className="w-full text-sm border border-border rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
+          </div>
+          {lessonId ? (
+            <p className="text-xs text-muted-foreground bg-muted/40 px-3 py-2.5 rounded-lg">
+              Adicione textos, HTML, embeds e downloads via editor de blocos.{" "}
+              <a href={`/admin/cursos/${courseId}/aulas/${lessonId}`}
+                className="text-[#6699F3] hover:underline font-medium">
+                Abrir editor de blocos →
+              </a>
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground bg-muted/40 px-3 py-2.5 rounded-lg">
+              Após criar a aula, use o editor de blocos para adicionar textos, HTML, embeds e downloads além do vídeo.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Descrição */}
       <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">
