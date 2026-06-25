@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { Plus, Trash2, ChevronUp, ChevronDown, Save, Info } from "lucide-react";
 import { upsertBlock, deleteBlock, reorderBlocks } from "./actions";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/editor/rich-text-editor"),
+  { ssr: false, loading: () => <div className="h-40 bg-muted animate-pulse rounded-lg" /> }
+);
 
 type BlockType = "text" | "html" | "embed" | "download";
 
@@ -26,9 +32,9 @@ function blockSummary(block: Block): string {
   const parsed = parseContent(block.content);
   switch (block.type) {
     case "text":
-      return ((parsed.body as string) ?? "").slice(0, 80);
     case "html": {
-      const raw = (parsed.html as string) ?? (parsed.body as string) ?? "";
+      const raw =
+        (parsed.html as string) ?? (parsed.body as string) ?? "";
       return raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
     }
     case "embed":
@@ -52,45 +58,46 @@ function ContentInput({
   const parsed = parseContent(value);
 
   if (type === "text") {
+    // Bloco de texto rico — armazena {"html": "<p>...</p>"}
+    const htmlValue = (parsed.html as string) ?? (parsed.body as string) ?? "";
     return (
-      <textarea
-        rows={4}
-        className="w-full text-sm border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-        placeholder="Texto simples da aula..."
-        value={(parsed.body as string) ?? value}
-        onChange={(e) => onChange(JSON.stringify({ body: e.target.value }))}
+      <RichTextEditor
+        value={htmlValue}
+        onChange={(html) => onChange(JSON.stringify({ html }))}
+        placeholder="Digite o conteúdo da aula..."
       />
     );
   }
 
   if (type === "html") {
-    const isFullDoc = /^\s*(<!DOCTYPE|<html)/i.test((parsed.html as string) ?? "");
-    return (
-      <div className="space-y-2">
-        {isFullDoc && (
+    const rawHtml = (parsed.html as string) ?? "";
+    const isFullDoc = /^\s*(<!DOCTYPE|<html)/i.test(rawHtml);
+
+    // HTML completo (<!DOCTYPE / <html>) → textarea para código
+    if (isFullDoc) {
+      return (
+        <div className="space-y-2">
           <div className="flex items-start gap-2 text-xs text-[#6699F3] bg-[#6699F3]/8 px-3 py-2 rounded-lg border border-[#6699F3]/20">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>
-              HTML completo detectado — será exibido em iframe sandboxado (CSS e JS funcionam).
+              HTML completo detectado — exibido em iframe sandboxado (CSS e JS funcionam).
               Ajuste a altura se necessário.
             </span>
           </div>
-        )}
-        <textarea
-          rows={10}
-          className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-          placeholder={"Cole HTML completo (<!DOCTYPE html>...) ou um trecho simples (<p>Texto</p>)"}
-          value={(parsed.html as string) ?? ""}
-          onChange={(e) =>
-            onChange(
-              JSON.stringify({
-                ...(isFullDoc && parsed.iframeHeight ? { iframeHeight: parsed.iframeHeight } : {}),
-                html: e.target.value,
-              })
-            )
-          }
-        />
-        {/^\s*(<!DOCTYPE|<html)/i.test((parsed.html as string) ?? "") && (
+          <textarea
+            rows={10}
+            className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+            placeholder="<!DOCTYPE html>..."
+            value={rawHtml}
+            onChange={(e) =>
+              onChange(
+                JSON.stringify({
+                  html: e.target.value,
+                  ...(parsed.iframeHeight ? { iframeHeight: parsed.iframeHeight } : {}),
+                })
+              )
+            }
+          />
           <div className="flex items-center gap-2">
             <label className="text-xs text-muted-foreground whitespace-nowrap">Altura do iframe (px):</label>
             <input
@@ -101,14 +108,29 @@ function ContentInput({
               onChange={(e) =>
                 onChange(
                   JSON.stringify({
-                    html: (parsed.html as string) ?? "",
+                    html: rawHtml,
                     iframeHeight: e.target.value ? Number(e.target.value) : undefined,
                   })
                 )
               }
             />
           </div>
-        )}
+        </div>
+      );
+    }
+
+    // HTML snippet → editor rico (igual ao "text")
+    return (
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Editor visual. Para colar HTML completo com CSS/JS próprio, comece com{" "}
+          <code className="bg-muted px-1 rounded">{"<!DOCTYPE html>"}</code>.
+        </p>
+        <RichTextEditor
+          value={rawHtml}
+          onChange={(html) => onChange(JSON.stringify({ html }))}
+          placeholder="<p>Conteúdo HTML...</p>"
+        />
       </div>
     );
   }

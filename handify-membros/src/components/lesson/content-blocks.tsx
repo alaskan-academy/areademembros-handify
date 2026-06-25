@@ -30,12 +30,24 @@ function parseContent(content: string): Record<string, unknown> {
   }
 }
 
+// TextBlock agora suporta rich text ({"html":"..."}) e plain text ({"body":"..."})
+// HtmlBlock (importado abaixo) já cuida da sanitização e dos estilos prose
 function TextBlock({ content }: { content: string }) {
   const parsed = parseContent(content);
-  const body = (parsed.body as string) ?? content;
+  const html = parsed.html as string | undefined;
+  const body = parsed.body as string | undefined;
+
+  if (html) {
+    return (
+      <Suspense fallback={<div className="h-8 bg-muted animate-pulse rounded" />}>
+        <HtmlBlock html={html} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
-      {body}
+      {body ?? content}
     </div>
   );
 }
