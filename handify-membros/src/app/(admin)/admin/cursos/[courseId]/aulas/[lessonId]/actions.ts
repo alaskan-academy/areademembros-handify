@@ -34,7 +34,7 @@ export async function upsertBlock(
   lessonId: string,
   blockId: string | null,
   data: { type: string; content: string; position: number }
-): Promise<void> {
+): Promise<{ id: string; type: "text" | "html" | "embed" | "download"; content: string; position: number }> {
   await assertAdmin();
   const validated = BlockSchema.parse(data);
 
@@ -46,14 +46,18 @@ export async function upsertBlock(
       .update({ ...validated, lesson_id: lessonId })
       .eq("id", blockId);
     if (error) throw new Error("Erro ao atualizar bloco: " + error.message);
+    revalidatePath(`/aulas/${lessonId}`);
+    return { id: blockId, ...validated };
   } else {
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
       .from("lesson_content_blocks")
-      .insert({ ...validated, lesson_id: lessonId });
+      .insert({ ...validated, lesson_id: lessonId })
+      .select("id")
+      .single();
     if (error) throw new Error("Erro ao criar bloco: " + error.message);
+    revalidatePath(`/aulas/${lessonId}`);
+    return { id: inserted.id as string, ...validated };
   }
-
-  revalidatePath(`/aulas/${lessonId}`);
 }
 
 export async function deleteBlock(blockId: string): Promise<void> {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Trash2, ChevronUp, ChevronDown, Save } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Save, Info } from "lucide-react";
 import { upsertBlock, deleteBlock, reorderBlocks } from "./actions";
 
 type BlockType = "text" | "html" | "embed" | "download";
@@ -18,6 +18,25 @@ function parseContent(content: string): Record<string, unknown> {
     return JSON.parse(content);
   } catch {
     return { body: content };
+  }
+}
+
+// Resumo legível do conteúdo de cada bloco para o preview
+function blockSummary(block: Block): string {
+  const parsed = parseContent(block.content);
+  switch (block.type) {
+    case "text":
+      return ((parsed.body as string) ?? "").slice(0, 80);
+    case "html": {
+      const raw = (parsed.html as string) ?? (parsed.body as string) ?? "";
+      return raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+    }
+    case "embed":
+      return (parsed.url as string) ?? "(sem URL)";
+    case "download":
+      return `Material: ${(parsed.material_id as string) ?? "(sem ID)"}`;
+    default:
+      return "";
   }
 }
 
@@ -45,20 +64,65 @@ function ContentInput({
   }
 
   if (type === "html") {
+    const isFullDoc = /^\s*(<!DOCTYPE|<html)/i.test((parsed.html as string) ?? "");
     return (
-      <textarea
-        rows={6}
-        className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-        placeholder="<p>HTML personalizado...</p>"
-        value={(parsed.html as string) ?? ""}
-        onChange={(e) => onChange(JSON.stringify({ html: e.target.value }))}
-      />
+      <div className="space-y-2">
+        {isFullDoc && (
+          <div className="flex items-start gap-2 text-xs text-[#6699F3] bg-[#6699F3]/8 px-3 py-2 rounded-lg border border-[#6699F3]/20">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>
+              HTML completo detectado — será exibido em iframe sandboxado (CSS e JS funcionam).
+              Ajuste a altura se necessário.
+            </span>
+          </div>
+        )}
+        <textarea
+          rows={10}
+          className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+          placeholder={"Cole HTML completo (<!DOCTYPE html>...) ou um trecho simples (<p>Texto</p>)"}
+          value={(parsed.html as string) ?? ""}
+          onChange={(e) =>
+            onChange(
+              JSON.stringify({
+                ...(isFullDoc && parsed.iframeHeight ? { iframeHeight: parsed.iframeHeight } : {}),
+                html: e.target.value,
+              })
+            )
+          }
+        />
+        {/^\s*(<!DOCTYPE|<html)/i.test((parsed.html as string) ?? "") && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-muted-foreground whitespace-nowrap">Altura do iframe (px):</label>
+            <input
+              type="number"
+              className="w-28 text-sm border border-border rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+              placeholder="600"
+              value={(parsed.iframeHeight as number) ?? ""}
+              onChange={(e) =>
+                onChange(
+                  JSON.stringify({
+                    html: (parsed.html as string) ?? "",
+                    iframeHeight: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                )
+              }
+            />
+          </div>
+        )}
+      </div>
     );
   }
 
   if (type === "embed") {
     return (
       <div className="space-y-2">
+        <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>
+            Use para Google Forms, Typeform, YouTube, Notion, Canva.
+            Sites como Shopee bloqueiam incorporação — para esses, use o bloco <strong>HTML</strong> com código completo.
+          </span>
+        </div>
         <input
           type="url"
           className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
@@ -150,17 +214,13 @@ export default function AdminBlocksEditor({
   function handleSaveEdit(block: Block) {
     startTransition(async () => {
       try {
-        await upsertBlock(lessonId, block.id, {
+        const updated = await upsertBlock(lessonId, block.id, {
           type: editType,
           content: editContent,
           position: block.position,
         });
         setBlocks((prev) =>
-          prev.map((b) =>
-            b.id === block.id
-              ? { ...b, type: editType, content: editContent }
-              : b
-          )
+          prev.map((b) => (b.id === block.id ? { ...b, ...updated } : b))
         );
         setEditingId(null);
         setError(null);
@@ -172,19 +232,23 @@ export default function AdminBlocksEditor({
 
   function handleAdd() {
     if (!addingType) return;
+    // Para HTML, conteúdo mínimo para passar validação min(1)
+    const content = newContent || (addingType === "html" ? JSON.stringify({ html: "" }) : "");
+    if (!content || content === JSON.stringify({ body: "" }) || content === JSON.stringify({ url: "" })) {
+      setError("Preencha o conteúdo antes de salvar.");
+      return;
+    }
     startTransition(async () => {
       try {
-        await upsertBlock(lessonId, null, {
+        const created = await upsertBlock(lessonId, null, {
           type: addingType,
-          content: newContent,
+          content,
           position: blocks.length,
         });
-        // Reload will happen via revalidatePath; for now optimistic add
+        setBlocks((prev) => [...prev, created as Block]);
         setAddingType(null);
         setNewContent("");
         setError(null);
-        // Reload blocks
-        window.location.reload();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao criar bloco");
       }
@@ -225,20 +289,31 @@ export default function AdminBlocksEditor({
     });
   }
 
+  function openAddForm(type: BlockType) {
+    // Se já há um form aberto do mesmo tipo, fecha; senão abre o novo
+    if (addingType === type) {
+      setAddingType(null);
+      return;
+    }
+    setAddingType(type);
+    setNewContent("");
+    setError(null);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold">Blocos de Conteúdo</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(["text", "html", "embed", "download"] as BlockType[]).map((t) => (
             <button
               key={t}
-              onClick={() => {
-                setAddingType(t);
-                setNewContent("");
-                setError(null);
-              }}
-              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-[#6699F3] text-[#6699F3] hover:bg-[#6699F3]/10 transition-colors"
+              onClick={() => openAddForm(t)}
+              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
+                ${addingType === t
+                  ? "bg-[#6699F3] border-[#6699F3] text-white"
+                  : "border-[#6699F3] text-[#6699F3] hover:bg-[#6699F3]/10"
+                }`}
             >
               <Plus className="w-3 h-3" />
               {BLOCK_LABELS[t]}
@@ -247,13 +322,17 @@ export default function AdminBlocksEditor({
         </div>
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        Adicione quantos blocos quiser — clique no tipo de bloco acima para abrir o formulário de adição.
+      </p>
+
       {error && (
         <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
       )}
 
       {/* Form: novo bloco */}
       {addingType && (
-        <div className="handify-card p-4 space-y-3 border-[#6699F3]/40">
+        <div className="handify-card p-4 space-y-3 border-[#6699F3]/40 bg-[#6699F3]/[0.03]">
           <p className="text-sm font-semibold">
             Novo bloco: {BLOCK_LABELS[addingType]}
           </p>
@@ -269,7 +348,7 @@ export default function AdminBlocksEditor({
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
             >
               <Save className="w-3 h-3" />
-              Salvar
+              {isPending ? "Salvando…" : "Salvar bloco"}
             </button>
             <button
               onClick={() => setAddingType(null)}
@@ -284,7 +363,7 @@ export default function AdminBlocksEditor({
       {/* Lista de blocos existentes */}
       {blocks.length === 0 && !addingType ? (
         <p className="text-sm text-muted-foreground text-center py-6">
-          Nenhum bloco ainda. Adicione um acima.
+          Nenhum bloco ainda. Use os botões acima para adicionar.
         </p>
       ) : (
         <div className="space-y-2">
@@ -358,12 +437,12 @@ export default function AdminBlocksEditor({
                     className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
                   >
                     <Save className="w-3 h-3" />
-                    Salvar
+                    {isPending ? "Salvando…" : "Salvar"}
                   </button>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground font-mono line-clamp-2 break-all">
-                  {block.content}
+                <p className="text-xs text-muted-foreground line-clamp-2 break-all italic">
+                  {blockSummary(block) || <span className="opacity-50">(vazio)</span>}
                 </p>
               )}
             </div>
