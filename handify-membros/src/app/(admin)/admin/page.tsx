@@ -6,7 +6,7 @@ import {
   Users, BookOpen, Award, TrendingUp,
   ShoppingBag, Image as ImageIcon, Bell, Newspaper,
   BarChart3, CheckCircle2, Clock, XCircle, Webhook,
-  ArrowRight,
+  ArrowRight, AlertTriangle,
 } from "lucide-react";
 
 async function assertAdmin() {
@@ -83,6 +83,7 @@ export default async function AdminHomePage() {
     { count: totalCertificados },
     { count: cursosPublicados },
     { data: webhooks },
+    { count: pendingReports },
   ] = await Promise.all([
     service
       .from("profiles")
@@ -109,6 +110,11 @@ export default async function AdminHomePage() {
       .select("id, event_type, buyer_email, product_code, processed, error, created_at")
       .order("created_at", { ascending: false })
       .limit(8),
+
+    service
+      .from("reports")
+      .select("*", { count: "exact", head: true })
+      .eq("resolved", false),
   ]);
 
   const taxaConclusao =
@@ -141,6 +147,23 @@ export default async function AdminHomePage() {
           })}
         </p>
       </div>
+
+      {/* Alerta de moderação */}
+      {(pendingReports ?? 0) > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FEC649]/15 border border-[#FEC649]/40">
+          <AlertTriangle className="w-5 h-5 text-[#b07d00] shrink-0" />
+          <p className="text-sm font-medium text-[#2D2D2D] flex-1">
+            <span className="font-bold">{pendingReports}</span>{" "}
+            {pendingReports === 1 ? "post aguarda" : "posts aguardam"} moderação
+          </p>
+          <Link
+            href="/admin/comunidade/forum"
+            className="text-xs font-semibold text-[#6699F3] hover:underline flex items-center gap-1 shrink-0"
+          >
+            Revisar <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

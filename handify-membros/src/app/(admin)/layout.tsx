@@ -15,10 +15,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
-      <AdminNav />
-      <main className="md:ml-60 px-4 sm:px-6 md:px-8 py-6 md:py-8">
-        {children}
-      </main>
+      <AdminNav>
+        <main className="px-4 sm:px-6 md:px-8 py-6 md:py-8">
+          {children}
+        </main>
+      </AdminNav>
       <UpdatePrompt />
       <InstallPrompt />
     </div>

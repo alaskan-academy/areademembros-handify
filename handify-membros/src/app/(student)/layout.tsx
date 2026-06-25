@@ -5,6 +5,7 @@ import InstallPrompt from "@/components/pwa/InstallPrompt";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentHeader from "@/components/student-header";
+import StudentNav from "@/components/student-nav";
 import CatalogHeader from "@/components/catalog-header";
 import { getUnreadCount, getNotifications } from "@/lib/notifications/actions";
 import type { Role } from "@/types";
@@ -86,7 +87,16 @@ export default async function StudentLayout({
       ) : (
         <CatalogHeader isLoggedIn={false} />
       )}
-      <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
+      <div className="flex flex-1 w-full overflow-hidden">
+        {user && (
+          <StudentNav
+            navItems={navItems}
+            role={(profile?.role ?? "student") as Role}
+            fullName={profile?.full_name ?? ""}
+          />
+        )}
+        <main className="flex-1 min-w-0 pb-20 md:pb-0">{children}</main>
+      </div>
       <footer className="py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
       </footer>
