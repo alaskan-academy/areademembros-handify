@@ -72,41 +72,30 @@ function ContentInput({
   }
 
   if (type === "html") {
-    const rawHtml = (parsed.html as string) ?? "";
+    const rawHtml = (parsed.html as string) ?? (parsed.body as string) ?? "";
     const isFullDoc = /^\s*(<!DOCTYPE|<html)/i.test(rawHtml);
 
-    // HTML completo (<!DOCTYPE / <html>) → textarea para código
-    if (isFullDoc) {
-      return (
-        <div className="space-y-2">
+    return (
+      <div className="space-y-2">
+        {isFullDoc ? (
           <div className="flex items-start gap-2 text-xs text-[#6699F3] bg-[#6699F3]/8 px-3 py-2 rounded-lg border border-[#6699F3]/20">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>
               HTML completo detectado — exibido em iframe que se expande automaticamente ao tamanho do conteúdo.
             </span>
           </div>
-          <textarea
-            rows={10}
-            className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-            placeholder="<!DOCTYPE html>..."
-            value={rawHtml}
-            onChange={(e) => onChange(JSON.stringify({ html: e.target.value }))}
-          />
-        </div>
-      );
-    }
-
-    // HTML snippet → editor rico (igual ao "text")
-    return (
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">
-          Editor visual. Para colar HTML completo com CSS/JS próprio, comece com{" "}
-          <code className="bg-muted px-1 rounded">{"<!DOCTYPE html>"}</code>.
-        </p>
-        <RichTextEditor
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Escreva HTML diretamente. Para página completa com CSS/JS próprio, comece com{" "}
+            <code className="bg-muted px-1 rounded">{"<!DOCTYPE html>"}</code>.
+          </p>
+        )}
+        <textarea
+          rows={10}
+          className="w-full text-xs border border-border rounded-lg px-3 py-2 font-mono resize-y focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+          placeholder="<p>Conteúdo HTML aqui...</p>"
           value={rawHtml}
-          onChange={(html) => onChange(JSON.stringify({ html }))}
-          placeholder="<p>Conteúdo HTML...</p>"
+          onChange={(e) => onChange(JSON.stringify({ html: e.target.value }))}
         />
       </div>
     );
@@ -255,6 +244,7 @@ export default function AdminBlocksEditor({
     const content = newContent || (addingType === "html" ? JSON.stringify({ html: "" }) : "");
     const emptyValues = [
       JSON.stringify({ body: "" }),
+      JSON.stringify({ html: "" }),
       JSON.stringify({ url: "" }),
       JSON.stringify({ video_panda_id: "" }),
     ];
