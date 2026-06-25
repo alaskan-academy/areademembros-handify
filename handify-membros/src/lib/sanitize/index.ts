@@ -18,7 +18,7 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTR = [
   "href", "target", "rel",
   "src", "alt", "width", "height",
-  "class", "style",
+  "class",
   "colspan", "rowspan",
 ];
 

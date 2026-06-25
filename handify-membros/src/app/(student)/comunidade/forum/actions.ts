@@ -19,6 +19,8 @@ export async function uploadForumFile(
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "Arquivo obrigatório" };
   if (file.size > 10_485_760) return { error: "Arquivo muito grande (max 10MB)" };
+  const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!ALLOWED_MIME.includes(file.type)) return { error: "Apenas imagens são permitidas (JPEG, PNG, WebP, GIF)" };
 
   const service = createServiceClient();
   const ext = file.name.split(".").pop() ?? "bin";

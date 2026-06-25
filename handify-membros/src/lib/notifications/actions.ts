@@ -27,6 +27,9 @@ async function requireAuth() {
 // ── Leitura (usadas no Server Component do bell) ──────────────────
 
 export async function getUnreadCount(userId: string): Promise<number> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) return 0;
   const service = createServiceClient();
   const { count } = await service
     .from("notifications")
@@ -37,6 +40,9 @@ export async function getUnreadCount(userId: string): Promise<number> {
 }
 
 export async function getNotifications(userId: string, limit = 30) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) return [];
   const service = createServiceClient();
   const { data } = await service
     .from("notifications")
