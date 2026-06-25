@@ -91,7 +91,7 @@ export default async function AdminLessonPage({
           initialBlocks={
             (blocksData as Array<{
               id: string;
-              type: "text" | "html" | "embed" | "download";
+              type: "text" | "html" | "embed" | "download" | "video";
               content: string;
               position: number;
             }> | null) ?? []
