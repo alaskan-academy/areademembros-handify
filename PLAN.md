@@ -159,7 +159,7 @@
 - [ ] CRUD de cursos com todos os campos (`product_code`, `workload_hours`, `is_subscription_only`)
 - [ ] CRUD de módulos e aulas com blocos de conteúdo e materiais
 - [ ] Gestão de vitrine (showcase) e banners
-- [ ] Gestão de menu e páginas estáticas
+- [x] Gestão de menu e páginas estáticas (`/admin/paginas/` CRUD + `/p/[slug]` rota pública)
 - [ ] Gestão do feed de notícias
 - [ ] Listagem de alunas: busca, progresso, dar/revogar acesso + `audit_log`, exportar CSV
 - [ ] Dashboard de métricas: matrículas, taxa de conclusão, certificados, webhooks recentes
@@ -231,6 +231,46 @@
 - [ ] **Variáveis de ambiente:** confirmar que todas as env vars estão preenchidas na Vercel (incluindo `CERTIFICATE_ENCRYPTION_KEY`)
 - [ ] **Logs e monitoramento:** revisar se erros críticos (falha de webhook, falha de geração de certificado) são logados adequadamente
 - [ ] **Backup e retenção:** verificar configuração de backup automático do Supabase (habilitado no plano?)
+
+## Fase 18 — Comentários nas Aulas
+
+- [ ] **Tabela `lesson_comments`:** `id`, `lesson_id`, `user_id`, `body`, `parent_id` (1 nível de resposta), `created_at`, `deleted_at` (soft delete)
+- [ ] **RLS:** aluna lê comentários de aulas do curso matriculado; admin lê tudo; criação apenas para alunas matriculadas
+- [ ] **Componente de comentários na página de aula:** lista paginada (mais antigos → mais novos), formulário de texto ao final
+- [ ] **Responder comentário:** campo inline abaixo do comentário original (1 nível)
+- [ ] **Curtir comentário:** tabela `post_likes` polimórfica (target_type = 'lesson_comment')
+- [ ] **Moderação admin:**
+  - Fila de comentários reportados (`reports` com `target_type = 'lesson_comment'`)
+  - Admin pode deletar comentário (soft delete) + notificar autora (opcional)
+  - Painel `/admin/comunidade/forum` já existente — adicionar aba "Comentários de Aulas"
+- [ ] **Notificação:** resposta ao comentário da aluna → notificação in-app + e-mail (opt-out)
+- [ ] **Sanitização:** Zod para validar body (max 2000 chars) + DOMPurify para render
+- [ ] **Exibição:** mostrar avatar/inicial + nome + data + corpo; comentários deletados mostram "[comentário removido]"
+
+## Fase 19 — App Nativo (Apple App Store + Google Play)
+
+> **Pré-requisito:** PWA já configurado (`next-pwa`). Avaliar se PWA é suficiente antes de partir para app nativo.
+
+### Opção A — PWA aprimorado (caminho mais rápido)
+- [ ] Verificar suporte PWA no iOS Safari (ícone, splash, standalone)
+- [ ] Testar instalação "Adicionar à tela inicial" no Android e iOS
+- [ ] Push notifications via Web Push API (Fase 11b já planejada)
+- [ ] **Limitação:** não aparece nas lojas; experiência nativa limitada no iOS
+
+### Opção B — App nativo com React Native / Expo (caminho completo)
+- [ ] Criar projeto Expo com `expo-router` (roteamento similar ao Next.js)
+- [ ] Reutilizar lógica de negócio e chamadas Supabase do web
+- [ ] Player Panda Video via `expo-web-browser` ou WebView com SDK Panda
+- [ ] Autenticação: Supabase Auth com `expo-secure-store` para tokens
+- [ ] Push notifications: `expo-notifications` + Expo Push Service
+- [ ] Build e distribuição: EAS Build (Expo Application Services)
+- [ ] **Apple App Store:** conta Apple Developer ($99/ano), review ~1-3 dias
+- [ ] **Google Play:** conta Google Play Developer ($25 único), review ~3-7 dias
+- [ ] **In-app purchase:** se necessário, integrar com Apple/Google IAP (além do Payt)
+
+### Decisão pendente
+- [ ] Definir se o app nativo é prioridade ou se o PWA resolve o caso de uso
+- [ ] Avaliar custo/benefício: Expo Managed vs Bare Workflow
 
 ## Decisões Pendentes
 
