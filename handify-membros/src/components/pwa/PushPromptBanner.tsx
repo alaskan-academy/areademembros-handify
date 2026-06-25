@@ -5,8 +5,11 @@ import { Bell, X, Loader2 } from "lucide-react";
 import { subscribePush } from "@/lib/push/actions";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-const LS_KEY = "handify_push_prompt_dismissed_at";
-const PROMPT_INTERVAL_DAYS = 15;
+// Chave salva quando a aluna ativa push neste dispositivo
+const LS_ACTIVATED = "handify_push_activated";
+// Chave salva quando a aluna fecha o banner sem ativar
+const LS_DISMISSED = "handify_push_dismissed_at";
+const INTERVAL_MS = 15 * 24 * 60 * 60 * 1000; // 15 dias em ms
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -21,43 +24,49 @@ export default function PushPromptBanner() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    // Verifica suporte
     const supported =
       "Notification" in window &&
       "serviceWorker" in navigator &&
       "PushManager" in window;
     if (!supported) return;
 
-    // Permissão já negada → nunca mostrar
-    if (Notification.permission === "denied") return;
+    const perm = Notification.permission;
 
-    // Verifica se já tem subscription ativa neste dispositivo
+    // Permissão negada → nunca mostrar
+    if (perm === "denied") return;
+
+    // Permissão concedida E flag de ativação presente → já ativou neste dispositivo
+    if (perm === "granted" && localStorage.getItem(LS_ACTIVATED) === "true") return;
+
+    // Permissão padrão (nunca pediu) → verificar intervalo de 15 dias de forma síncrona
+    if (perm === "default") {
+      const raw = localStorage.getItem(LS_DISMISSED);
+      if (raw) {
+        const elapsed = Date.now() - parseInt(raw, 10);
+        if (elapsed < INTERVAL_MS) return; // Ainda dentro dos 15 dias
+      }
+      setVisible(true);
+      return;
+    }
+
+    // Permissão concedida mas sem flag local → pode ser novo dispositivo ou sessão antiga
+    // Verifica via Service Worker se há subscription ativa
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => {
-        if (sub) return; // Já ativo neste dispositivo — não mostrar
-
-        // Permissão já concedida mas sem subscription (dispositivo novo):
-        // mostrar imediatamente para reativar
-        if (Notification.permission === "granted") {
+        if (sub) {
+          // Subscription ativa → salva flag retroativamente e não mostra
+          localStorage.setItem(LS_ACTIVATED, "true");
+        } else {
+          // Sem subscription neste dispositivo → mostra para reativar
           setVisible(true);
-          return;
         }
-
-        // Permissão default — verificar intervalo de 15 dias
-        const raw = localStorage.getItem(LS_KEY);
-        if (raw) {
-          const dismissed = parseInt(raw, 10);
-          const daysSince = (Date.now() - dismissed) / (1000 * 60 * 60 * 24);
-          if (daysSince < PROMPT_INTERVAL_DAYS) return;
-        }
-        setVisible(true);
       })
-      .catch(() => {/* SW não disponível ainda */});
+      .catch(() => { /* SW não disponível — silencioso */ });
   }, []);
 
   function dismiss() {
-    localStorage.setItem(LS_KEY, String(Date.now()));
+    localStorage.setItem(LS_DISMISSED, String(Date.now()));
     setVisible(false);
   }
 
@@ -65,6 +74,7 @@ export default function PushPromptBanner() {
     try {
       const perm = await Notification.requestPermission();
       if (perm !== "granted") {
+        // Usuária recusou o diálogo do browser → trata como dismiss
         dismiss();
         return;
       }
@@ -82,6 +92,9 @@ export default function PushPromptBanner() {
 
       startTransition(async () => {
         await subscribePush(json);
+        // Marca como ativada neste dispositivo para não mostrar novamente
+        localStorage.setItem(LS_ACTIVATED, "true");
+        localStorage.removeItem(LS_DISMISSED);
         setDone(true);
         setTimeout(() => setVisible(false), 1800);
       });
@@ -98,7 +111,6 @@ export default function PushPromptBanner() {
       aria-label="Ativar notificações push"
       className="fixed bottom-20 md:bottom-6 right-4 z-40 w-[min(320px,calc(100vw-2rem))] handify-card p-4 shadow-lg border border-border/60 animate-in slide-in-from-bottom-4 fade-in duration-300"
     >
-      {/* Botão fechar */}
       <button
         onClick={dismiss}
         className="absolute top-2.5 right-2.5 p-1 rounded-md text-muted-foreground hover:bg-muted transition-colors"
