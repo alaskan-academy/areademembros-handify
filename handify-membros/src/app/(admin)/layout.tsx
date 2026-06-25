@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import { redirect } from "next/navigation";
-import AdminHeader from "@/components/admin-header";
+import AdminNav from "@/components/admin-nav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -15,8 +15,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
-      <AdminHeader />
-      <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+      <AdminNav />
+      <main className="md:ml-60 px-4 sm:px-6 md:px-8 py-6 md:py-8">
+        {children}
+      </main>
       <UpdatePrompt />
       <InstallPrompt />
     </div>
