@@ -1,58 +1,82 @@
 import crypto from "crypto";
 import { z } from "zod";
 
-// ── Payload Payt ─────────────────────────────────────────────────────────────
+// ── Schemas ───────────────────────────────────────────────────────────────────
+
+const PaytProductItemSchema = z.object({
+  code: z.string(),
+  type: z.string().optional().default("digital"),
+  name: z.string().optional().default(""),
+});
+
+const PaytOrderBumpSchema = z.object({
+  code: z.string().optional(),
+  name: z.string().optional(),
+  product: PaytProductItemSchema,
+});
 
 export const PaytPayloadSchema = z.object({
-  event: z.string(),
+  status: z.string(),                    // "paid" | "refunded" | "cancelled" | "chargeback" | ...
   transaction_id: z.string(),
-  product_code: z.string().min(1),
-  buyer_email: z.string().email(),
-  buyer_name: z.string().optional().default(""),
-  amount: z.number().optional(),
-  status: z.string().optional(),
-  created_at: z.string().optional(),
-  // Estrutura real do Payt: dados do comprador
-  customer: z
-    .object({
-      email: z.string().email().optional(),
-      name: z.string().optional(),
-      doc: z.string().optional(),   // CPF do comprador (11 dígitos)
-      phone: z.string().optional(), // Telefone/WhatsApp do comprador
-    })
-    .optional(),
+  test: z.boolean().optional().default(false),
+  customer: z.object({
+    email: z.string().email(),
+    name: z.string().optional().default(""),
+    doc: z.string().optional(),          // CPF (11 dígitos)
+    phone: z.string().optional(),
+  }),
+  product: z.object({
+    code: z.string(),
+    type: z.string().optional().default("digital"),
+    name: z.string().optional().default(""),
+    items: z.array(PaytProductItemSchema).optional().default([]),
+  }),
+  order_bumps: z.array(PaytOrderBumpSchema).optional().default([]),
 });
 
 export type PaytPayload = z.infer<typeof PaytPayloadSchema>;
 
-// ── Classificação de eventos ──────────────────────────────────────────────────
+// ── Extração de product codes ─────────────────────────────────────────────────
 
-const GRANT_EVENTS = new Set([
-  "payment.approved",
-  "payment.completed",
-  "payment.confirmed",
-  "order.paid",
-]);
+/**
+ * Retorna todos os product codes presentes na compra:
+ * - Produto agrupado (grouped): usa os codes de cada item individual
+ * - Produto simples: usa o code do produto
+ * - Order bumps: adiciona o code de cada OB
+ */
+export function extractProductCodes(payload: PaytPayload): string[] {
+  const codes: string[] = [];
 
-const REVOKE_EVENTS = new Set([
-  "payment.refunded",
-  "payment.cancelled",
-  "payment.chargeback",
-  "payment.expired",
-  "order.cancelled",
-  "order.refunded",
-]);
+  if (payload.product.type === "grouped" && payload.product.items.length > 0) {
+    for (const item of payload.product.items) {
+      if (item.code) codes.push(item.code);
+    }
+  } else {
+    codes.push(payload.product.code);
+  }
 
-export function classifyEvent(event: string): "grant" | "revoke" | "ignore" {
-  if (GRANT_EVENTS.has(event)) return "grant";
-  if (REVOKE_EVENTS.has(event)) return "revoke";
+  for (const bump of payload.order_bumps) {
+    if (bump.product?.code) codes.push(bump.product.code);
+  }
+
+  return [...new Set(codes)]; // remove duplicatas
+}
+
+// ── Classificação de status ───────────────────────────────────────────────────
+
+const GRANT_STATUSES = new Set(["paid", "approved", "completed", "confirmed"]);
+const REVOKE_STATUSES = new Set(["refunded", "cancelled", "chargeback", "expired"]);
+
+export function classifyEvent(status: string): "grant" | "revoke" | "ignore" {
+  if (GRANT_STATUSES.has(status)) return "grant";
+  if (REVOKE_STATUSES.has(status)) return "revoke";
   return "ignore";
 }
 
 // ── Validação HMAC ────────────────────────────────────────────────────────────
 
 /**
- * Valida a assinatura HMAC-SHA256 enviada pelo Payt.
+ * Valida assinatura HMAC-SHA256 do Payt.
  * Header esperado: X-Payt-Signature: sha256=<hex>
  * Usa timingSafeEqual para prevenir timing attacks.
  */
@@ -67,7 +91,6 @@ export function verifyPaytSignature(
     "sha256=" +
     crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
 
-  // Ambos precisam ter o mesmo tamanho para timingSafeEqual
   if (expected.length !== signatureHeader.length) return false;
 
   try {

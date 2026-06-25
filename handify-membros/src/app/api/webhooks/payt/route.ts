@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import {
   verifyPaytSignature,
   PaytPayloadSchema,
   classifyEvent,
+  extractProductCodes,
   type PaytPayload,
 } from "@/lib/payments/payt";
-import { encryptCpf, formatCpf } from "@/lib/cpf-crypto";
+import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { sendAccessConfirmedEmail } from "@/lib/email";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -34,7 +35,7 @@ async function logPaymentEvent(
 }
 
 function calcExpiresAt(accessDays: number | null): string | null {
-  if (!accessDays) return null; // vitalício
+  if (!accessDays) return null;
   const d = new Date();
   d.setDate(d.getDate() + accessDays);
   return d.toISOString();
@@ -70,35 +71,39 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceClient();
-  const action = classifyEvent(payload.event);
+  const action = classifyEvent(payload.status);
+  const buyerEmail = payload.customer.email;
+  const mainProductCode = payload.product.code;
 
-  // 4. Eventos desconhecidos — ack sem processar
+  // 4. Status desconhecido — ack sem processar
   if (action === "ignore") {
     await logPaymentEvent(supabase, {
-      product_code: payload.product_code,
-      event_type: payload.event,
-      buyer_email: payload.buyer_email,
+      product_code: mainProductCode,
+      event_type: payload.status,
+      buyer_email: buyerEmail,
       payload,
       processed: false,
-      error: "Evento não mapeado — ignorado",
+      error: `Status "${payload.status}" não mapeado — ignorado`,
     });
     return NextResponse.json({ received: true });
   }
 
-  // 5. Buscar curso pelo product_code (inclui access_days para calcular expiração)
-  const { data: course } = await supabase
-    .from("courses")
-    .select("id, title, slug, access_days")
-    .eq("product_code", payload.product_code)
-    .maybeSingle();
+  // 5. Extrai todos os product codes (produto principal/itens + order bumps)
+  const productCodes = extractProductCodes(payload);
 
-  if (!course) {
-    const msg = `Curso não encontrado para product_code: ${payload.product_code}`;
-    console.error("[payt-webhook]", msg);
+  // 6. Busca todos os cursos correspondentes de uma vez
+  const { data: courses } = await supabase
+    .from("courses")
+    .select("id, title, slug, access_days, product_code")
+    .in("product_code", productCodes);
+
+  if (!courses?.length) {
+    const msg = `Nenhum curso encontrado para product_codes: ${productCodes.join(", ")}`;
+    console.warn("[payt-webhook]", msg);
     await logPaymentEvent(supabase, {
-      product_code: payload.product_code,
-      event_type: payload.event,
-      buyer_email: payload.buyer_email,
+      product_code: mainProductCode,
+      event_type: payload.status,
+      buyer_email: buyerEmail,
       payload,
       processed: false,
       error: msg,
@@ -106,92 +111,117 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, warning: msg });
   }
 
-  // 6. Buscar usuário pelo e-mail (via admin API do Supabase)
+  // 7. Buscar usuário pelo e-mail
   const { data: usersData } = await supabase.auth.admin.listUsers();
   const user = usersData?.users?.find(
-    (u) => u.email?.toLowerCase() === payload.buyer_email.toLowerCase()
+    (u) => u.email?.toLowerCase() === buyerEmail.toLowerCase()
   );
 
+  // 8. Sem conta ainda — cria token de ativação por curso e envia e-mail
   if (!user) {
-    // Sem conta ainda — gera token de ativação e envia e-mail de acesso
     if (action === "grant") {
-      const { data: tokenRow } = await supabase
-        .from("activation_tokens")
-        .insert({ email: payload.buyer_email, course_id: course.id })
-        .select("token")
-        .single();
+      for (const course of courses) {
+        const { data: tokenRow } = await supabase
+          .from("activation_tokens")
+          .insert({ email: buyerEmail, course_id: course.id })
+          .select("token")
+          .single();
 
-      if (tokenRow?.token) {
-        await sendAccessConfirmedEmail({
-          to: payload.buyer_email,
-          studentName: payload.buyer_email,
-          courseTitle: course.title,
-          courseSlug: course.slug,
-          activationToken: tokenRow.token,
-        });
-        console.info(`[payt-webhook] Token de ativação criado para ${payload.buyer_email}`);
+        if (tokenRow?.token) {
+          await sendAccessConfirmedEmail({
+            to: buyerEmail,
+            studentName: payload.customer.name || buyerEmail,
+            courseTitle: course.title,
+            courseSlug: course.slug,
+            activationToken: tokenRow.token,
+          });
+        }
       }
+      console.info(`[payt-webhook] ${courses.length} token(s) de ativação criados para ${buyerEmail}`);
     }
 
     await logPaymentEvent(supabase, {
-      product_code: payload.product_code,
-      event_type: payload.event,
-      buyer_email: payload.buyer_email,
+      product_code: mainProductCode,
+      event_type: payload.status,
+      buyer_email: buyerEmail,
       payload,
       processed: false,
-      error: "Conta não existe — token de ativação enviado por e-mail",
+      error: `Conta não existe — ${courses.length} token(s) de ativação enviados`,
     });
     return NextResponse.json({ received: true });
   }
 
-  // 7. Executar ação de acesso
-  if (action === "grant") {
-    // access_days: null = vitalício, 365 = anual, 30 = mensal, etc.
-    const expiresAt = calcExpiresAt(course.access_days as number | null);
+  // 9. Usuário existe — processar matrícula/revogação para cada curso
+  const now = new Date().toISOString();
+  let processed = 0;
 
-    const { error } = await supabase.from("enrollments").upsert(
-      {
-        user_id: user.id,
-        course_id: course.id,
-        source: "payt",
-        granted_at: new Date().toISOString(),
-        expires_at: expiresAt,
-      },
-      { onConflict: "user_id,course_id" }
-    );
+  for (const course of courses) {
+    if (action === "grant") {
+      const expiresAt = calcExpiresAt(course.access_days as number | null);
+      const { error } = await supabase.from("enrollments").upsert(
+        {
+          user_id: user.id,
+          course_id: course.id,
+          source: "payt",
+          granted_at: now,
+          expires_at: expiresAt,
+        },
+        { onConflict: "user_id,course_id" }
+      );
+      if (error) {
+        console.error(`[payt-webhook] Erro ao matricular em ${course.id}:`, error.message);
+      } else {
+        processed++;
+        console.info(`[payt-webhook] Matrícula concedida: user=${user.id} curso=${course.id} expires=${expiresAt ?? "vitalício"}`);
+      }
+    } else {
+      // revoke — marca matrícula como expirada agora
+      const { error } = await supabase
+        .from("enrollments")
+        .update({ expires_at: now })
+        .eq("user_id", user.id)
+        .eq("course_id", course.id);
 
-    if (error) {
-      const msg = `Erro ao criar matrícula: ${error.message}`;
-      console.error("[payt-webhook]", msg);
-      await logPaymentEvent(supabase, {
-        product_code: payload.product_code,
-        event_type: payload.event,
-        buyer_email: payload.buyer_email,
-        payload,
-        processed: false,
-        error: msg,
-      });
-      return NextResponse.json({ error: msg }, { status: 500 });
+      if (error) {
+        console.error(`[payt-webhook] Erro ao revogar ${course.id}:`, error.message);
+      } else {
+        await supabase.from("audit_log").insert({
+          admin_id: null,
+          action: "enrollment.revoked",
+          target_type: "enrollment",
+          target_id: course.id,
+          meta: {
+            user_id: user.id,
+            course_id: course.id,
+            reason: payload.status,
+            transaction_id: payload.transaction_id,
+          },
+        });
+        processed++;
+        console.info(`[payt-webhook] Matrícula revogada: user=${user.id} curso=${course.id} motivo=${payload.status}`);
+      }
     }
+  }
 
-    // Salvar CPF criptografado no perfil (se Payt enviou e env key configurada)
-    const rawCpf = payload.customer?.doc?.replace(/\D/g, "");
+  // 10. Salva CPF criptografado e hash no perfil (apenas no grant)
+  if (action === "grant") {
+    const rawCpf = payload.customer.doc?.replace(/\D/g, "");
     if (rawCpf && rawCpf.length === 11) {
       try {
         const encrypted = encryptCpf(rawCpf);
-        await supabase.from("profiles").update({ cpf_encrypted: encrypted }).eq("id", user.id);
-        console.info(`[payt-webhook] CPF salvo para user=${user.id}`);
+        const hash = hashCpf(rawCpf);
+        await supabase
+          .from("profiles")
+          .update({ cpf_encrypted: encrypted, cpf_hash: hash })
+          .eq("id", user.id);
       } catch (err) {
-        // Não bloqueia a matrícula se a criptografia falhar (ex: key não configurada)
         console.warn("[payt-webhook] CPF não salvo:", err instanceof Error ? err.message : err);
       }
     }
 
-    console.info(
-      `[payt-webhook] Matrícula concedida: user=${user.id} curso=${course.id} expires=${expiresAt ?? "vitalício"}`
-    );
-
-    // Notifica aluna sobre acesso liberado (background, não bloqueia a resposta)
+    // E-mail de acesso confirmado (envia referenciando o produto principal)
+    const mainCourse =
+      courses.find((c) => c.product_code === mainProductCode) ?? courses[0];
     ;(async () => {
       const { data: profile } = await supabase
         .from("profiles")
@@ -199,62 +229,28 @@ export async function POST(req: NextRequest) {
         .eq("id", user.id)
         .maybeSingle();
       await sendAccessConfirmedEmail({
-        to: payload.buyer_email,
-        studentName: profile?.full_name ?? payload.buyer_email,
-        courseTitle: course.title,
-        courseSlug: course.slug,
+        to: buyerEmail,
+        studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
+        courseTitle: mainCourse.title,
+        courseSlug: mainCourse.slug,
       });
     })().catch((e) => console.error("[payt-webhook] access email:", e));
-  } else {
-    // revoke: marcar matrícula como expirada agora (revoga vitalícias e periódicas)
-    const { error } = await supabase
-      .from("enrollments")
-      .update({ expires_at: new Date().toISOString() })
-      .eq("user_id", user.id)
-      .eq("course_id", course.id);
-
-    if (error) {
-      const msg = `Erro ao revogar matrícula: ${error.message}`;
-      console.error("[payt-webhook]", msg);
-      await logPaymentEvent(supabase, {
-        product_code: payload.product_code,
-        event_type: payload.event,
-        buyer_email: payload.buyer_email,
-        payload,
-        processed: false,
-        error: msg,
-      });
-      return NextResponse.json({ error: msg }, { status: 500 });
-    }
-
-    await supabase.from("audit_log").insert({
-      admin_id: null,
-      action: "enrollment.revoked",
-      target_type: "enrollment",
-      target_id: course.id,
-      meta: {
-        user_id: user.id,
-        course_id: course.id,
-        reason: payload.event,
-        transaction_id: payload.transaction_id,
-      },
-    });
-
-    console.info(
-      `[payt-webhook] Matrícula revogada: user=${user.id} curso=${course.id} evento=${payload.event}`
-    );
   }
 
-  // 8. Registrar evento processado com sucesso
+  // 11. Registrar evento
   await logPaymentEvent(supabase, {
-    product_code: payload.product_code,
-    event_type: payload.event,
-    buyer_email: payload.buyer_email,
+    product_code: mainProductCode,
+    event_type: payload.status,
+    buyer_email: buyerEmail,
     payload,
-    processed: true,
+    processed: processed === courses.length,
+    error:
+      processed < courses.length
+        ? `${courses.length - processed} curso(s) falharam`
+        : undefined,
   });
 
-  return NextResponse.json({ received: true });
+  return NextResponse.json({ received: true, processed, total: courses.length });
 }
 
 export async function GET() {
