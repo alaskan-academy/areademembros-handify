@@ -189,7 +189,7 @@ export default async function MinhaJornadaPage() {
           </div>
           <Link
             href="/cursos"
-            className="inline-flex items-center px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors bg-[#6699F3] hover:bg-[#5580d4]"
+            className="inline-flex items-center min-h-[44px] px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors bg-[#6699F3] hover:bg-[#5580d4]"
           >
             Explorar cursos
           </Link>

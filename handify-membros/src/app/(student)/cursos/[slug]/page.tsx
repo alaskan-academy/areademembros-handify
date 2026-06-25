@@ -132,7 +132,7 @@ export default async function CourseDetailPage({
             </div>
           )}
 
-          <div className="text-3xl font-black">{formatPrice(course.price)}</div>
+          <div className="text-2xl sm:text-3xl font-black">{formatPrice(course.price)}</div>
 
           {isEnrolled ? (
             <div className="space-y-3">
