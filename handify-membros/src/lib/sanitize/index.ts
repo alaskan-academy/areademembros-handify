@@ -13,6 +13,7 @@ const ALLOWED_TAGS = [
   "hr",
   "code", "pre",
   "span", "div",
+  "mark",  // Tiptap Highlight extension
 ];
 
 const ALLOWED_ATTR = [
@@ -20,6 +21,7 @@ const ALLOWED_ATTR = [
   "src", "alt", "width", "height",
   "class",
   "colspan", "rowspan",
+  "style",  // Tiptap usa style para cores, alinhamento e highlight — DOMPurify sanitiza CSS perigoso
 ];
 
 export function sanitizeHtml(dirty: string): string {
