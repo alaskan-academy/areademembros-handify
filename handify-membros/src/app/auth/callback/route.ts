@@ -6,7 +6,9 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as "recovery" | "signup" | "email" | "magiclink" | null;
-  const next = searchParams.get("next") ?? "/cursos";
+  // Supabase não preserva query params do redirectTo no flow OTP (token_hash).
+  // Se type=recovery, sempre vai para /nova-senha independente do next param.
+  const next = type === "recovery" ? "/nova-senha" : (searchParams.get("next") ?? "/cursos");
 
   if (code || (token_hash && type)) {
     // Cria a response de redirect ANTES do cliente Supabase,
