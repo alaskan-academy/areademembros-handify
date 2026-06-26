@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 
-// Persiste enquanto o JS do tab estiver vivo (sobrevive a remontagens do componente)
-let swHandled = false;
+const LS_KEY = "sw-update-dismissed-url";
 
 export default function UpdatePrompt() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
@@ -12,25 +11,30 @@ export default function UpdatePrompt() {
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-    if (swHandled) return;
 
-    // Recém-recarregado após update — ignora e marca como tratado
+    // Recém-recarregado após update — ignora
     if (sessionStorage.getItem("sw-updating")) {
       sessionStorage.removeItem("sw-updating");
-      swHandled = true;
       return;
     }
 
     function checkForWaiting(reg: ServiceWorkerRegistration) {
       if (reg.waiting && navigator.serviceWorker.controller) {
-        setWaitingWorker(reg.waiting);
+        // Só mostra se a aluna ainda não dispensou esse SW específico
+        const dismissedUrl = localStorage.getItem(LS_KEY);
+        if (dismissedUrl !== reg.waiting.scriptURL) {
+          setWaitingWorker(reg.waiting);
+        }
       }
       reg.addEventListener("updatefound", () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
         newWorker.addEventListener("statechange", () => {
           if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-            setWaitingWorker(newWorker);
+            const dismissedUrl = localStorage.getItem(LS_KEY);
+            if (dismissedUrl !== newWorker.scriptURL) {
+              setWaitingWorker(newWorker);
+            }
           }
         });
       });
@@ -42,12 +46,13 @@ export default function UpdatePrompt() {
 
     let reloading = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
+      // SW atualizou de fato — limpa o dismiss salvo
+      localStorage.removeItem(LS_KEY);
       if (!reloading) { reloading = true; window.location.reload(); }
     });
   }, []);
 
   function handleUpdate() {
-    swHandled = true;
     sessionStorage.setItem("sw-updating", "1");
     setDismissed(true);
     if (waitingWorker) {
@@ -57,7 +62,10 @@ export default function UpdatePrompt() {
   }
 
   function handleDismiss() {
-    swHandled = true;
+    // Persiste o dismiss para esse SW específico — não volta a aparecer em refreshes
+    if (waitingWorker) {
+      localStorage.setItem(LS_KEY, waitingWorker.scriptURL);
+    }
     setDismissed(true);
   }
 
