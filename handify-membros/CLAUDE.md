@@ -35,6 +35,23 @@ Labels de status, aria-labels e UI strings genéricas podem ser constantes no c�
 **Pendente de implementar (itens hardcoded identificados):**
 - `src/app/(student)/cursos/page.tsx` — texto do Hero hardcoded; deveria vir de `static_pages` ou `site_config`
 
+## Página de aula — padrões visuais (jun/2026)
+
+### Download de materiais (`src/components/lesson/content-blocks.tsx` — `DownloadBlock`)
+- Card com `border-2 border-[#6699F3]/25 bg-[#6699F3]/5 rounded-xl p-4 sm:p-5`
+- Ícone `Download` 48×48px com fundo azul suave (`bg-[#6699F3]/15`)
+- Label "MATERIAL DA AULA" em azul maiúsculo acima do nome do arquivo
+- Botão "Baixar" sólido azul (`bg-[#6699F3]`) com ícone, `min-h-[44px]` (WCAG)
+- **Nunca voltar ao estilo anterior** (link de texto "Baixar" — alunas não viam)
+
+### Botões de ação da aula (`src/app/(student)/aulas/[id]/page.tsx`)
+- Layout: `flex flex-col gap-3` — sempre empilhado (nunca `flex-wrap` com `justify-between`)
+- Linha 1: "Marcar como concluída" + badge "Prévia gratuita" (se aplicável)
+- Linha 2: "Anterior" e "Próxima" em `grid grid-cols-2 gap-2 w-full`
+  - Sempre simétrico 50/50 — `justify-center` em cada botão
+  - Quando não há botão de um lado, usar `<div />` para manter o grid
+  - Anterior: estilo border/outline; Próxima: sólido azul `bg-[#6699F3]`
+
 ## Convenções
 
 - TypeScript strict — sem `any` explícito
