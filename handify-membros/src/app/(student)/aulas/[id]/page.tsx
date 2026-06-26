@@ -257,7 +257,6 @@ export default async function LessonPage({
                     nextLessonId={nextLesson.id}
                     lessonId={id}
                     isCompleted={isCompleted}
-                    hasVideo={!!(videoId || hasVideoBlocks)}
                   />
                 ) : <div />}
               </div>

@@ -8,20 +8,17 @@ interface NextLessonButtonProps {
   nextLessonId: string;
   lessonId: string;
   isCompleted: boolean;
-  hasVideo: boolean;
 }
 
 export default function NextLessonButton({
   nextLessonId,
   lessonId,
   isCompleted,
-  hasVideo,
 }: NextLessonButtonProps) {
   const router = useRouter();
 
   function handleClick() {
-    // Marca concluída em background sem bloquear a navegação
-    if (!hasVideo && !isCompleted) {
+    if (!isCompleted) {
       markLessonComplete(lessonId).catch(() => {});
     }
     router.push(`/aulas/${nextLessonId}`);
