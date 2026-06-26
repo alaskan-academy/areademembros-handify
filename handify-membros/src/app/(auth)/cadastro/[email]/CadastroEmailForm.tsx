@@ -23,10 +23,12 @@ export default function CadastroEmailForm({
   email,
   defaultCpf,
   defaultPhone,
+  defaultName,
 }: {
   email: string;
   defaultCpf?: string;
   defaultPhone?: string;
+  defaultName?: string;
 }) {
   const [state, formAction, isPending] = useActionState(cadastroAction, initialState);
 
@@ -64,9 +66,15 @@ export default function CadastroEmailForm({
                   type="text"
                   placeholder="Maria Silva"
                   autoComplete="name"
+                  defaultValue={defaultName ?? ""}
                   required
                   disabled={isPending}
                 />
+                {defaultName && (
+                  <p className="text-xs text-[#6699F3]">
+                    Preenchido automaticamente com o nome da sua compra.
+                  </p>
+                )}
               </div>
 
               {/* E-mail bloqueado */}

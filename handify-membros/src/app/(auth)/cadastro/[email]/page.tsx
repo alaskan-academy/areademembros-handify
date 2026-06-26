@@ -1,31 +1,48 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import CadastroEmailForm from "./CadastroEmailForm";
 
-async function getPaytData(email: string): Promise<{ cpf?: string; phone?: string }> {
+type PaytData = { cpf?: string; phone?: string; defaultName?: string };
+
+async function getPaytData(email: string): Promise<PaytData> {
   try {
     const service = createServiceClient();
-    const { data } = await service
-      .from("payment_events")
-      .select("payload")
-      .eq("buyer_email", email)
-      .eq("processed", true)
+
+    // 1. Prioriza token de ativação (dados diretos da compra mais recente)
+    const { data: token } = await service
+      .from("activation_tokens")
+      .select("buyer_name, buyer_phone, payload:course_id")
+      .eq("email", email)
+      .eq("used", false)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (!data?.payload) return {};
+    // 2. Fallback: payment_events (lê payload JSON para CPF + phone)
+    const { data: event } = await service
+      .from("payment_events")
+      .select("payload, buyer_name")
+      .eq("buyer_email", email)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    const payload = data.payload as Record<string, unknown>;
-    const customer = payload.customer as Record<string, string> | undefined;
+    const payload = event?.payload as Record<string, unknown> | undefined;
+    const customer = payload?.customer as Record<string, string> | undefined;
 
     const rawDoc = customer?.doc?.replace(/\D/g, "");
     const cpf = rawDoc?.length === 11
       ? `${rawDoc.slice(0, 3)}.${rawDoc.slice(3, 6)}.${rawDoc.slice(6, 9)}-${rawDoc.slice(9)}`
       : undefined;
 
-    const phone = customer?.phone || undefined;
+    const phone = (token as { buyer_phone?: string } | null)?.buyer_phone
+      || customer?.phone
+      || undefined;
 
-    return { cpf, phone };
+    const defaultName = (token as { buyer_name?: string } | null)?.buyer_name
+      || event?.buyer_name
+      || undefined;
+
+    return { cpf, phone, defaultName };
   } catch {
     return {};
   }
@@ -39,13 +56,14 @@ export default async function CadastroComEmailPage({
   const { email: encodedEmail } = await params;
   const email = decodeURIComponent(encodedEmail);
 
-  const { cpf: defaultCpf, phone: defaultPhone } = await getPaytData(email);
+  const { cpf: defaultCpf, phone: defaultPhone, defaultName } = await getPaytData(email);
 
   return (
     <CadastroEmailForm
       email={email}
       defaultCpf={defaultCpf}
       defaultPhone={defaultPhone}
+      defaultName={defaultName}
     />
   );
 }

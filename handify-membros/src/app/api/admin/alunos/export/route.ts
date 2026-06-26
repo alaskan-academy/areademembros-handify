@@ -19,12 +19,12 @@ export async function GET() {
   // ── 1. Alunas ──────────────────────────────────────────────
   const { data: profiles } = await service
     .from("profiles")
-    .select("id, full_name, email, created_at, banned")
+    .select("id, full_name, email, phone, date_of_birth, created_at, banned")
     .neq("role", "admin")
     .order("created_at", { ascending: false });
 
   if (!profiles?.length) {
-    return csvResponse("Nome,E-mail,Qtd. Cursos,Cursos,Aulas Concluídas,Progresso Médio (%),Certificados,Última Atividade,Data de Cadastro,Status\n");
+    return csvResponse("Nome,E-mail,Telefone,Nascimento,Qtd. Cursos,Cursos,Fonte,Data da 1ª Matrícula,Aulas Concluídas,Progresso Médio (%),Certificados,Última Atividade,Data de Cadastro,Status\n");
   }
 
   const profileIds = profiles.map((p) => p.id);
@@ -110,20 +110,36 @@ export async function GET() {
     `"${String(s ?? "").replace(/"/g, '""')}"`;
 
   const header = [
-    "Nome", "E-mail", "Qtd. Cursos", "Cursos",
+    "Nome", "E-mail", "Telefone", "Nascimento",
+    "Qtd. Cursos", "Cursos", "Fonte", "Data da 1ª Matrícula",
     "Aulas Concluídas", "Progresso Médio (%)",
     "Certificados", "Última Atividade",
     "Data de Cadastro", "Status",
   ].join(",");
 
-  const rows = profiles.map((p) => {
+  const rows = (profiles as Array<{
+    id: string; full_name: string | null; email: string | null;
+    phone: string | null; date_of_birth: string | null;
+    created_at: string; banned: boolean | null;
+  }>).map((p) => {
     const myEnrolls = enrollRows.filter((e) => e.user_id === p.id);
     const myCourseIds = myEnrolls.map((e) => e.course_id).filter(Boolean);
     const courseTitles = myEnrolls.map((e) => e.course?.title ?? "").filter(Boolean).join("; ");
 
+    // Fonte da matrícula (prioriza 'payt' se houver, senão mostra todas únicas)
+    const sources = [...new Set(myEnrolls.map((e) => e.source))];
+    const sourceLabel = sources.map((s) =>
+      s === "payt" ? "Payt" : s === "manual" ? "Manual" : s === "subscription" ? "Assinatura" : s
+    ).join("; ");
+
+    // Data da primeira matrícula
+    const firstEnrollAt = myEnrolls
+      .map((e) => e.granted_at)
+      .sort()
+      .at(0);
+
     // Progresso médio
     const completedLessons = completedByUser[p.id] ?? new Set<string>();
-    const totalLessons = myCourseIds.reduce((acc, cid) => acc + (totalByCourse[cid] ?? 0), 0);
 
     let avgProgress = 0;
     if (myCourseIds.length > 0) {
@@ -145,8 +161,14 @@ export async function GET() {
     return [
       escape(p.full_name ?? ""),
       escape(p.email ?? ""),
+      escape(p.phone ?? ""),
+      escape(p.date_of_birth
+        ? new Date(p.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR")
+        : ""),
       escape(myEnrolls.length),
       escape(courseTitles),
+      escape(sourceLabel),
+      escape(firstEnrollAt ? new Date(firstEnrollAt).toLocaleDateString("pt-BR") : ""),
       escape(completedLessons.size),
       escape(avgProgress),
       escape(certCountByUser[p.id] ?? 0),

@@ -18,6 +18,7 @@ async function logPaymentEvent(
     product_code: string;
     event_type: string;
     buyer_email: string;
+    buyer_name?: string;
     payload: PaytPayload;
     processed: boolean;
     error?: string;
@@ -28,6 +29,7 @@ async function logPaymentEvent(
     product_code: data.product_code,
     event_type: data.event_type,
     buyer_email: data.buyer_email,
+    buyer_name: data.buyer_name ?? null,
     payload: data.payload,
     processed: data.processed,
     error: data.error ?? null,
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
   const action = classifyEvent(payload.status);
   const buyerEmail = payload.customer.email;
+  const buyerName = payload.customer.name?.trim() || undefined;
   const mainProductCode = payload.product.code;
 
   // 4. Status desconhecido — ack sem processar
@@ -81,6 +84,7 @@ export async function POST(req: NextRequest) {
       product_code: mainProductCode,
       event_type: payload.status,
       buyer_email: buyerEmail,
+      buyer_name: buyerName,
       payload,
       processed: false,
       error: `Status "${payload.status}" não mapeado — ignorado`,
@@ -104,6 +108,7 @@ export async function POST(req: NextRequest) {
       product_code: mainProductCode,
       event_type: payload.status,
       buyer_email: buyerEmail,
+      buyer_name: buyerName,
       payload,
       processed: false,
       error: msg,
@@ -123,14 +128,19 @@ export async function POST(req: NextRequest) {
       for (const course of courses) {
         const { data: tokenRow } = await supabase
           .from("activation_tokens")
-          .insert({ email: buyerEmail, course_id: course.id })
+          .insert({
+            email: buyerEmail,
+            course_id: course.id,
+            buyer_name: buyerName ?? null,
+            buyer_phone: payload.customer.phone?.trim() ?? null,
+          })
           .select("token")
           .single();
 
         if (tokenRow?.token) {
           await sendAccessConfirmedEmail({
             to: buyerEmail,
-            studentName: payload.customer.name || buyerEmail,
+            studentName: buyerName || buyerEmail,
             courseTitle: course.title,
             courseSlug: course.slug,
             activationToken: tokenRow.token,
@@ -144,6 +154,7 @@ export async function POST(req: NextRequest) {
       product_code: mainProductCode,
       event_type: payload.status,
       buyer_email: buyerEmail,
+      buyer_name: buyerName,
       payload,
       processed: false,
       error: `Conta não existe — ${courses.length} token(s) de ativação enviados`,
@@ -203,7 +214,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 10. Salva CPF criptografado e hash no perfil (apenas no grant)
+  // 10. Salva CPF, telefone e nome no perfil (apenas no grant, sem sobrescrever dados existentes)
   if (action === "grant") {
     const rawCpf = payload.customer.doc?.replace(/\D/g, "");
     if (rawCpf && rawCpf.length === 11) {
@@ -217,6 +228,25 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         console.warn("[payt-webhook] CPF não salvo:", err instanceof Error ? err.message : err);
       }
+    }
+
+    // Salva telefone se o perfil ainda não tiver (nunca sobrescreve dado editado pela aluna)
+    const rawPhone = payload.customer.phone?.trim();
+    if (rawPhone) {
+      await supabase
+        .from("profiles")
+        .update({ phone: rawPhone })
+        .eq("id", user.id)
+        .is("phone", null);
+    }
+
+    // Salva nome se o perfil estiver sem nome (vazio ou null)
+    if (buyerName) {
+      await supabase
+        .from("profiles")
+        .update({ full_name: buyerName })
+        .eq("id", user.id)
+        .eq("full_name", "");
     }
 
     // E-mail de acesso confirmado (envia referenciando o produto principal)
@@ -242,6 +272,7 @@ export async function POST(req: NextRequest) {
     product_code: mainProductCode,
     event_type: payload.status,
     buyer_email: buyerEmail,
+    buyer_name: buyerName,
     payload,
     processed: processed === courses.length,
     error:
