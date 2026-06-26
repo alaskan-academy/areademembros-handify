@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Cake, Phone, CreditCard } from "lucide-react";
 import { cadastroAction } from "../actions";
@@ -21,6 +21,21 @@ const initialState = { error: undefined, success: undefined };
 
 export default function CadastroPage() {
   const [state, formAction, isPending] = useActionState(cadastroAction, initialState);
+  const [birthDate, setBirthDate] = useState("");
+
+  function handleBirthDate(e: React.ChangeEvent<HTMLInputElement>) {
+    let v = e.target.value.replace(/\D/g, "");
+    if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+    if (v.length > 5) v = v.slice(0, 5) + "/" + v.slice(5);
+    if (v.length > 10) v = v.slice(0, 10);
+    setBirthDate(v);
+  }
+
+  function birthToISO(v: string) {
+    const [d, m, y] = v.split("/");
+    if (d && m && y?.length === 4) return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    return "";
+  }
 
   return (
     <Card>
@@ -121,13 +136,16 @@ export default function CadastroPage() {
                 </Label>
                 <Input
                   id="date_of_birth"
-                  name="date_of_birth"
-                  type="date"
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 10))
-                    .toISOString()
-                    .slice(0, 10)}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="DD/MM/AAAA"
+                  value={birthDate}
+                  onChange={handleBirthDate}
+                  maxLength={10}
+                  autoComplete="bday"
                   disabled={isPending}
                 />
+                <input type="hidden" name="date_of_birth" value={birthToISO(birthDate)} />
                 <p className="text-xs text-muted-foreground">
                   Para promoções especiais na sua data!
                 </p>
