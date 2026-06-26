@@ -98,6 +98,13 @@ Rotas que NÃO são mais públicas (mudança aplicada jun/2026):
 
 Implementado em `src/proxy.ts` — `ALWAYS_PUBLIC_PREFIXES` contém apenas `/api/` e `/auth/`.
 
+## Middleware — `src/proxy.ts` (regras críticas)
+
+- Next.js reconhece `proxy.ts` como alias oficial de middleware. **Nunca criar `src/middleware.ts` junto** — ter os dois causa erro de build.
+- O middleware usa `createServerClient` + `supabase.auth.getUser()` em **todo request**. Isso renova o access token quando expira (1h) usando o refresh token — sem isso o aluno é deslogado automaticamente após 1h.
+- **Nunca remover ou mover `supabase.auth.getUser()` para depois de lógica condicional** — a chamada deve ser a primeira coisa após criar o cliente.
+- A sessão persiste indefinidamente até logout manual do aluno.
+
 ## Fluxo de trabalho
 
 - Ao final de cada alteração, sempre fazer `commit` e `push` para o remote.
