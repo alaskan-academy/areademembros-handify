@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import BackButtonGuard from "@/components/pwa/BackButtonGuard";
 import { redirect } from "next/navigation";
 import AdminNav from "@/components/admin-nav";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -29,6 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           {children}
         </main>
       </AdminNav>
+      <BackButtonGuard />
       <UpdatePrompt />
       <InstallPrompt />
     </div>
