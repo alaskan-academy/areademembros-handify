@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_ROUTES = ["/login", "/cadastro", "/recuperar-senha", "/nova-senha"];
-const ALWAYS_PUBLIC_PREFIXES = ["/p/", "/verificar/", "/vitrine", "/cursos", "/api/", "/auth/"];
+// /api/ e /auth/ são necessidades técnicas: webhook Payt (server-to-server) e callback OAuth do Supabase.
+// Todos os outros prefixos requerem login — acesso 100% fechado sem conta.
+const ALWAYS_PUBLIC_PREFIXES = ["/api/", "/auth/"];
 
 function isPublicRoute(pathname: string): boolean {
   if (ALWAYS_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return true;

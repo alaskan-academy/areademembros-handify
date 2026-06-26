@@ -81,6 +81,23 @@ Todos os dados do comprador vindos do Payt são capturados em múltiplas camadas
 **Export CSV** (`/api/admin/alunos/export`):
 Colunas: Nome, E-mail, Telefone, Nascimento, Qtd. Cursos, Cursos, Fonte, Data da 1ª Matrícula, Aulas Concluídas, Progresso Médio (%), Certificados, Última Atividade, Data de Cadastro, Status
 
+## Política de acesso — 100% fechado sem login
+
+**Regra não-negociável:** qualquer URL de `membros.handify.com.br` exige conta logada. Sem login → redireciona para `/login`. Sem exceções para alunas ou visitantes.
+
+Rotas que ficam abertas sem login (necessidades técnicas, não alterar):
+- `/login`, `/cadastro`, `/recuperar-senha`, `/nova-senha` — páginas de autenticação
+- `/api/*` — webhooks externos (ex: Payt, server-to-server sem cookies)
+- `/auth/*` — callback OAuth/magic-link do Supabase
+
+Rotas que NÃO são mais públicas (mudança aplicada jun/2026):
+- `/vitrine` — exige login
+- `/cursos` — exige login
+- `/p/[slug]` — páginas estáticas exigem login
+- `/verificar/[hash]` — verificação de certificado exige login
+
+Implementado em `src/proxy.ts` — `ALWAYS_PUBLIC_PREFIXES` contém apenas `/api/` e `/auth/`.
+
 ## Fluxo de trabalho
 
 - Ao final de cada alteração, sempre fazer `commit` e `push` para o remote.
