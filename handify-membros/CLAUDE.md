@@ -190,6 +190,7 @@ Migration: `supabase/migrations/20260625_push_subscriptions.sql`.
 | 2026-06-24 | `src/app/(student)/comunidade/forum/actions.ts` | Upload aceitava qualquer tipo de arquivo — aluna podia fazer upload de arquivo malicioso renomeado como imagem | Adicionada validação de MIME type: só aceita `image/jpeg`, `image/png`, `image/webp`, `image/gif` |
 | 2026-06-24 | `src/lib/notifications/actions.ts` | `getUnreadCount` e `getNotifications` usavam service client com `userId` vindo do caller sem verificar a sessão — qualquer aluna autenticada podia ler notificações de outra | Adicionada verificação `user.id === userId` antes de consultar; retorna vazio silenciosamente se não bater |
 | 2026-06-24 | `next.config.ts` | Headers de segurança incompletos | Adicionados: HSTS (2 anos, só produção), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, Typeform no `frame-src` |
+| 2026-06-25 | `src/app/(admin)/admin/comunidade/forum/actions.ts` | `rejectForumPost` e `deleteAdminForumPost` deletavam posts de alunas sem registrar nada no `audit_log` — ações admin de remoção de conteúdo sem trilha de auditoria | Adicionados inserts em `audit_log` via `createServiceClient` em ambas as ações; `assertAdmin` agora retorna `adminId` além do cliente |
 
 ### Headers de segurança configurados (`next.config.ts`)
 
