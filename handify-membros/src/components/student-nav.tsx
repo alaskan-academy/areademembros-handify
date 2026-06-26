@@ -136,7 +136,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
 
       {/* ── Mobile bottom tab bar ──────────────────────── */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-border/60 flex items-stretch"
+        className="md:hidden landscape:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-border/60 flex items-stretch"
         aria-label="Navegação rápida"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >

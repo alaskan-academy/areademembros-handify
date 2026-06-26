@@ -99,7 +99,7 @@ export default async function StudentLayout({
             fullName={profile?.full_name ?? ""}
           />
         )}
-        <main className="flex-1 min-w-0 pb-20 md:pb-0">{children}</main>
+        <main className="flex-1 min-w-0 pb-20 landscape:pb-0 md:pb-0">{children}</main>
       </div>
       <footer className="hidden md:block py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
