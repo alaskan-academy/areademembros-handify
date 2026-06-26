@@ -206,7 +206,8 @@
 
 ## ⚠️ Lembretes de Launch — NÃO ESQUECER
 
-- [ ] **`CERTIFICATE_ENCRYPTION_KEY`** — gerar com `openssl rand -hex 32` e adicionar nas env vars da Vercel antes de gerar qualquer certificado
+- [x] **`CERTIFICATE_ENCRYPTION_KEY`** — configurada nas env vars da Vercel ✅ (confirmado jun/2026)
+- [x] **Domínio customizado** — `membros.handify.com.br` configurado na Vercel ✅ (confirmado jun/2026)
 - [ ] **Botão de acesso no site externo** — ao finalizar a plataforma, adicionar botão "Acessar Área de Membros" no site principal da Handify apontando para a URL da plataforma
 
 ## Fase 17 — Checagem de Segurança e Organização de Backend (Pré-launch)
