@@ -5,7 +5,8 @@ import PandaPlayer from "@/components/player/panda-player";
 import LessonCompleteButton from "@/components/player/lesson-complete-button";
 import ContentBlocks, { type ContentBlock, type LessonMaterial, type VideoPlayerProps } from "@/components/lesson/content-blocks";
 import Link from "next/link";
-import { Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Lock, ChevronLeft } from "lucide-react";
+import NextLessonButton from "@/components/player/next-lesson-button";
 import BannerDisplay from "@/components/banner/banner-display";
 import { LessonSidebarMobile, LessonSidebarDesktop } from "@/components/lesson/LessonSidebar";
 
@@ -252,13 +253,12 @@ export default async function LessonPage({
                   </Link>
                 ) : <div />}
                 {nextLesson ? (
-                  <Link
-                    href={`/aulas/${nextLesson.id}`}
-                    className="flex items-center justify-center gap-1.5 text-sm font-medium text-white bg-[#6699F3] hover:bg-[#5580d4] active:bg-[#4a70c0] transition-colors px-3 py-2.5 min-h-[44px] rounded-lg"
-                  >
-                    Próxima
-                    <ChevronRight className="w-4 h-4 shrink-0" />
-                  </Link>
+                  <NextLessonButton
+                    nextLessonId={nextLesson.id}
+                    lessonId={id}
+                    isCompleted={isCompleted}
+                    hasVideo={!!(videoId || hasVideoBlocks)}
+                  />
                 ) : <div />}
               </div>
             )}
