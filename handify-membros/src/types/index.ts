@@ -57,7 +57,7 @@ export interface Course {
   thumbnail_url: string | null;
   category_id: string;
   price: number;
-  product_code: string;
+  product_codes: string[];
   workload_hours: number;
   is_subscription_only: boolean;
   published: boolean;

@@ -95,11 +95,11 @@ export async function POST(req: NextRequest) {
   // 5. Extrai todos os product codes (produto principal/itens + order bumps)
   const productCodes = extractProductCodes(payload);
 
-  // 6. Busca todos os cursos correspondentes de uma vez
+  // 6. Busca todos os cursos correspondentes de uma vez (overlap: qualquer code do curso bate com qualquer code do payload)
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, title, slug, access_days, product_code")
-    .in("product_code", productCodes);
+    .select("id, title, slug, access_days, product_codes")
+    .overlaps("product_codes", productCodes);
 
   if (!courses?.length) {
     const msg = `Nenhum curso encontrado para product_codes: ${productCodes.join(", ")}`;
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
 
     // E-mail de acesso confirmado (envia referenciando o produto principal)
     const mainCourse =
-      courses.find((c) => c.product_code === mainProductCode) ?? courses[0];
+      courses.find((c) => (c.product_codes as string[])?.includes(mainProductCode)) ?? courses[0];
     ;(async () => {
       const { data: profile } = await supabase
         .from("profiles")

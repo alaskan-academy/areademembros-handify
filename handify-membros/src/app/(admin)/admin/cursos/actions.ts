@@ -106,7 +106,7 @@ const CourseSchema = z.object({
   slug: z.string().min(3).max(100).regex(/^[a-z0-9-]+$/, "Slug: apenas letras minusculas, numeros e hifens"),
   description: z.string().max(5000).optional().default(""),
   price: z.number().min(0),
-  product_code: z.string().max(100).optional().default(""),
+  product_codes: z.array(z.string().max(100)).default([]),
   workload_hours: z.number().min(0).max(9999),
   course_type: z.enum(["course", "material"]).default("course"),
   is_subscription_only: z.boolean().default(false),
@@ -127,7 +127,8 @@ export async function createCourse(
     slug: formData.get("slug") as string,
     description: formData.get("description") as string,
     price: Number(formData.get("price") ?? 0),
-    product_code: formData.get("product_code") as string,
+    product_codes: (formData.get("product_codes") as string ?? "")
+      .split(",").map((s) => s.trim()).filter(Boolean),
     workload_hours: Number(formData.get("workload_hours") ?? 0),
     course_type: (formData.get("course_type") as string) || "course",
     is_subscription_only: formData.get("is_subscription_only") === "true",
@@ -160,7 +161,8 @@ export async function updateCourse(
     slug: formData.get("slug") as string,
     description: formData.get("description") as string,
     price: Number(formData.get("price") ?? 0),
-    product_code: formData.get("product_code") as string,
+    product_codes: (formData.get("product_codes") as string ?? "")
+      .split(",").map((s) => s.trim()).filter(Boolean),
     workload_hours: Number(formData.get("workload_hours") ?? 0),
     course_type: (formData.get("course_type") as string) || "course",
     is_subscription_only: formData.get("is_subscription_only") === "true",

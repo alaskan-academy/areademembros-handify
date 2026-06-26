@@ -14,7 +14,7 @@ interface Category { id: string; name: string }
 interface Forum { id: string; title: string; slug: string }
 interface Course {
   id: string; title: string; slug: string; description: string | null;
-  price: number | null; product_code: string | null; workload_hours: number | null;
+  price: number | null; product_codes: string[]; workload_hours: number | null;
   course_type: "course" | "material"; is_subscription_only: boolean;
   has_certificate: boolean; published: boolean;
   category_id: string | null; forum_id: string | null; thumbnail_url: string | null;
@@ -296,6 +296,77 @@ function ThumbnailUpload({ defaultUrl }: { defaultUrl?: string | null }) {
 
 // ─── Formulário de curso ──────────────────────────────────────────────────────
 
+// ─── Input de códigos Payt (multi-tag) ───────────────────────────────────────
+
+function ProductCodesInput({ defaultCodes }: { defaultCodes?: string[] }) {
+  const [codes, setCodes] = useState<string[]>(defaultCodes ?? []);
+  const [inputVal, setInputVal] = useState("");
+
+  function addCode(raw: string) {
+    const trimmed = raw.trim().toUpperCase();
+    if (!trimmed || codes.includes(trimmed)) { setInputVal(""); return; }
+    setCodes((prev) => [...prev, trimmed]);
+    setInputVal("");
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === "," || e.key === " ") {
+      e.preventDefault();
+      addCode(inputVal);
+    }
+    if (e.key === "Backspace" && !inputVal && codes.length) {
+      setCodes((prev) => prev.slice(0, -1));
+    }
+  }
+
+  function handleBlur() {
+    if (inputVal.trim()) addCode(inputVal);
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium text-muted-foreground">
+        Cód. Payt
+        <span className="text-muted-foreground/60 ml-1">(um ou mais — Enter ou vírgula para adicionar)</span>
+      </label>
+      {/* hidden: envia os códigos como CSV para o formData */}
+      <input type="hidden" name="product_codes" value={codes.join(",")} />
+      <div
+        className="flex flex-wrap gap-1.5 min-h-[38px] w-full text-sm border border-border rounded-lg px-2.5 py-2 focus-within:ring-2 focus-within:ring-[#6699F3]/40 bg-background cursor-text"
+        onClick={(e) => (e.currentTarget.querySelector("input") as HTMLInputElement | null)?.focus()}
+      >
+        {codes.map((code) => (
+          <span
+            key={code}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#6699F3]/10 text-[#6699F3] text-xs font-mono font-medium"
+          >
+            {code}
+            <button
+              type="button"
+              onClick={() => setCodes((prev) => prev.filter((c) => c !== code))}
+              className="text-[#6699F3]/60 hover:text-[#6699F3] transition-colors leading-none"
+              aria-label={`Remover ${code}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value.toUpperCase())}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          placeholder={codes.length === 0 ? "PROD_123" : ""}
+          className="flex-1 min-w-[100px] bg-transparent outline-none text-sm font-mono placeholder:font-sans placeholder:text-muted-foreground/50"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Formulário de curso ──────────────────────────────────────────────────────
+
 function CourseForm({
   categories, forums, initial, onSave, onCancel, courseId,
 }: {
@@ -408,12 +479,8 @@ function CourseForm({
             className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Cód. Payt</label>
-          <input
-            name="product_code" defaultValue={initial?.product_code ?? ""} placeholder="PROD_123"
-            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-          />
+        <div className="sm:col-span-3">
+          <ProductCodesInput defaultCodes={initial?.product_codes ?? []} />
         </div>
       </div>
 
@@ -578,7 +645,7 @@ export default function CourseManager({
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {course.category?.name && <span>{course.category.name} · </span>}
                       {formatPrice(course.price ?? 0)} · {course.workload_hours ?? 0}h
-                      {course.product_code && <span> · cod: {course.product_code}</span>}
+                      {course.product_codes?.length > 0 && <span> · cod: {course.product_codes.join(", ")}</span>}
                       {course.forum?.title && <span className="text-[#6699F3]"> · fórum: {course.forum.title}</span>}
                     </p>
                   </div>
