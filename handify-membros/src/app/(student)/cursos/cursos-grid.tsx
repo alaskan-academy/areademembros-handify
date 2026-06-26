@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import Link from "next/link";
-import { Clock, Play, X, Lock, RotateCcw, ChevronDown, CheckCircle, BookOpen } from "lucide-react";
+import {
+  Clock, Play, X, Lock, RotateCcw, ChevronDown, CheckCircle,
+  BookOpen, ChevronLeft, ChevronRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/format";
 import type { CatalogCourse, CatalogCategory } from "./page";
@@ -28,15 +31,17 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
   const exploreCourses = filtered.filter((c) => !c.isEnrolled && c.course_type === "course");
   const exploreMaterials = filtered.filter((c) => !c.isEnrolled && c.course_type === "material");
 
+  const hasAny = filtered.length > 0;
+
   return (
     <>
       {/* Filtro por categoria */}
       {categories.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-8">
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button
             onClick={() => setActiveCategory(null)}
             className={cn(
-              "px-3 py-1 rounded-full text-sm font-medium border transition-colors",
+              "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors shrink-0",
               !activeCategory
                 ? "bg-[#6699F3] text-white border-[#6699F3]"
                 : "border-border text-foreground/70 hover:border-[#6699F3] hover:text-[#6699F3]"
@@ -49,7 +54,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
               key={cat.id}
               onClick={() => setActiveCategory(cat.slug)}
               className={cn(
-                "px-3 py-1 rounded-full text-sm font-medium border transition-colors",
+                "px-3 py-1.5 rounded-full text-sm font-medium border transition-colors shrink-0",
                 activeCategory === cat.slug
                   ? "bg-[#6699F3] text-white border-[#6699F3]"
                   : "border-border text-foreground/70 hover:border-[#6699F3] hover:text-[#6699F3]"
@@ -61,54 +66,34 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
         </div>
       )}
 
-      {/* Seção: Seus cursos */}
-      {enrolled.length > 0 && (
-        <section className="mb-10">
-          <h2 className="text-lg font-bold mb-4">Seus cursos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {enrolled.map((course) => (
-              <CourseCard key={course.id} course={course} onClick={() => setSelected(course)} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Meus cursos */}
+      <HorizontalRow
+        title="Meus cursos"
+        icon={<CheckCircle className="w-4 h-4 text-[#6699F3]" />}
+        courses={enrolled}
+        onSelect={setSelected}
+      />
 
-      {/* Banner condicional */}
+      {/* Banner condicional (entre seções) */}
       {headerBanner && <div className="mb-8">{headerBanner}</div>}
 
-      {/* Seção: Cursos */}
-      {exploreCourses.length > 0 && (
-        <section className="mb-10">
-          {(enrolled.length > 0 || exploreMaterials.length > 0) && (
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <Play className="w-5 h-5 text-[#6699F3]" />
-              Cursos
-            </h2>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {exploreCourses.map((course) => (
-              <CourseCard key={course.id} course={course} onClick={() => setSelected(course)} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Cursos */}
+      <HorizontalRow
+        title="Cursos"
+        icon={<Play className="w-4 h-4 text-[#6699F3]" />}
+        courses={exploreCourses}
+        onSelect={setSelected}
+      />
 
-      {/* Seção: Materiais Didáticos */}
-      {exploreMaterials.length > 0 && (
-        <section className="mb-10">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-amber-600" />
-            Materiais Didáticos
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {exploreMaterials.map((course) => (
-              <CourseCard key={course.id} course={course} onClick={() => setSelected(course)} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Materiais Didáticos */}
+      <HorizontalRow
+        title="Materiais Didáticos"
+        icon={<BookOpen className="w-4 h-4 text-amber-600" />}
+        courses={exploreMaterials}
+        onSelect={setSelected}
+      />
 
-      {filtered.length === 0 && (
+      {!hasAny && (
         <div className="text-center py-24 space-y-3">
           <p className="text-2xl">🎨</p>
           <p className="font-semibold text-lg">Nenhum curso nesta categoria</p>
@@ -127,15 +112,76 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
   );
 }
 
+// ─── Linha horizontal com scroll ──────────────────────────────────────────────
+
+function HorizontalRow({
+  title,
+  icon,
+  courses,
+  onSelect,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  courses: CatalogCourse[];
+  onSelect: (c: CatalogCourse) => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  function scroll(dir: "left" | "right") {
+    const el = rowRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.75;
+    el.scrollBy({ left: dir === "right" ? amount : -amount, behavior: "smooth" });
+  }
+
+  if (!courses.length) return null;
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-bold flex items-center gap-2">
+          {icon}
+          {title}
+          <span className="text-xs font-normal text-muted-foreground">({courses.length})</span>
+        </h2>
+        {/* Setas de navegação — visíveis só em desktop */}
+        <div className="hidden sm:flex gap-1">
+          <button
+            onClick={() => scroll("left")}
+            className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+            aria-label="Rolar para esquerda"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => scroll("right")}
+            className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+            aria-label="Rolar para direita"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={rowRef}
+        className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
+      >
+        {courses.map((course) => (
+          <div key={course.id} className="shrink-0 w-44 sm:w-56">
+            <CourseCard course={course} onClick={() => onSelect(course)} />
+          </div>
+        ))}
+        {/* Espaço no final para o último card não ficar colado na borda */}
+        <div className="shrink-0 w-2" aria-hidden />
+      </div>
+    </section>
+  );
+}
+
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-function CourseCard({
-  course,
-  onClick,
-}: {
-  course: CatalogCourse;
-  onClick: () => void;
-}) {
+function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () => void }) {
   const isComplete = course.progress?.percentage === 100;
   const hasStarted = !!course.lastLessonId;
   const isLocked = !course.isEnrolled;
@@ -159,73 +205,70 @@ function CourseCard({
             )}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl">
+          <div className="w-full h-full flex items-center justify-center text-3xl">
             {isMaterial ? "📄" : "🎨"}
           </div>
         )}
 
-        {/* Play / lock overlay (hover) */}
+        {/* Overlay play/lock */}
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-            {isLocked ? (
-              <Lock className="w-5 h-5 text-[#6699F3]" />
-            ) : (
-              <Play className="w-5 h-5 text-[#6699F3] fill-[#6699F3] ml-0.5" />
-            )}
+          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+            {isLocked
+              ? <Lock className="w-4 h-4 text-[#6699F3]" />
+              : <Play className="w-4 h-4 text-[#6699F3] fill-[#6699F3] ml-0.5" />
+            }
           </div>
         </div>
 
-        {/* Cadeado permanente (canto sup. direito) para cursos bloqueados */}
+        {/* Cadeado permanente */}
         {isLocked && (
-          <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <Lock className="w-3.5 h-3.5 text-white" />
+          <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
+            <Lock className="w-3 h-3 text-white" />
           </div>
         )}
 
-        {/* Badges (canto sup. esq.) */}
+        {/* Badge status */}
         {course.isEnrolled ? (
-          <span className="absolute top-2 left-2 bg-[#6699F3] text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" />
+          <span className="absolute top-1.5 left-1.5 bg-[#6699F3] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+            <CheckCircle className="w-2.5 h-2.5" />
             {isComplete ? "Concluído" : "Matriculada"}
           </span>
         ) : course.hasPreview ? (
-          <span className="absolute top-2 left-2 bg-[#72CF92] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+          <span className="absolute top-1.5 left-1.5 bg-[#72CF92] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
             Prévia grátis
           </span>
         ) : null}
 
-        {/* Badge de tipo (canto inf. esq.) */}
+        {/* Badge tipo */}
         <span className={cn(
-          "absolute bottom-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full",
-          isMaterial
-            ? "bg-[#FEC649] text-[#0F0F0F]"
-            : "bg-white/90 text-[#6699F3]"
+          "absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+          isMaterial ? "bg-[#FEC649] text-[#0F0F0F]" : "bg-white/90 text-[#6699F3]"
         )}>
-          {isMaterial ? "Material Didático" : "Curso"}
+          {isMaterial ? "Material" : "Curso"}
         </span>
       </div>
 
       {/* Info */}
-      <div className="p-4 space-y-2">
+      <div className="p-3 space-y-1.5">
         {course.categoryName && (
-          <p className="text-xs font-medium text-[#6699F3] uppercase tracking-wide">
+          <p className="text-[10px] font-medium text-[#6699F3] uppercase tracking-wide line-clamp-1">
             {course.categoryName}
           </p>
         )}
-        <h3 className="font-bold text-sm leading-snug line-clamp-2 group-hover:text-[#6699F3] transition-colors">
+        <h3 className="font-bold text-xs leading-snug line-clamp-2 group-hover:text-[#6699F3] transition-colors">
           {course.title}
         </h3>
 
-        {/* Barra de progresso (se matriculada) */}
+        {/* Progresso ou preço */}
         {course.isEnrolled && course.progress && course.progress.total > 0 ? (
-          <div className="space-y-1 pt-1">
-            <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+          <div className="space-y-1 pt-0.5">
+            <div className="flex justify-between items-center text-[10px] text-muted-foreground">
               <span>{course.progress.completed}/{course.progress.total} aulas</span>
               <span className="font-semibold" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
                 {course.progress.percentage}%
               </span>
             </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+            <div className="h-1 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
@@ -234,17 +277,17 @@ function CourseCard({
                 }}
               />
             </div>
-            <p className="text-xs font-medium" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
-              {isComplete ? "Rever curso" : hasStarted ? "Continuar" : "Começar"}
+            <p className="text-[10px] font-medium" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
+              {isComplete ? "Rever" : hasStarted ? "Continuar" : "Começar"}
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-between pt-1">
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3.5 h-3.5" />
+          <div className="flex items-center justify-between pt-0.5">
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Clock className="w-3 h-3" />
               {course.workload_hours}h
             </span>
-            <span className="font-black text-base text-[#0F0F0F]">
+            <span className="font-black text-sm text-[#0F0F0F]">
               {course.priceFormatted}
             </span>
           </div>
@@ -386,7 +429,7 @@ function CourseModal({
             )}
           </div>
 
-          {/* Módulos e aulas */}
+          {/* Módulos */}
           {course.modules.length > 0 && (
             <div className="border-t border-border/60 pt-4 space-y-1.5">
               <h3 className="text-sm font-semibold mb-2">Conteúdo do curso</h3>
@@ -406,17 +449,15 @@ function CourseModal({
                         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
                       </span>
                     </button>
-
                     {isOpen && (
                       <div className="divide-y divide-border/30">
                         {mod.lessons.map((lesson) => (
                           <div key={lesson.id} className="flex items-center justify-between px-3 py-2 text-xs">
                             <span className="flex items-center gap-2 text-muted-foreground min-w-0">
-                              {lesson.is_preview ? (
-                                <Play className="w-3 h-3 text-[#72CF92] shrink-0" />
-                              ) : (
-                                <Lock className="w-3 h-3 shrink-0" />
-                              )}
+                              {lesson.is_preview
+                                ? <Play className="w-3 h-3 text-[#72CF92] shrink-0" />
+                                : <Lock className="w-3 h-3 shrink-0" />
+                              }
                               <span className="truncate">{lesson.title}</span>
                               {lesson.is_preview && (
                                 <span className="text-[#72CF92] font-medium shrink-0">Prévia</span>
@@ -465,13 +506,12 @@ function CourseModal({
                     isComplete ? "bg-[#72CF92] hover:bg-[#5bb577]" : "bg-[#6699F3] hover:bg-[#5580d4]"
                   )}
                 >
-                  {isComplete ? (
-                    <><RotateCcw className="w-4 h-4" /> Rever curso</>
-                  ) : hasStarted ? (
-                    <><Play className="w-4 h-4 fill-current" /> Continuar curso</>
-                  ) : (
-                    <><Play className="w-4 h-4" /> Começar curso</>
-                  )}
+                  {isComplete
+                    ? <><RotateCcw className="w-4 h-4" /> Rever curso</>
+                    : hasStarted
+                    ? <><Play className="w-4 h-4 fill-current" /> Continuar curso</>
+                    : <><Play className="w-4 h-4" /> Começar curso</>
+                  }
                 </Link>
               </div>
             ) : (
