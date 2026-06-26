@@ -46,14 +46,16 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // CRÍTICO: esta chamada renova o access token quando expirado usando o refresh token.
-  // Sem ela, o token expira em 1h e o aluno é deslogado automaticamente.
-  // Nunca remover nem mover para depois de qualquer lógica condicional.
+  // getSession() valida o JWT localmente (sem chamada de rede ao Supabase) e
+  // renova o access token via refresh token quando expirado — disparando setAll()
+  // para gravar os novos cookies na response. Usar getUser() aqui causaria uma
+  // chamada de rede por request, atingindo o rate limit rapidamente.
+  // getUser() deve ser usado apenas em Server Actions e route handlers sensíveis.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const authenticated = !!user;
+  const authenticated = !!session?.user;
 
   if (isPublicRoute(pathname)) {
     if (authenticated && (pathname === "/login" || pathname === "/cadastro")) {
