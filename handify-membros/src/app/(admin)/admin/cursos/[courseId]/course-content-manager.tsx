@@ -11,7 +11,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
   Plus, Pencil, Trash2, Save, BookOpen, Layers,
-  GripVertical, Upload, Loader2, Archive, ArchiveRestore,
+  GripVertical, Upload, Loader2, Archive, ArchiveRestore, ChevronDown,
 } from "lucide-react";
 import {
   createModule, updateModule, deleteModule, toggleArchivedModule,
@@ -344,6 +344,7 @@ function SortableModule({ mod, courseId, editingModuleId, setEditingModuleId,
   onDeleteModule: (id: string, title: string) => void;
   onSave: () => void; isPending: boolean;
 }) {
+  const [collapsed, setCollapsed] = useState(true);
   const [archived, setArchived] = useState(mod.archived);
   const [archivePending, startArchiveTransition] = useTransition();
   const [, startDeleteLessonTransition] = useTransition();
@@ -398,18 +399,26 @@ function SortableModule({ mod, courseId, editingModuleId, setEditingModuleId,
           />
         ) : (
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <button {...attributes} {...listeners}
-                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted transition-colors touch-none">
+                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted transition-colors touch-none shrink-0">
                 <GripVertical className="w-4 h-4 text-muted-foreground/40" />
               </button>
-              <div className="min-w-0">
-                <p className={`font-semibold text-sm ${archived ? "line-through text-muted-foreground" : ""}`}>
-                  {mod.title}
-                </p>
-                {archived && <span className="text-[10px] text-orange-500 font-medium">Arquivado</span>}
-              </div>
-              <span className="text-xs text-muted-foreground">({lessons.length} aulas)</span>
+              {/* Toggle collapse — clicável no título inteiro */}
+              <button
+                type="button"
+                onClick={() => setCollapsed((v) => !v)}
+                className="flex items-center gap-2 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
+              >
+                <ChevronDown className={`w-4 h-4 shrink-0 text-muted-foreground transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`} />
+                <div className="min-w-0">
+                  <p className={`font-semibold text-sm ${archived ? "line-through text-muted-foreground" : ""}`}>
+                    {mod.title}
+                  </p>
+                  {archived && <span className="text-[10px] text-orange-500 font-medium">Arquivado</span>}
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0">({lessons.length} aulas)</span>
+              </button>
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => setEditingModuleId(mod.id)}
@@ -432,41 +441,44 @@ function SortableModule({ mod, courseId, editingModuleId, setEditingModuleId,
         )}
       </div>
 
-      {/* Aulas sortáveis */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLessonDragEnd}>
-        <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-          {lessons.map((lesson) => (
-            <SortableLesson
-              key={lesson.id} lesson={lesson} courseId={courseId} moduleId={mod.id}
-              editingLessonId={editingLessonId} setEditingLessonId={setEditingLessonId}
-              onDelete={handleDeleteLessonLocal} isPending={isPending}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+      {/* Aulas — visíveis apenas quando expandido */}
+      {!collapsed && (
+        <>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleLessonDragEnd}>
+            <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+              {lessons.map((lesson) => (
+                <SortableLesson
+                  key={lesson.id} lesson={lesson} courseId={courseId} moduleId={mod.id}
+                  editingLessonId={editingLessonId} setEditingLessonId={setEditingLessonId}
+                  onDelete={handleDeleteLessonLocal} isPending={isPending}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
 
-      {/* Formulário nova aula */}
-      {addingLessonToModule === mod.id && (
-        <div className="px-4 py-4 border-t border-border/40">
-          <LessonForm
-            moduleId={mod.id} courseId={courseId} nextPosition={nextLessonPosition}
-            onSave={(lesson) => {
-              if (lesson) setLessons((prev) => [...prev, lesson]);
-              setAddingLessonToModule(null);
-              onSave();
-            }}
-            onCancel={() => setAddingLessonToModule(null)}
-          />
-        </div>
+          {addingLessonToModule === mod.id && (
+            <div className="px-4 py-4 border-t border-border/40">
+              <LessonForm
+                moduleId={mod.id} courseId={courseId} nextPosition={nextLessonPosition}
+                onSave={(lesson) => {
+                  if (lesson) setLessons((prev) => [...prev, lesson]);
+                  setAddingLessonToModule(null);
+                  onSave();
+                }}
+                onCancel={() => setAddingLessonToModule(null)}
+              />
+            </div>
+          )}
+
+          <div className="px-4 py-2 border-t border-border/30">
+            <button
+              onClick={() => { setAddingLessonToModule(mod.id); setEditingLessonId(null); }}
+              className="flex items-center gap-1 text-xs text-[#6699F3] hover:underline">
+              <Plus className="w-3 h-3" /> Nova aula
+            </button>
+          </div>
+        </>
       )}
-
-      <div className="px-4 py-2 border-t border-border/30">
-        <button
-          onClick={() => { setAddingLessonToModule(mod.id); setEditingLessonId(null); }}
-          className="flex items-center gap-1 text-xs text-[#6699F3] hover:underline">
-          <Plus className="w-3 h-3" /> Nova aula
-        </button>
-      </div>
     </div>
   );
 }
