@@ -190,58 +190,47 @@ export default async function AdminHomePage() {
         ))}
       </div>
 
-      {/* Atalhos + Webhooks */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Atalhos rápidos */}
-        <div className="lg:col-span-2 space-y-5">
-          <h2 className="text-sm font-semibold text-[#2D2D2D]/50 uppercase tracking-wider">
-            Acesso rápido
-          </h2>
-          {QUICK_ACTION_GROUPS.map((group) => (
-            <div key={group.label} className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#2D2D2D]/30">
-                {group.label}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {group.items.map(({ href, icon: Icon, label, desc, color }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="handify-card p-4 flex items-center gap-4 hover:shadow-md transition-shadow group"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: color + "20" }}
-                    >
-                      <Icon className="w-5 h-5 shrink-0" style={{ color }} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-[#2D2D2D]">{label}</p>
-                      <p className="text-xs text-[#2D2D2D]/50 mt-0.5 truncate">{desc}</p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-[#2D2D2D]/20 group-hover:text-[#6699F3] transition-colors shrink-0" />
-                  </Link>
-                ))}
+      {/* Atalhos rápidos — grid 3 colunas full-width */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-[#2D2D2D]/50 uppercase tracking-wider">
+          Acesso rápido
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {QUICK_ACTION_GROUPS.flatMap((g) => g.items).map(({ href, icon: Icon, label, desc, color }) => (
+            <Link
+              key={href}
+              href={href}
+              className="handify-card p-4 flex items-center gap-4 hover:shadow-md transition-shadow group"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: color + "20" }}
+              >
+                <Icon className="w-5 h-5 shrink-0" style={{ color }} />
               </div>
-            </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-[#2D2D2D]">{label}</p>
+                <p className="text-xs text-[#2D2D2D]/50 mt-0.5 truncate">{desc}</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#2D2D2D]/20 group-hover:text-[#6699F3] transition-colors shrink-0" />
+            </Link>
           ))}
         </div>
+      </div>
+
+      {/* Webhooks + Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Webhooks recentes */}
-        <div className="space-y-3">
+        <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[#2D2D2D]/50 uppercase tracking-wider">
               Últimos pagamentos
             </h2>
-            <Link
-              href="/admin/metricas"
-              className="text-xs text-[#6699F3] hover:underline font-medium"
-            >
+            <Link href="/admin/metricas" className="text-xs text-[#6699F3] hover:underline font-medium">
               Ver todos
             </Link>
           </div>
-
           <div className="handify-card divide-y divide-border/50">
             {(webhooks ?? []).length === 0 ? (
               <p className="p-4 text-sm text-[#2D2D2D]/40">Nenhum webhook ainda.</p>
@@ -268,7 +257,25 @@ export default async function AdminHomePage() {
               ))
             )}
           </div>
+        </div>
 
+        {/* Sidebar direita — Métricas + Cursos publicados */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-[#2D2D2D]/50 uppercase tracking-wider">
+            Visão geral
+          </h2>
+          <div className="handify-card p-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#72CF92]/20 flex items-center justify-center shrink-0">
+              <Webhook className="w-4 h-4 text-[#72CF92]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-[#2D2D2D]/40 font-medium uppercase tracking-wide">Cursos publicados</p>
+              <p className="text-xl font-bold text-[#2D2D2D]">{cursosPublicados ?? 0}</p>
+            </div>
+            <Link href="/admin/cursos" className="text-xs font-semibold text-[#6699F3] hover:underline flex items-center gap-1 shrink-0">
+              Ver <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
           <Link
             href="/admin/metricas"
             className="handify-card p-4 flex items-center gap-3 hover:shadow-md transition-shadow group"
@@ -283,26 +290,6 @@ export default async function AdminHomePage() {
             <ArrowRight className="w-4 h-4 text-[#2D2D2D]/20 group-hover:text-[#6699F3] transition-colors shrink-0" />
           </Link>
         </div>
-      </div>
-
-      {/* Banner de cursos publicados */}
-      <div className="handify-card p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-[#72CF92]/20 flex items-center justify-center shrink-0">
-          <Webhook className="w-5 h-5 text-[#72CF92]" />
-        </div>
-        <div>
-          <p className="text-xs text-[#2D2D2D]/50 font-medium uppercase tracking-wide">
-            Cursos publicados
-          </p>
-          <p className="text-2xl font-bold text-[#2D2D2D]">{cursosPublicados ?? 0}</p>
-        </div>
-        <div className="flex-1" />
-        <Link
-          href="/admin/cursos"
-          className="text-xs font-semibold text-[#6699F3] hover:underline flex items-center gap-1"
-        >
-          Gerenciar <ArrowRight className="w-3 h-3" />
-        </Link>
       </div>
 
     </div>
