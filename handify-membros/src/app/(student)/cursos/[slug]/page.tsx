@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
 import { formatPrice, formatDuration } from "@/lib/format";
 import Link from "next/link";
@@ -29,12 +30,16 @@ export default async function CourseDetailPage({
 }) {
   const { slug } = await params;
   const supabase = await createClient();
+  const service = createServiceClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: course } = await supabase
+  // Usa service client para buscar módulos e aulas sem restrição de RLS —
+  // a policy de lessons bloqueia não-matriculadas, escondendo a estrutura do curso.
+  // Aqui não buscamos video_panda_id, então não há risco de exposição.
+  const { data: course } = await service
     .from("courses")
     .select(
       `
