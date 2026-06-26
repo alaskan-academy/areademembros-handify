@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 
-const LS_KEY = "sw-update-dismissed-url";
+const LS_DISMISSED = "sw-update-dismissed";
+const LS_UPDATED_AT = "sw-updated-at";
+const UPDATE_COOLDOWN_MS = 60_000; // 1 minuto após atualizar, sem popup
 
 export default function UpdatePrompt() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
@@ -12,29 +14,23 @@ export default function UpdatePrompt() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    // Recém-recarregado após update — ignora
-    if (sessionStorage.getItem("sw-updating")) {
-      sessionStorage.removeItem("sw-updating");
-      return;
-    }
+    // Cooldown pós-atualização (1 min)
+    const updatedAt = localStorage.getItem(LS_UPDATED_AT);
+    if (updatedAt && Date.now() - Number(updatedAt) < UPDATE_COOLDOWN_MS) return;
+
+    // Usuária dispensou o popup nesta sessão
+    if (sessionStorage.getItem(LS_DISMISSED)) return;
 
     function checkForWaiting(reg: ServiceWorkerRegistration) {
       if (reg.waiting && navigator.serviceWorker.controller) {
-        // Só mostra se a aluna ainda não dispensou esse SW específico
-        const dismissedUrl = localStorage.getItem(LS_KEY);
-        if (dismissedUrl !== reg.waiting.scriptURL) {
-          setWaitingWorker(reg.waiting);
-        }
+        setWaitingWorker(reg.waiting);
       }
       reg.addEventListener("updatefound", () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
         newWorker.addEventListener("statechange", () => {
           if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-            const dismissedUrl = localStorage.getItem(LS_KEY);
-            if (dismissedUrl !== newWorker.scriptURL) {
-              setWaitingWorker(newWorker);
-            }
+            setWaitingWorker(newWorker);
           }
         });
       });
@@ -46,14 +42,14 @@ export default function UpdatePrompt() {
 
     let reloading = false;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      // SW atualizou de fato — limpa o dismiss salvo
-      localStorage.removeItem(LS_KEY);
+      // SW tomou controle (auto-skipWaiting do Workbox) — recarrega sem limpar estado
       if (!reloading) { reloading = true; window.location.reload(); }
     });
   }, []);
 
   function handleUpdate() {
-    sessionStorage.setItem("sw-updating", "1");
+    // Salva timestamp para suprimir popup por 1 min após atualizar
+    localStorage.setItem(LS_UPDATED_AT, String(Date.now()));
     setDismissed(true);
     if (waitingWorker) {
       waitingWorker.postMessage({ type: "SKIP_WAITING" });
@@ -62,10 +58,8 @@ export default function UpdatePrompt() {
   }
 
   function handleDismiss() {
-    // Persiste o dismiss para esse SW específico — não volta a aparecer em refreshes
-    if (waitingWorker) {
-      localStorage.setItem(LS_KEY, waitingWorker.scriptURL);
-    }
+    // Salvo em sessionStorage — persiste em refreshes mas não em reabertura do app
+    sessionStorage.setItem(LS_DISMISSED, "1");
     setDismissed(true);
   }
 
