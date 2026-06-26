@@ -36,6 +36,7 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
     setError(null);
     const fd = new FormData();
     fd.append("file", file);
+    fd.append("file_type", type);
     const result = await uploadForumFile(fd);
     setUploading(false);
     if (result.error) { setError(result.error); return; }

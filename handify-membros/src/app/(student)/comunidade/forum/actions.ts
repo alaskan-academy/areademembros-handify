@@ -19,8 +19,31 @@ export async function uploadForumFile(
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { error: "Arquivo obrigatório" };
   if (file.size > 10_485_760) return { error: "Arquivo muito grande (max 10MB)" };
-  const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-  if (!ALLOWED_MIME.includes(file.type)) return { error: "Apenas imagens são permitidas (JPEG, PNG, WebP, GIF)" };
+
+  const fileType = formData.get("file_type") as string | null;
+  const isAttachment = fileType === "file";
+
+  const ALLOWED_IMAGE_MIME = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const ALLOWED_FILE_MIME = [
+    ...ALLOWED_IMAGE_MIME,
+    "application/pdf",
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/x-rar-compressed",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "text/plain",
+  ];
+
+  const allowed = isAttachment ? ALLOWED_FILE_MIME : ALLOWED_IMAGE_MIME;
+  const mimeError = isAttachment
+    ? "Tipo não permitido. Use: PDF, ZIP, RAR, DOCX, XLSX, PPTX, TXT ou imagem."
+    : "Apenas imagens são permitidas (JPEG, PNG, WebP, GIF)";
+
+  if (!allowed.includes(file.type)) return { error: mimeError };
 
   const service = createServiceClient();
   const ext = file.name.split(".").pop() ?? "bin";
