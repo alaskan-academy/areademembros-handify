@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import { DollarSign, ShoppingBag, X, Award, ExternalLink } from "lucide-react";
 import Image from "next/image";
 
@@ -74,6 +75,7 @@ export function FinancialRankings({
   enrollmentsByUserId: Record<string, CourseEnroll[]>;
 }) {
   const [selected, setSelected] = useState<StudentRow | null>(null);
+  useModalBackGuard(!!selected, () => setSelected(null));
 
   const medals = ["🥇", "🥈", "🥉"];
 

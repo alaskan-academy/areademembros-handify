@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import { X, Star, CheckCircle2, ArrowRight } from "lucide-react";
 
 export interface AnnualPromoData {
@@ -18,6 +19,7 @@ interface Props {
 
 export default function AnnualPromoModal({ promo, onClose }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  useModalBackGuard(true, onClose);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {

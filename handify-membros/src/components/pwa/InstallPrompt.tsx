@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import { Download, X, Smartphone } from "lucide-react";
 
 type Platform = "android" | "ios" | null;
@@ -32,6 +33,7 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [platform, setPlatform] = useState<Platform>(null);
   const [visible, setVisible] = useState(false);
+  useModalBackGuard(visible, () => setVisible(false));
 
   useEffect(() => {
     if (isRunningAsPWA()) return;

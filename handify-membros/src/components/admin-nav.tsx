@@ -10,6 +10,7 @@ import {
   ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, Zap, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 
 type NavItem = { href: string; icon: LucideIcon; label: string; exact?: boolean; badgeHref?: string };
 type NavGroup = { label?: string; items: NavItem[] };
@@ -149,6 +150,7 @@ export default function AdminNav({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  useModalBackGuard(drawerOpen, () => setDrawerOpen(false));
 
   // Restaura preferência do utilizador
   useEffect(() => {

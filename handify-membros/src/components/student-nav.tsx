@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import type { NavItem } from "@/components/student-header";
 import type { Role } from "@/types";
 
@@ -41,6 +42,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  useModalBackGuard(drawerOpen, () => setDrawerOpen(false));
 
   const visibleItems = navItems.filter((item) => {
     if (item.visible_to === "guest") return true;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useTransition, useCallback } from "react";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import { useRouter } from "next/navigation";
 import { Search, BookOpen, Play, Newspaper, X, Loader2 } from "lucide-react";
 import { searchPlatform, type SearchResult, type SearchResults } from "@/lib/search/search-action";
@@ -15,6 +16,7 @@ const TYPE_META = {
 
 export default function GlobalSearch() {
   const [open, setOpen] = useState(false);
+  useModalBackGuard(open, () => setOpen(false));
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults>(EMPTY);
   const [activeIndex, setActiveIndex] = useState(-1);

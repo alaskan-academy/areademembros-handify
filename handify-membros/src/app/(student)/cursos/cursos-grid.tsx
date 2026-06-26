@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import Link from "next/link";
 import { Clock, Play, X, Lock, RotateCcw, ChevronDown, CheckCircle, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ interface CursosGridProps {
 export default function CursosGrid({ courses, categories, isLoggedIn, headerBanner }: CursosGridProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selected, setSelected] = useState<CatalogCourse | null>(null);
+  useModalBackGuard(!!selected, () => setSelected(null));
 
   const filtered = activeCategory
     ? courses.filter((c) => c.categorySlug === activeCategory)

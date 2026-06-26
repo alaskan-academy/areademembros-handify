@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { activeModalRef } from "@/lib/modal-back-state";
 
 const GUARD_KEY = "__handify_guard";
 const COOLDOWN_MS = 2000;
@@ -16,6 +17,12 @@ export default function BackButtonGuard() {
 
     function onPopState(event: PopStateEvent) {
       if (!event.state?.[GUARD_KEY]) return;
+
+      // Se um modal está aberto, ele cuidará do back — apenas reinsere a sentinela
+      if (activeModalRef.current) {
+        history.pushState({ [GUARD_KEY]: true }, "");
+        return;
+      }
 
       const now = Date.now();
 

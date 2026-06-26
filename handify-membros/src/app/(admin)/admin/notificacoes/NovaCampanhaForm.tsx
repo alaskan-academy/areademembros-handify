@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import { Plus, X, Send, Clock, Users, BookOpen } from "lucide-react";
 import { createCampaign } from "@/lib/notifications/actions";
 
@@ -8,6 +9,7 @@ type Course = { id: string; title: string };
 
 export default function NovaCampanhaForm({ courses }: { courses: Course[] }) {
   const [open, setOpen] = useState(false);
+  useModalBackGuard(open, () => setOpen(false));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
