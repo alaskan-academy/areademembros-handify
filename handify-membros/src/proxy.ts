@@ -1,3 +1,4 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_ROUTES = ["/login", "/cadastro", "/recuperar-senha", "/nova-senha"];
@@ -10,25 +11,55 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
-function hasSession(request: NextRequest): boolean {
-  return request.cookies.getAll().some(
-    ({ name }) => name.startsWith("sb-") && name.endsWith("-auth-token")
-  );
-}
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const authenticated = hasSession(request);
 
-  // Repassa o pathname para server components via header de request
+  // Mantém x-pathname para server components lerem o caminho atual
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
+
+  // Response base — pode ser substituída pelo setAll ao renovar cookies
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  // Cria cliente Supabase com leitura e escrita de cookies no middleware.
+  // O setAll é chamado automaticamente quando o access token é renovado.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          // Propaga cookies novos tanto no request quanto na response
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          // Preserva x-pathname ao recriar a response com os novos cookies
+          response = NextResponse.next({ request: { headers: requestHeaders } });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // CRÍTICO: esta chamada renova o access token quando expirado usando o refresh token.
+  // Sem ela, o token expira em 1h e o aluno é deslogado automaticamente.
+  // Nunca remover nem mover para depois de qualquer lógica condicional.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const authenticated = !!user;
 
   if (isPublicRoute(pathname)) {
     if (authenticated && (pathname === "/login" || pathname === "/cadastro")) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return response;
   }
 
   if (!authenticated) {
@@ -37,7 +68,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  return response;
 }
 
 export const config = {
