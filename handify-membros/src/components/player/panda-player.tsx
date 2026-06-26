@@ -19,12 +19,18 @@ export default function PandaPlayer({
   isCompleted = false,
 }: PandaPlayerProps) {
   const positionRef = useRef(initialPosition);
-  // Impede auto-mark duplo: começa true se já está concluída no servidor
   const autoMarkedRef = useRef(isCompleted);
+  // Duração real vinda do player via postMessage (sobrescreve prop se disponível)
+  const durationRef = useRef(durationSeconds);
 
   const flushPosition = useCallback(() => {
-    // Salva APENAS posição — nunca altera completed
     savePosition(lessonId, positionRef.current).catch(() => {});
+  }, [lessonId]);
+
+  const autoMark = useCallback(() => {
+    if (autoMarkedRef.current) return;
+    autoMarkedRef.current = true;
+    markLessonComplete(lessonId).catch(() => {});
   }, [lessonId]);
 
   useEffect(() => {
@@ -32,30 +38,80 @@ export default function PandaPlayer({
   }, [isCompleted]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      positionRef.current += 10;
+    durationRef.current = durationSeconds;
+  }, [durationSeconds]);
 
-      // Auto-mark ao atingir 90% da duração (apenas uma vez)
-      if (
-        !autoMarkedRef.current &&
-        durationSeconds > 0 &&
-        positionRef.current >= durationSeconds * 0.9
-      ) {
-        autoMarkedRef.current = true;
-        markLessonComplete(lessonId).catch(() => {});
+  // Escuta eventos reais do player Panda Video via postMessage
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (!event.origin.includes("pandavideo.com")) return;
+
+      let data: Record<string, unknown> | null = null;
+      if (typeof event.data === "string") {
+        try { data = JSON.parse(event.data); } catch { return; }
+      } else if (event.data && typeof event.data === "object") {
+        data = event.data as Record<string, unknown>;
+      }
+      if (!data) return;
+
+      const eventName = (data.event ?? data.type) as string | undefined;
+
+      // Vídeo finalizado → marca concluída imediatamente
+      if (eventName === "ended" || eventName === "pandavideo:ended") {
+        autoMark();
+        return;
       }
 
-      flushPosition();
+      // timeupdate → atualiza posição real e verifica 90%
+      if (eventName === "timeupdate" || eventName === "pandavideo:timeupdate") {
+        const currentTime = typeof data.currentTime === "number" ? data.currentTime : null;
+        const duration = typeof data.duration === "number" ? data.duration : null;
+
+        if (currentTime !== null) {
+          positionRef.current = Math.floor(currentTime);
+        }
+        if (duration && duration > 0) {
+          durationRef.current = duration;
+        }
+
+        const dur = durationRef.current;
+        if (dur > 0 && positionRef.current >= dur * 0.9) {
+          autoMark();
+        }
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [autoMark]);
+
+  // Fallback timer: verifica 90% com duração cadastrada (cobre velocidade 1x sem postMessage)
+  useEffect(() => {
+    if (!durationSeconds) return;
+
+    let elapsed = initialPosition;
+    const timer = setInterval(() => {
+      elapsed += 10;
+      positionRef.current = Math.max(positionRef.current, elapsed);
+
+      if (durationRef.current > 0 && elapsed >= durationRef.current * 0.9) {
+        autoMark();
+        clearInterval(timer);
+      }
     }, 10_000);
 
+    return () => clearInterval(timer);
+  }, [lessonId, durationSeconds, initialPosition, autoMark]);
+
+  // Salva posição no banco a cada 10s e ao sair da página
+  useEffect(() => {
+    const timer = setInterval(flushPosition, 10_000);
     return () => {
       clearInterval(timer);
-      // Salva posição ao sair — NÃO altera completed
       flushPosition();
     };
-  }, [lessonId, durationSeconds, flushPosition]);
+  }, [flushPosition]);
 
-  // Se for URL completa do Panda Video, usa direto; senão constrói com o UUID
   const embedUrl = videoId.startsWith("http")
     ? videoId
     : `https://player.pandavideo.com.br/embed/?v=${encodeURIComponent(videoId)}`;
