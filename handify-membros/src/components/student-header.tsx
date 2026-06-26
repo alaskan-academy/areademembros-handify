@@ -68,6 +68,7 @@ export default function StudentHeader({
   }, []);
 
   return (
+    <>
     <header className="sticky top-0 z-40 bg-white shadow-sm">
       <div className="brand-stripe"><span /><span /><span /></div>
 
@@ -169,9 +170,11 @@ export default function StudentHeader({
         </button>
       )}
 
-      {promoOpen && annualPromo && (
-        <AnnualPromoModal promo={annualPromo} onClose={() => setPromoOpen(false)} />
-      )}
     </header>
+
+    {promoOpen && annualPromo && (
+      <AnnualPromoModal promo={annualPromo} onClose={() => setPromoOpen(false)} />
+    )}
+    </>
   );
 }
