@@ -170,6 +170,10 @@ export async function novaSenhaAction(
   });
 
   if (error) {
+    const msg = error.message?.toLowerCase() ?? "";
+    if (msg.includes("same") || msg.includes("different") || msg.includes("old password")) {
+      return { error: "A nova senha não pode ser igual à senha atual. Escolha uma senha diferente." };
+    }
     return { error: "Erro ao atualizar senha. O link pode ter expirado." };
   }
 
