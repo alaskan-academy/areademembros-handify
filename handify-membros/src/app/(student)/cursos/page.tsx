@@ -246,11 +246,6 @@ export default async function CursosPage() {
     <div className="min-h-screen bg-[#F5F5F0]">
       {/* Hero */}
       <div className="bg-white border-b border-border/60">
-        <div className="brand-stripe">
-          <span />
-          <span />
-          <span />
-        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 text-center">
           <p className="text-sm font-medium text-[#6699F3] uppercase tracking-wide mb-3">
             Plataforma de Cursos de Artesanato
@@ -261,9 +256,6 @@ export default async function CursosPage() {
           </h1>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
             Um espaço feito para aprender e criar.
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground max-w-xl mx-auto">
-            Cursos práticos, do zero ao avançado, com professoras especializadas.
           </p>
         </div>
       </div>

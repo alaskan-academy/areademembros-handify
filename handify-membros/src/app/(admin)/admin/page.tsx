@@ -6,7 +6,7 @@ import {
   Users, BookOpen, Award, TrendingUp,
   ShoppingBag, Image as ImageIcon, Bell, Newspaper,
   BarChart3, CheckCircle2, Clock, XCircle, Webhook,
-  ArrowRight, AlertTriangle,
+  ArrowRight, AlertTriangle, Flag,
 } from "lucide-react";
 
 async function assertAdmin() {
@@ -65,6 +65,13 @@ const QUICK_ACTIONS = [
     desc: "Enviar avisos para alunas",
     color: "#FEC649",
   },
+  {
+    href: "/admin/comunidade/forum",
+    icon: Flag,
+    label: "Moderação do Fórum",
+    desc: "Aprovar e moderar posts",
+    color: "#6699F3",
+  },
 ];
 
 export default async function AdminHomePage() {
@@ -84,6 +91,8 @@ export default async function AdminHomePage() {
     { count: cursosPublicados },
     { data: webhooks },
     { count: pendingReports },
+    { count: pendingForumPosts },
+    { count: totalForumPosts },
   ] = await Promise.all([
     service
       .from("profiles")
@@ -115,6 +124,15 @@ export default async function AdminHomePage() {
       .from("reports")
       .select("*", { count: "exact", head: true })
       .eq("resolved", false),
+
+    service
+      .from("forum_posts")
+      .select("*", { count: "exact", head: true })
+      .eq("approved", false),
+
+    service
+      .from("forum_posts")
+      .select("*", { count: "exact", head: true }),
   ]);
 
   const taxaConclusao =
@@ -148,20 +166,39 @@ export default async function AdminHomePage() {
         </p>
       </div>
 
-      {/* Alerta de moderação */}
-      {(pendingReports ?? 0) > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FEC649]/15 border border-[#FEC649]/40">
-          <AlertTriangle className="w-5 h-5 text-[#b07d00] shrink-0" />
-          <p className="text-sm font-medium text-[#2D2D2D] flex-1">
-            <span className="font-bold">{pendingReports}</span>{" "}
-            {pendingReports === 1 ? "post aguarda" : "posts aguardam"} moderação
-          </p>
-          <Link
-            href="/admin/comunidade/forum"
-            className="text-xs font-semibold text-[#6699F3] hover:underline flex items-center gap-1 shrink-0"
-          >
-            Revisar <ArrowRight className="w-3 h-3" />
-          </Link>
+      {/* Alertas de moderação */}
+      {((pendingReports ?? 0) > 0 || (pendingForumPosts ?? 0) > 0) && (
+        <div className="space-y-2">
+          {(pendingReports ?? 0) > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FEC649]/15 border border-[#FEC649]/40">
+              <AlertTriangle className="w-5 h-5 text-[#b07d00] shrink-0" />
+              <p className="text-sm font-medium text-[#2D2D2D] flex-1">
+                <span className="font-bold">{pendingReports}</span>{" "}
+                {pendingReports === 1 ? "denúncia aguarda" : "denúncias aguardam"} revisão
+              </p>
+              <Link
+                href="/admin/comunidade/forum"
+                className="text-xs font-semibold text-[#6699F3] hover:underline flex items-center gap-1 shrink-0"
+              >
+                Revisar <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          )}
+          {(pendingForumPosts ?? 0) > 0 && (
+            <Link
+              href="/admin/comunidade/forum"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#6699F3]/10 border border-[#6699F3]/30 hover:bg-[#6699F3]/15 transition-colors"
+            >
+              <Flag className="w-5 h-5 text-[#6699F3] shrink-0" />
+              <p className="text-sm font-medium text-[#2D2D2D] flex-1">
+                <span className="font-bold text-[#6699F3]">{pendingForumPosts}</span>{" "}
+                {pendingForumPosts === 1 ? "post aguarda aprovação" : "posts aguardam aprovação"}
+                {" · "}
+                <span className="text-[#2D2D2D]/50">{totalForumPosts ?? 0} no total</span>
+              </p>
+              <ArrowRight className="w-4 h-4 text-[#6699F3] shrink-0" />
+            </Link>
+          )}
         </div>
       )}
 

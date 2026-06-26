@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string; icon: LucideIcon; label: string; exact?: boolean };
+type NavItem = { href: string; icon: LucideIcon; label: string; exact?: boolean; badgeHref?: string };
 type NavGroup = { label?: string; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -71,10 +71,12 @@ function NavLinks({
   pathname,
   collapsed,
   onNavigate,
+  pendingForumCount = 0,
 }: {
   pathname: string;
   collapsed: boolean;
   onNavigate?: () => void;
+  pendingForumCount?: number;
 }) {
   return (
     <nav className={cn("py-3 px-2", collapsed ? "space-y-1" : "space-y-5")}>
@@ -91,6 +93,8 @@ function NavLinks({
           <div className="space-y-0.5">
             {group.items.map((item) => {
               const active = matchActive(item.href, pathname, item.exact);
+              const isModeracao = item.href === "/admin/comunidade/forum";
+              const badge = isModeracao && pendingForumCount > 0 ? pendingForumCount : 0;
               return (
                 <Link
                   key={item.href}
@@ -100,15 +104,31 @@ function NavLinks({
                   className={cn(
                     "flex items-center rounded-lg text-sm font-medium transition-colors",
                     collapsed
-                      ? "justify-center p-2.5"
+                      ? "justify-center p-2.5 relative"
                       : "gap-3 px-3 py-2",
                     active
                       ? "text-[#6699F3] bg-[#6699F3]/15"
                       : "text-white/60 hover:text-white hover:bg-white/[0.08]"
                   )}
                 >
-                  <item.icon className="w-4 h-4 shrink-0" />
-                  {!collapsed && item.label}
+                  <span className="relative shrink-0">
+                    <item.icon className="w-4 h-4" />
+                    {badge > 0 && collapsed && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#6699F3] text-white text-[8px] font-bold flex items-center justify-center leading-none">
+                        {badge > 9 ? "9+" : badge}
+                      </span>
+                    )}
+                  </span>
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1">{item.label}</span>
+                      {badge > 0 && (
+                        <span className="ml-auto shrink-0 min-w-[18px] h-[18px] rounded-full bg-[#6699F3] text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+                          {badge > 99 ? "99+" : badge}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </Link>
               );
             })}
@@ -119,7 +139,13 @@ function NavLinks({
   );
 }
 
-export default function AdminNav({ children }: { children: React.ReactNode }) {
+export default function AdminNav({
+  children,
+  pendingForumCount = 0,
+}: {
+  children: React.ReactNode;
+  pendingForumCount?: number;
+}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -180,7 +206,7 @@ export default function AdminNav({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <NavLinks pathname={pathname} collapsed={collapsed} />
+          <NavLinks pathname={pathname} collapsed={collapsed} pendingForumCount={pendingForumCount} />
         </div>
 
         {/* Footer */}
@@ -279,6 +305,7 @@ export default function AdminNav({ children }: { children: React.ReactNode }) {
                 pathname={pathname}
                 collapsed={false}
                 onNavigate={() => setDrawerOpen(false)}
+                pendingForumCount={pendingForumCount}
               />
             </div>
             <div className="shrink-0 border-t border-white/[0.06] p-3">
