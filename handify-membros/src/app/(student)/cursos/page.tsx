@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { formatPrice, formatDuration } from "@/lib/format";
 import CursosGrid from "./cursos-grid";
 import BannerDisplay from "@/components/banner/banner-display";
@@ -48,15 +49,18 @@ export type CatalogCategory = { id: string; name: string; slug: string };
 
 export default async function CursosPage() {
   const supabase = await createClient();
+  const service = createServiceClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Usa service client para cursos/módulos/aulas — sem video_panda_id,
+  // apenas metadados. Necessário para que não-matriculadas vejam a estrutura completa.
   const [{ data: categoriesRaw }, { data: coursesRaw }, { data: showcaseRaw }] =
     await Promise.all([
-      supabase.from("categories").select("id, name, slug").order("name"),
-      supabase
+      service.from("categories").select("id, name, slug").order("name"),
+      service
         .from("courses")
         .select(
           `
@@ -71,7 +75,7 @@ export default async function CursosPage() {
         )
         .eq("published", true)
         .order("position"),
-      supabase
+      service
         .from("showcase_courses")
         .select("course_id, sales_video_panda_id")
         .eq("active", true),
