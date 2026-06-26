@@ -22,55 +22,27 @@ async function assertAdmin() {
   return p?.full_name as string | null;
 }
 
-const QUICK_ACTIONS = [
+const QUICK_ACTION_GROUPS = [
   {
-    href: "/admin/cursos",
-    icon: BookOpen,
-    label: "Cursos",
-    desc: "Gerenciar catálogo e aulas",
-    color: "#6699F3",
+    label: "Catálogo",
+    items: [
+      { href: "/admin/cursos",  icon: BookOpen, label: "Cursos",  desc: "Gerenciar catálogo e aulas",  color: "#6699F3" },
+      { href: "/admin/alunos",  icon: Users,    label: "Alunas",  desc: "Matrículas e progresso",       color: "#72CF92" },
+    ],
   },
   {
-    href: "/admin/alunos",
-    icon: Users,
-    label: "Alunas",
-    desc: "Matrículas e progresso",
-    color: "#72CF92",
+    label: "Marketing",
+    items: [
+      { href: "/admin/banners",      icon: ImageIcon, label: "Banners",       desc: "Promoções e destaques",       color: "#FEC649" },
+      { href: "/admin/notificacoes", icon: Bell,      label: "Notificações",  desc: "Enviar avisos para alunas",   color: "#6699F3" },
+    ],
   },
   {
-    href: "/admin/vitrine",
-    icon: ShoppingBag,
-    label: "Vitrine",
-    desc: "Cursos na vitrine pública",
-    color: "#FEC649",
-  },
-  {
-    href: "/admin/banners",
-    icon: ImageIcon,
-    label: "Banners",
-    desc: "Promoções e destaques",
-    color: "#6699F3",
-  },
-  {
-    href: "/admin/comunidade/feed",
-    icon: Newspaper,
-    label: "Feed de Notícias",
-    desc: "Publicar avisos e novidades",
-    color: "#72CF92",
-  },
-  {
-    href: "/admin/notificacoes",
-    icon: Bell,
-    label: "Notificações",
-    desc: "Enviar avisos para alunas",
-    color: "#FEC649",
-  },
-  {
-    href: "/admin/comunidade/forum",
-    icon: Flag,
-    label: "Moderação do Fórum",
-    desc: "Aprovar e moderar posts",
-    color: "#6699F3",
+    label: "Comunidade",
+    items: [
+      { href: "/admin/comunidade/feed",  icon: Newspaper, label: "Feed de Notícias",   desc: "Publicar avisos e novidades", color: "#72CF92" },
+      { href: "/admin/comunidade/forum", icon: Flag,      label: "Moderação do Fórum", desc: "Aprovar e moderar posts",     color: "#6699F3" },
+    ],
   },
 ];
 
@@ -222,31 +194,38 @@ export default async function AdminHomePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Atalhos rápidos */}
-        <div className="lg:col-span-2 space-y-3">
+        <div className="lg:col-span-2 space-y-5">
           <h2 className="text-sm font-semibold text-[#2D2D2D]/50 uppercase tracking-wider">
             Acesso rápido
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {QUICK_ACTIONS.map(({ href, icon: Icon, label, desc, color }) => (
-              <Link
-                key={href}
-                href={href}
-                className="handify-card p-4 flex items-center gap-4 hover:shadow-md transition-shadow group"
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: color + "20" }}
-                >
-                  <Icon className="w-5 h-5 shrink-0" style={{ color }} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-[#2D2D2D]">{label}</p>
-                  <p className="text-xs text-[#2D2D2D]/50 mt-0.5 truncate">{desc}</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#2D2D2D]/20 group-hover:text-[#6699F3] transition-colors shrink-0" />
-              </Link>
-            ))}
-          </div>
+          {QUICK_ACTION_GROUPS.map((group) => (
+            <div key={group.label} className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#2D2D2D]/30">
+                {group.label}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {group.items.map(({ href, icon: Icon, label, desc, color }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="handify-card p-4 flex items-center gap-4 hover:shadow-md transition-shadow group"
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: color + "20" }}
+                    >
+                      <Icon className="w-5 h-5 shrink-0" style={{ color }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-[#2D2D2D]">{label}</p>
+                      <p className="text-xs text-[#2D2D2D]/50 mt-0.5 truncate">{desc}</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-[#2D2D2D]/20 group-hover:text-[#6699F3] transition-colors shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Webhooks recentes */}
