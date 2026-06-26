@@ -24,7 +24,7 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicRoute(pathname)) {
     if (authenticated && (pathname === "/login" || pathname === "/cadastro")) {
-      return NextResponse.redirect(new URL("/cursos", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
