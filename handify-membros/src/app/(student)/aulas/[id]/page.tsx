@@ -223,39 +223,43 @@ export default async function LessonPage({
           />
 
           {/* Ações da aula */}
-          <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              {hasAccess && user && (
-                <LessonCompleteButton lessonId={id} isCompleted={isCompleted} />
-              )}
-              {lesson.is_preview && (
-                <span className="inline-flex items-center gap-2 text-sm text-[#72CF92] font-medium bg-[#72CF92]/10 px-3 py-2 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-[#72CF92]" />
-                  Prévia gratuita
-                </span>
-              )}
-            </div>
+          <div className="flex flex-col gap-3 pt-2">
+            {/* Marcar concluída + badge prévia */}
+            {(hasAccess && user || lesson.is_preview) && (
+              <div className="flex items-center gap-3 flex-wrap">
+                {hasAccess && user && (
+                  <LessonCompleteButton lessonId={id} isCompleted={isCompleted} />
+                )}
+                {lesson.is_preview && (
+                  <span className="inline-flex items-center gap-2 text-sm text-[#72CF92] font-medium bg-[#72CF92]/10 px-3 py-2 rounded-full">
+                    <span className="w-2 h-2 rounded-full bg-[#72CF92]" />
+                    Prévia gratuita
+                  </span>
+                )}
+              </div>
+            )}
 
+            {/* Anterior / Próxima — grid simétrico, centralizado no mobile */}
             {user && (prevLesson || nextLesson) && (
-              <div className="flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-2 w-full">
                 {prevLesson ? (
                   <Link
                     href={`/aulas/${prevLesson.id}`}
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2.5 min-h-[44px] rounded-lg border border-border hover:border-[#6699F3]"
+                    className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2.5 min-h-[44px] rounded-lg border border-border hover:border-[#6699F3]"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4 shrink-0" />
                     Anterior
                   </Link>
                 ) : <div />}
-                {nextLesson && (
+                {nextLesson ? (
                   <Link
                     href={`/aulas/${nextLesson.id}`}
-                    className="flex items-center gap-1.5 text-sm font-medium text-white bg-[#6699F3] hover:bg-[#5580d4] transition-colors px-4 py-2.5 min-h-[44px] rounded-lg"
+                    className="flex items-center justify-center gap-1.5 text-sm font-medium text-white bg-[#6699F3] hover:bg-[#5580d4] active:bg-[#4a70c0] transition-colors px-3 py-2.5 min-h-[44px] rounded-lg"
                   >
                     Próxima
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 shrink-0" />
                   </Link>
-                )}
+                ) : <div />}
               </div>
             )}
           </div>
