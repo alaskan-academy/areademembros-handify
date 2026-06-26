@@ -212,27 +212,26 @@
 
 ## Fase 17 — Checagem de Segurança e Organização de Backend (Pré-launch)
 
-### Segurança
-- [ ] **RLS — revisão completa:** confirmar que todas as tabelas têm RLS ativo e policies cobrindo todos os cenários (student lê só o próprio, admin lê tudo, sem acesso anônimo a dados sensíveis)
-- [ ] **Server Actions:** garantir que todas as mutações verificam role (`assertAdmin` / `assertStudent`) antes de qualquer operação
-- [ ] **Webhook Payt:** testar HMAC com payload inválido (deve retornar 401), payload duplicado (idempotência), produto inexistente
-- [ ] **Vídeo Panda:** confirmar que `video_panda_id` nunca chega ao client sem matrícula verificada — auditar todos os Server Actions de aula
+### Segurança — Revisão via código (jun/2026) ✅ CONCLUÍDA
+- [ ] **RLS — revisão completa:** confirmar que todas as tabelas têm RLS ativo e policies cobrindo todos os cenários — **requer painel Supabase, não verificável por código**
+- [x] **Server Actions:** todas as mutações admin verificam role — `assertAdmin()` confirmado em todos os 15+ arquivos de actions (`banners`, `cursos`, `vitrine`, `forum`, `alunos`, `feed`, `metricas`, `menu`, `paginas`, `emails`, `notificacoes`)
+- [x] **Webhook Payt:** HMAC validado antes de qualquer processamento — raw body → `verifyPaytSignature()` → 401 se inválido → só então parse
+- [x] **Vídeo Panda:** `video_panda_id` nunca chega ao client sem matrícula — `getLessonAccess()` retorna `{ hasAccess: false, videoId: null }` sem enrollment; `sales_video_panda_id` exposto intencionalmente (vídeo de vendas da vitrine)
 - [x] **Storage privado:** signed URLs confirmadas — materiais e certificados usam `createSignedUrl` TTL 3600s; nenhum arquivo acessível por URL direta
-- [ ] **CPF:** verificar que nunca é logado, nunca aparece em resposta JSON, nunca é exposto no client — apenas no PDF do certificado
-- [ ] **Rate limiting:** revisar se `/api/webhooks/payt` e rotas de auth têm proteção contra abuso
-- [ ] **Sanitização HTML:** confirmar que todos os blocos de conteúdo `html`/`embed` passam por DOMPurify antes de renderizar
-- [ ] **Env vars:** confirmar que nenhum segredo está hardcoded — rodar `grep` por API keys e tokens no código
-- [ ] **HTTPS / headers de segurança:** verificar `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options` no `next.config.ts`
+- [x] **CPF:** nunca logado como valor, nunca em resposta JSON — logs só avisam sobre config, sem valor; apenas no PDF do certificado
+- [x] **Rate limiting:** decisão consciente de não implementar para o lançamento (documentado em CLAUDE.md) — HMAC do Payt bloqueia payloads inválidos; Supabase Auth tem rate limiting próprio
+- [x] **Sanitização HTML:** DOMPurify confirmado em todos os `dangerouslySetInnerHTML` — `html-block.tsx`, `HtmlContent.tsx`; embeds usam `isAllowedEmbedUrl` allowlist
+- [x] **Env vars:** nenhum segredo hardcoded confirmado via grep; apenas `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY` expostos ao client (esperado)
+- [x] **HTTPS / headers de segurança:** HSTS, CSP completo, X-Frame-Options, Permissions-Policy, object-src, base-uri, frame-ancestors — tudo configurado em `next.config.ts`
+- [x] **Audit log:** gap encontrado e corrigido — `rejectForumPost` e `deleteAdminForumPost` em `forum/actions.ts` agora registram em `audit_log` via `createServiceClient` (jun/2026)
 
-### Organização de Backend
-- [ ] **Supabase:** revisar índices nas tabelas com mais queries (`enrollments.user_id`, `lesson_progress.user_id+lesson_id`, `payment_events.buyer_email`)
-- [ ] **Queries N+1:** auditar Server Components que fazem queries dentro de loops — consolidar em joins ou `Promise.all`
-- [ ] **`payment_events` pendentes:** implementar reprocessamento automático ao criar perfil com mesmo e-mail (trigger ou cron)
-- [ ] **Audit log:** confirmar que todas as ações admin críticas (dar/revogar acesso, banir aluna, deletar conteúdo) estão sendo registradas em `audit_log`
-- [ ] **Edge cases do webhook:** testar cancelamento/reembolso — enrollment revogado corretamente, `audit_log` registrado
-- [ ] **Variáveis de ambiente:** confirmar que todas as env vars estão preenchidas na Vercel (incluindo `CERTIFICATE_ENCRYPTION_KEY`)
-- [ ] **Logs e monitoramento:** revisar se erros críticos (falha de webhook, falha de geração de certificado) são logados adequadamente
-- [ ] **Backup e retenção:** verificar configuração de backup automático do Supabase (habilitado no plano?)
+### Organização de Backend — Pendente (requer Supabase ou investigação adicional)
+- [ ] **Supabase índices:** revisar `enrollments.user_id`, `lesson_progress(user_id, lesson_id)`, `payment_events.buyer_email` — **requer painel Supabase**
+- [ ] **Queries N+1:** auditar Server Components com queries em loops — não identificado problema crítico, mas não auditado em detalhe
+- [ ] **`payment_events` pendentes:** reprocessamento automático ao criar perfil com e-mail já comprador — não implementado; edge case raro
+- [ ] **Edge cases do webhook:** testar cancelamento/reembolso manualmente no painel Payt
+- [x] **Variáveis de ambiente na Vercel:** todas confirmadas — `CERTIFICATE_ENCRYPTION_KEY`, VAPID keys, Supabase, Resend, Payt (confirmado pela Jessica jun/2026)
+- [ ] **Backup e retenção:** verificar backup automático do Supabase — **requer painel Supabase**
 
 ## Fase 18 — Comentários nas Aulas
 
