@@ -61,6 +61,26 @@ Labels de status, aria-labels e UI strings genéricas podem ser constantes no c�
 
 **Quando revisar:** ao atingir escala (centenas de alunas ativas) ou se houver incidente de abuso.
 
+## Captura de dados de leads — Fluxo completo (jun/2026)
+
+Todos os dados do comprador vindos do Payt são capturados em múltiplas camadas para garantir máximo aproveitamento:
+
+| Dado | Onde é salvo | Observação |
+|------|-------------|------------|
+| E-mail | `payment_events.buyer_email` + lookup de usuário | Chave de vinculação |
+| Nome | `payment_events.buyer_name` (coluna dedicada) + `profiles.full_name` (se vazio) + `activation_tokens.buyer_name` | Nunca sobrescreve nome editado pela aluna |
+| Telefone | `profiles.phone` (se vazio) + `activation_tokens.buyer_phone` | Nunca sobrescreve telefone editado pela aluna |
+| CPF | `profiles.cpf_encrypted` (AES-256-GCM) + `profiles.cpf_hash` (SHA-256 para busca) | Sempre atualizado no grant |
+| Transaction ID | `payment_events.payload` (JSON) | Campo `transaction_id` no payload bruto |
+| Payload bruto | `payment_events.payload` (jsonb) | Tudo preservado para auditoria |
+
+**Formulário de cadastro pós-compra** (`/cadastro/[email]`):
+- Pré-preenche nome, CPF e telefone — prioriza `activation_tokens` (vinculado à compra), fallback para `payment_events`
+- Nunca exige que a aluna redigite dados que o Payt já enviou
+
+**Export CSV** (`/api/admin/alunos/export`):
+Colunas: Nome, E-mail, Telefone, Nascimento, Qtd. Cursos, Cursos, Fonte, Data da 1ª Matrícula, Aulas Concluídas, Progresso Médio (%), Certificados, Última Atividade, Data de Cadastro, Status
+
 ## Fluxo de trabalho
 
 - Ao final de cada alteração, sempre fazer `commit` e `push` para o remote.
@@ -191,6 +211,8 @@ Migration: `supabase/migrations/20260625_push_subscriptions.sql`.
 | 2026-06-24 | `src/lib/notifications/actions.ts` | `getUnreadCount` e `getNotifications` usavam service client com `userId` vindo do caller sem verificar a sessão — qualquer aluna autenticada podia ler notificações de outra | Adicionada verificação `user.id === userId` antes de consultar; retorna vazio silenciosamente se não bater |
 | 2026-06-24 | `next.config.ts` | Headers de segurança incompletos | Adicionados: HSTS (2 anos, só produção), `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, Typeform no `frame-src` |
 | 2026-06-25 | `src/app/(admin)/admin/comunidade/forum/actions.ts` | `rejectForumPost` e `deleteAdminForumPost` deletavam posts de alunas sem registrar nada no `audit_log` — ações admin de remoção de conteúdo sem trilha de auditoria | Adicionados inserts em `audit_log` via `createServiceClient` em ambas as ações; `assertAdmin` agora retorna `adminId` além do cliente |
+| 2026-06-25 | `src/app/api/webhooks/payt/route.ts` | Phone e nome do comprador não eram salvos no perfil da aluna já existente — dado perdido a cada compra | Webhook agora salva `phone` (se vazio) e `full_name` (se vazio) via UPDATE condicional; nunca sobrescreve dado editado pela aluna |
+| 2026-06-25 | `supabase/migrations/028_leads_and_audit_fix.sql` | `audit_log.action` era enum com valores antigos incompatíveis com o código (`ban` vs `ban_user` etc) — todos os inserts de ban/unban/update_email/forum falhavam silenciosamente | Convertido para `text`; `admin_id` tornado nullable para ações automáticas do webhook (migration rodada em produção jun/2026) |
 
 ### Headers de segurança configurados (`next.config.ts`)
 
