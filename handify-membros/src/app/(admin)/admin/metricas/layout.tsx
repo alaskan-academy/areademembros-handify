@@ -23,8 +23,8 @@ export default function MetricasLayout({ children }: { children: React.ReactNode
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-border">
-        <nav className="flex gap-1 -mb-px">
+      <div className="border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <nav className="flex gap-1 -mb-px min-w-max">
           {TABS.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (

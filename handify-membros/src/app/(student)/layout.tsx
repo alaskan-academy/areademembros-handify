@@ -9,6 +9,7 @@ import StudentHeader from "@/components/student-header";
 import StudentNav from "@/components/student-nav";
 import CatalogHeader from "@/components/catalog-header";
 import TermsAcceptanceBanner from "@/components/TermsAcceptanceBanner";
+import ScrollToTop from "@/components/ScrollToTop";
 import { getUnreadCount, getNotifications } from "@/lib/notifications/actions";
 import type { Role } from "@/types";
 import type { NavItem } from "@/components/student-header";
@@ -74,7 +75,8 @@ export default async function StudentLayout({
   // Rotas públicas (/cursos) usam CatalogHeader quando não autenticadas.
   // Cada page gerencia sua própria centralização para evitar cache parcial do RSC.
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
+    <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full overflow-x-hidden">
+      <ScrollToTop />
       {user ? (
         <StudentHeader
           fullName={profile?.full_name ?? ""}

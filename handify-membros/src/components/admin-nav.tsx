@@ -298,7 +298,7 @@ export default function AdminNav({ children }: { children: React.ReactNode }) {
       {/* ── Conteúdo — margem dinâmica no desktop ──────── */}
       <div
         className={cn(
-          "transition-[margin] duration-200 ease-in-out",
+          "transition-[margin] duration-200 ease-in-out min-w-0 overflow-x-hidden",
           collapsed ? "md:ml-16" : "md:ml-60"
         )}
       >
