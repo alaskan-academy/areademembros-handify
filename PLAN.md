@@ -208,7 +208,7 @@
 
 - [x] **`CERTIFICATE_ENCRYPTION_KEY`** — configurada nas env vars da Vercel ✅ (confirmado jun/2026)
 - [x] **Domínio customizado** — `membros.handify.com.br` configurado na Vercel ✅ (confirmado jun/2026)
-- [ ] **Botão de acesso no site externo** — ao finalizar a plataforma, adicionar botão "Acessar Área de Membros" no site principal da Handify apontando para a URL da plataforma
+- [x] **Botão de acesso no site externo** — botão "Acessar Área de Membros" adicionado no site principal da Handify ✅ (confirmado jun/2026)
 
 ## Fase 17 — Checagem de Segurança e Organização de Backend (Pré-launch)
 
