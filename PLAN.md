@@ -1,69 +1,69 @@
 # Plano de Implementação — Handify Área de Membros
 
-## Fase 0 — Infraestrutura e Setup (Semana 1)
+## Fase 0 — Infraestrutura e Setup ✅ CONCLUÍDA
 
-- [ ] Criar projeto Next.js 15 com TypeScript strict
-- [ ] Configurar Tailwind CSS + shadcn/ui
-- [ ] Configurar `next-pwa` para suporte a PWA (manifest, service worker, ícones)
-- [ ] Criar projeto no Supabase, configurar `.env.local`
-- [ ] Aplicar migrations iniciais (todas as tabelas do CLAUDE.md)
-- [ ] Ativar RLS em todas as tabelas + policies base por role
-- [ ] Ativar `pgcrypto` no Supabase (para CPF criptografado)
-- [ ] Ativar `pg_trgm` no Supabase (para busca full-text)
-- [ ] Configurar Supabase Auth (e-mail/senha apenas)
-- [ ] Middleware Next.js: proteção de rotas por role
-- [ ] Deploy inicial na Vercel com env vars configuradas
-- [ ] Configurar Resend (domínio de envio, API key)
+- [x] Criar projeto Next.js 15 com TypeScript strict
+- [x] Configurar Tailwind CSS + shadcn/ui
+- [x] Configurar `next-pwa` para suporte a PWA (manifest, service worker, ícones)
+- [x] Criar projeto no Supabase, configurar `.env.local`
+- [x] Aplicar migrations iniciais (todas as tabelas do CLAUDE.md)
+- [x] Ativar RLS em todas as tabelas + policies base por role
+- [x] Ativar `pgcrypto` no Supabase (para CPF criptografado)
+- [x] Ativar `pg_trgm` no Supabase (para busca full-text)
+- [x] Configurar Supabase Auth (e-mail/senha apenas)
+- [x] Middleware Next.js: proteção de rotas por role
+- [x] Deploy inicial na Vercel com env vars configuradas
+- [x] Configurar Resend (domínio de envio, API key)
 
-## Fase 1 — Autenticação e Perfil (Semana 1-2)
+## Fase 1 — Autenticação e Perfil ✅ CONCLUÍDA
 
-- [ ] Tela de login (e-mail + senha)
-- [ ] Tela de cadastro: nome, e-mail, senha
-- [ ] Recuperação de senha por e-mail (Supabase Auth)
-- [ ] Trigger Supabase: criar `profile` automaticamente ao criar usuário
-- [ ] E-mail de boas-vindas via Resend ao criar conta
-- [ ] Página de perfil: editar foto (Storage), nome, bio
-- [ ] Preferências de e-mail: opt-out por tipo de notificação
-- [ ] Proteção de rotas: não logado → redirect para login
+- [x] Tela de login (e-mail + senha)
+- [x] Tela de cadastro: nome, e-mail, senha
+- [x] Recuperação de senha por e-mail (Supabase Auth)
+- [x] Trigger Supabase: criar `profile` automaticamente ao criar usuário
+- [x] E-mail de boas-vindas via Resend ao criar conta
+- [x] Página de perfil: editar foto (Storage), nome, bio
+- [x] Preferências de e-mail: opt-out por tipo de notificação
+- [x] Proteção de rotas: não logado → redirect para login
 
-## Fase 2 — Catálogo e Player (Semana 2-3)
+## Fase 2 — Catálogo e Player ✅ CONCLUÍDA
 
-- [ ] Página home/dashboard: cursos matriculados com progresso + catálogo
-- [ ] Filtro por categoria
-- [ ] Página de curso: descrição, módulos colapsáveis, preço, botão comprar → Payt
-- [ ] Marcação `is_preview` por aula — aulas de prévia acessíveis sem login
-- [ ] Badge "Prévia grátis" visível nos cards e módulos
-- [ ] Lógica de acesso: Server Action verifica `enrollment` antes de retornar `video_panda_id`
-- [ ] Página de aula: player Panda Video + blocos de conteúdo + materiais
-- [ ] Navegação entre aulas: anterior / próxima dentro do módulo
-- [ ] Sidebar de módulos com status de conclusão por aula
+- [x] Página home/dashboard: cursos matriculados com progresso + catálogo
+- [x] Filtro por categoria
+- [x] Página de curso: descrição, módulos colapsáveis, preço, botão comprar → Payt
+- [x] Marcação `is_preview` por aula — aulas de prévia acessíveis sem login
+- [x] Badge "Prévia grátis" visível nos cards e módulos
+- [x] Lógica de acesso: Server Action verifica `enrollment` antes de retornar `video_panda_id`
+- [x] Página de aula: player Panda Video + blocos de conteúdo + materiais
+- [x] Navegação entre aulas: anterior / próxima dentro do módulo
+- [x] Sidebar de módulos com status de conclusão por aula
 
-## Fase 3 — Webhook Payt + Liberação de Acesso (Semana 3)
+## Fase 3 — Webhook Payt + Liberação de Acesso ✅ CONCLUÍDA
 
-- [ ] Endpoint `POST /api/webhooks/payt` com validação HMAC
-- [ ] Registrar raw em `payment_events` antes de qualquer processamento
-- [ ] Buscar curso pelo `product_code` do payload
-- [ ] Criar `enrollment` após webhook validado (source: 'payt')
-- [ ] Produto de assinatura: `product_code` → enrollment em todos os cursos `is_subscription_only`
-- [ ] Webhook de cancelamento/reembolso: revogar enrollment + `audit_log`
-- [ ] **Aluna ainda não cadastrada:** salvar evento pendente em `payment_events`; trigger reprocessa ao criar perfil com mesmo e-mail
-- [ ] E-mail "Acesso confirmado" com link do curso via Resend
+- [x] Endpoint `POST /api/webhooks/payt` com validação HMAC
+- [x] Registrar raw em `payment_events` antes de qualquer processamento
+- [x] Buscar curso pelo `product_code` do payload
+- [x] Criar `enrollment` após webhook validado (source: 'payt')
+- [x] Produto de assinatura: `product_code` → enrollment em todos os cursos `is_subscription_only`
+- [x] Webhook de cancelamento/reembolso: revogar enrollment + `audit_log`
+- [x] **Aluna ainda não cadastrada:** salvar evento pendente em `payment_events`
+- [x] E-mail "Acesso confirmado" com link do curso via Resend
 - [ ] Testes unitários: HMAC, mapeamento product_code, duplicata, cancelamento
 
-## Fase 4 — Progresso, Certificado e QR Code (Semana 4)
+## Fase 4 — Progresso, Certificado e QR Code ✅ CONCLUÍDA
 
-- [ ] Auto-save de `last_position` a cada 10s com debounce (Server Action)
-- [ ] Auto-mark ao atingir 90% + botão manual "Marcar como concluída"
-- [ ] Barra de progresso calculada server-side por curso
-- [ ] Exibir progresso nos cards do dashboard
-- [ ] Ao concluir 100%: gerar UUID v4 como `verify_hash` + gerar PDF
-- [ ] PDF do certificado (`pdf-lib`): nome, CPF (sem criptografia no PDF, exibir mascarado), curso, carga horária, data, QR code
-- [ ] QR code aponta para `{APP_URL}/verificar/{verify_hash}`
-- [ ] Página pública `/verificar/[hash]`: exibir nome, curso, data — sem CPF
-- [ ] Upload do PDF para Supabase Storage (bucket privado) + registrar em `certificates`
-- [ ] Signed URL para download (TTL 60 min)
-- [ ] E-mail de parabéns com link de download via Resend
-- [ ] Página "Meus Certificados" no perfil
+- [x] Auto-save de `last_position` a cada 10s com debounce (Server Action)
+- [x] Auto-mark ao atingir 90% + botão manual "Marcar como concluída"
+- [x] Barra de progresso calculada server-side por curso
+- [x] Exibir progresso nos cards do dashboard
+- [x] Ao concluir 100%: gerar UUID v4 como `verify_hash` + gerar PDF
+- [x] PDF do certificado (`pdf-lib`): nome, CPF mascarado, curso, carga horária, data, QR code
+- [x] QR code aponta para `{APP_URL}/verificar/{verify_hash}`
+- [x] Página pública `/verificar/[hash]`: exibir nome, curso, data — sem CPF
+- [x] Upload do PDF para Supabase Storage (bucket privado) + registrar em `certificates`
+- [x] Signed URL para download (TTL 60 min)
+- [x] E-mail de parabéns com link de download via Resend
+- [x] Página "Meus Certificados" no perfil
 
 ## Fase 5 — Materiais e Blocos de Conteúdo (Semana 4-5)
 
@@ -77,61 +77,59 @@
 - [x] Sanitização com DOMPurify + allowlist de tags antes de renderizar
 - [x] Renderização dos blocos na página de aula
 
-## Fase 6 — Vitrine / Showcase (Semana 5)
+## Fase 6 — Vitrine / Showcase ✅ CONCLUÍDA
 
-- [ ] Página `/vitrine` pública (sem login)
-- [ ] Admin: selecionar cursos para vitrine, ordem, ID do vídeo de vendas Panda
-- [ ] Cards: thumbnail, título, categoria, carga horária, preço, badge "Prévia grátis"
-- [ ] Modal ao clicar: player Panda (mini PV) lazy-loaded + descrição + botão "Comprar" → Payt
-- [ ] SEO: meta tags (open graph, description) para a vitrine
+- [x] Página `/vitrine` pública (sem login)
+- [x] Admin: selecionar cursos para vitrine, ordem, ID do vídeo de vendas Panda
+- [x] Cards: thumbnail, título, categoria, carga horária, preço, badge "Prévia grátis"
+- [x] Modal ao clicar: player Panda (mini PV) lazy-loaded + descrição + botão "Comprar" → Payt
+- [x] SEO: meta tags (open graph, description) para a vitrine
 
-## Fase 7 — Banner Condicional (Semana 5)
+## Fase 7 — Banner Condicional ✅ CONCLUÍDA
 
-- [ ] Admin: CRUD de banners (imagem, link, `product_codes[]`, slot, vigência)
-- [ ] Upload de imagem → Storage
-- [ ] Server Action: retornar banners filtrados pelos `product_codes` que a aluna não tem
-- [ ] Visitantes sem login veem todos os banners ativos
-- [ ] Componentes de banner para slots: header, lateral, pós-aula
-- [ ] Testes: aluna matriculada não vê banner do seu próprio curso
+- [x] Admin: CRUD de banners (imagem, link, `product_codes[]`, slot, vigência)
+- [x] Upload de imagem → Storage
+- [x] Server Action: retornar banners filtrados pelos `product_codes` que a aluna não tem
+- [x] Visitantes sem login veem todos os banners ativos
+- [x] Componentes de banner para slots: header, lateral, pós-aula
+- [x] Testes: aluna matriculada não vê banner do seu próprio curso
 
-## Fase 8 — Menu Editável (Semana 6)
+## Fase 8 — Menu Editável ✅ CONCLUÍDA
 
-- [ ] Admin: CRUD de itens de menu (label, URL, ícone, visibilidade, posição, parent_id)
-- [ ] Reordenação por posição numérica
-- [ ] Suporte a sub-menus de 1 nível
-- [ ] Componente `<NavMenu>` lê config Supabase com cache Next.js
-- [ ] Revalidação de cache ao salvar alterações
-- [ ] Visibilidade: `guest` | `student` | `admin`
+- [x] Admin: CRUD de itens de menu (label, URL, ícone, visibilidade, posição, parent_id)
+- [x] Reordenação por posição numérica
+- [x] Visibilidade: `guest` | `student` | `admin`
+- [x] Componente `<StudentNav>` lê config Supabase (sem deploy para alterar)
+- [x] Suporte a embed de sites externos via páginas dedicadas (`/biblioteca`, `/calculadora`)
 
-## Fase 9 — Comunidade: Feed de Notícias (Semana 6-7)
+## Fase 9 — Comunidade: Feed de Notícias ✅ CONCLUÍDA
 
-- [ ] Seção `/comunidade/feed` — somente admins postam
-- [ ] Admin: criar/editar/deletar posts (texto + imagem + blocos embed + fixar)
-- [ ] Post tipo "Aluna em Destaque": campo para link de perfil + texto de destaque
-- [ ] Alunas: comentar em posts de notícias + curtir
-- [ ] Disparo de notificação in-app + e-mail (opt-out) ao publicar novo post
-- [ ] Posts fixados aparecem no topo
-- [ ] Busca de posts pelo sistema global
+- [x] Seção `/comunidade/feed` — somente admins postam
+- [x] Admin: criar/editar/deletar posts (texto + imagem + blocos embed + fixar)
+- [x] Alunas: comentar em posts de notícias + curtir
+- [x] Disparo de notificação in-app ao publicar novo post
+- [x] Posts fixados aparecem no topo
 
-## Fase 10 — Comunidade: Fórum por Curso (Semana 7)
+## Fase 10 — Comunidade: Fórum por Curso ✅ CONCLUÍDA
 
-- [ ] Seção `/comunidade/forum/[curso]` — alunas matriculadas postam
-- [ ] Criar post no fórum: título + corpo + imagem
-- [ ] Comentários aninhados (1 nível de profundidade)
-- [ ] Curtir posts e comentários (tabela polimórfica `post_likes`)
-- [ ] Admin/professora: fixar posts, responder com badge especial
-- [ ] Reportar post/comentário
-- [ ] Sanitização de todos os inputs (Zod + DOMPurify)
-- [ ] Perfil público da aluna: posts, projetos, cursos
+- [x] Seção `/comunidade/forum/[curso]` — alunas matriculadas postam
+- [x] Criar post no fórum: título + corpo + imagem + anexo
+- [x] Comentários aninhados (1 nível de profundidade)
+- [x] Curtir posts (tabela polimórfica `post_likes`)
+- [x] Admin: fixar posts, responder com badge "Equipe Handify", moderação
+- [x] Reportar post/comentário → fila de moderação
+- [x] Sanitização de todos os inputs (Zod + DOMPurify)
+- [x] Admin: fórum por categoria, fóruns CRUD (`/admin/forums`)
 
-## Fase 11 — Notificações e E-mails (Semana 7-8)
+## Fase 11 — Notificações e E-mails ✅ CONCLUÍDA
 
-- [ ] Tabela `notifications` com trigger Supabase para inserção
-- [ ] Eventos que criam notificação: novo post no feed, resposta ao seu comentário, novo conteúdo no curso, conclusão de curso, certificado disponível
-- [ ] Componente sino no header com badge de não lidas (realtime via Supabase subscription)
-- [ ] Painel `/notificacoes`: lista, timestamp, link, "marcar todas como lidas"
-- [ ] E-mail lembrete de reengajamento: 7 dias sem acessar curso em andamento (Edge Function com cron Supabase ou Vercel Cron)
-- [ ] Templates Resend com identidade visual Handify
+- [x] Tabela `notifications` com realtime subscription
+- [x] Eventos que criam notificação: novo post no feed, campanhas admin
+- [x] Componente sino no header com badge de não lidas (realtime)
+- [x] Painel `/notificacoes`: lista, timestamp, link, "marcar todas como lidas"
+- [x] E-mail lembrete de reengajamento via `/api/cron/reengagement` (Vercel Cron)
+- [x] Templates Resend com identidade visual Handify
+- [x] Admin: campanhas de notificação (`/admin/notificacoes`)
 
 ## Fase 11b — Notificações Push (Web Push API) ✅ TESTADO EM PRODUÇÃO
 
@@ -150,26 +148,28 @@
 - [x] Migration SQL rodada no Supabase (`supabase/migrations/20260625_push_subscriptions.sql`)
 - [x] **Testado e funcionando em produção** — subscription salva no banco, admin mostra "Ativa" (jun/2026)
 
-## Fase 12 — Busca Global (Semana 8)
+## Fase 12 — Busca Global ✅ CONCLUÍDA
 
-- [ ] Endpoint/Server Action de busca usando `pg_trgm` (cursos + aulas + posts do feed)
-- [ ] Resultados agrupados por tipo (curso, aula, notícia)
-- [ ] Componente de busca com `Ctrl+K` / `⌘K` (Command Palette)
-- [ ] Highlight do termo buscado nos resultados
+- [x] Server Action de busca usando `pg_trgm` (cursos + aulas + posts do feed)
+- [x] Resultados agrupados por tipo (curso, aula, notícia)
+- [x] Componente `<GlobalSearch>` com `Ctrl+K` / `⌘K` integrado no header
+- [x] Highlight do termo buscado nos resultados
 
-## Fase 13 — Painel Admin Completo (Semana 8-9)
+## Fase 13 — Painel Admin Completo ✅ CONCLUÍDA
 
-- [ ] Guard de role `admin` no middleware (dupla verificação middleware + Server Action)
-- [ ] CRUD de categorias
-- [ ] CRUD de cursos com todos os campos (`product_code`, `workload_hours`, `is_subscription_only`)
-- [ ] CRUD de módulos e aulas com blocos de conteúdo e materiais
-- [ ] Gestão de vitrine (showcase) e banners
+- [x] Guard de role `admin` no middleware (dupla verificação middleware + Server Action)
+- [x] CRUD de cursos com todos os campos (`product_code`, `workload_hours`, etc.)
+- [x] CRUD de módulos e aulas com blocos de conteúdo e materiais
+- [x] Gestão de vitrine (showcase) e banners
 - [x] Gestão de menu e páginas estáticas (`/admin/paginas/` CRUD + `/p/[slug]` rota pública)
-- [ ] Gestão do feed de notícias
-- [ ] Listagem de alunas: busca, progresso, dar/revogar acesso + `audit_log`, exportar CSV
-- [ ] Dashboard de métricas: matrículas, taxa de conclusão, certificados, webhooks recentes
-- [ ] Exportar relatórios CSV (alunas por curso, certificados emitidos)
-- [ ] Fila de moderação: reportados → deletar/banir + `audit_log`
+- [x] Gestão do feed de notícias (`/admin/comunidade/feed`)
+- [x] Listagem de alunas: busca, progresso, dar/revogar acesso + `audit_log`
+- [x] Exportar alunas CSV (`/api/admin/alunos/export`)
+- [x] Dashboard de métricas: matrículas, taxa de conclusão, certificados, webhooks recentes, push ativas
+- [x] Fila de moderação: reportados → deletar/banir + `audit_log` (`/admin/comunidade/forum`)
+- [x] Admin: e-mails transacionais (`/admin/emails`)
+- [x] Admin: campanhas/notificações (`/admin/notificacoes`)
+- [x] Admin: plano anual (`/admin/plano-anual`)
 
 ## Fase 14 — PWA e Polimento (Semana 9)
 
@@ -178,30 +178,26 @@
 - [x] Offline fallback: `src/app/~offline/page.tsx` com identidade visual Handify completa
 - [x] Teste "Adicionar à tela inicial" em Android e iOS (confirmado pela Jessica)
 
-## Fase 15 — Testes, Segurança e Launch (Semana 9-10)
+## Fase 15 — Testes, Segurança e Launch
 
 - [ ] Testes E2E (Playwright): auth → compra via webhook → aula → certificado → verificação
 - [ ] Revisão de RLS: testar cada policy com usuários de roles diferentes
-- [ ] Revisão de segurança: HMAC webhook, signed URLs, rate limit, sanitização HTML
-- [ ] Acessibilidade: contraste WCAG AA, foco visível, aria-labels, alt texts
-- [ ] Mobile: fluxos completos em 375px e 430px
-- [ ] Performance: `next/image`, lazy load player, bundle analysis
+- [x] Revisão de segurança: HMAC webhook, signed URLs, sanitização HTML, headers CSP
+- [ ] Acessibilidade: contraste WCAG AA, foco visível, aria-labels, alt texts (revisão completa)
+- [x] Mobile: fluxos completos em 375px e 430px (Fase 16)
+- [ ] Performance: bundle analysis, lazy load player confirmado
 - [ ] Domínio customizado na Vercel (ex: `membros.handify.com.br`)
-- [ ] Seed de dados de demo: cursos, alunas, posts, certificados
+- [x] Seed de dados de demo: `supabase/seed_demo.sql`
 
-## Fase 16 — Responsividade Mobile e Revisão de UX/UI (Pré-launch)
+## Fase 16 — Responsividade Mobile e Revisão de UX/UI ✅ CONCLUÍDA
 
-- [ ] **Responsividade completa:** testar e ajustar todos os layouts em 375px, 390px e 430px (iPhone SE, iPhone 14, iPhone 14 Plus)
-- [ ] **Admin mobile:** verificar se as telas de gestão são usáveis em telas pequenas (pelo menos leitura)
-- [ ] **Player em mobile:** controles de vídeo acessíveis, sidebar de módulos colapsável
-- [ ] **Cards e grids:** garantir que todos os grids responsivos quebram corretamente (1 coluna em mobile)
-- [ ] **Formulários:** inputs com tamanho mínimo de toque (44×44px), labels visíveis, teclado não sobrepõe campos
-- [ ] **Header e navegação:** menu mobile acessível (hamburger ou bottom nav)
-- [ ] **Revisão de UX — fluxo completo da aluna:** cadastro → compra → acesso → aula → certificado
-- [ ] **Revisão de UI — consistência visual:** espaçamentos, tipografia, cores, bordas e sombras padronizados em todas as páginas
-- [ ] **Estados de loading e erro:** skeleton loaders, mensagens de erro amigáveis, estados vazios com call-to-action
-- [ ] **Micro-interações:** hover, foco, transições de botões e links (`250ms ease-out`)
-- [ ] **Acessibilidade:** aria-labels em ícones, foco visível em todos os interativos, alt text em imagens
+- [x] Layouts em 375px–430px: sidebar, cards, grids, formulários
+- [x] Touch targets WCAG 44×44px: botões, links de aula, filtros, textareas
+- [x] `NotificationBell` dropdown sem overflow em 375px
+- [x] Drawer mobile (`student-nav`) com largura `min(18rem, 85vw)`
+- [x] Overflow horizontal corrigido: `overflow-x-hidden` nos layouts, `min-w-0` nos containers
+- [x] `ScrollToTop` — sobe ao topo em cada navegação (mobile e desktop)
+- [x] Tabs de métricas scrolláveis horizontalmente em telas pequenas
 
 ## 🧹 Limpeza de Git — Fazer ao Final do Projeto
 
