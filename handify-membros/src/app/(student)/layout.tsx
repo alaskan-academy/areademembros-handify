@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import PushPromptBanner from "@/components/pwa/PushPromptBanner";
+import BackButtonGuard from "@/components/pwa/BackButtonGuard";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import StudentHeader from "@/components/student-header";
@@ -108,6 +109,7 @@ export default async function StudentLayout({
         <TermsAcceptanceBanner />
       )}
       {user && <PushPromptBanner />}
+      <BackButtonGuard />
       <UpdatePrompt />
       <InstallPrompt />
     </div>
