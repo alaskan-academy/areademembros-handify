@@ -63,6 +63,24 @@ O modal que abre ao clicar num curso na listagem **sempre** deve exibir para qua
 
 **Nunca reverter para `createClient` nestas queries** sem também revisar as policies RLS de `lessons`.
 
+## Fluxo de recuperação de senha — decisões técnicas (jun/2026)
+
+### Problema resolvido: PWA mobile ia para login em vez de /nova-senha
+
+**Causa raiz:** `{{ .ConfirmationURL }}` no template do Supabase aponta para `supabase.co/auth/v1/verify?...` que redireciona para o app. Esse salto entre domínios faz o Android perder o contexto do PWA — a sessão não chegava corretamente ao callback.
+
+**Solução:** Template de e-mail usa `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery` diretamente, eliminando o redirect intermediário do Supabase. O link já vai direto para `membros.handify.com.br`, o PWA intercepta sem ambiguidade.
+
+### Callback `/auth/callback/route.ts` — regras críticas
+
+- **Nunca usar `createClient()` do `next/headers`** neste route handler. Cookies setados via `cookieStore` do `next/headers` não chegam ao `NextResponse.redirect()` retornado (são dois objetos diferentes). Usar `createServerClient` com `setAll` apontando direto para o `NextResponse`.
+- Suporta dois flows: `code` (PKCE via `exchangeCodeForSession`) e `token_hash` (OTP via `verifyOtp`).
+- `type === "recovery"` → sempre redireciona para `/nova-senha`, independente do param `next` (Supabase não preserva query params do `redirectTo` no flow OTP).
+
+### Template de e-mail no Supabase Dashboard
+
+Configurado em **Authentication → Email Templates → Reset Password**. Usar `{{ .TokenHash }}` e `{{ .SiteURL }}` — nunca `{{ .ConfirmationURL }}` para recuperação de senha.
+
 ## Convenções
 
 - TypeScript strict — sem `any` explícito
