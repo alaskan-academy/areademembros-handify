@@ -16,9 +16,10 @@ interface CursosGridProps {
   categories: CatalogCategory[];
   isLoggedIn: boolean;
   headerBanner?: React.ReactNode;
+  tipo?: string;
 }
 
-export default function CursosGrid({ courses, categories, isLoggedIn, headerBanner }: CursosGridProps) {
+export default function CursosGrid({ courses, categories, isLoggedIn, headerBanner, tipo }: CursosGridProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selected, setSelected] = useState<CatalogCourse | null>(null);
   useModalBackGuard(!!selected, () => setSelected(null));
@@ -31,11 +32,9 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
   const exploreCourses = filtered.filter((c) => !c.isEnrolled && c.course_type === "course");
   const exploreMaterials = filtered.filter((c) => !c.isEnrolled && c.course_type === "material");
 
-  const hasAny = filtered.length > 0;
-
-  return (
+  // Filtros de categoria (shared entre modo grade e modo rows)
+  const CategoryFilters = (
     <>
-      {/* Filtro por categoria */}
       {categories.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">
           <button
@@ -65,6 +64,75 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
           ))}
         </div>
       )}
+    </>
+  );
+
+  // Modo grade completa (ver mais)
+  if (tipo === "curso" || tipo === "material") {
+    const gridItems = tipo === "curso" ? exploreCourses : exploreMaterials;
+    const gridTitle = tipo === "curso" ? "Todos os Cursos" : "Todos os Materiais Didáticos";
+    const gridIcon = tipo === "curso"
+      ? <Play className="w-5 h-5 text-[#6699F3]" />
+      : <BookOpen className="w-5 h-5 text-amber-600" />;
+
+    return (
+      <>
+        {/* Navegação de volta */}
+        <div className="mb-6">
+          <Link
+            href="/cursos"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Voltar
+          </Link>
+        </div>
+
+        {/* Cabeçalho da grade */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-1 h-7 rounded-full bg-[#6699F3]" aria-hidden />
+          <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            {gridIcon}
+            {gridTitle}
+          </h2>
+          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {gridItems.length}
+          </span>
+        </div>
+
+        {CategoryFilters}
+
+        {gridItems.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {gridItems.map((course) => (
+              <CourseCard key={course.id} course={course} onClick={() => setSelected(course)} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-24 space-y-3">
+            <p className="text-2xl">🎨</p>
+            <p className="font-semibold text-lg">Nenhum item nesta categoria</p>
+            <p className="text-muted-foreground">Novos conteúdos chegando em breve!</p>
+          </div>
+        )}
+
+        {selected && (
+          <CourseModal
+            course={selected}
+            isLoggedIn={isLoggedIn}
+            onClose={() => setSelected(null)}
+          />
+        )}
+      </>
+    );
+  }
+
+  // Modo padrão: linhas horizontais por seção
+  const hasAny = filtered.length > 0;
+
+  return (
+    <>
+      {CategoryFilters}
 
       {/* Meus cursos */}
       <HorizontalRow
@@ -77,12 +145,14 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
       {/* Banner condicional (entre seções) */}
       {headerBanner && <div className="mb-8">{headerBanner}</div>}
 
-      {/* Cursos */}
+      {/* Cursos — seção com destaque */}
       <HorizontalRow
         title="Cursos"
         icon={<Play className="w-4 h-4 text-[#6699F3]" />}
         courses={exploreCourses}
         onSelect={setSelected}
+        featured
+        verMaisHref="/cursos?tipo=curso"
       />
 
       {/* Materiais Didáticos */}
@@ -91,6 +161,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
         icon={<BookOpen className="w-4 h-4 text-amber-600" />}
         courses={exploreMaterials}
         onSelect={setSelected}
+        verMaisHref="/cursos?tipo=material"
       />
 
       {!hasAny && (
@@ -119,11 +190,15 @@ function HorizontalRow({
   icon,
   courses,
   onSelect,
+  featured = false,
+  verMaisHref,
 }: {
   title: string;
   icon: React.ReactNode;
   courses: CatalogCourse[];
   onSelect: (c: CatalogCourse) => void;
+  featured?: boolean;
+  verMaisHref?: string;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -141,31 +216,47 @@ function HorizontalRow({
       {/* Cabeçalho da seção */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-1 h-6 rounded-full bg-[#6699F3]" aria-hidden />
-          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+          {featured && <div className="w-1 h-6 rounded-full bg-[#6699F3]" aria-hidden />}
+          <h2 className={cn(
+            "flex items-center gap-2",
+            featured ? "text-lg sm:text-xl font-bold" : "text-base font-semibold text-foreground/80"
+          )}>
             {icon}
             {title}
           </h2>
-          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-            {courses.length}
-          </span>
+          {featured && (
+            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {courses.length}
+            </span>
+          )}
         </div>
-        {/* Setas de navegação — visíveis só em desktop */}
-        <div className="hidden sm:flex gap-1">
-          <button
-            onClick={() => scroll("left")}
-            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
-            aria-label="Rolar para esquerda"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => scroll("right")}
-            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
-            aria-label="Rolar para direita"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+        <div className="flex items-center gap-2">
+          {/* Ver mais */}
+          {verMaisHref && (
+            <Link
+              href={verMaisHref}
+              className="text-xs font-medium text-[#6699F3] hover:underline shrink-0"
+            >
+              Ver mais
+            </Link>
+          )}
+          {/* Setas de navegação — visíveis só em desktop */}
+          <div className="hidden sm:flex gap-1">
+            <button
+              onClick={() => scroll("left")}
+              className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+              aria-label="Rolar para esquerda"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => scroll("right")}
+              className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+              aria-label="Rolar para direita"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

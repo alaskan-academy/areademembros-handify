@@ -47,7 +47,12 @@ export type CatalogCourse = {
 
 export type CatalogCategory = { id: string; name: string; slug: string };
 
-export default async function CursosPage() {
+export default async function CursosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
+  const { tipo } = await searchParams;
   const supabase = await createClient();
   const service = createServiceClient();
 
@@ -271,6 +276,7 @@ export default async function CursosPage() {
           categories={categories}
           isLoggedIn={!!user}
           headerBanner={<BannerDisplay slot="header" />}
+          tipo={tipo}
         />
       </div>
     </div>
