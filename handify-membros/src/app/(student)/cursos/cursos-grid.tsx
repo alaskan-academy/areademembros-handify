@@ -168,7 +168,7 @@ function HorizontalRow({
         className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
       >
         {courses.map((course) => (
-          <div key={course.id} className="shrink-0 w-44 sm:w-56">
+          <div key={course.id} className="shrink-0 w-[200px] sm:w-[260px]">
             <CourseCard course={course} onClick={() => onSelect(course)} />
           </div>
         ))}
@@ -248,20 +248,23 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
         </span>
       </div>
 
-      {/* Info */}
-      <div className="p-3 space-y-1.5">
-        {course.categoryName && (
-          <p className="text-[10px] font-medium text-[#6699F3] uppercase tracking-wide line-clamp-1">
-            {course.categoryName}
-          </p>
-        )}
-        <h3 className="font-bold text-xs leading-snug line-clamp-2 group-hover:text-[#6699F3] transition-colors">
-          {course.title}
-        </h3>
+      {/* Info — altura fixa para padronizar todos os cards */}
+      <div className="p-3 h-[108px] flex flex-col justify-between overflow-hidden">
+        {/* Topo: categoria + título */}
+        <div className="min-h-0">
+          {course.categoryName && (
+            <p className="text-[10px] font-medium text-[#6699F3] uppercase tracking-wide line-clamp-1 mb-1">
+              {course.categoryName}
+            </p>
+          )}
+          <h3 className="font-bold text-xs leading-snug line-clamp-2 group-hover:text-[#6699F3] transition-colors">
+            {course.title}
+          </h3>
+        </div>
 
-        {/* Progresso ou preço */}
+        {/* Rodapé: progresso ou preço */}
         {course.isEnrolled && course.progress && course.progress.total > 0 ? (
-          <div className="space-y-1 pt-0.5">
+          <div className="space-y-1">
             <div className="flex justify-between items-center text-[10px] text-muted-foreground">
               <span>{course.progress.completed}/{course.progress.total} aulas</span>
               <span className="font-semibold" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
@@ -282,7 +285,7 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-between pt-0.5">
+          <div className="flex items-center justify-between">
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Clock className="w-3 h-3" />
               {course.workload_hours}h
