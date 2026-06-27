@@ -137,25 +137,31 @@ function HorizontalRow({
   if (!courses.length) return null;
 
   return (
-    <section className="mb-10">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-bold flex items-center gap-2">
-          {icon}
-          {title}
-          <span className="text-xs font-normal text-muted-foreground">({courses.length})</span>
-        </h2>
+    <section className="mb-12">
+      {/* Cabeçalho da seção */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-6 rounded-full bg-[#6699F3]" aria-hidden />
+          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+            {icon}
+            {title}
+          </h2>
+          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            {courses.length}
+          </span>
+        </div>
         {/* Setas de navegação — visíveis só em desktop */}
         <div className="hidden sm:flex gap-1">
           <button
             onClick={() => scroll("left")}
-            className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
             aria-label="Rolar para esquerda"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={() => scroll("right")}
-            className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
             aria-label="Rolar para direita"
           >
             <ChevronRight className="w-4 h-4" />
@@ -165,14 +171,13 @@ function HorizontalRow({
 
       <div
         ref={rowRef}
-        className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
+        className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
       >
         {courses.map((course) => (
-          <div key={course.id} className="shrink-0 w-[240px] sm:w-[300px]">
+          <div key={course.id} className="shrink-0 w-[260px] sm:w-[320px]">
             <CourseCard course={course} onClick={() => onSelect(course)} />
           </div>
         ))}
-        {/* Espaço no final para o último card não ficar colado na borda */}
         <div className="shrink-0 w-2" aria-hidden />
       </div>
     </section>
@@ -249,7 +254,7 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
       </div>
 
       {/* Info — altura fixa para padronizar todos os cards */}
-      <div className="p-3 h-[108px] flex flex-col justify-between overflow-hidden">
+      <div className="p-4 h-[120px] flex flex-col justify-between overflow-hidden">
         {/* Topo: categoria + título */}
         <div className="min-h-0">
           {course.categoryName && (
@@ -257,7 +262,7 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
               {course.categoryName}
             </p>
           )}
-          <h3 className="font-bold text-xs leading-snug line-clamp-2 group-hover:text-[#6699F3] transition-colors">
+          <h3 className="font-bold text-sm leading-snug line-clamp-2 group-hover:text-[#6699F3] transition-colors">
             {course.title}
           </h3>
         </div>
