@@ -37,7 +37,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
     <>
       {/* Filtro por categoria */}
       {categories.length > 0 && (
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex flex-wrap gap-2 mb-8">
           <button
             onClick={() => setActiveCategory(null)}
             className={cn(
@@ -168,7 +168,7 @@ function HorizontalRow({
         className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
       >
         {courses.map((course) => (
-          <div key={course.id} className="shrink-0 w-[200px] sm:w-[260px]">
+          <div key={course.id} className="shrink-0 w-[240px] sm:w-[300px]">
             <CourseCard course={course} onClick={() => onSelect(course)} />
           </div>
         ))}
