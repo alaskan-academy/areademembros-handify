@@ -152,6 +152,8 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
         courses={exploreCourses}
         onSelect={setSelected}
         featured
+        elevated
+        subtitle="Aprenda com as melhores professoras de artesanato"
         verMaisHref="/cursos?tipo=curso"
       />
 
@@ -191,6 +193,8 @@ function HorizontalRow({
   courses,
   onSelect,
   featured = false,
+  elevated = false,
+  subtitle,
   verMaisHref,
 }: {
   title: string;
@@ -198,6 +202,8 @@ function HorizontalRow({
   courses: CatalogCourse[];
   onSelect: (c: CatalogCourse) => void;
   featured?: boolean;
+  elevated?: boolean;
+  subtitle?: string;
   verMaisHref?: string;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -211,66 +217,95 @@ function HorizontalRow({
 
   if (!courses.length) return null;
 
-  return (
-    <section className="mb-12">
-      {/* Cabeçalho da seção */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          {featured && <div className="w-1 h-6 rounded-full bg-[#6699F3]" aria-hidden />}
+  const header = (
+    <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center gap-3">
+        {featured && !elevated && <div className="w-1 h-6 rounded-full bg-[#6699F3]" aria-hidden />}
+        <div>
           <h2 className={cn(
             "flex items-center gap-2",
             featured ? "text-lg sm:text-xl font-bold" : "text-base font-semibold text-foreground/80"
           )}>
             {icon}
             {title}
+            {featured && (
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                {courses.length}
+              </span>
+            )}
           </h2>
-          {featured && (
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-              {courses.length}
-            </span>
+          {subtitle && (
+            <p className="text-xs text-muted-foreground mt-0.5 ml-6">{subtitle}</p>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Ver mais */}
-          {verMaisHref && (
-            <Link
-              href={verMaisHref}
-              className="text-xs font-medium text-[#6699F3] hover:underline shrink-0"
-            >
-              Ver mais
-            </Link>
-          )}
-          {/* Setas de navegação — visíveis só em desktop */}
-          <div className="hidden sm:flex gap-1">
-            <button
-              onClick={() => scroll("left")}
-              className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
-              aria-label="Rolar para esquerda"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => scroll("right")}
-              className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
-              aria-label="Rolar para direita"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       </div>
+      <div className="flex items-center gap-2">
+        {verMaisHref && (
+          <Link
+            href={verMaisHref}
+            className="flex items-center gap-0.5 text-xs font-medium text-[#6699F3] hover:underline shrink-0"
+          >
+            Ver mais
+            <ChevronRight className="w-3 h-3" />
+          </Link>
+        )}
+        <div className="hidden sm:flex gap-1">
+          <button
+            onClick={() => scroll("left")}
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+            aria-label="Rolar para esquerda"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => scroll("right")}
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:border-[#6699F3] hover:text-[#6699F3] transition-colors"
+            aria-label="Rolar para direita"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
-      <div
-        ref={rowRef}
-        className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
-      >
-        {courses.map((course) => (
-          <div key={course.id} className="shrink-0 w-[260px] sm:w-[320px]">
-            <CourseCard course={course} onClick={() => onSelect(course)} />
+  const scrollRow = (
+    <div
+      ref={rowRef}
+      className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
+    >
+      {courses.map((course) => (
+        <div key={course.id} className="shrink-0 w-[260px] sm:w-[320px]">
+          <CourseCard course={course} onClick={() => onSelect(course)} />
+        </div>
+      ))}
+      <div className="shrink-0 w-2" aria-hidden />
+    </div>
+  );
+
+  if (elevated) {
+    return (
+      <section className="mb-12">
+        <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+          {/* Faixa tricolor */}
+          <div className="flex h-[3px]">
+            <span className="flex-1 bg-[#6699F3]" />
+            <span className="flex-1 bg-[#72CF92]" />
+            <span className="flex-1 bg-[#FEC649]" />
           </div>
-        ))}
-        <div className="shrink-0 w-2" aria-hidden />
-      </div>
+          <div className="px-5 pt-5 pb-4">
+            {header}
+            {scrollRow}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-12">
+      {header}
+      {scrollRow}
     </section>
   );
 }
