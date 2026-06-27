@@ -153,7 +153,6 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
         onSelect={setSelected}
         featured
         elevated
-        subtitle="Aprenda com as melhores professoras de artesanato"
         verMaisHref="/cursos?tipo=curso"
       />
 
