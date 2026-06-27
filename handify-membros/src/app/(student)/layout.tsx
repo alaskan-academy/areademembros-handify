@@ -76,7 +76,7 @@ export default async function StudentLayout({
   // Rotas públicas (/cursos) usam CatalogHeader quando não autenticadas.
   // Cada page gerencia sua própria centralização para evitar cache parcial do RSC.
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
       <ScrollToTop />
       {user ? (
         <StudentHeader
@@ -100,7 +100,7 @@ export default async function StudentLayout({
             fullName={profile?.full_name ?? ""}
           />
         )}
-        <main className="flex-1 min-w-0 pb-20 landscape:pb-0 md:pb-0">{children}</main>
+        <main className="flex-1 min-w-0 overflow-x-hidden pb-20 landscape:pb-0 md:pb-0">{children}</main>
       </div>
       <footer className="hidden md:block py-3 text-center text-xs text-muted-foreground border-t border-border/30 bg-white">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
