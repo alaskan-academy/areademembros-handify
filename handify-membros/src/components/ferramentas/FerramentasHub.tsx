@@ -20,6 +20,12 @@ const TABS: Tab[] = [
         icon: '🧮',
       },
       {
+        name: 'Calculadora de Essências',
+        desc: 'Descubra exatamente quanto de essência ou óleo essencial adicionar na sua receita — resultado em mL, gramas e gotas.',
+        href: '/ferramentas/calculadora-essencias/sabonetes',
+        icon: '🧴',
+      },
+      {
         name: 'Calculadora de Receita',
         desc: 'Escale sua receita para diferentes tamanhos de lote automaticamente.',
         href: '#',
@@ -38,6 +44,12 @@ const TABS: Tab[] = [
         desc: 'Calcule o custo real de cada vela e descubra o preço ideal de venda — incluindo mão de obra, embalagem e impostos.',
         href: '/ferramentas/calculadora-lucro/velas',
         icon: '🧮',
+      },
+      {
+        name: 'Calculadora de Essências',
+        desc: 'Descubra exatamente quanto de essência ou óleo essencial usar na sua cera — resultado em mL, gramas e gotas.',
+        href: '/ferramentas/calculadora-essencias/velas',
+        icon: '🧴',
       },
       {
         name: 'Calculadora de Receita',
