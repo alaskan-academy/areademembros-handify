@@ -182,8 +182,14 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
         </div>
 
         {/* ── PASSO 2: TIPO DE ESSÊNCIA ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-6 transition-opacity ${
+          totalLote > 0 ? 'opacity-100' : 'opacity-40 pointer-events-none'
+        }`}>
           <StepBadge n={2} label="Qual tipo de essência você vai usar?" />
+
+          {!totalLote && (
+            <p className="text-sm text-gray-400 -mt-2 mb-4">← Preencha o lote no passo 1 para continuar.</p>
+          )}
 
           {/* Alerta compacto — texto específico por produto */}
           {config.tipoAlerta === 'hidro' ? (
