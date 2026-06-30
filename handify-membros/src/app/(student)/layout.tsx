@@ -6,14 +6,14 @@ import PushPromptBanner from "@/components/pwa/PushPromptBanner";
 import BackButtonGuard from "@/components/pwa/BackButtonGuard";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import StudentHeader from "@/components/StudentHeader";
-import StudentNav from "@/components/StudentNav";
-import CatalogHeader from "@/components/CatalogHeader";
-import TermsAcceptanceBanner from "@/components/TermsAcceptanceBanner";
-import ScrollToTop from "@/components/ScrollToTop";
+import StudentHeader from "@/components/layout/StudentHeader";
+import StudentNav from "@/components/layout/StudentNav";
+import CatalogHeader from "@/components/layout/CatalogHeader";
+import TermsAcceptanceBanner from "@/components/common/TermsAcceptanceBanner";
+import ScrollToTop from "@/components/layout/ScrollToTop";
 import { getUnreadCount, getNotifications } from "@/lib/notifications/actions";
 import type { Role } from "@/types";
-import type { NavItem } from "@/components/StudentHeader";
+import type { NavItem } from "@/components/layout/StudentHeader";
 import type { AnnualPromoData } from "@/components/promo/AnnualPromoModal";
 
 // Rotas dentro de (student) acessíveis sem login

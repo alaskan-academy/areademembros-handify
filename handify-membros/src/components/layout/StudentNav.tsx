@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
-import type { NavItem } from "@/components/StudentHeader";
+import type { NavItem } from "@/components/layout/StudentHeader";
 import type { Role } from "@/types";
 
 const ICON_MAP: Record<string, LucideIcon> = {
