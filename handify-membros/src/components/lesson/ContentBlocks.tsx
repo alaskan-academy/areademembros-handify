@@ -4,9 +4,9 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { FileText, Code, Globe, Download } from "lucide-react";
 
-const HtmlBlock = dynamic(() => import("./html-block"), { ssr: false });
-const EmbedBlock = dynamic(() => import("./embed-block"), { ssr: false });
-const PandaPlayer = dynamic(() => import("@/components/player/panda-player"), { ssr: false });
+const HtmlBlock = dynamic(() => import("./HtmlBlock"), { ssr: false });
+const EmbedBlock = dynamic(() => import("./EmbedBlock"), { ssr: false });
+const PandaPlayer = dynamic(() => import("@/components/player/PandaPlayer"), { ssr: false });
 
 export type BlockType = "text" | "html" | "embed" | "download" | "video";
 

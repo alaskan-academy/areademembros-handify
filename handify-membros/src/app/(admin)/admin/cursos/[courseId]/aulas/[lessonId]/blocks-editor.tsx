@@ -6,7 +6,7 @@ import { Plus, Trash2, ChevronUp, ChevronDown, Save, Info } from "lucide-react";
 import { upsertBlock, deleteBlock, reorderBlocks } from "./actions";
 
 const RichTextEditor = dynamic(
-  () => import("@/components/editor/rich-text-editor"),
+  () => import("@/components/editor/RichTextEditor"),
   { ssr: false, loading: () => <div className="h-40 bg-muted animate-pulse rounded-lg" /> }
 );
 

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { formatPrice, formatDuration } from "@/lib/format";
 import CursosGrid from "./cursos-grid";
-import BannerDisplay from "@/components/banner/banner-display";
+import BannerDisplay from "@/components/banner/BannerDisplay";
 
 export const revalidate = 60;
 

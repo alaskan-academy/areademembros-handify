@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { getLessonAccess, getMaterialSignedUrl } from "@/app/(student)/aulas/actions";
-import PandaPlayer from "@/components/player/panda-player";
-import LessonCompleteButton from "@/components/player/lesson-complete-button";
-import ContentBlocks, { type ContentBlock, type LessonMaterial, type VideoPlayerProps } from "@/components/lesson/content-blocks";
+import PandaPlayer from "@/components/player/PandaPlayer";
+import LessonCompleteButton from "@/components/player/LessonCompleteButton";
+import ContentBlocks, { type ContentBlock, type LessonMaterial, type VideoPlayerProps } from "@/components/lesson/ContentBlocks";
 import Link from "next/link";
 import { Lock, ChevronLeft } from "lucide-react";
-import NextLessonButton from "@/components/player/next-lesson-button";
-import BannerDisplay from "@/components/banner/banner-display";
+import NextLessonButton from "@/components/player/NextLessonButton";
+import BannerDisplay from "@/components/banner/BannerDisplay";
 import { LessonSidebarMobile, LessonSidebarDesktop } from "@/components/lesson/LessonSidebar";
 
 type CourseRef = { id: string; title: string; slug: string };
