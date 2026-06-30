@@ -11,10 +11,12 @@ export type EssenciasConfig = {
   icon: string
   nome: string
   nomeSingular: string
+  quantos: string          // "Quantos" | "Quantas" (concordância de gênero)
   pesoLabel: string
   pesoPlaceholder: string
   pesoTooltip: string
   tipoAlerta: 'hidro' | 'lipo'
+  alertaLabel: string      // texto específico do produto no banner de alerta
   dicaAdicionar: string
   rates: {
     essencia: Record<'suave' | 'moderado' | 'intenso', number>
@@ -138,13 +140,13 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <StepBadge n={1} label="Seu Lote" />
           <p className="text-sm text-gray-500 mb-5">
-            Quantos {config.nomeSingular}s você vai fazer e qual o peso de cada um.
+            {config.quantos} {config.nomeSingular}s você vai fazer e qual o peso de cada um.
           </p>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-1 text-gray-700">Unidades no lote</label>
-              <p className="text-xs text-gray-400 mb-2">Quantos {config.nomeSingular}s você vai produzir agora.</p>
+              <p className="text-xs text-gray-400 mb-2">{config.quantos} {config.nomeSingular}s você vai produzir agora.</p>
               <input
                 type="number"
                 min={1}
@@ -183,16 +185,16 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <StepBadge n={2} label="Qual tipo de essência você vai usar?" />
 
-          {/* Alerta compacto integrado */}
+          {/* Alerta compacto — texto específico por produto */}
           {config.tipoAlerta === 'hidro' ? (
             <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-5 text-sm">
-              <span>💧</span>
-              <span className="text-blue-800">Para base glicerinada, use <strong>Hidrossolúvel</strong></span>
+              <span className="shrink-0">💧</span>
+              <span className="text-blue-800">{config.alertaLabel}, use <strong>Hidrossolúvel</strong></span>
             </div>
           ) : (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-5 text-sm">
-              <span>🫒</span>
-              <span className="text-amber-800">Para velas, use <strong>Lipossolúvel</strong></span>
+              <span className="shrink-0">🫒</span>
+              <span className="text-amber-800">{config.alertaLabel}, use <strong>Lipossolúvel</strong></span>
             </div>
           )}
 
