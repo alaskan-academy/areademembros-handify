@@ -23,7 +23,7 @@ const TABS: Tab[] = [
         name: 'Calculadora de Essências',
         desc: 'Descubra exatamente quanto de essência ou óleo essencial adicionar na sua receita — resultado em mL, gramas e gotas.',
         href: '/ferramentas/calculadora-essencias/sabonetes',
-        icon: '🧴',
+        icon: '🧼',
       },
       {
         name: 'Calculadora de Receita',
@@ -49,7 +49,7 @@ const TABS: Tab[] = [
         name: 'Calculadora de Essências',
         desc: 'Descubra exatamente quanto de essência ou óleo essencial usar na sua cera — resultado em mL, gramas e gotas.',
         href: '/ferramentas/calculadora-essencias/velas',
-        icon: '🧴',
+        icon: '🕯️',
       },
       {
         name: 'Calculadora de Receita',

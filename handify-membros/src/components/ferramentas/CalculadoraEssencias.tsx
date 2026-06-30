@@ -126,7 +126,7 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
           <Link href="/ferramentas" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white mb-4 transition-colors">
             <ChevronLeft className="w-3 h-3" />Ferramentas
           </Link>
-          <div className="text-3xl mb-2">🧴</div>
+          <div className="text-3xl mb-2">{config.icon}</div>
           <h1 className="text-2xl font-black">Calculadora de <span className="text-[#72CF92]">Essências</span></h1>
           <p className="text-sm text-gray-400 mt-2">
             {config.nome} — preencha os 3 passos e veja o resultado instantaneamente.
