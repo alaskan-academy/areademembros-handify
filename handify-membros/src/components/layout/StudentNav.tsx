@@ -66,10 +66,21 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
   return (
     <>
       {/* ── Desktop sidebar ────────────────────────────── */}
+
+      {/* Espaçador: mantém o flex layout (empurra o <main>) sem bloquear sticky */}
+      <div
+        aria-hidden
+        className={cn(
+          "hidden md:block shrink-0 transition-[width] duration-200 ease-in-out",
+          collapsed ? "w-16" : "w-60"
+        )}
+      />
+
+      {/* Sidebar fixo — nunca rola com a página */}
       <aside
         className={cn(
           "hidden md:flex flex-col shrink-0 bg-white border-r border-border/60 z-30",
-          "sticky top-[61px] self-start h-[calc(100vh-61px)] overflow-hidden",
+          "fixed top-[61px] left-0 h-[calc(100vh-61px)] overflow-hidden",
           "transition-[width] duration-200 ease-in-out",
           collapsed ? "w-16" : "w-60"
         )}

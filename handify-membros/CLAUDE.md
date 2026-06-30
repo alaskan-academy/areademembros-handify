@@ -35,6 +35,18 @@ Labels de status, aria-labels e UI strings genéricas podem ser constantes no c�
 **Pendente de implementar (itens hardcoded identificados):**
 - `src/app/(student)/cursos/page.tsx` — texto do Hero hardcoded; deveria vir de `static_pages` ou `site_config`
 
+## Sidebar desktop — regra não-negociável
+
+**`position: fixed` — NUNCA usar `sticky` no sidebar desktop.**
+
+`sticky + self-start` em flex container não funciona de forma confiável: o sidebar rola com a página em vez de ficar fixo. Fix aplicado em jun/2026.
+
+Padrão atual em `src/components/layout/StudentNav.tsx`:
+- `<div aria-hidden>` espaçador no fluxo flex (empurra o `<main>`, sem bloquear posicionamento)
+- `<aside class="fixed top-[61px] left-0 h-[calc(100vh-61px)]">` sempre fixo na viewport
+
+**Nunca reverter para `sticky` ou remover o espaçador** — o sidebar voltará a rolar com a página.
+
 ## Página de aula — padrões visuais (jun/2026)
 
 ### Download de materiais (`src/components/lesson/content-blocks.tsx` — `DownloadBlock`)
