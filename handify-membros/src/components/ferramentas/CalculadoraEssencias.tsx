@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ChevronDown } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,12 +25,69 @@ export type EssenciasConfig = {
 type TipoEssencia = 'essencia' | 'oleo' | null
 type Intensidade = 'suave' | 'moderado' | 'intenso' | 'custom'
 
-// Densidades aproximadas (g/mL)
 const DENSIDADE: Record<'essencia' | 'oleo', number> = { essencia: 1.0, oleo: 0.9 }
-// Gotas por mL (conta-gotas padrão)
 const GOTAS_POR_ML = 20
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function StepBadge({ n, label }: { n: number; label: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-4">
+      <span className="w-7 h-7 rounded-full bg-[#6699F3] text-white text-xs font-black flex items-center justify-center shrink-0">
+        {n}
+      </span>
+      <span className="font-black text-[#2D2D2D] text-base">{label}</span>
+    </div>
+  )
+}
+
+function EduAccordion({ tipoAlerta }: { tipoAlerta: 'hidro' | 'lipo' }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="mt-4 border border-gray-200 rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <span>📚</span> Entender a diferença: Hidrossolúvel vs Lipossolúvel
+        </span>
+        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 bg-gray-50/50 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div className={`rounded-xl border-2 p-3 ${tipoAlerta === 'hidro' ? 'border-blue-200 bg-blue-50/60' : 'border-gray-200 bg-white'}`}>
+              <div className="flex items-center gap-1.5 font-bold text-sm text-blue-700 mb-1.5">
+                <span>💧</span>Hidrossolúvel
+              </div>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Solúvel em água. Se mistura com bases aquosas como a glicerina. Fica transparente sem manchas.
+              </p>
+              <div className="mt-2 text-[11px] font-semibold text-blue-700">✅ Ideal para sabonetes de glicerina</div>
+            </div>
+            <div className={`rounded-xl border-2 p-3 ${tipoAlerta === 'lipo' ? 'border-amber-200 bg-amber-50/60' : 'border-gray-200 bg-white'}`}>
+              <div className="flex items-center gap-1.5 font-bold text-sm text-amber-700 mb-1.5">
+                <span>🫒</span>Lipossolúvel
+              </div>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Solúvel em gordura. Se mistura com ceras, manteigas e óleos. Obrigatório em velas — cera repele água.
+              </p>
+              <div className="mt-2 text-[11px] font-semibold text-amber-700">✅ Obrigatório para velas artesanais</div>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+            <span className="shrink-0">⚠️</span>
+            <span>Usar o tipo errado pode fazer o aroma não incorporar ou <strong>criar risco de segurança em velas</strong>. Confirme na embalagem antes de comprar.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function CalculadoraEssencias({ config }: { config: EssenciasConfig }) {
   const [unidades, setUnidades] = useState('')
@@ -53,7 +110,8 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
 
   const showResult = totalLote > 0 && tipoEssencia !== null && percentual > 0
 
-  const inputCls = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#6699F3] focus:ring-2 focus:ring-[#6699F3]/20 bg-white'
+  const inputCls =
+    'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#6699F3] focus:ring-2 focus:ring-[#6699F3]/20 bg-white'
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -68,32 +126,46 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
           </Link>
           <div className="text-3xl mb-2">🧴</div>
           <h1 className="text-2xl font-black">Calculadora de <span className="text-[#72CF92]">Essências</span></h1>
-          <p className="text-sm text-gray-400 mt-2">{config.nome} — descubra exatamente quanto de essência adicionar na sua receita.</p>
+          <p className="text-sm text-gray-400 mt-2">
+            {config.nome} — preencha os 3 passos e veja o resultado instantaneamente.
+          </p>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
 
-        {/* ── 1. SEU LOTE ── */}
+        {/* ── PASSO 1: SEU LOTE ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center gap-2 font-bold text-lg mb-1">
-            <span>{config.icon}</span>Seu Lote
-          </div>
+          <StepBadge n={1} label="Seu Lote" />
           <p className="text-sm text-gray-500 mb-5">
-            Informe quantos {config.nomeSingular}s você vai fazer e o peso de cada um — o resultado aparece automaticamente.
+            Quantos {config.nomeSingular}s você vai fazer e qual o peso de cada um.
           </p>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold mb-1 text-gray-700">Quantas unidades no lote?</label>
-              <p className="text-xs text-gray-400 mb-2">Total de {config.nomeSingular}s que você vai produzir agora.</p>
-              <input type="number" min={1} placeholder="Ex: 20" className={inputCls} value={unidades} onChange={e => setUnidades(e.target.value)} />
+              <label className="block text-sm font-semibold mb-1 text-gray-700">Unidades no lote</label>
+              <p className="text-xs text-gray-400 mb-2">Quantos {config.nomeSingular}s você vai produzir agora.</p>
+              <input
+                type="number"
+                min={1}
+                placeholder="Ex: 20"
+                className={inputCls}
+                value={unidades}
+                onChange={e => setUnidades(e.target.value)}
+              />
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1 text-gray-700">{config.pesoLabel}</label>
               <p className="text-xs text-gray-400 mb-2">{config.pesoTooltip}</p>
               <div className="relative">
-                <input type="number" min={1} placeholder={config.pesoPlaceholder} className={`${inputCls} pr-10`} value={pesoPorUnidade} onChange={e => setPesoPorUnidade(e.target.value)} />
+                <input
+                  type="number"
+                  min={1}
+                  placeholder={config.pesoPlaceholder}
+                  className={`${inputCls} pr-10`}
+                  value={pesoPorUnidade}
+                  onChange={e => setPesoPorUnidade(e.target.value)}
+                />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">g</span>
               </div>
             </div>
@@ -107,176 +179,138 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
           )}
         </div>
 
-        {/* ── 2. CARD EDUCATIVO: HIDRO vs LIPO ── */}
+        {/* ── PASSO 2: TIPO DE ESSÊNCIA ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center gap-2 font-bold text-base mb-1">
-            <span>📚</span>Qual tipo de essência comprar?
-          </div>
-          <p className="text-sm text-gray-500 mb-4">
-            Antes de escolher sua essência, entenda a diferença — usar o tipo errado pode arruinar o lote inteiro.
-          </p>
+          <StepBadge n={2} label="Qual tipo de essência você vai usar?" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-            <div className="rounded-xl border-2 border-blue-100 bg-blue-50/50 p-4">
-              <div className="flex items-center gap-2 font-bold text-sm text-blue-700 mb-2">
-                <span>💧</span>Hidrossolúvel
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                <strong>Solúvel em água.</strong> Se mistura facilmente com bases aquosas como a glicerina. Fica transparente e bem integrado ao sabonete, sem manchas ou separação.
-              </p>
-              <div className="mt-2.5 text-[11px] font-semibold text-blue-700 bg-blue-100 rounded-lg px-2.5 py-1 inline-block">
-                ✅ Ideal para sabonetes de glicerina
-              </div>
+          {/* Alerta compacto integrado */}
+          {config.tipoAlerta === 'hidro' ? (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-5 text-sm">
+              <span>💧</span>
+              <span className="text-blue-800">Para base glicerinada, use <strong>Hidrossolúvel</strong></span>
             </div>
-
-            <div className="rounded-xl border-2 border-amber-100 bg-amber-50/50 p-4">
-              <div className="flex items-center gap-2 font-bold text-sm text-amber-700 mb-2">
-                <span>🫒</span>Lipossolúvel
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                <strong>Solúvel em gordura e óleo.</strong> Se mistura com ceras, manteigas e óleos. É o único que funciona em velas — a cera é base oleosa e repele qualquer coisa aquosa.
-              </p>
-              <div className="mt-2.5 text-[11px] font-semibold text-amber-700 bg-amber-100 rounded-lg px-2.5 py-1 inline-block">
-                ✅ Obrigatório para velas artesanais
-              </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-5 text-sm">
+              <span>🫒</span>
+              <span className="text-amber-800">Para velas, use <strong>Lipossolúvel</strong></span>
             </div>
-          </div>
-
-          <div className="flex gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
-            <span className="shrink-0 mt-0.5">⚠️</span>
-            <span>Usar o tipo errado pode fazer o aroma não incorporar, causar manchas brancas no sabonete ou <strong>crepitação e risco de segurança em velas</strong>. Sempre confirme na embalagem antes de comprar.</span>
-          </div>
-        </div>
-
-        {/* ── 3. ALERTA FIXO DO PRODUTO ── */}
-        {config.tipoAlerta === 'hidro' ? (
-          <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 p-5">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl shrink-0">💧</span>
-              <div>
-                <div className="font-black text-blue-800 mb-1.5">Para base glicerinada: use HIDROSSOLÚVEL</div>
-                <p className="text-sm text-blue-700 leading-relaxed">
-                  A base glicerinada é predominantemente aquosa. Essência lipossolúvel não se mistura com ela — fica em gotículas visíveis e pode criar pontos brancos ou uma névoa leitosa no sabonete pronto. Procure na embalagem a palavra <strong>&quot;hidrossolúvel&quot;</strong> ou <strong>&quot;water soluble&quot;</strong> antes de usar.
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl shrink-0">🫒</span>
-              <div>
-                <div className="font-black text-amber-800 mb-1.5">Para velas: use LIPOSSOLÚVEL</div>
-                <p className="text-sm text-amber-700 leading-relaxed">
-                  A cera (soja, parafina, coco) é 100% base oleosa. Essência hidrossolúvel não se dissolve na cera — pode ficar em camadas, fazer a vela crepitar durante a queima e <strong>representar risco de incêndio</strong>. Procure na embalagem a palavra <strong>&quot;lipossolúvel&quot;</strong> ou <strong>&quot;oil soluble&quot;</strong> antes de comprar.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── 4. TIPO DE ESSÊNCIA ── */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center gap-2 font-bold text-lg mb-1">
-            <span>🧪</span>Tipo de Essência
-          </div>
-          <p className="text-sm text-gray-500 mb-4">Escolha o que você vai usar. Cada um tem uma taxa de uso diferente na receita.</p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setTipoEssencia('essencia')}
-              className={`rounded-xl border-2 p-4 text-left transition-all ${tipoEssencia === 'essencia' ? 'border-[#6699F3] bg-[#EEF3FD]' : 'border-gray-200 hover:border-gray-300'}`}
+              className={`rounded-xl border-2 p-4 text-left transition-all ${
+                tipoEssencia === 'essencia'
+                  ? 'border-[#6699F3] bg-[#EEF3FD]'
+                  : 'border-gray-200 bg-gray-50 hover:border-[#6699F3]/50 hover:bg-[#EEF3FD]/40'
+              }`}
             >
-              <div className="font-black text-sm mb-1.5">🌸 Essência / Fragrância</div>
+              <div className="text-2xl mb-2">🌸</div>
+              <div className="font-black text-sm text-[#2D2D2D] mb-1">Essência / Fragrância</div>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Aroma sintético, mais econômico e muito concentrado. Disponível em dezenas de fragrâncias. A escolha mais comum para quem está começando.
+                Aroma sintético, econômico e muito concentrado. A escolha mais comum para quem está começando.
               </p>
-              {tipoEssencia === 'essencia' && <div className="mt-2 text-[11px] font-bold text-[#6699F3]">✓ Selecionada</div>}
+              {tipoEssencia === 'essencia' && (
+                <div className="mt-3 inline-block text-[11px] font-bold text-white bg-[#6699F3] px-2.5 py-1 rounded-full">
+                  ✓ Selecionada
+                </div>
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => setTipoEssencia('oleo')}
-              className={`rounded-xl border-2 p-4 text-left transition-all ${tipoEssencia === 'oleo' ? 'border-[#6699F3] bg-[#EEF3FD]' : 'border-gray-200 hover:border-gray-300'}`}
+              className={`rounded-xl border-2 p-4 text-left transition-all ${
+                tipoEssencia === 'oleo'
+                  ? 'border-[#6699F3] bg-[#EEF3FD]'
+                  : 'border-gray-200 bg-gray-50 hover:border-[#6699F3]/50 hover:bg-[#EEF3FD]/40'
+              }`}
             >
-              <div className="font-black text-sm mb-1.5">🌿 Óleo Essencial</div>
+              <div className="text-2xl mb-2">🌿</div>
+              <div className="font-black text-sm text-[#2D2D2D] mb-1">Óleo Essencial</div>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Extrato 100% natural da planta. Mais delicado e caro — requer dosagem menor. Ideal para linhas naturais ou veganas.
+                Extrato 100% natural da planta. Mais delicado e caro — requer dosagem menor.
               </p>
-              {tipoEssencia === 'oleo' && <div className="mt-2 text-[11px] font-bold text-[#6699F3]">✓ Selecionado</div>}
+              {tipoEssencia === 'oleo' && (
+                <div className="mt-3 inline-block text-[11px] font-bold text-white bg-[#6699F3] px-2.5 py-1 rounded-full">
+                  ✓ Selecionado
+                </div>
+              )}
             </button>
           </div>
 
-          {tipoEssencia === 'oleo' && (
-            <div className="mt-3 flex gap-2 bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
-              <span className="shrink-0">🌿</span>
-              <span>Óleos essenciais têm limites de segurança para uso na pele. As taxas sugeridas aqui já respeitam os intervalos recomendados para uso cosmético seguro.</span>
+          <EduAccordion tipoAlerta={config.tipoAlerta} />
+        </div>
+
+        {/* ── PASSO 3: INTENSIDADE ── */}
+        <div
+          className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-6 transition-opacity ${
+            tipoEssencia ? 'opacity-100' : 'opacity-40 pointer-events-none'
+          }`}
+        >
+          <StepBadge n={3} label="Qual a intensidade do aroma?" />
+
+          {!tipoEssencia && (
+            <p className="text-sm text-gray-400 -mt-2 mb-4">← Selecione o tipo de essência no passo 2 para continuar.</p>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {([
+              { key: 'suave' as const,    emoji: '🌸', label: 'Suave',         desc: 'Aroma discreto' },
+              { key: 'moderado' as const, emoji: '🌺', label: 'Moderado',      desc: 'Equilíbrio ideal' },
+              { key: 'intenso' as const,  emoji: '💐', label: 'Intenso',       desc: 'Aroma marcante' },
+              { key: 'custom' as const,   emoji: '⚙️', label: 'Personalizado', desc: 'Eu sei o %' },
+            ]).map(opt => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setIntensidade(opt.key)}
+                disabled={!tipoEssencia}
+                className={`rounded-xl border-2 p-3 text-center transition-all ${
+                  intensidade === opt.key
+                    ? 'border-[#6699F3] bg-[#EEF3FD]'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-xl mb-1">{opt.emoji}</div>
+                <div className="text-xs font-black text-[#2D2D2D]">{opt.label}</div>
+                <div className="text-[10px] text-gray-400 mt-0.5">{opt.desc}</div>
+                {intensidade === opt.key && tipoEssencia && opt.key !== 'custom' && (
+                  <div className="mt-1.5 text-[11px] font-bold text-[#6699F3]">
+                    {config.rates[tipoEssencia][opt.key]}%
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {intensidade === 'custom' && tipoEssencia && (
+            <div className="mt-4">
+              <label className="block text-sm font-semibold mb-1 text-gray-700">Percentual indicado pelo fabricante</label>
+              <p className="text-xs text-gray-400 mb-2">
+                {config.produto === 'sabonetes'
+                  ? 'Para sabonetes: 1–3% para essências, 0,5–1,5% para óleos essenciais.'
+                  : 'Para velas: 5–10% para essências, 3–5% para óleos essenciais.'}
+              </p>
+              <div className="relative w-36">
+                <input
+                  type="number"
+                  min={0.1}
+                  max={15}
+                  step={0.1}
+                  placeholder="Ex: 2"
+                  className={`${inputCls} pr-10`}
+                  value={customPct}
+                  onChange={e => setCustomPct(e.target.value)}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">%</span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* ── 5. INTENSIDADE ── */}
-        {tipoEssencia && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-2 font-bold text-lg mb-1">
-              <span>🎚️</span>Intensidade do Aroma
-            </div>
-            <p className="text-sm text-gray-500 mb-4">Escolha o quanto de cheiro você quer no seu {config.nomeSingular}.</p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-              {([
-                { key: 'suave' as const, emoji: '🌸', label: 'Suave', desc: 'Aroma discreto, bom para peles sensíveis' },
-                { key: 'moderado' as const, emoji: '🌺', label: 'Moderado', desc: 'Equilíbrio ideal — o mais usado' },
-                { key: 'intenso' as const, emoji: '💐', label: 'Intenso', desc: 'Aroma marcante, dura mais' },
-                { key: 'custom' as const, emoji: '⚙️', label: 'Personalizado', desc: 'Eu sei o % que quero' },
-              ]).map(opt => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setIntensidade(opt.key)}
-                  className={`rounded-xl border-2 p-3 text-center transition-all ${intensidade === opt.key ? 'border-[#6699F3] bg-[#EEF3FD]' : 'border-gray-200 hover:border-gray-300'}`}
-                >
-                  <div className="text-xl mb-1">{opt.emoji}</div>
-                  <div className="text-xs font-black text-[#2D2D2D]">{opt.label}</div>
-                  <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">{opt.desc}</div>
-                  {intensidade === opt.key && opt.key !== 'custom' && (
-                    <div className="mt-1.5 text-[10px] font-bold text-[#6699F3]">
-                      {config.rates[tipoEssencia][opt.key]}%
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {intensidade === 'custom' && (
-              <div>
-                <label className="block text-sm font-semibold mb-1 text-gray-700">Percentual que você quer usar</label>
-                <p className="text-xs text-gray-400 mb-2">
-                  Insira o % indicado pelo fabricante da sua essência.
-                  {config.produto === 'sabonetes'
-                    ? ' Para sabonetes de glicerina: 1–3% para essências e 0,5–1,5% para óleos essenciais.'
-                    : ' Para velas: 5–10% para essências e 3–5% para óleos essenciais.'}
-                </p>
-                <div className="relative max-w-[160px]">
-                  <input
-                    type="number"
-                    min={0.1}
-                    max={15}
-                    step={0.1}
-                    placeholder="Ex: 2"
-                    className={`${inputCls} pr-10`}
-                    value={customPct}
-                    onChange={e => setCustomPct(e.target.value)}
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">%</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── 6. RESULTADO (ao vivo) ── */}
+        {/* ── RESULTADO ── */}
         {showResult ? (
           <div className="bg-[#0F0F0F] rounded-2xl overflow-hidden">
             <div className="flex h-[3px]">
@@ -287,7 +321,9 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                 Para o seu lote de {unidades} {config.nomeSingular}{parseFloat(unidades) !== 1 ? 's' : ''}
               </div>
               <p className="text-gray-400 text-xs mb-5">
-                {totalLote.toLocaleString('pt-BR')} g no total · {percentual}% de {tipoEssencia === 'essencia' ? 'essência' : 'óleo essencial'} · intensidade {intensidade === 'custom' ? 'personalizada' : intensidade}
+                {totalLote.toLocaleString('pt-BR')} g no total · {percentual}% de{' '}
+                {tipoEssencia === 'essencia' ? 'essência' : 'óleo essencial'} · intensidade{' '}
+                {intensidade === 'custom' ? 'personalizada' : intensidade}
               </p>
 
               <div className="grid grid-cols-3 gap-3 mb-5">
@@ -323,13 +359,13 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
               </div>
 
               <p className="text-[10px] text-gray-500 text-center">
-                * Gotas calculadas com base em 20 gotas por mL (conta-gotas padrão). Pode variar conforme o frasco da sua essência.
+                * Gotas calculadas com base em 20 gotas por mL (conta-gotas padrão).
               </p>
             </div>
           </div>
         ) : (
-          <div className="text-center py-4 text-sm text-gray-400">
-            Preencha os campos acima para ver o resultado instantaneamente ↑
+          <div className="text-center py-3 text-sm text-gray-400">
+            Preencha os 3 passos acima para ver o resultado ↑
           </div>
         )}
 
