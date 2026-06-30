@@ -10,8 +10,8 @@ const CONFIGS: Record<string, EssenciasConfig> = {
     pesoLabel: 'Peso de cada sabonete (g)',
     pesoPlaceholder: 'Ex: 90',
     pesoTooltip: 'Peso final do sabonete pronto, em gramas. Se não souber ainda, use 90g como estimativa.',
-    tipoAlerta: 'hidro',
-    dicaAdicionar: 'Adicione na base glicerinada derretida entre 55–60°C. Mexa por 30 segundos até incorporar completamente antes de verter na forma.',
+    tipoAlerta: 'lipo',
+    dicaAdicionar: 'Adicione na base glicerinada derretida entre 55–60°C e misture bem antes de verter na forma. Essência lipossolúvel incorpora facilmente na matriz do sabão.',
     rates: {
       essencia: { suave: 1, moderado: 2, intenso: 3 },
       oleo: { suave: 0.5, moderado: 1, intenso: 1.5 },

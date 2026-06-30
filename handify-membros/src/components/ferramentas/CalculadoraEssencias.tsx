@@ -63,18 +63,18 @@ function EduAccordion({ tipoAlerta }: { tipoAlerta: 'hidro' | 'lipo' }) {
                 <span>💧</span>Hidrossolúvel
               </div>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Solúvel em água. Se mistura com bases aquosas como a glicerina. Fica transparente sem manchas.
+                Solúvel em água. Indicada para produtos de base aquosa: sabonete líquido, gel de banho, shampô, sal de banho.
               </p>
-              <div className="mt-2 text-[11px] font-semibold text-blue-700">✅ Ideal para sabonetes de glicerina</div>
+              <div className="mt-2 text-[11px] font-semibold text-blue-700">✅ Sabonete líquido, gel de banho, xampus</div>
             </div>
             <div className={`rounded-xl border-2 p-3 ${tipoAlerta === 'lipo' ? 'border-amber-200 bg-amber-50/60' : 'border-gray-200 bg-white'}`}>
               <div className="flex items-center gap-1.5 font-bold text-sm text-amber-700 mb-1.5">
                 <span>🫒</span>Lipossolúvel
               </div>
               <p className="text-xs text-gray-600 leading-relaxed">
-                Solúvel em gordura. Se mistura com ceras, manteigas e óleos. Obrigatório em velas — cera repele água.
+                Solúvel em gordura. Indicada para base glicerinada sólida, velas, cremes e manteigas — incorpora sem separar.
               </p>
-              <div className="mt-2 text-[11px] font-semibold text-amber-700">✅ Obrigatório para velas artesanais</div>
+              <div className="mt-2 text-[11px] font-semibold text-amber-700">✅ Base glicerinada, velas, cremes, manteigas</div>
             </div>
           </div>
           <div className="mt-3 flex gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
