@@ -149,7 +149,7 @@ export async function adminUpsertSupplier(supplier: {
   logo_url: string
   verified: boolean
   active: boolean
-  position: number
+  position?: number
   channels: { channel: string; url: string }[]
   tags: string[]
 }): Promise<{ id: string }> {
