@@ -6,7 +6,7 @@ import {
   Users, BookOpen, Award, TrendingUp,
   ShoppingBag, Image as ImageIcon, Bell, Newspaper,
   BarChart3, CheckCircle2, Clock, XCircle, Webhook,
-  ArrowRight, AlertTriangle, Flag, Store, MessageCircle, Lightbulb,
+  ArrowRight, AlertTriangle, Flag, Store, MessageCircle, Lightbulb, Sparkles, PlusCircle,
 } from "lucide-react";
 
 async function assertAdmin() {
@@ -45,6 +45,14 @@ const QUICK_ACTION_GROUPS = [
     ],
   },
   {
+    label: "Inspirações",
+    items: [
+      { href: "/admin/inspiracoes",             icon: Sparkles,      label: "Posts",        desc: "Gerenciar feed de inspirações",  color: "#6699F3" },
+      { href: "/admin/inspiracoes/novo",        icon: PlusCircle,    label: "Novo post",    desc: "Criar foto, vídeo, receita...", color: "#72CF92" },
+      { href: "/admin/inspiracoes/comentarios", icon: MessageCircle, label: "Comentários",  desc: "Aprovar comentários das alunas", color: "#FEC649" },
+    ],
+  },
+  {
     label: "Ferramentas",
     items: [
       { href: "/admin/fornecedores",             icon: Store,         label: "Fornecedores", desc: "Gerenciar lista de fornecedores", color: "#6699F3" },
@@ -75,6 +83,7 @@ export default async function AdminHomePage() {
     { count: totalForumPosts },
     { count: pendingReviews },
     { count: pendingSuggestions },
+    { count: pendingInspComments },
   ] = await Promise.all([
     service
       .from("profiles")
@@ -125,6 +134,11 @@ export default async function AdminHomePage() {
       .from("supplier_suggestions")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending"),
+
+    service
+      .from("inspiration_comments")
+      .select("*", { count: "exact", head: true })
+      .eq("approved", false),
   ]);
 
   const taxaConclusao =
@@ -159,7 +173,7 @@ export default async function AdminHomePage() {
       </div>
 
       {/* Alertas de moderação */}
-      {((pendingReports ?? 0) > 0 || (pendingForumPosts ?? 0) > 0 || (pendingReviews ?? 0) > 0 || (pendingSuggestions ?? 0) > 0) && (
+      {((pendingReports ?? 0) > 0 || (pendingForumPosts ?? 0) > 0 || (pendingReviews ?? 0) > 0 || (pendingSuggestions ?? 0) > 0 || (pendingInspComments ?? 0) > 0) && (
         <div className="space-y-2">
           {(pendingReports ?? 0) > 0 && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FEC649]/15 border border-[#FEC649]/40">
@@ -215,6 +229,19 @@ export default async function AdminHomePage() {
                 {pendingSuggestions === 1 ? "sugestão de fornecedor aguarda" : "sugestões de fornecedores aguardam"} revisão
               </p>
               <ArrowRight className="w-4 h-4 text-[#b07d00] shrink-0" />
+            </Link>
+          )}
+          {(pendingInspComments ?? 0) > 0 && (
+            <Link
+              href="/admin/inspiracoes/comentarios"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#6699F3]/10 border border-[#6699F3]/30 hover:bg-[#6699F3]/15 transition-colors"
+            >
+              <Sparkles className="w-5 h-5 text-[#6699F3] shrink-0" />
+              <p className="text-sm font-medium text-[#2D2D2D] flex-1">
+                <span className="font-bold text-[#6699F3]">{pendingInspComments}</span>{" "}
+                {pendingInspComments === 1 ? "comentário de inspiração aguarda" : "comentários de inspirações aguardam"} aprovação
+              </p>
+              <ArrowRight className="w-4 h-4 text-[#6699F3] shrink-0" />
             </Link>
           )}
         </div>

@@ -8,7 +8,7 @@ import {
   Image as ImageIcon, Bell, Mail, Newspaper,
   MessageSquare, Flag, BarChart3, Menu as MenuIcon, X, FileText,
   ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, Zap, Store,
-  MessageCircle, Lightbulb, type LucideIcon,
+  MessageCircle, Lightbulb, Sparkles, PlusCircle, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
@@ -53,6 +53,14 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Inspirações",
+    items: [
+      { href: "/admin/inspiracoes",             icon: Sparkles,      label: "Posts" },
+      { href: "/admin/inspiracoes/novo",        icon: PlusCircle,    label: "Novo post" },
+      { href: "/admin/inspiracoes/comentarios", icon: MessageCircle, label: "Comentários", badgeKey: "inspComments" },
+    ],
+  },
+  {
     label: "Ferramentas",
     items: [
       { href: "/admin/fornecedores",             icon: Store,         label: "Fornecedores" },
@@ -84,6 +92,7 @@ function NavLinks({
   pendingForumCount = 0,
   pendingReviewCount = 0,
   pendingSuggestionsCount = 0,
+  pendingInspCommentsCount = 0,
 }: {
   pathname: string;
   collapsed: boolean;
@@ -91,11 +100,13 @@ function NavLinks({
   pendingForumCount?: number;
   pendingReviewCount?: number;
   pendingSuggestionsCount?: number;
+  pendingInspCommentsCount?: number;
 }) {
   const badgeCounts: Record<string, number> = {
     forum: pendingForumCount,
     reviews: pendingReviewCount,
     suggestions: pendingSuggestionsCount,
+    inspComments: pendingInspCommentsCount,
   };
 
   return (
@@ -163,11 +174,13 @@ export default function AdminNav({
   pendingForumCount = 0,
   pendingReviewCount = 0,
   pendingSuggestionsCount = 0,
+  pendingInspCommentsCount = 0,
 }: {
   children: React.ReactNode;
   pendingForumCount?: number;
   pendingReviewCount?: number;
   pendingSuggestionsCount?: number;
+  pendingInspCommentsCount?: number;
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -230,7 +243,7 @@ export default function AdminNav({
 
         {/* Nav */}
         <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <NavLinks pathname={pathname} collapsed={collapsed} pendingForumCount={pendingForumCount} pendingReviewCount={pendingReviewCount} pendingSuggestionsCount={pendingSuggestionsCount} />
+          <NavLinks pathname={pathname} collapsed={collapsed} pendingForumCount={pendingForumCount} pendingReviewCount={pendingReviewCount} pendingSuggestionsCount={pendingSuggestionsCount} pendingInspCommentsCount={pendingInspCommentsCount} />
         </div>
 
         {/* Footer */}
@@ -332,6 +345,7 @@ export default function AdminNav({
                 pendingForumCount={pendingForumCount}
                 pendingReviewCount={pendingReviewCount}
                 pendingSuggestionsCount={pendingSuggestionsCount}
+                pendingInspCommentsCount={pendingInspCommentsCount}
               />
             </div>
             <div className="shrink-0 border-t border-white/[0.06] p-3">
