@@ -142,13 +142,69 @@ Adicionar `inspiration_post` em `profiles.email_prefs`.
 /admin/inspiracoes                → lista de posts (com busca e filtros)
 /admin/inspiracoes/novo           → criar post
 /admin/inspiracoes/[id]           → editar post
-/admin/inspiracoes/comentarios    → moderação de comentários
+/admin/inspiracoes/comentarios    → moderação de comentários pendentes
 ```
 
 ### Avisos (paths existentes renomeados na UI)
 ```
 /comunidade/feed           → vira /avisos (redirect 301 ou renomear rota)
 ```
+
+---
+
+## Admin — Integração com Sidebar e Dashboard
+
+### Sidebar (`AdminNav.tsx`)
+
+Adicionar grupo **"Inspirações"** no `NAV_GROUPS`:
+
+```ts
+{
+  label: "Inspirações",
+  items: [
+    { href: "/admin/inspiracoes",              icon: Sparkles,       label: "Posts"              },
+    { href: "/admin/inspiracoes/novo",         icon: PlusCircle,     label: "Novo post"          },
+    { href: "/admin/inspiracoes/comentarios",  icon: MessageCircle,  label: "Comentários",  badgeKey: "inspComments" },
+  ],
+}
+```
+
+Badge `inspComments` = contagem de `inspiration_comments WHERE approved = false`.
+Buscar em paralelo no `layout.tsx` do admin junto com os outros counts.
+
+### Dashboard Admin (`/admin/page.tsx`)
+
+Adicionar grupo **"Inspirações"** nos `QUICK_ACTION_GROUPS`:
+
+```ts
+{
+  label: "Inspirações",
+  items: [
+    { href: "/admin/inspiracoes",             icon: Sparkles,      label: "Posts",        desc: "Gerenciar feed de inspirações",     color: "#6699F3" },
+    { href: "/admin/inspiracoes/novo",        icon: PlusCircle,    label: "Novo post",    desc: "Criar foto, vídeo, receita...",     color: "#72CF92" },
+    { href: "/admin/inspiracoes/comentarios", icon: MessageCircle, label: "Comentários",  desc: "Aprovar comentários das alunas",    color: "#FEC649" },
+  ],
+}
+```
+
+Alerta amarelo quando há comentários pendentes (mesmo padrão dos fornecedores):
+```tsx
+{pendingInspComments > 0 && (
+  <AlertBanner color="yellow" href="/admin/inspiracoes/comentarios"
+    msg={`${pendingInspComments} comentário(s) aguardando aprovação`} />
+)}
+```
+
+### Contagem no `layout.tsx`
+
+```ts
+const { count: pendingInspCommentsCount } = await service
+  .from('inspiration_comments')
+  .select('*', { count: 'exact', head: true })
+  .eq('approved', false)
+```
+
+Passado como prop `pendingInspCommentsCount` para `AdminNav`.
 
 ---
 
