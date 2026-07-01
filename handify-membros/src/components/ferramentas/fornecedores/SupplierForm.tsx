@@ -22,7 +22,7 @@ export function SupplierForm({ supplier }: Props) {
   const [logoUrl, setLogoUrl] = useState(supplier?.logo_url ?? '')
   const [verified, setVerified] = useState(supplier?.verified ?? false)
   const [active, setActive] = useState(supplier?.active ?? true)
-  const [position, setPosition] = useState(supplier?.position ?? 0)
+
 
   const existingChannels: Channel[] = (supplier?.supplier_channels ?? []).map((c: any) => ({
     channel: c.channel,
@@ -69,7 +69,6 @@ export function SupplierForm({ supplier }: Props) {
         logo_url: logoUrl.trim(),
         verified,
         active,
-        position: Number(position),
         channels: channels.filter(c => c.url),
         tags: [...tags],
       })
@@ -129,12 +128,6 @@ export function SupplierForm({ supplier }: Props) {
         <Field label="URL do logo">
           <input type="url" value={logoUrl} onChange={e => setLogoUrl(e.target.value)}
             className={INPUT_CLS} placeholder="https://..." />
-        </Field>
-
-        {/* Position */}
-        <Field label="Posição (ordem)">
-          <input type="number" min={0} value={position} onChange={e => setPosition(e.target.value)}
-            className={`${INPUT_CLS} w-32`} />
         </Field>
 
         {/* Toggles */}

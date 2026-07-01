@@ -92,7 +92,6 @@ export function AdminFornecedoresTable({ suppliers }: { suppliers: Supplier[] })
                             <span className="font-medium text-xs">{s.name}</span>
                             {s.verified && <BadgeCheck className="w-3.5 h-3.5 text-[#6699F3]" aria-label="Verificado Handify" />}
                           </div>
-                          <span className="text-[10px] text-muted-foreground">pos. {s.position}</span>
                         </div>
                       </div>
                     </td>
