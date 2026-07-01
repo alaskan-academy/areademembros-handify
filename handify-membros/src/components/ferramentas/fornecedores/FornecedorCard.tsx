@@ -64,7 +64,7 @@ export function FornecedorCard({ supplier, userId, onOpenReviews }: Props) {
           <div className="flex items-center gap-1.5 flex-wrap">
             <h3 className="font-semibold text-sm text-foreground truncate">{supplier.name}</h3>
             {supplier.verified && (
-              <BadgeCheck className="w-4 h-4 text-[#6699F3] shrink-0" title="Verificado Handify" />
+              <BadgeCheck className="w-4 h-4 text-[#6699F3] shrink-0" aria-label="Verificado Handify" />
             )}
           </div>
 
