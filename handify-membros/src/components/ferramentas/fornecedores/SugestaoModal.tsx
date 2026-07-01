@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Send, Lightbulb } from 'lucide-react'
 import { submitSuggestion } from '@/lib/fornecedores/actions'
 
@@ -14,6 +14,22 @@ export function SugestaoModal({ userId, onClose }: Props) {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    history.pushState({ handifyModal: true }, '')
+    let closedViaHistory = false
+
+    function handlePopState() {
+      closedViaHistory = true
+      onClose()
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      if (!closedViaHistory) history.back()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function set(key: keyof typeof form, value: string) {
     setForm(f => ({ ...f, [key]: value }))

@@ -175,7 +175,7 @@ export default function FerramentasHub() {
         </div>
 
         {/* Info strip */}
-        <div className="flex flex-wrap gap-6 justify-center mt-10 text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-3 sm:gap-6 justify-center mt-10 text-sm text-gray-500">
           {[
             { dot: '#6699F3', text: 'Gratuito para todas as alunas' },
             { dot: '#72CF92', text: 'Funciona offline (dados salvos no seu dispositivo)' },

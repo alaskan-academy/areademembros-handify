@@ -19,6 +19,22 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
   const [submitMsg, setSubmitMsg] = useState('')
 
   useEffect(() => {
+    history.pushState({ handifyModal: true }, '')
+    let closedViaHistory = false
+
+    function handlePopState() {
+      closedViaHistory = true
+      onClose()
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      if (!closedViaHistory) history.back()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     getSupplierReviews(supplier.id).then(r => {
       setReviews(r)
       setLoading(false)
