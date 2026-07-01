@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, ExternalLink, Instagram, ShoppingBag, MessageCircle, Globe, BadgeCheck } from 'lucide-react'
+import { Heart, ExternalLink, Camera, ShoppingBag, MessageCircle, Globe, BadgeCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toggleFavorite } from '@/lib/fornecedores/actions'
 import { CHANNEL_LABELS, PRODUCT_TAGS, CATEGORY_TAGS } from '@/lib/fornecedores/types'
@@ -9,7 +9,7 @@ import type { SupplierWithDetails, Channel } from '@/lib/fornecedores/types'
 
 const CHANNEL_ICONS: Record<Channel, React.ReactNode> = {
   website:      <Globe className="w-3.5 h-3.5" />,
-  instagram:    <Instagram className="w-3.5 h-3.5" />,
+  instagram:    <Camera className="w-3.5 h-3.5" />,
   shopee:       <ShoppingBag className="w-3.5 h-3.5" />,
   mercadolivre: <ShoppingBag className="w-3.5 h-3.5" />,
 }
