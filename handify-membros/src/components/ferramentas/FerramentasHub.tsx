@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Store } from 'lucide-react'
 
 type Tool = { name: string; desc: string; href: string; icon: string; soon?: boolean }
 type Tab = { key: string; label: string; icon: string; tools: Tool[] }
@@ -68,7 +68,10 @@ const COMING_SOON_TABS = [
   { label: 'Pintura', icon: '🎨' },
 ]
 
+type MainTab = 'calculadoras' | 'fornecedores'
+
 export default function FerramentasHub() {
+  const [mainTab, setMainTab] = useState<MainTab>('calculadoras')
   const [activeTab, setActiveTab] = useState('sabonetes')
   const tab = TABS.find(t => t.key === activeTab) ?? TABS[0]
 
@@ -84,13 +87,35 @@ export default function FerramentasHub() {
             Ferramentas para <span className="text-[#6699F3]">Artesãs</span>
           </h1>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Calculadoras e recursos para você precificar, planejar e crescer no artesanato.
+            Calculadoras, fornecedores e recursos para você precificar, planejar e crescer no artesanato.
           </p>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tab bar */}
+        {/* Main tabs: Calculadoras | Fornecedores */}
+        <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60 mb-6 w-fit">
+          <button
+            onClick={() => setMainTab('calculadoras')}
+            className={`flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${
+              mainTab === 'calculadoras'
+                ? 'bg-[#6699F3] text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            🧮 Calculadoras
+          </button>
+          <Link
+            href="/ferramentas/fornecedores"
+            className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all whitespace-nowrap text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+          >
+            <Store className="w-4 h-4" />
+            Fornecedores
+          </Link>
+        </div>
+
+        {/* Calculadoras section */}
+        {/* Product sub-tabs */}
         <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60 mb-6 overflow-x-auto">
           {TABS.map(t => (
             <button
