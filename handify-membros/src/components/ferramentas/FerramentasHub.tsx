@@ -175,15 +175,15 @@ export default function FerramentasHub() {
         </div>
 
         {/* Info strip */}
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-center gap-3 sm:gap-6 justify-center mt-10 text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2 sm:gap-6 mt-10 text-sm text-gray-500">
           {[
             { dot: '#6699F3', text: 'Gratuito para todas as alunas' },
             { dot: '#72CF92', text: 'Funciona offline (dados salvos no seu dispositivo)' },
             { dot: '#FEC649', text: 'Novas ferramentas em breve' },
           ].map(({ dot, text }) => (
-            <div key={text} className="flex items-center gap-2">
+            <div key={text} className="flex items-center justify-center gap-2">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} />
-              {text}
+              <span>{text}</span>
             </div>
           ))}
         </div>

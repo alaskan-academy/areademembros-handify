@@ -51,7 +51,7 @@ export function FornecedoresPage({ suppliers, userId, initialProduto = '' }: Pro
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Store className="w-5 h-5 text-[#6699F3]" />
@@ -63,7 +63,7 @@ export function FornecedoresPage({ suppliers, userId, initialProduto = '' }: Pro
         </div>
         <button
           onClick={() => setSugestaoOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium border border-[#6699F3]/40 text-[#6699F3] rounded-lg hover:bg-[#6699F3]/5 transition-colors"
+          className="self-start sm:shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium border border-[#6699F3]/40 text-[#6699F3] rounded-lg hover:bg-[#6699F3]/5 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Sugerir fornecedor
