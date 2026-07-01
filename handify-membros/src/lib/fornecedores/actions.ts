@@ -25,7 +25,6 @@ export async function getSuppliers(
       supplier_tags (tag)
     `)
     .eq('active', true)
-    .order('position', { ascending: true })
     .order('name', { ascending: true })
 
   const rows = await query
@@ -138,7 +137,6 @@ export async function adminGetSuppliers() {
   const { data, error } = await supabase
     .from('suppliers')
     .select('*, supplier_channels(*), supplier_tags(tag)')
-    .order('position', { ascending: true })
     .order('name', { ascending: true })
   if (error) throw error
   return data ?? []
