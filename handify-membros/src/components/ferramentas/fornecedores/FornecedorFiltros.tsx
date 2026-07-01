@@ -1,16 +1,17 @@
 'use client'
 
 import { Search, X } from 'lucide-react'
-import { PRODUCT_TAGS, CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
-import type { FornecedorFiltros, ProductTag, CategoryTag, Channel } from '@/lib/fornecedores/types'
+import { CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
+import type { FornecedorFiltros, CategoryTag, Channel } from '@/lib/fornecedores/types'
 
 interface Props {
   filtros: FornecedorFiltros
   onChange: (filtros: FornecedorFiltros) => void
   totalResultados: number
+  hideProduto?: boolean
 }
 
-export function FornecedorFiltros({ filtros, onChange, totalResultados }: Props) {
+export function FornecedorFiltros({ filtros, onChange, totalResultados, hideProduto }: Props) {
   function set<K extends keyof FornecedorFiltros>(key: K, value: FornecedorFiltros[K]) {
     onChange({ ...filtros, [key]: value })
   }
@@ -41,18 +42,6 @@ export function FornecedorFiltros({ filtros, onChange, totalResultados }: Props)
 
       {/* Filtros em linha */}
       <div className="flex flex-wrap gap-2">
-        {/* Produto */}
-        <select
-          value={filtros.produto}
-          onChange={e => set('produto', e.target.value as ProductTag | '')}
-          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 focus:border-[#6699F3]"
-        >
-          <option value="">Todos os produtos</option>
-          {Object.entries(PRODUCT_TAGS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
-
         {/* Categoria */}
         <select
           value={filtros.categoria}

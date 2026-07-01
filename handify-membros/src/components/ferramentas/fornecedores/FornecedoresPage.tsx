@@ -6,15 +6,23 @@ import { FornecedorCard } from './FornecedorCard'
 import { FornecedorFiltros as FiltrosBar } from './FornecedorFiltros'
 import { SugestaoModal } from './SugestaoModal'
 import { ReviewsModal } from './ReviewsModal'
-import type { SupplierWithDetails, FornecedorFiltros } from '@/lib/fornecedores/types'
-import { PRODUCT_TAGS, CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
+import type { SupplierWithDetails, FornecedorFiltros, ProductTag } from '@/lib/fornecedores/types'
+import { CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
+
+const PRODUCT_TABS: { key: ProductTag | ''; label: string; icon: string }[] = [
+  { key: '',          label: 'Todos',     icon: '✨' },
+  { key: 'velas',     label: 'Velas',     icon: '🕯️' },
+  { key: 'sabonetes', label: 'Sabonetes', icon: '🧼' },
+]
 
 interface Props {
   suppliers: SupplierWithDetails[]
   userId: string
+  initialProduto?: ProductTag | ''
 }
 
-export function FornecedoresPage({ suppliers, userId }: Props) {
+export function FornecedoresPage({ suppliers, userId, initialProduto = '' }: Props) {
+  const [produto, setProduto] = useState<ProductTag | ''>(initialProduto)
   const [filtros, setFiltros] = useState<FornecedorFiltros>({
     produto: '', categoria: '', canal: '', busca: '',
   })
@@ -23,7 +31,7 @@ export function FornecedoresPage({ suppliers, userId }: Props) {
 
   const filtered = useMemo(() => {
     let result = suppliers
-    if (filtros.produto)   result = result.filter(s => s.tags.includes(filtros.produto))
+    if (produto)          result = result.filter(s => s.tags.includes(produto))
     if (filtros.categoria) result = result.filter(s => s.tags.includes(filtros.categoria))
     if (filtros.canal)     result = result.filter(s => s.channels.some(c => c.channel === filtros.canal))
     if (filtros.busca) {
@@ -34,7 +42,12 @@ export function FornecedoresPage({ suppliers, userId }: Props) {
       )
     }
     return result
-  }, [suppliers, filtros])
+  }, [suppliers, produto, filtros])
+
+  function handleTabChange(key: ProductTag | '') {
+    setProduto(key)
+    setFiltros(f => ({ ...f, produto: '' }))
+  }
 
   return (
     <div className="space-y-6">
@@ -58,11 +71,30 @@ export function FornecedoresPage({ suppliers, userId }: Props) {
         </button>
       </div>
 
-      {/* Filters */}
+      {/* Tabs de produto */}
+      <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60 w-fit">
+        {PRODUCT_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            className={`flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${
+              produto === tab.key
+                ? 'bg-[#6699F3] text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <span>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Filtros de categoria / canal / busca */}
       <FiltrosBar
         filtros={filtros}
         onChange={setFiltros}
         totalResultados={filtered.length}
+        hideProduto
       />
 
       {/* Grid */}

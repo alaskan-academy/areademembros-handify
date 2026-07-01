@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Store } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 
 type Tool = { name: string; desc: string; href: string; icon: string; soon?: boolean }
 type Tab = { key: string; label: string; icon: string; tools: Tool[] }
@@ -24,6 +24,12 @@ const TABS: Tab[] = [
         desc: 'Descubra exatamente quanto de essência ou óleo essencial adicionar na sua receita — resultado em mL, gramas e gotas.',
         href: '/ferramentas/calculadora-essencias/sabonetes',
         icon: '🧼',
+      },
+      {
+        name: 'Fornecedores de Sabonetes',
+        desc: 'Lista curada de bases, essências, corantes, moldes e embalagens para sabonetes artesanais.',
+        href: '/ferramentas/fornecedores?produto=sabonetes',
+        icon: '🏪',
       },
       {
         name: 'Calculadora de Receita',
@@ -52,6 +58,12 @@ const TABS: Tab[] = [
         icon: '🕯️',
       },
       {
+        name: 'Fornecedores de Velas',
+        desc: 'Lista curada de ceras, pavios, essências, moldes e embalagens para velas artesanais.',
+        href: '/ferramentas/fornecedores?produto=velas',
+        icon: '🏪',
+      },
+      {
         name: 'Calculadora de Receita',
         desc: 'Escale sua receita para diferentes tamanhos de lote automaticamente.',
         href: '#',
@@ -68,10 +80,7 @@ const COMING_SOON_TABS = [
   { label: 'Pintura', icon: '🎨' },
 ]
 
-type MainTab = 'calculadoras' | 'fornecedores'
-
 export default function FerramentasHub() {
-  const [mainTab, setMainTab] = useState<MainTab>('calculadoras')
   const [activeTab, setActiveTab] = useState('sabonetes')
   const tab = TABS.find(t => t.key === activeTab) ?? TABS[0]
 
@@ -93,29 +102,7 @@ export default function FerramentasHub() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Main tabs: Calculadoras | Fornecedores */}
-        <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60 mb-6 w-fit">
-          <button
-            onClick={() => setMainTab('calculadoras')}
-            className={`flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all whitespace-nowrap ${
-              mainTab === 'calculadoras'
-                ? 'bg-[#6699F3] text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            🧮 Calculadoras
-          </button>
-          <Link
-            href="/ferramentas/fornecedores"
-            className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl transition-all whitespace-nowrap text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-          >
-            <Store className="w-4 h-4" />
-            Fornecedores
-          </Link>
-        </div>
-
-        {/* Calculadoras section */}
-        {/* Product sub-tabs */}
+        {/* Product tabs */}
         <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60 mb-6 overflow-x-auto">
           {TABS.map(t => (
             <button
