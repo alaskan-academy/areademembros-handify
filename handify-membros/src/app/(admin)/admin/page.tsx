@@ -6,7 +6,7 @@ import {
   Users, BookOpen, Award, TrendingUp,
   ShoppingBag, Image as ImageIcon, Bell, Newspaper,
   BarChart3, CheckCircle2, Clock, XCircle, Webhook,
-  ArrowRight, AlertTriangle, Flag,
+  ArrowRight, AlertTriangle, Flag, Store, MessageCircle, Lightbulb,
 } from "lucide-react";
 
 async function assertAdmin() {
@@ -44,6 +44,14 @@ const QUICK_ACTION_GROUPS = [
       { href: "/admin/comunidade/forum", icon: Flag,      label: "Moderação do Fórum", desc: "Aprovar e moderar posts",     color: "#6699F3" },
     ],
   },
+  {
+    label: "Ferramentas",
+    items: [
+      { href: "/admin/fornecedores",             icon: Store,         label: "Fornecedores", desc: "Gerenciar lista de fornecedores", color: "#6699F3" },
+      { href: "/admin/fornecedores/comentarios", icon: MessageCircle, label: "Comentários",  desc: "Moderar avaliações das alunas",  color: "#72CF92" },
+      { href: "/admin/fornecedores/sugestoes",   icon: Lightbulb,     label: "Sugestões",    desc: "Sugestões enviadas pelas alunas", color: "#FEC649" },
+    ],
+  },
 ];
 
 export default async function AdminHomePage() {
@@ -65,6 +73,8 @@ export default async function AdminHomePage() {
     { count: pendingReports },
     { count: pendingForumPosts },
     { count: totalForumPosts },
+    { count: pendingReviews },
+    { count: pendingSuggestions },
   ] = await Promise.all([
     service
       .from("profiles")
@@ -105,6 +115,16 @@ export default async function AdminHomePage() {
     service
       .from("forum_posts")
       .select("*", { count: "exact", head: true }),
+
+    service
+      .from("supplier_reviews")
+      .select("*", { count: "exact", head: true })
+      .eq("approved", false),
+
+    service
+      .from("supplier_suggestions")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "pending"),
   ]);
 
   const taxaConclusao =
@@ -139,7 +159,7 @@ export default async function AdminHomePage() {
       </div>
 
       {/* Alertas de moderação */}
-      {((pendingReports ?? 0) > 0 || (pendingForumPosts ?? 0) > 0) && (
+      {((pendingReports ?? 0) > 0 || (pendingForumPosts ?? 0) > 0 || (pendingReviews ?? 0) > 0 || (pendingSuggestions ?? 0) > 0) && (
         <div className="space-y-2">
           {(pendingReports ?? 0) > 0 && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FEC649]/15 border border-[#FEC649]/40">
@@ -169,6 +189,32 @@ export default async function AdminHomePage() {
                 <span className="text-[#2D2D2D]/50">{totalForumPosts ?? 0} no total</span>
               </p>
               <ArrowRight className="w-4 h-4 text-[#6699F3] shrink-0" />
+            </Link>
+          )}
+          {(pendingReviews ?? 0) > 0 && (
+            <Link
+              href="/admin/fornecedores/comentarios"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#72CF92]/10 border border-[#72CF92]/30 hover:bg-[#72CF92]/15 transition-colors"
+            >
+              <MessageCircle className="w-5 h-5 text-[#3a9e60] shrink-0" />
+              <p className="text-sm font-medium text-[#2D2D2D] flex-1">
+                <span className="font-bold text-[#3a9e60]">{pendingReviews}</span>{" "}
+                {pendingReviews === 1 ? "comentário de fornecedor aguarda" : "comentários de fornecedores aguardam"} aprovação
+              </p>
+              <ArrowRight className="w-4 h-4 text-[#3a9e60] shrink-0" />
+            </Link>
+          )}
+          {(pendingSuggestions ?? 0) > 0 && (
+            <Link
+              href="/admin/fornecedores/sugestoes"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FEC649]/10 border border-[#FEC649]/40 hover:bg-[#FEC649]/15 transition-colors"
+            >
+              <Lightbulb className="w-5 h-5 text-[#b07d00] shrink-0" />
+              <p className="text-sm font-medium text-[#2D2D2D] flex-1">
+                <span className="font-bold text-[#b07d00]">{pendingSuggestions}</span>{" "}
+                {pendingSuggestions === 1 ? "sugestão de fornecedor aguarda" : "sugestões de fornecedores aguardam"} revisão
+              </p>
+              <ArrowRight className="w-4 h-4 text-[#b07d00] shrink-0" />
             </Link>
           )}
         </div>

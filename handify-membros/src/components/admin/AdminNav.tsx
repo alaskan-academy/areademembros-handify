@@ -7,12 +7,13 @@ import {
   Home, BookOpen, ShoppingBag, Users, Star,
   Image as ImageIcon, Bell, Mail, Newspaper,
   MessageSquare, Flag, BarChart3, Menu as MenuIcon, X, FileText,
-  ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, Zap, type LucideIcon,
+  ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, Zap, Store,
+  MessageCircle, Lightbulb, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 
-type NavItem = { href: string; icon: LucideIcon; label: string; exact?: boolean; badgeHref?: string };
+type NavItem = { href: string; icon: LucideIcon; label: string; exact?: boolean; badgeKey?: string };
 type NavGroup = { label?: string; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -47,8 +48,16 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Comunidade",
     items: [
       { href: "/admin/comunidade/feed",  icon: Newspaper,     label: "Feed de Notícias" },
-      { href: "/admin/forums",           icon: MessageSquare,  label: "Fóruns" },
-      { href: "/admin/comunidade/forum", icon: Flag,           label: "Moderação" },
+      { href: "/admin/forums",           icon: MessageSquare, label: "Fóruns" },
+      { href: "/admin/comunidade/forum", icon: Flag,          label: "Moderação", badgeKey: "forum" },
+    ],
+  },
+  {
+    label: "Ferramentas",
+    items: [
+      { href: "/admin/fornecedores",             icon: Store,         label: "Fornecedores" },
+      { href: "/admin/fornecedores/comentarios", icon: MessageCircle, label: "Comentários",  badgeKey: "reviews" },
+      { href: "/admin/fornecedores/sugestoes",   icon: Lightbulb,     label: "Sugestões",    badgeKey: "suggestions" },
     ],
   },
   {
@@ -73,12 +82,22 @@ function NavLinks({
   collapsed,
   onNavigate,
   pendingForumCount = 0,
+  pendingReviewCount = 0,
+  pendingSuggestionsCount = 0,
 }: {
   pathname: string;
   collapsed: boolean;
   onNavigate?: () => void;
   pendingForumCount?: number;
+  pendingReviewCount?: number;
+  pendingSuggestionsCount?: number;
 }) {
+  const badgeCounts: Record<string, number> = {
+    forum: pendingForumCount,
+    reviews: pendingReviewCount,
+    suggestions: pendingSuggestionsCount,
+  };
+
   return (
     <nav className={cn("py-3 px-2", collapsed ? "space-y-1" : "space-y-5")}>
       {NAV_GROUPS.map((group, gi) => (
@@ -94,8 +113,7 @@ function NavLinks({
           <div className="space-y-0.5">
             {group.items.map((item) => {
               const active = matchActive(item.href, pathname, item.exact);
-              const isModeracao = item.href === "/admin/comunidade/forum";
-              const badge = isModeracao && pendingForumCount > 0 ? pendingForumCount : 0;
+              const badge = item.badgeKey ? (badgeCounts[item.badgeKey] ?? 0) : 0;
               return (
                 <Link
                   key={item.href}
@@ -143,9 +161,13 @@ function NavLinks({
 export default function AdminNav({
   children,
   pendingForumCount = 0,
+  pendingReviewCount = 0,
+  pendingSuggestionsCount = 0,
 }: {
   children: React.ReactNode;
   pendingForumCount?: number;
+  pendingReviewCount?: number;
+  pendingSuggestionsCount?: number;
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -208,7 +230,7 @@ export default function AdminNav({
 
         {/* Nav */}
         <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <NavLinks pathname={pathname} collapsed={collapsed} pendingForumCount={pendingForumCount} />
+          <NavLinks pathname={pathname} collapsed={collapsed} pendingForumCount={pendingForumCount} pendingReviewCount={pendingReviewCount} pendingSuggestionsCount={pendingSuggestionsCount} />
         </div>
 
         {/* Footer */}
@@ -308,6 +330,8 @@ export default function AdminNav({
                 collapsed={false}
                 onNavigate={() => setDrawerOpen(false)}
                 pendingForumCount={pendingForumCount}
+                pendingReviewCount={pendingReviewCount}
+                pendingSuggestionsCount={pendingSuggestionsCount}
               />
             </div>
             <div className="shrink-0 border-t border-white/[0.06] p-3">

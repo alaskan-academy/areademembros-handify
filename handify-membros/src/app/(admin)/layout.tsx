@@ -17,15 +17,24 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile?.role !== "admin") redirect("/dashboard");
 
   const service = createServiceClient();
-  const { count: pendingForumCount } = await service
-    .from("forum_posts")
-    .select("*", { count: "exact", head: true })
-    .eq("approved", false);
+  const [
+    { count: pendingForumCount },
+    { count: pendingReviewCount },
+    { count: pendingSuggestionsCount },
+  ] = await Promise.all([
+    service.from("forum_posts").select("*", { count: "exact", head: true }).eq("approved", false),
+    service.from("supplier_reviews").select("*", { count: "exact", head: true }).eq("approved", false),
+    service.from("supplier_suggestions").select("*", { count: "exact", head: true }).eq("status", "pending"),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#F5F5F0] overflow-x-hidden">
       <ScrollToTop />
-      <AdminNav pendingForumCount={pendingForumCount ?? 0}>
+      <AdminNav
+        pendingForumCount={pendingForumCount ?? 0}
+        pendingReviewCount={pendingReviewCount ?? 0}
+        pendingSuggestionsCount={pendingSuggestionsCount ?? 0}
+      >
         <main className="px-4 sm:px-6 md:px-8 py-6 md:py-8 min-w-0">
           {children}
         </main>
