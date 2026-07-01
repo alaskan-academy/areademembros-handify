@@ -324,20 +324,9 @@ src/
 
 | Evento | Canal | Comportamento |
 |---|---|---|
-| Nova aluna enviou comentário para moderação | Email para admin + badge no sidebar | Sempre ativo |
-| Vários comentários acumulados (> 5 pendentes) | Email para admin (resumo diário) | Sempre ativo |
+| Nova aluna enviou comentário para moderação | Badge no sidebar + alerta no dashboard | Sempre ativo |
 
-**Implementação:**
-- Quando `inspiration_comments` recebe novo registro → Server Action dispara email via Resend para `admin@handify.com.br` (ou endereço configurado em env var `ADMIN_EMAIL`)
-- Assunto: `[Handify] Novo comentário aguardando moderação — {título do post}`
-- Body: nome da aluna, trecho do comentário, link direto para `/admin/inspiracoes/comentarios`
-- Badge no sidebar e alerta no dashboard já cobrem a visibilidade passiva (admin vê ao entrar)
-- Email cobre a visibilidade ativa (admin é avisado mesmo sem estar logado)
-
-**Env var necessária:**
-```env
-ADMIN_NOTIFICATION_EMAIL=   # email que recebe alertas de moderação
-```
+**Implementação:** mesmo padrão do fórum e fornecedores — badge numérico no sidebar e alerta no topo do dashboard admin quando há comentários pendentes. Sem email.
 
 ---
 
