@@ -150,7 +150,7 @@ export function SupplierForm({ supplier }: Props) {
         {channels.map((ch, i) => (
           <div key={i} className="flex gap-2">
             <select value={ch.channel} onChange={e => updateChannel(i, 'channel', e.target.value)}
-              className={`${INPUT_CLS} w-40 shrink-0`}>
+              className="w-40 shrink-0 px-3 py-2 text-sm rounded-lg border border-border/60 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 focus:border-[#6699F3]">
               {Object.entries(CHANNEL_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
