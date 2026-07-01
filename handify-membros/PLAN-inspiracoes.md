@@ -311,11 +311,33 @@ src/
 
 ## Notificações
 
+### Para alunas
+
 | Evento | Canal | Comportamento |
 |---|---|---|
-| Novo post de inspiração publicado | Push + Email | Opt-in (padrão: desligado) |
+| Novo post de inspiração publicado | Push + Email + Sino | Opt-in (padrão: desligado) |
 | Novo aviso (`news_posts`) | Push + Email + Sino | Sempre ativo (comportamento atual) |
+| Comentário aprovado e publicado | Sino | Sempre ativo |
 | Resposta ao seu comentário | Push + Sino | Sempre ativo |
+
+### Para admins (moderação)
+
+| Evento | Canal | Comportamento |
+|---|---|---|
+| Nova aluna enviou comentário para moderação | Email para admin + badge no sidebar | Sempre ativo |
+| Vários comentários acumulados (> 5 pendentes) | Email para admin (resumo diário) | Sempre ativo |
+
+**Implementação:**
+- Quando `inspiration_comments` recebe novo registro → Server Action dispara email via Resend para `admin@handify.com.br` (ou endereço configurado em env var `ADMIN_EMAIL`)
+- Assunto: `[Handify] Novo comentário aguardando moderação — {título do post}`
+- Body: nome da aluna, trecho do comentário, link direto para `/admin/inspiracoes/comentarios`
+- Badge no sidebar e alerta no dashboard já cobrem a visibilidade passiva (admin vê ao entrar)
+- Email cobre a visibilidade ativa (admin é avisado mesmo sem estar logado)
+
+**Env var necessária:**
+```env
+ADMIN_NOTIFICATION_EMAIL=   # email que recebe alertas de moderação
+```
 
 ---
 
