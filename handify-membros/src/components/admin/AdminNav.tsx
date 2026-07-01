@@ -49,15 +49,15 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/comunidade/feed",  icon: Newspaper,     label: "Feed de Notícias" },
       { href: "/admin/forums",           icon: MessageSquare, label: "Fóruns" },
-      { href: "/admin/comunidade/forum", icon: Flag,          label: "Moderação", badgeKey: "forum" },
+      { href: "/admin/comunidade/forum", icon: Flag,          label: "Moderação do Fórum", badgeKey: "forum" },
     ],
   },
   {
     label: "Ferramentas",
     items: [
       { href: "/admin/fornecedores",             icon: Store,         label: "Fornecedores" },
-      { href: "/admin/fornecedores/comentarios", icon: MessageCircle, label: "Comentários",  badgeKey: "reviews" },
-      { href: "/admin/fornecedores/sugestoes",   icon: Lightbulb,     label: "Sugestões",    badgeKey: "suggestions" },
+      { href: "/admin/fornecedores/comentarios", icon: MessageCircle, label: "Coment. Fornecedores",  badgeKey: "reviews" },
+      { href: "/admin/fornecedores/sugestoes",   icon: Lightbulb,     label: "Sugest. Fornecedores",  badgeKey: "suggestions" },
     ],
   },
   {
