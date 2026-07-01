@@ -46,7 +46,7 @@ export function FornecedorFiltros({ filtros, onChange, totalResultados, hideProd
         <select
           value={filtros.categoria}
           onChange={e => set('categoria', e.target.value as CategoryTag | '')}
-          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 focus:border-[#6699F3]"
+          className="w-full sm:w-auto text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 focus:border-[#6699F3]"
         >
           <option value="">Todas as categorias</option>
           {Object.entries(CATEGORY_TAGS).map(([k, v]) => (
@@ -58,7 +58,7 @@ export function FornecedorFiltros({ filtros, onChange, totalResultados, hideProd
         <select
           value={filtros.canal}
           onChange={e => set('canal', e.target.value as Channel | '')}
-          className="text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 focus:border-[#6699F3]"
+          className="w-full sm:w-auto text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 focus:border-[#6699F3]"
         >
           <option value="">Todos os canais</option>
           {Object.entries(CHANNEL_LABELS).map(([k, v]) => (

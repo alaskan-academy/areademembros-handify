@@ -7,7 +7,6 @@ import { FornecedorFiltros as FiltrosBar } from './FornecedorFiltros'
 import { SugestaoModal } from './SugestaoModal'
 import { ReviewsModal } from './ReviewsModal'
 import type { SupplierWithDetails, FornecedorFiltros, ProductTag } from '@/lib/fornecedores/types'
-import { CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
 
 const PRODUCT_TABS: { key: ProductTag | ''; label: string; icon: string }[] = [
   { key: '',          label: 'Todos',     icon: '✨' },
@@ -72,7 +71,7 @@ export function FornecedoresPage({ suppliers, userId, initialProduto = '' }: Pro
       </div>
 
       {/* Tabs de produto */}
-      <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60 w-fit">
+      <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60 overflow-x-auto">
         {PRODUCT_TABS.map(tab => (
           <button
             key={tab.key}
