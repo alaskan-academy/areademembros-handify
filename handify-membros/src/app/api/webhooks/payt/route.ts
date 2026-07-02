@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
-  verifyPaytSignature,
+  verifyPaytIntegrationKey,
   PaytPayloadSchema,
   classifyEvent,
   extractProductCodes,
@@ -52,24 +52,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
-  // 1. Ler body bruto antes de qualquer parse (necessário para HMAC)
-  const rawBody = await req.text();
-  const signature = req.headers.get("x-payt-signature");
-
-  // 2. Validar assinatura HMAC — rejeitar imediatamente se inválida
-  if (!verifyPaytSignature(secret, rawBody, signature)) {
-    console.warn("[payt-webhook] Assinatura HMAC inválida");
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
-
-  // 3. Parsear e validar payload com Zod
+  // 1. Parsear e validar payload com Zod
   let payload: PaytPayload;
   try {
-    const json = JSON.parse(rawBody);
+    const json = JSON.parse(await req.text());
     payload = PaytPayloadSchema.parse(json);
   } catch (err) {
     console.warn("[payt-webhook] Payload inválido:", err);
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  // 2. Validar integration_key (autenticação do postback Payt)
+  if (!verifyPaytIntegrationKey(secret, payload.integration_key)) {
+    console.warn("[payt-webhook] integration_key inválida");
+    return NextResponse.json({ error: "Invalid key" }, { status: 401 });
   }
 
   const supabase = createServiceClient();

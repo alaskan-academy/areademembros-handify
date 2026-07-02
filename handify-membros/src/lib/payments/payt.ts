@@ -18,13 +18,14 @@ const PaytOrderBumpSchema = z.object({
 });
 
 export const PaytPayloadSchema = z.object({
-  status: z.string(),                    // "paid" | "refunded" | "cancelled" | "chargeback" | ...
+  integration_key: z.string(),            // chave de autenticação do postback
+  status: z.string(),                     // "paid" | "refunded" | "canceled" | "chargeback" | ...
   transaction_id: z.string(),
   test: z.boolean().optional().default(false),
   customer: z.object({
     email: z.string().email(),
     name: z.string().optional().default(""),
-    doc: z.string().optional(),          // CPF (11 dígitos)
+    doc: z.string().optional(),           // CPF (11 dígitos) ou CNPJ
     phone: z.string().optional(),
   }),
   product: z.object({
@@ -38,13 +39,37 @@ export const PaytPayloadSchema = z.object({
 
 export type PaytPayload = z.infer<typeof PaytPayloadSchema>;
 
+// ── Autenticação por integration_key ─────────────────────────────────────────
+
+/**
+ * Payt usa postbacks simples (sem header de assinatura).
+ * A autenticação é feita comparando o integration_key do payload
+ * com o secret configurado em PAYT_WEBHOOK_SECRET.
+ * Usa timingSafeEqual para prevenir timing attacks.
+ */
+export function verifyPaytIntegrationKey(
+  secret: string,
+  integrationKey: string
+): boolean {
+  if (!integrationKey || !secret) return false;
+  if (secret.length !== integrationKey.length) return false;
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(secret, "utf8"),
+      Buffer.from(integrationKey, "utf8")
+    );
+  } catch {
+    return false;
+  }
+}
+
 // ── Extração de product codes ─────────────────────────────────────────────────
 
 /**
  * Retorna todos os product codes presentes na compra:
  * - Produto agrupado (grouped): usa os codes de cada item individual
  * - Produto simples: usa o code do produto
- * - Order bumps: adiciona o code de cada OB
+ * - Order bumps: adiciona o code de cada OB (idem, agrupado → itens)
  */
 export function extractProductCodes(payload: PaytPayload): string[] {
   const codes: string[] = [];
@@ -67,7 +92,7 @@ export function extractProductCodes(payload: PaytPayload): string[] {
     }
   }
 
-  return [...new Set(codes)]; // remove duplicatas
+  return [...new Set(codes)];
 }
 
 // ── Classificação de status ───────────────────────────────────────────────────
@@ -79,34 +104,4 @@ export function classifyEvent(status: string): "grant" | "revoke" | "ignore" {
   if (GRANT_STATUSES.has(status)) return "grant";
   if (REVOKE_STATUSES.has(status)) return "revoke";
   return "ignore";
-}
-
-// ── Validação HMAC ────────────────────────────────────────────────────────────
-
-/**
- * Valida assinatura HMAC-SHA256 do Payt.
- * Header esperado: X-Payt-Signature: sha256=<hex>
- * Usa timingSafeEqual para prevenir timing attacks.
- */
-export function verifyPaytSignature(
-  secret: string,
-  rawBody: string,
-  signatureHeader: string | null
-): boolean {
-  if (!signatureHeader) return false;
-
-  const expected =
-    "sha256=" +
-    crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-
-  if (expected.length !== signatureHeader.length) return false;
-
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expected, "utf8"),
-      Buffer.from(signatureHeader, "utf8")
-    );
-  } catch {
-    return false;
-  }
 }

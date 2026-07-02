@@ -1,12 +1,10 @@
 /**
  * Script de teste do webhook Payt.
- * Uso: node scripts/test-webhook.mjs [paid|canceled|waiting]
+ * Uso: node scripts/test-webhook.mjs [paid|canceled|waiting|all]
  *
- * Gera o HMAC correto e envia o payload contra o servidor local.
+ * Payt usa postbacks simples — a autenticação é via integration_key no payload.
  * Requer que `npm run dev` esteja rodando em localhost:3000.
  */
-
-import crypto from "crypto";
 
 const SECRET = process.env.PAYT_WEBHOOK_SECRET ?? "a_definir";
 const URL = process.env.WEBHOOK_URL ?? "http://localhost:3000/api/webhooks/payt";
@@ -132,26 +130,19 @@ const WAITING = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function sign(body) {
-  return "sha256=" + crypto.createHmac("sha256", SECRET).update(body).digest("hex");
-}
-
 async function send(label, payload) {
-  const body = JSON.stringify(payload);
-  const sig = sign(body);
+  // integration_key no payload é a autenticação do Payt (sem header de assinatura)
+  const body = JSON.stringify({ ...payload, integration_key: SECRET });
 
   console.log(`\n─── ${label} ───`);
   console.log(`  status: ${payload.status}`);
   console.log(`  email:  ${payload.customer.email}`);
   console.log(`  product_code: ${payload.product.code}`);
-  console.log(`  assinando com secret: "${SECRET}"`);
+  console.log(`  integration_key: "${SECRET}"`);
 
   const res = await fetch(URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-payt-signature": sig,
-    },
+    headers: { "Content-Type": "application/json" },
     body,
   });
 
