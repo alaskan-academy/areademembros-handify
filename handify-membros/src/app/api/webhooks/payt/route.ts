@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   const buyerName = payload.customer.name?.trim() || undefined;
   const mainProductCode = payload.product.code;
 
-  // 4. Status desconhecido — ack sem processar
+  // 4. Status desconhecido — ack sem processar (não é erro, só aguarda)
   if (action === "ignore") {
     await logPaymentEvent(supabase, {
       product_code: mainProductCode,
@@ -83,7 +83,6 @@ export async function POST(req: NextRequest) {
       buyer_name: buyerName,
       payload,
       processed: false,
-      error: `Status "${payload.status}" não mapeado — ignorado`,
     });
     return NextResponse.json({ received: true });
   }
@@ -152,8 +151,7 @@ export async function POST(req: NextRequest) {
       buyer_email: buyerEmail,
       buyer_name: buyerName,
       payload,
-      processed: false,
-      error: `Conta não existe — ${courses.length} token(s) de ativação enviados`,
+      processed: true, // token criado e e-mail enviado — tratado com sucesso
     });
     return NextResponse.json({ received: true });
   }
