@@ -6,6 +6,23 @@ import { activateAccount } from "./actions";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+function useBirthDateMask() {
+  const [value, setValue] = useState("");
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    let v = e.target.value.replace(/\D/g, "");
+    if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+    if (v.length > 5) v = v.slice(0, 5) + "/" + v.slice(5);
+    if (v.length > 10) v = v.slice(0, 10);
+    setValue(v);
+  }
+  function toISO() {
+    const [d, m, y] = value.split("/");
+    if (d && m && y?.length === 4) return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    return "";
+  }
+  return { value, onChange, toISO };
+}
+
 function PasswordInput({
   name,
   placeholder,
@@ -42,13 +59,18 @@ function PasswordInput({
 export default function ActivateForm({
   token,
   email,
+  defaultName,
+  defaultPhone,
 }: {
   token: string;
   email: string;
+  defaultName?: string;
+  defaultPhone?: string;
 }) {
   const router = useRouter();
   const [success, setSuccess] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const birthDate = useBirthDateMask();
 
   const [state, action, pending] = useActionState(
     async (_prev: { error?: string } | null, formData: FormData) => {
@@ -119,8 +141,12 @@ export default function ActivateForm({
               placeholder="Maria Silva"
               required
               autoComplete="name"
+              defaultValue={defaultName ?? ""}
               className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
             />
+            {defaultName && (
+              <p className="text-xs text-[#6699F3]">Preenchido com o nome da sua compra.</p>
+            )}
           </div>
 
           {/* E-mail bloqueado */}
@@ -165,8 +191,12 @@ export default function ActivateForm({
               placeholder="(11) 99999-9999"
               autoComplete="tel"
               required
+              defaultValue={defaultPhone ?? ""}
               className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
             />
+            {defaultPhone && (
+              <p className="text-xs text-[#6699F3]">Preenchido com o número da sua compra.</p>
+            )}
           </div>
 
           {/* Data de nascimento */}
@@ -177,13 +207,16 @@ export default function ActivateForm({
               <span className="text-muted-foreground font-normal text-xs ml-1">(opcional)</span>
             </label>
             <input
-              name="date_of_birth"
-              type="date"
-              max={new Date(new Date().setFullYear(new Date().getFullYear() - 10))
-                .toISOString()
-                .slice(0, 10)}
+              type="text"
+              inputMode="numeric"
+              placeholder="DD/MM/AAAA"
+              value={birthDate.value}
+              onChange={birthDate.onChange}
+              maxLength={10}
+              autoComplete="bday"
               className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
             />
+            <input type="hidden" name="date_of_birth" value={birthDate.toISO()} />
             <p className="text-xs text-muted-foreground">
               Para ofertas e promoções especiais na data certa!
             </p>

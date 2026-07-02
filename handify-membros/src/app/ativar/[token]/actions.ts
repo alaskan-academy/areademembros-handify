@@ -21,11 +21,11 @@ export type ActivateResult = { error?: string; success?: boolean };
 
 export async function validateToken(
   token: string
-): Promise<{ email?: string; error?: string }> {
+): Promise<{ email?: string; defaultName?: string; defaultPhone?: string; error?: string }> {
   const service = createServiceClient();
   const { data } = await service
     .from("activation_tokens")
-    .select("email, used, expires_at")
+    .select("email, used, expires_at, buyer_name, buyer_phone")
     .eq("token", token)
     .maybeSingle();
 
@@ -33,7 +33,11 @@ export async function validateToken(
   if (data.used) return { error: "Este link já foi utilizado. Faça login normalmente." };
   if (new Date(data.expires_at) < new Date()) return { error: "Este link expirou. Entre em contato com o suporte." };
 
-  return { email: data.email };
+  return {
+    email: data.email,
+    defaultName: (data as { buyer_name?: string }).buyer_name ?? undefined,
+    defaultPhone: (data as { buyer_phone?: string }).buyer_phone ?? undefined,
+  };
 }
 
 export async function activateAccount(

@@ -8,7 +8,7 @@ export default async function AtivarPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const { email, error } = await validateToken(token);
+  const { email, defaultName, defaultPhone, error } = await validateToken(token);
 
   if (error || !email) {
     return (
@@ -34,5 +34,5 @@ export default async function AtivarPage({
     );
   }
 
-  return <ActivateForm token={token} email={email} />;
+  return <ActivateForm token={token} email={email} defaultName={defaultName} defaultPhone={defaultPhone} />;
 }
