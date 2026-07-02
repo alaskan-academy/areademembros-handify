@@ -93,10 +93,11 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
   const [banned, setBanned] = useState(profile.banned);
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailState, emailAction, emailPending] = useActionState(updateStudentEmailAction, {});
-  const [addingCourse, setAddingCourse] = useState(false);
-  const [quickGrantState, quickGrantAction, quickGrantPending] = useActionState(grantAccessAction, {});
 
-  const enrolledCount = courses.filter((c) => c.enrollment !== null).length;
+  const enrolledCourses = courses.filter((c) => c.enrollment !== null);
+  const unenrolledCourses = courses.filter((c) => c.enrollment === null);
+  const enrolledCount = enrolledCourses.length;
+  const [showUnenrolled, setShowUnenrolled] = useState(false);
 
   function handleToggleBan() {
     const next = !banned;
@@ -289,101 +290,57 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
         {/* Coluna principal — cursos */}
         <div className="lg:col-span-2">
           <section className="handify-card overflow-hidden">
+            {/* Header */}
             <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-[#6699F3]" />
-              <h2 className="font-semibold">
-                Matrículas{" "}
-                <span className="text-muted-foreground font-normal text-sm">
-                  ({enrolledCount} de {courses.length})
-                </span>
-              </h2>
-              <button
-                onClick={() => setAddingCourse((v) => !v)}
-                className="ml-auto flex items-center gap-1 text-xs font-semibold text-[#6699F3] hover:text-[#5580d4] px-2.5 py-1 rounded-lg hover:bg-[#6699F3]/10 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Adicionar
-              </button>
+              <h2 className="font-semibold">Cursos</h2>
+              <span className="text-xs text-muted-foreground">
+                {enrolledCount} matrícula{enrolledCount !== 1 ? "s" : ""} · {courses.length} disponíveis
+              </span>
             </div>
 
-            {/* Formulário rápido de adicionar curso */}
-            {addingCourse && (
-              <form
-                action={quickGrantAction}
-                className="px-5 py-4 border-b border-border/60 bg-[#6699F3]/5 space-y-3"
-              >
-                <input type="hidden" name="user_id" value={profile.id} />
-                {quickGrantState.error && (
-                  <p className="text-xs text-red-600">{quickGrantState.error}</p>
-                )}
-                {quickGrantState.success && (
-                  <p className="text-xs text-green-600">{quickGrantState.success}</p>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-foreground/60 mb-1 block">Curso</label>
-                    <select
-                      name="course_id"
-                      required
-                      className="w-full text-sm px-2.5 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
-                    >
-                      <option value="">Selecione…</option>
-                      {courses.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title}
-                          {c.enrollment ? " ✓" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-foreground/60 mb-1 block">Expiração (opcional)</label>
-                    <input
-                      name="expires_at"
-                      type="date"
-                      min={new Date().toISOString().split("T")[0]}
-                      className="w-full text-sm px-2.5 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground/60 mb-1 block">Motivo *</label>
-                  <input
-                    name="reason"
-                    required
-                    placeholder="Ex: cortesia, reativação, suporte"
-                    className="w-full text-sm px-2.5 py-2 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={quickGrantPending}
-                    className="px-4 py-1.5 text-sm font-semibold text-white bg-[#6699F3] hover:bg-[#5580d4] rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {quickGrantPending ? "Salvando…" : "Dar acesso"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAddingCourse(false)}
-                    className="px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {courses.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground text-sm">
-                Nenhum curso publicado.
+            {/* ── Com acesso ── */}
+            {enrolledCourses.length === 0 ? (
+              <div className="px-5 py-6 text-center text-sm text-muted-foreground">
+                Nenhuma matrícula ativa.
               </div>
             ) : (
-              <div className="divide-y divide-border/40">
-                {courses.map((course) => (
-                  <CourseRow key={course.id} course={course} userId={profile.id} />
-                ))}
-              </div>
+              <>
+                <div className="px-5 py-2 bg-[#72CF92]/5 border-b border-[#72CF92]/20">
+                  <p className="text-xs font-semibold text-[#5bb577] uppercase tracking-wide">
+                    ✓ Com acesso ({enrolledCount})
+                  </p>
+                </div>
+                <div className="divide-y divide-border/40">
+                  {enrolledCourses.map((course) => (
+                    <CourseRow key={course.id} course={course} userId={profile.id} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Sem acesso (colapsável) ── */}
+            {unenrolledCourses.length > 0 && (
+              <>
+                <button
+                  onClick={() => setShowUnenrolled((v) => !v)}
+                  className="w-full px-5 py-3 flex items-center gap-2 bg-muted/30 hover:bg-muted/50 transition-colors border-t border-border/60"
+                >
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    🔒 Sem acesso ({unenrolledCourses.length})
+                  </span>
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    {showUnenrolled ? "Recolher" : "Ver cursos disponíveis"}
+                  </span>
+                </button>
+                {showUnenrolled && (
+                  <div className="divide-y divide-border/40">
+                    {unenrolledCourses.map((course) => (
+                      <CourseRow key={course.id} course={course} userId={profile.id} />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </section>
         </div>

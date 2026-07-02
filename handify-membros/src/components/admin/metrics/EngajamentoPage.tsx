@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trophy, MessageSquare, MessageCircle, Store, Users } from "lucide-react";
+import { Trophy, MessageSquare, MessageCircle, Store, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type EngajamentoEntry = {
@@ -13,11 +13,18 @@ export type EngajamentoEntry = {
   forumComments: number;
   newsComments: number;
   suggestions: number;
+  lessonsCompleted: number;
 };
 
 interface Props {
   ranking: EngajamentoEntry[];
-  totals: { posts: number; comments: number; suggestions: number; activeStudents: number };
+  totals: {
+    posts: number;
+    comments: number;
+    suggestions: number;
+    lessonsCompleted: number;
+    activeStudents: number;
+  };
   periodo: string;
 }
 
@@ -45,7 +52,7 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
         <div>
           <h2 className="font-semibold text-lg">Engajamento da Comunidade</h2>
           <p className="text-sm text-muted-foreground">
-            Alunas mais ativas em posts, comentários e sugestões
+            Alunas mais ativas em posts, comentários, sugestões e aulas concluídas
           </p>
         </div>
         <div className="flex gap-1 bg-muted rounded-xl p-1">
@@ -67,42 +74,51 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="handify-card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-[#6699F3]" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Alunas ativas
+          <div className="flex items-center gap-1.5 mb-1">
+            <Users className="w-3.5 h-3.5 text-[#6699F3]" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Ativas
             </p>
           </div>
           <p className="text-2xl font-bold">{totals.activeStudents}</p>
         </div>
         <div className="handify-card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <MessageSquare className="w-4 h-4 text-[#6699F3]" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 mb-1">
+            <MessageSquare className="w-3.5 h-3.5 text-[#6699F3]" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               Posts
             </p>
           </div>
           <p className="text-2xl font-bold">{totals.posts}</p>
         </div>
         <div className="handify-card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <MessageCircle className="w-4 h-4 text-[#72CF92]" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 mb-1">
+            <MessageCircle className="w-3.5 h-3.5 text-[#72CF92]" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               Comentários
             </p>
           </div>
           <p className="text-2xl font-bold">{totals.comments}</p>
         </div>
         <div className="handify-card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <Store className="w-4 h-4 text-[#FEC649]" />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Store className="w-3.5 h-3.5 text-[#FEC649]" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               Sugestões
             </p>
           </div>
           <p className="text-2xl font-bold">{totals.suggestions}</p>
+        </div>
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#72CF92]" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Aulas
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.lessonsCompleted}</p>
         </div>
       </div>
 
@@ -111,8 +127,8 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
         <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
           <Trophy className="w-4 h-4 text-[#FEC649]" />
           <h3 className="font-semibold">Top 20 — Mais Engajadas</h3>
-          <span className="ml-auto text-xs text-muted-foreground">
-            Fórmula: post×3 + comentário×2 + sugestão×3
+          <span className="ml-auto text-xs text-muted-foreground hidden sm:block">
+            post×3 + comentário×2 + sugestão×3 + aula×1
           </span>
         </div>
         {ranking.length === 0 ? (
@@ -125,6 +141,12 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
             {ranking.map((entry, idx) => {
               const initial =
                 entry.profile.full_name?.charAt(0)?.toUpperCase() ?? "?";
+              const displayName =
+                entry.profile.full_name ||
+                (entry.profile.email && entry.profile.email !== entry.userId
+                  ? entry.profile.email
+                  : null) ||
+                "Aluna sem nome";
               const maxScore = ranking[0]?.score ?? 1;
               const pct = Math.round((entry.score / maxScore) * 100);
               const totalComments = entry.forumComments + entry.newsComments;
@@ -168,7 +190,7 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
                         href={`/admin/alunos/${entry.userId}?tab=atividade`}
                         className="text-sm font-semibold hover:text-[#6699F3] transition-colors truncate"
                       >
-                        {entry.profile.full_name ?? entry.profile.email ?? "Aluna"}
+                        {displayName}
                       </Link>
                       <span className="text-sm font-bold text-[#6699F3] shrink-0">
                         {entry.score} pts
@@ -181,8 +203,8 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    {/* Breakdown */}
-                    <div className="flex gap-3 mt-1.5">
+                    {/* Breakdown chips */}
+                    <div className="flex flex-wrap gap-2 mt-1.5">
                       {entry.forumPosts > 0 && (
                         <span className="text-[11px] text-muted-foreground">
                           <span className="font-semibold">{entry.forumPosts}</span> post
@@ -197,6 +219,12 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
                       {entry.suggestions > 0 && (
                         <span className="text-[11px] text-muted-foreground">
                           <span className="font-semibold">{entry.suggestions}</span> sugest.
+                        </span>
+                      )}
+                      {entry.lessonsCompleted > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          <span className="font-semibold">{entry.lessonsCompleted}</span> aula
+                          {entry.lessonsCompleted !== 1 ? "s" : ""}
                         </span>
                       )}
                     </div>

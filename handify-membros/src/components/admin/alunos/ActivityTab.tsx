@@ -47,7 +47,7 @@ export default function ActivityTab({ items }: { items: ActivityItem[] }) {
   const comments = items.filter((i) => i.type === "forum_comment" || i.type === "news_comment").length;
   const suggestions = items.filter((i) => i.type === "suggestion").length;
   const lessonsCompleted = items.filter((i) => i.type === "lesson_completed").length;
-  const score = forumPosts * 3 + comments * 2 + suggestions * 3;
+  const score = forumPosts * 3 + comments * 2 + suggestions * 3 + lessonsCompleted;
 
   return (
     <div className="space-y-4">
