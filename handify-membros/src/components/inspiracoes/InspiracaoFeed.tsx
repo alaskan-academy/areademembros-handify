@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useTransition } from 'react'
-import { Search, SlidersHorizontal, Loader2 } from 'lucide-react'
+import { Search, SlidersHorizontal, Loader2, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
 import type { InspiracaoPost, InspiracaoType, InspiracaoCursor } from '@/lib/inspiracoes/types'
@@ -42,11 +42,14 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
   const [nicho, setNicho] = useState('')
   const [busca, setBusca] = useState('')
   const [debouncedBusca, setDebouncedBusca] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const [posts, setPosts] = useState(initialPosts)
   const [cursor, setCursor] = useState(initialCursor)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [selected, setSelected] = useState<InspiracaoPost | null>(null)
+
+  const activeFilterCount = (tipo !== '' ? 1 : 0) + (nicho !== '' ? 1 : 0)
 
   const [isFetching, startFetch] = useTransition()
   const [isLoadingMore, startLoadMore] = useTransition()
@@ -96,52 +99,97 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
   return (
     <>
       {/* Filtros */}
-      <div className="mb-5 space-y-2.5">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar inspirações..."
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow"
-          />
+      <div className="mb-5 space-y-2">
+        {/* Linha: busca + botão filtros */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar inspirações..."
+              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow"
+            />
+          </div>
+          <button
+            onClick={() => setFiltersOpen(v => !v)}
+            aria-label="Filtros"
+            aria-expanded={filtersOpen}
+            className={cn(
+              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors',
+              filtersOpen || activeFilterCount > 0
+                ? 'border-[#6699F3] text-[#6699F3] bg-[#6699F3]/5'
+                : 'border-border text-foreground/60 hover:border-[#6699F3]/50 hover:text-[#6699F3]'
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline text-xs">Filtros</span>
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[#6699F3] text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+            <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', filtersOpen && 'rotate-180')} />
+          </button>
         </div>
 
-        {/* Tipo chips */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {TIPOS.map(t => (
-            <button
-              key={t.value}
-              onClick={() => setTipo(t.value)}
-              className={cn(
-                'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap',
-                tipo === t.value
-                  ? 'bg-[#6699F3] text-white shadow-sm'
-                  : 'bg-white border border-border text-foreground/70 hover:border-[#6699F3]/50 hover:text-[#6699F3]'
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {/* Painel retrátil */}
+        {filtersOpen && (
+          <div className="bg-white rounded-xl border border-border/70 p-4 space-y-4">
+            {/* Tipo */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tipo</p>
+              <div className="flex flex-wrap gap-1.5">
+                {TIPOS.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => setTipo(t.value)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                      tipo === t.value
+                        ? 'bg-[#6699F3] text-white shadow-sm'
+                        : 'bg-muted/60 text-foreground/70 hover:bg-[#6699F3]/10 hover:text-[#6699F3]'
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Nicho chips */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {NICHOS.map(n => (
-            <button
-              key={n.value}
-              onClick={() => setNicho(n.value)}
-              className={cn(
-                'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap',
-                nicho === n.value
-                  ? 'bg-[#72CF92] text-white shadow-sm'
-                  : 'bg-white border border-border text-foreground/70 hover:border-[#72CF92]/60 hover:text-[#2a9d5a]'
-              )}
-            >
-              {n.label}
-            </button>
-          ))}
-        </div>
+            {/* Nicho */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Artesanato</p>
+              <div className="flex flex-wrap gap-1.5">
+                {NICHOS.map(n => (
+                  <button
+                    key={n.value}
+                    onClick={() => setNicho(n.value)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                      nicho === n.value
+                        ? 'bg-[#72CF92] text-white shadow-sm'
+                        : 'bg-muted/60 text-foreground/70 hover:bg-[#72CF92]/15 hover:text-[#2a9d5a]'
+                    )}
+                  >
+                    {n.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Limpar */}
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() => { setTipo(''); setNicho('') }}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Grid */}

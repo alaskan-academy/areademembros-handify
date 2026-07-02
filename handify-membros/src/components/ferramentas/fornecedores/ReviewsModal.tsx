@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, MessageCircle, Send, User } from 'lucide-react'
+import { useModalBackGuard } from '@/hooks/useModalBackGuard'
 import { getSupplierReviews, submitReview } from '@/lib/fornecedores/actions'
 import type { SupplierWithDetails, SupplierReviewWithProfile } from '@/lib/fornecedores/types'
 
@@ -12,27 +13,13 @@ interface Props {
 }
 
 export function ReviewsModal({ supplier, userId, onClose }: Props) {
+  useModalBackGuard(true, onClose)
+
   const [reviews, setReviews] = useState<SupplierReviewWithProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitMsg, setSubmitMsg] = useState('')
-
-  useEffect(() => {
-    history.pushState({ handifyModal: true }, '')
-    let closedViaHistory = false
-
-    function handlePopState() {
-      closedViaHistory = true
-      onClose()
-    }
-
-    window.addEventListener('popstate', handlePopState)
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-      if (!closedViaHistory) history.back()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     getSupplierReviews(supplier.id).then(r => {

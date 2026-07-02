@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { X, ChevronLeft, ChevronRight, User, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { useModalBackGuard } from '@/hooks/useModalBackGuard'
 import type { InspiracaoPost } from '@/lib/inspiracoes/types'
 import { LikeButton } from './LikeButton'
 import { BookmarkButton } from './BookmarkButton'
@@ -69,6 +70,8 @@ interface Props {
 }
 
 export function InspiracaoModal({ post, userId, onClose }: Props) {
+  useModalBackGuard(true, onClose)
+
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
