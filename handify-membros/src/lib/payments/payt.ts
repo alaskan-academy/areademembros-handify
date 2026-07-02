@@ -12,7 +12,9 @@ const PaytProductItemSchema = z.object({
 const PaytOrderBumpSchema = z.object({
   code: z.string().optional(),
   name: z.string().optional(),
-  product: PaytProductItemSchema,
+  product: PaytProductItemSchema.extend({
+    items: z.array(PaytProductItemSchema).optional().default([]),
+  }),
 });
 
 export const PaytPayloadSchema = z.object({
@@ -56,7 +58,13 @@ export function extractProductCodes(payload: PaytPayload): string[] {
   }
 
   for (const bump of payload.order_bumps) {
-    if (bump.product?.code) codes.push(bump.product.code);
+    if (bump.product?.type === "grouped" && bump.product.items?.length) {
+      for (const item of bump.product.items) {
+        if (item.code) codes.push(item.code);
+      }
+    } else if (bump.product?.code) {
+      codes.push(bump.product.code);
+    }
   }
 
   return [...new Set(codes)]; // remove duplicatas
@@ -65,7 +73,7 @@ export function extractProductCodes(payload: PaytPayload): string[] {
 // ── Classificação de status ───────────────────────────────────────────────────
 
 const GRANT_STATUSES = new Set(["paid", "approved", "completed", "confirmed"]);
-const REVOKE_STATUSES = new Set(["refunded", "cancelled", "chargeback", "expired"]);
+const REVOKE_STATUSES = new Set(["refunded", "cancelled", "canceled", "chargeback", "expired"]);
 
 export function classifyEvent(status: string): "grant" | "revoke" | "ignore" {
   if (GRANT_STATUSES.has(status)) return "grant";
