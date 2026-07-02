@@ -32,14 +32,14 @@ function Carrossel({ images }: { images: { url: string; alt?: string }[] }) {
         <>
           <button
             onClick={() => setIdx(i => (i - 1 + images.length) % images.length)}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
             aria-label="Anterior"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => setIdx(i => (i + 1) % images.length)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
             aria-label="Próxima"
           >
             <ChevronRight className="w-4 h-4" />
@@ -115,7 +115,7 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
             </div>
             <button
               onClick={onClose}
-              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-foreground/40 hover:text-foreground hover:bg-muted transition-colors"
+              className="shrink-0 w-10 h-10 flex items-center justify-center rounded-lg text-foreground/40 hover:text-foreground hover:bg-muted transition-colors"
               aria-label="Fechar"
             >
               <X className="w-5 h-5" />

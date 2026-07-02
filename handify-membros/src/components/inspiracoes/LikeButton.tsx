@@ -36,6 +36,7 @@ export function LikeButton({ postId, userId, initialLiked, initialCount, size = 
       onClick={handleClick}
       className={cn(
         'flex items-center gap-1 transition-colors',
+        size === 'sm' ? '-m-1.5 p-1.5' : '-m-1 p-1',
         textCls,
         liked ? 'text-red-500' : 'text-foreground/50 hover:text-red-400'
       )}

@@ -32,6 +32,7 @@ export function BookmarkButton({ postId, userId, initialBookmarked, size = 'sm' 
       onClick={handleClick}
       className={cn(
         'flex items-center gap-1 transition-colors',
+        size === 'sm' ? '-m-1.5 p-1.5' : '-m-1 p-1',
         bookmarked ? 'text-[#6699F3]' : 'text-foreground/50 hover:text-[#6699F3]'
       )}
       aria-label={bookmarked ? 'Remover dos salvos' : 'Salvar'}

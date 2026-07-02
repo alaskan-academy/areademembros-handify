@@ -95,13 +95,13 @@ export function ComentariosPanel({ postId, userId }: Props) {
           onChange={e => { setBody(e.target.value); setSent(false) }}
           placeholder="Escreva um comentário..."
           maxLength={2000}
-          className="flex-1 text-xs px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow"
+          className="flex-1 text-xs px-3 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow min-h-[44px]"
         />
         <button
           type="submit"
           disabled={!body.trim() || isSubmitting}
           aria-label="Enviar comentário"
-          className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-[#6699F3] text-white disabled:opacity-40 hover:bg-[#5588e8] transition-colors"
+          className="shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-[#6699F3] text-white disabled:opacity-40 hover:bg-[#5588e8] transition-colors"
         >
           {isSubmitting
             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

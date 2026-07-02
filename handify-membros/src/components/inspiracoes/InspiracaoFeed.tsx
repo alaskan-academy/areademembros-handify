@@ -116,7 +116,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
             aria-label="Filtros"
             aria-expanded={filtersOpen}
             className={cn(
-              'shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-colors',
+              'shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors',
               filtersOpen || activeFilterCount > 0
                 ? 'border-[#6699F3] text-[#6699F3] bg-[#6699F3]/5'
                 : 'border-border text-foreground/60 hover:border-[#6699F3]/50 hover:text-[#6699F3]'
