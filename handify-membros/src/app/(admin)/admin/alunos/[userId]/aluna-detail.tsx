@@ -81,9 +81,12 @@ interface Props {
 const ACTION_LABELS: Record<string, string> = {
   grant_access: "Acesso concedido",
   revoke_access: "Acesso revogado",
+  "enrollment.revoked": "Acesso revogado (webhook)",
   ban: "Aluna banida",
   unban: "Ban removido",
   update_email: "E-mail atualizado",
+  reject_forum_post: "Post do fórum rejeitado",
+  delete_forum_post: "Post do fórum deletado",
 };
 
 export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, defaultTab = "perfil" }: Props) {

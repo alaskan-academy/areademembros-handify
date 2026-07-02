@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Users, BookOpen, Award, Webhook, TrendingUp, CheckCircle2, Clock, XCircle, Bell } from "lucide-react";
 import { InfoTooltip } from "./metric-tooltip";
 
@@ -61,13 +62,13 @@ export default async function MetricasPage() {
   ]);
 
   // Agrupa top cursos por course_id
-  const cursoContagem = new Map<string, { title: string; slug: string; thumbnail_url: string | null; count: number }>();
+  const cursoContagem = new Map<string, { id: string; title: string; slug: string; thumbnail_url: string | null; count: number }>();
   for (const e of topCursos ?? []) {
     const c = e.courses as unknown as { title: string; slug: string; thumbnail_url: string | null } | null;
     if (!c) continue;
     const entry = cursoContagem.get(e.course_id);
     if (entry) entry.count++;
-    else cursoContagem.set(e.course_id, { ...c, count: 1 });
+    else cursoContagem.set(e.course_id, { id: e.course_id, ...c, count: 1 });
   }
   const topCursosOrdenados = [...cursoContagem.values()].sort((a, b) => b.count - a.count).slice(0, 8);
 
@@ -124,10 +125,10 @@ export default async function MetricasPage() {
           ) : (
             <div className="space-y-3">
               {topCursosOrdenados.map((curso, i) => (
-                <div key={curso.slug} className="flex items-center gap-3">
+                <Link key={curso.slug} href={`/admin/cursos/${curso.id}`} className="flex items-center gap-3 group">
                   <span className="text-xs font-bold text-muted-foreground w-5 text-right">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{curso.title}</p>
+                    <p className="text-sm font-medium truncate group-hover:text-[#6699F3] transition-colors">{curso.title}</p>
                     <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
                       <div
                         className="h-full rounded-full bg-[#6699F3]"
@@ -136,7 +137,7 @@ export default async function MetricasPage() {
                     </div>
                   </div>
                   <span className="text-sm font-semibold tabular-nums">{curso.count}</span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
