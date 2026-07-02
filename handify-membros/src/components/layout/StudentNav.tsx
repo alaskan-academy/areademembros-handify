@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
   Home, Bell, Users, ShoppingBag, Star, Heart, Globe, Video,
   Award, Settings, HelpCircle, GraduationCap, Layers,
-  Zap, Gift, Map, type LucideIcon,
+  Zap, Gift, Map, Sparkles, Wrench, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -26,10 +26,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
 
 // Atalhos fixos do bottom tab mobile
 const BOTTOM_TABS = [
-  { href: "/cursos",          icon: BookOpen,         label: "Cursos" },
-  { href: "/dashboard",       icon: LayoutDashboard,  label: "Jornada" },
-  { href: "/comunidade/feed", icon: MessageSquare,    label: "Comunidade" },
-  { href: "/perfil",          icon: User,             label: "Perfil" },
+  { href: "/cursos",          icon: BookOpen,   label: "Cursos" },
+  { href: "/inspiracoes",     icon: Sparkles,   label: "Inspirações" },
+  { href: "/comunidade/feed", icon: Bell,       label: "Avisos" },
+  { href: "/ferramentas",     icon: Wrench,     label: "Ferramentas" },
 ];
 
 interface StudentNavProps {
@@ -178,7 +178,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
           aria-label="Ver mais opções"
         >
           <MenuIcon className="w-5 h-5" strokeWidth={1.6} />
-          Mais
+          Menu
         </button>
       </nav>
 
