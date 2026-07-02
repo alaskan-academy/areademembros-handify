@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Eye, EyeOff, X, Save, Upload, Loader2, Settings2, Check, ShoppingBag } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, Save, Upload, Loader2, Settings2, Check, ShoppingBag, GripVertical, BookOpen, FileText } from "lucide-react";
 import { upsertShowcaseCourse, removeShowcaseCourse } from "@/app/(admin)/admin/vitrine/actions";
 import {
   createCourse, updateCourse, togglePublished, deleteCourse,
   uploadCourseThumbnail, createCategory, updateCategory, deleteCategory,
+  reorderCourses,
 } from "./actions";
 import { formatPrice } from "@/lib/format";
 import Image from "next/image";
@@ -19,7 +20,7 @@ interface Course {
   course_type: "course" | "material"; is_subscription_only: boolean;
   has_certificate: boolean; published: boolean;
   category_id: string | null; forum_id: string | null; thumbnail_url: string | null;
-  checkout_url: string | null;
+  checkout_url: string | null; position: number;
   category: { name: string } | null;
   forum: { title: string; slug: string } | null;
   showcase: { sales_video_panda_id: string | null; position: number; active: boolean } | null;
@@ -670,6 +671,12 @@ function VitrineSection({
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
+type DragGroup = "course" | "material";
+
+function sortByPosition(items: Course[]) {
+  return [...items].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+}
+
 export default function CourseManager({
   courses,
   categories,
@@ -683,6 +690,68 @@ export default function CourseManager({
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Listas separadas por tipo, ordenadas por position
+  const [courseItems, setCourseItems] = useState<Course[]>(() =>
+    sortByPosition(courses.filter((c) => c.course_type === "course"))
+  );
+  const [materialItems, setMaterialItems] = useState<Course[]>(() =>
+    sortByPosition(courses.filter((c) => c.course_type === "material"))
+  );
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  // Sincroniza quando a prop muda (após router.refresh)
+  useEffect(() => {
+    setCourseItems(sortByPosition(courses.filter((c) => c.course_type === "course")));
+    setMaterialItems(sortByPosition(courses.filter((c) => c.course_type === "material")));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courses]);
+
+  // Drag-and-drop
+  const dragFrom = useRef<{ idx: number; group: DragGroup } | null>(null);
+  const [dragOver, setDragOver] = useState<{ idx: number; group: DragGroup } | null>(null);
+  const [dragging, setDragging] = useState<{ idx: number; group: DragGroup } | null>(null);
+
+  function getItems(group: DragGroup) { return group === "course" ? courseItems : materialItems; }
+  function setItems(group: DragGroup, next: Course[]) {
+    if (group === "course") setCourseItems(next); else setMaterialItems(next);
+  }
+
+  function handleDragStart(idx: number, group: DragGroup) {
+    dragFrom.current = { idx, group };
+    setDragging({ idx, group });
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number, group: DragGroup) {
+    e.preventDefault();
+    if (dragFrom.current?.group === group) setDragOver({ idx, group });
+  }
+
+  function handleDrop(e: React.DragEvent, toIdx: number, group: DragGroup) {
+    e.preventDefault();
+    const from = dragFrom.current;
+    if (!from || from.group !== group) { cleanup(); return; }
+    if (from.idx === toIdx) { cleanup(); return; }
+
+    const items = getItems(group);
+    const next = [...items];
+    const [removed] = next.splice(from.idx, 1);
+    next.splice(toIdx, 0, removed);
+    setItems(group, next);
+    cleanup();
+
+    setIsSavingOrder(true);
+    startTransition(async () => {
+      await reorderCourses(next.map((c) => c.id));
+      setIsSavingOrder(false);
+    });
+  }
+
+  function cleanup() {
+    dragFrom.current = null;
+    setDragOver(null);
+    setDragging(null);
+  }
 
   function handleToggle(courseId: string, current: boolean) {
     startTransition(async () => {
@@ -698,10 +767,123 @@ export default function CourseManager({
     });
   }
 
+  function renderCourseRow(course: Course, idx: number, group: DragGroup) {
+    const isDraggingThis = dragging?.group === group && dragging?.idx === idx;
+    const isDropTarget = dragOver?.group === group && dragOver?.idx === idx;
+
+    return (
+      <div
+        key={course.id}
+        draggable={!editingId && !showCreate}
+        onDragStart={() => handleDragStart(idx, group)}
+        onDragOver={(e) => handleDragOver(e, idx, group)}
+        onDrop={(e) => handleDrop(e, idx, group)}
+        onDragEnd={cleanup}
+        className={`handify-card overflow-hidden transition-all ${
+          isDraggingThis ? "opacity-40 scale-[0.99]" : ""
+        } ${isDropTarget ? "border-[#6699F3] shadow-md" : ""}`}
+      >
+        {editingId === course.id ? (
+          <div className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold">Editando: {course.title}</h2>
+              <button onClick={() => setEditingId(null)} className="p-1 rounded hover:bg-muted transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <CourseForm
+              categories={categories}
+              forums={forums}
+              initial={course}
+              courseId={course.id}
+              onSave={() => { setEditingId(null); router.refresh(); }}
+              onCancel={() => setEditingId(null)}
+            />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 p-4">
+            {/* Drag handle */}
+            <div
+              className="cursor-grab active:cursor-grabbing shrink-0 p-1 -ml-1 text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
+              title="Arrastar para reordenar"
+            >
+              <GripVertical className="w-4 h-4" />
+            </div>
+
+            {/* Thumbnail */}
+            {course.thumbnail_url ? (
+              <div className="relative w-16 h-10 rounded-lg overflow-hidden shrink-0 bg-muted">
+                <Image src={course.thumbnail_url} alt={course.title} fill className="object-cover" unoptimized />
+              </div>
+            ) : (
+              <div className="w-16 h-10 rounded-lg bg-muted shrink-0 flex items-center justify-center">
+                <Upload className="w-3.5 h-3.5 text-muted-foreground/40" />
+              </div>
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium text-sm">{course.title}</p>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${course.published ? "bg-[#72CF92]/20 text-[#72CF92]" : "bg-muted text-muted-foreground"}`}>
+                  {course.published ? "Publicado" : "Rascunho"}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {course.category?.name && <span>{course.category.name} · </span>}
+                {formatPrice(course.price ?? 0)} · {course.workload_hours ?? 0}h
+                {course.product_codes?.length > 0 && <span> · cod: {course.product_codes.join(", ")}</span>}
+                {course.forum?.title && <span className="text-[#6699F3]"> · fórum: {course.forum.title}</span>}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => handleToggle(course.id, course.published)}
+                disabled={isPending}
+                title={course.published ? "Arquivar" : "Publicar"}
+                className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {course.published
+                  ? <EyeOff className="w-4 h-4 text-muted-foreground" />
+                  : <Eye className="w-4 h-4 text-[#6699F3]" />}
+              </button>
+              <button
+                onClick={() => { setEditingId(course.id); setShowCreate(false); }}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Pencil className="w-4 h-4 text-muted-foreground" />
+              </button>
+              <a href={`/admin/cursos/${course.id}`} className="text-xs text-[#6699F3] hover:underline px-2 hidden sm:block">
+                Módulos →
+              </a>
+              <button
+                onClick={() => handleDelete(course.id, course.title)}
+                disabled={isPending}
+                className="p-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4 text-red-500" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const isEmpty = courseItems.length === 0 && materialItems.length === 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Cursos</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">Cursos</h1>
+          {isSavingOrder && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Salvando ordem...
+            </span>
+          )}
+        </div>
         <button
           onClick={() => { setShowCreate(true); setEditingId(null); }}
           className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors font-medium"
@@ -727,94 +909,49 @@ export default function CourseManager({
         </div>
       )}
 
-      {courses.length === 0 && !showCreate ? (
+      {isEmpty && !showCreate ? (
         <div className="handify-card p-10 text-center text-muted-foreground text-sm">
           Nenhum curso. Clique em "Novo curso" para começar.
         </div>
       ) : (
-        <div className="space-y-3">
-          {courses.map((course) => (
-            <div key={course.id} className="handify-card overflow-hidden">
-              {editingId === course.id ? (
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="font-semibold">Editando: {course.title}</h2>
-                    <button onClick={() => setEditingId(null)} className="p-1 rounded hover:bg-muted transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <CourseForm
-                    categories={categories}
-                    forums={forums}
-                    initial={course}
-                    courseId={course.id}
-                    onSave={() => { setEditingId(null); router.refresh(); }}
-                    onCancel={() => setEditingId(null)}
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center gap-4 p-4">
-                  {/* Thumbnail */}
-                  {course.thumbnail_url ? (
-                    <div className="relative w-20 h-12 rounded-lg overflow-hidden shrink-0 bg-muted">
-                      <Image src={course.thumbnail_url} alt={course.title} fill className="object-cover" unoptimized />
-                    </div>
-                  ) : (
-                    <div className="w-20 h-12 rounded-lg bg-muted shrink-0 flex items-center justify-center">
-                      <Upload className="w-4 h-4 text-muted-foreground/40" />
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-medium text-sm">{course.title}</p>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${course.published ? "bg-[#72CF92]/20 text-[#72CF92]" : "bg-muted text-muted-foreground"}`}>
-                        {course.published ? "Publicado" : "Rascunho"}
-                      </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${course.course_type === "material" ? "bg-[#FEC649]/20 text-amber-700" : "bg-[#6699F3]/15 text-[#6699F3]"}`}>
-                        {course.course_type === "material" ? "Material Didático" : "Curso"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {course.category?.name && <span>{course.category.name} · </span>}
-                      {formatPrice(course.price ?? 0)} · {course.workload_hours ?? 0}h
-                      {course.product_codes?.length > 0 && <span> · cod: {course.product_codes.join(", ")}</span>}
-                      {course.forum?.title && <span className="text-[#6699F3]"> · fórum: {course.forum.title}</span>}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => handleToggle(course.id, course.published)}
-                      disabled={isPending}
-                      title={course.published ? "Arquivar" : "Publicar"}
-                      className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-                    >
-                      {course.published
-                        ? <EyeOff className="w-4 h-4 text-muted-foreground" />
-                        : <Eye className="w-4 h-4 text-[#6699F3]" />}
-                    </button>
-                    <button
-                      onClick={() => { setEditingId(course.id); setShowCreate(false); }}
-                      className="p-2 rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <Pencil className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                    <a href={`/admin/cursos/${course.id}`} className="text-xs text-[#6699F3] hover:underline px-2">
-                      Módulos →
-                    </a>
-                    <button
-                      onClick={() => handleDelete(course.id, course.title)}
-                      disabled={isPending}
-                      className="p-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
-                  </div>
-                </div>
-              )}
+        <div className="space-y-8">
+          {/* ── Cursos ───────────────────────────── */}
+          {courseItems.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#6699F3]" />
+                <h2 className="text-sm font-semibold text-foreground">
+                  Cursos
+                  <span className="ml-1.5 text-muted-foreground font-normal">({courseItems.length})</span>
+                </h2>
+                <span className="text-[11px] text-muted-foreground/60 ml-1 hidden sm:inline">
+                  — arraste para definir a ordem de exibição
+                </span>
+              </div>
+              <div className="space-y-2">
+                {courseItems.map((course, idx) => renderCourseRow(course, idx, "course"))}
+              </div>
             </div>
-          ))}
+          )}
+
+          {/* ── Materiais Didáticos ───────────────── */}
+          {materialItems.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-amber-600" />
+                <h2 className="text-sm font-semibold text-foreground">
+                  Materiais Didáticos
+                  <span className="ml-1.5 text-muted-foreground font-normal">({materialItems.length})</span>
+                </h2>
+                <span className="text-[11px] text-muted-foreground/60 ml-1 hidden sm:inline">
+                  — arraste para definir a ordem de exibição
+                </span>
+              </div>
+              <div className="space-y-2">
+                {materialItems.map((course, idx) => renderCourseRow(course, idx, "material"))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

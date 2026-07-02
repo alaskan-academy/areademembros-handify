@@ -237,6 +237,16 @@ async function notifyNewCourse(courseId: string) {
   }
 }
 
+export async function reorderCourses(courseIds: string[]): Promise<{ error?: string }> {
+  const supabase = await assertAdmin();
+  await Promise.all(
+    courseIds.map((id, i) => supabase.from("courses").update({ position: i }).eq("id", id))
+  );
+  revalidatePath("/admin/cursos");
+  revalidatePath("/cursos");
+  return {};
+}
+
 export async function deleteCourse(courseId: string): Promise<void> {
   const supabase = await assertAdmin();
   const { error } = await supabase.from("courses").delete().eq("id", courseId);
