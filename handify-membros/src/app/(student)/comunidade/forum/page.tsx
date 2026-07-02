@@ -59,13 +59,13 @@ export default async function ForumLandingPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-9 h-9 rounded-xl bg-[#6699F3]/10 flex items-center justify-center">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="flex items-center gap-3 mb-6 sm:mb-8">
+        <div className="w-10 h-10 rounded-xl bg-[#6699F3]/10 flex items-center justify-center shrink-0">
           <MessageSquare className="w-5 h-5 text-[#6699F3]" />
         </div>
         <div>
-          <h1 className="font-black text-xl text-foreground">Fórum da Comunidade</h1>
+          <h1 className="font-black text-xl sm:text-2xl text-foreground">Fórum da Comunidade</h1>
           <p className="text-sm text-muted-foreground">Discussões por área</p>
         </div>
       </div>

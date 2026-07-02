@@ -167,10 +167,10 @@ export default async function MinhaJornadaPage() {
   const refazer = cards.filter((c) => c.progress.percentage === 100);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-10">
       {/* Saudação */}
       <div>
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl sm:text-3xl font-black">
           Minha <span className="accent-word">Jornada</span>
         </h1>
         <p className="text-muted-foreground text-sm mt-1">

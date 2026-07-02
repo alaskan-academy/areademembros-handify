@@ -117,7 +117,7 @@ export default function StudentHeader({
               <div className="relative" ref={avatarRef}>
                 <button
                   onClick={() => setAvatarOpen((v) => !v)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity ml-1"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity ml-1"
                   style={{ background: "#6699F3" }}
                   aria-label="Menu do usuário"
                   aria-expanded={avatarOpen}
@@ -162,7 +162,7 @@ export default function StudentHeader({
       {annualPromo && (
         <button
           onClick={() => setPromoOpen(true)}
-          className="sm:hidden w-full flex items-center justify-center gap-2 py-2 bg-[#FEC649]/20 text-[#b07d00] text-xs font-bold border-b border-[#FEC649]/30 hover:bg-[#FEC649]/30 active:bg-[#FEC649]/40 transition-colors"
+          className="sm:hidden w-full flex items-center justify-center gap-2 min-h-[44px] bg-[#FEC649]/20 text-[#b07d00] text-xs font-bold border-b border-[#FEC649]/30 hover:bg-[#FEC649]/30 active:bg-[#FEC649]/40 transition-colors"
         >
           <Star className="w-3.5 h-3.5 fill-[#FEC649] text-[#FEC649]" />
           {annualPromo.badge_text}

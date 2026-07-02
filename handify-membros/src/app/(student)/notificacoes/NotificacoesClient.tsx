@@ -106,7 +106,7 @@ export default function NotificacoesClient({
       {/* Cabeçalho */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Notificações</h1>
+          <h1 className="text-xl sm:text-2xl font-black">Notificações</h1>
           {unreadCount > 0 && (
             <p className="text-sm text-muted-foreground mt-0.5">
               {unreadCount} não {unreadCount === 1 ? "lida" : "lidas"}
