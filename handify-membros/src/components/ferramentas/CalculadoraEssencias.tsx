@@ -334,30 +334,30 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                 {intensidade === 'custom' ? 'personalizada' : intensidade}
               </p>
 
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="bg-white/10 rounded-xl p-4 text-center">
-                  <div className="text-2xl mb-1">🧪</div>
-                  <div className="text-2xl font-black text-white">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-3 mb-5">
+                <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center">
+                  <div className="text-xl sm:text-2xl mb-1">🧪</div>
+                  <div className="text-lg sm:text-2xl font-black text-white leading-tight">
                     {ml.toFixed(1).replace('.', ',')}
-                    <span className="text-sm font-medium"> mL</span>
+                    <span className="text-xs sm:text-sm font-medium"> mL</span>
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">mililitros</div>
+                  <div className="text-[10px] sm:text-xs text-gray-400 mt-1">mililitros</div>
                 </div>
-                <div className="bg-[#6699F3] rounded-xl p-4 text-center">
-                  <div className="text-2xl mb-1">⚖️</div>
-                  <div className="text-2xl font-black text-white">
+                <div className="bg-[#6699F3] rounded-xl p-2 sm:p-4 text-center">
+                  <div className="text-xl sm:text-2xl mb-1">⚖️</div>
+                  <div className="text-lg sm:text-2xl font-black text-white leading-tight">
                     {gramas.toFixed(1).replace('.', ',')}
-                    <span className="text-sm font-medium"> g</span>
+                    <span className="text-xs sm:text-sm font-medium"> g</span>
                   </div>
-                  <div className="text-xs text-blue-200 mt-1">gramas</div>
+                  <div className="text-[10px] sm:text-xs text-blue-200 mt-1">gramas</div>
                 </div>
-                <div className="bg-white/10 rounded-xl p-4 text-center">
-                  <div className="text-2xl mb-1">💧</div>
-                  <div className="text-2xl font-black text-white">
+                <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center">
+                  <div className="text-xl sm:text-2xl mb-1">💧</div>
+                  <div className="text-lg sm:text-2xl font-black text-white leading-tight">
                     {gotas}
-                    <span className="text-sm font-medium"> gts</span>
+                    <span className="text-xs sm:text-sm font-medium"> gts</span>
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">gotas</div>
+                  <div className="text-[10px] sm:text-xs text-gray-400 mt-1">gotas</div>
                 </div>
               </div>
 

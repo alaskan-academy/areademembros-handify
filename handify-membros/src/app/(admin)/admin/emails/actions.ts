@@ -9,6 +9,7 @@ import {
   sendReengagementEmail,
   sendNewCourseEmail,
   sendNewsPostEmail,
+  sendRefundEmail,
 } from "@/lib/email";
 
 async function assertAdmin() {
@@ -74,6 +75,13 @@ export async function sendTestEmail(
           postTitle: "Desafio de Maio já está aberto!",
           postBody: "Este mês o desafio da comunidade é criar uma peça usando apenas linha de algodão.",
           postId: "test-id",
+        });
+        break;
+      case "refund":
+        await sendRefundEmail({
+          to,
+          studentName: "Ana Teste",
+          courseTitle: "Crochê para Iniciantes",
         });
         break;
       default:

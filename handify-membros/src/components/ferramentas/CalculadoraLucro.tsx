@@ -405,7 +405,7 @@ export default function CalculadoraLucro({ config }: { config: ProdutoConfig }) 
               <input type="text" className={inputCls} placeholder={config.namePlaceholder} maxLength={80} value={productName} onChange={e => setProductName(e.target.value)} />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-1.5 text-gray-700">{config.batchLabel}</label>
                 <input type="number" className={inputCls} placeholder={config.batchPlaceholder} min={1} value={batchQty} onChange={e => setBatchQty(e.target.value)} />
@@ -516,7 +516,7 @@ export default function CalculadoraLucro({ config }: { config: ProdutoConfig }) 
             <div className="flex items-center gap-2 font-bold text-lg mb-1"><span>💡</span>Outros Custos</div>
             <p className="text-sm text-gray-500 mb-5">Esses custos são os que a maioria das artesãs esquece de incluir — e por isso vende no prejuízo sem saber.</p>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-1.5 text-gray-700">Tempo de produção <span className="font-normal text-gray-400">(h/lote)</span></label>
                 <input type="number" className={inputCls} placeholder="Ex: 2" min={0} step={0.5} value={laborHours} onChange={e => setLaborHours(e.target.value)} />
@@ -544,7 +544,7 @@ export default function CalculadoraLucro({ config }: { config: ProdutoConfig }) 
 
             <hr className="border-gray-100 mb-5" />
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-1.5 text-gray-700">Gás, luz, água <span className="font-normal text-gray-400">(por lote)</span></label>
                 <select className={inputCls} value={utilitiesSelect} onChange={e => setUtilitiesSelect(e.target.value)}>
@@ -570,7 +570,7 @@ export default function CalculadoraLucro({ config }: { config: ProdutoConfig }) 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-semibold mb-1.5 text-gray-700">Imposto / taxa</label>
                 <select className={inputCls} value={taxSelect} onChange={e => setTaxSelect(e.target.value)}>

@@ -11,6 +11,7 @@ const EMAIL_TYPES = [
   { value: "reengagement", label: "Lembrete de reengajamento", description: "7 dias sem acessar o curso" },
   { value: "new_course", label: "Novo curso", description: "Quando um curso é publicado" },
   { value: "news_post", label: "Novidade no feed", description: "Quando um post é publicado" },
+  { value: "refund", label: "Reembolso", description: "Enviado ao revogar matrícula (cancelamento/reembolso)" },
 ];
 
 export default function EmailsAdminPage() {
