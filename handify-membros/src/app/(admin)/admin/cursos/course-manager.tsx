@@ -369,6 +369,17 @@ function ProductCodesInput({ defaultCodes }: { defaultCodes?: string[] }) {
   );
 }
 
+// ─── Divisor de seção ────────────────────────────────────────────────────────
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 shrink-0">{label}</p>
+      <div className="flex-1 h-px bg-border/50" />
+    </div>
+  );
+}
+
 // ─── Formulário de curso ──────────────────────────────────────────────────────
 
 function CourseForm({
@@ -392,7 +403,6 @@ function CourseForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    // Checkbox nao marcado nao envia valor — forcar false
     if (!fd.get("is_subscription_only")) fd.set("is_subscription_only", "false");
     if (!fd.get("has_certificate")) fd.set("has_certificate", "false");
     if (!fd.get("published")) fd.set("published", "false");
@@ -407,32 +417,58 @@ function CourseForm({
     });
   }
 
+  const checkboxes = [
+    {
+      name: "is_subscription_only",
+      label: "Apenas assinantes",
+      desc: "Requer plano ativo para acessar",
+      checked: initial?.is_subscription_only ?? false,
+    },
+    {
+      name: "has_certificate",
+      label: "Concede certificado",
+      desc: "Emite certificado ao concluir",
+      checked: initial?.has_certificate ?? false,
+    },
+    ...(courseId
+      ? [{ name: "published", label: "Publicado", desc: "Visível para alunas", checked: initial?.published ?? false }]
+      : []),
+  ];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-      <ThumbnailUpload defaultUrl={initial?.thumbnail_url} />
-
-      {/* Tipo de conteúdo */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Tipo de conteúdo</label>
-        <div className="flex gap-3">
-          {(["course", "material"] as const).map((t) => (
-            <label key={t} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="course_type"
-                value={t}
-                defaultChecked={(initial?.course_type ?? "course") === t}
-                className="accent-[#6699F3]"
-              />
-              <span className="text-sm">
-                {t === "course" ? "📚 Curso" : "📄 Material Didático"}
-              </span>
-            </label>
-          ))}
+      {/* ── Tipo + Thumbnail ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-start">
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Tipo de conteúdo</label>
+            <div className="flex gap-3">
+              {(["course", "material"] as const).map((t) => (
+                <label key={t} className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-border hover:border-[#6699F3]/50 transition-colors has-[:checked]:border-[#6699F3] has-[:checked]:bg-[#6699F3]/5">
+                  <input
+                    type="radio"
+                    name="course_type"
+                    value={t}
+                    defaultChecked={(initial?.course_type ?? "course") === t}
+                    className="accent-[#6699F3]"
+                  />
+                  <span className="text-sm font-medium">
+                    {t === "course" ? "Curso" : "Material Didático"}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="w-full sm:w-48">
+          <ThumbnailUpload defaultUrl={initial?.thumbnail_url} />
         </div>
       </div>
+
+      {/* ── Identificação ─── */}
+      <SectionDivider label="Identificação" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
@@ -468,7 +504,10 @@ function CourseForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {/* ── Venda e acesso ─── */}
+      <SectionDivider label="Venda e acesso" />
+
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Preço (R$)</label>
           <input
@@ -477,59 +516,56 @@ function CourseForm({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Carga (h)</label>
+          <label className="text-xs font-medium text-muted-foreground">Carga horária (h)</label>
           <input
             name="workload_hours" type="number" min="0" defaultValue={initial?.workload_hours ?? 0}
             className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
           />
         </div>
-        <div className="sm:col-span-3">
-          <ProductCodesInput defaultCodes={initial?.product_codes ?? []} />
-        </div>
-        <div className="sm:col-span-3 space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Link de checkout (Payt)</label>
-          <input
-            name="checkout_url"
-            type="url"
-            defaultValue={initial?.checkout_url ?? ""}
-            placeholder="https://pay.payt.com.br/..."
-            className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-          />
-        </div>
       </div>
+
+      <ProductCodesInput defaultCodes={initial?.product_codes ?? []} />
+
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Link de checkout (Payt)</label>
+        <input
+          name="checkout_url"
+          type="url"
+          defaultValue={initial?.checkout_url ?? ""}
+          placeholder="https://pay.payt.com.br/..."
+          className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+        />
+      </div>
+
+      {/* ── Organização ─── */}
+      <SectionDivider label="Organização" />
 
       <CategorySelect categories={categories} defaultValue={initial?.category_id} />
       <ForumSelect forums={forums} defaultValue={initial?.forum_id} />
 
-      <div className="flex flex-wrap items-center gap-6">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            name="is_subscription_only" type="checkbox" value="true"
-            defaultChecked={initial?.is_subscription_only ?? false}
-            className="rounded"
-          />
-          <span className="text-sm">Apenas assinantes</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            name="has_certificate" type="checkbox" value="true"
-            defaultChecked={initial?.has_certificate ?? false}
-            className="rounded"
-          />
-          <span className="text-sm">Concede certificado</span>
-        </label>
-        {courseId && (
-          <label className="flex items-center gap-2 cursor-pointer">
+      {/* ── Opções ─── */}
+      <SectionDivider label="Opções" />
+
+      <div className={`grid gap-2 ${checkboxes.length === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
+        {checkboxes.map(({ name, label, desc, checked }) => (
+          <label
+            key={name}
+            className="flex items-start gap-3 p-3 rounded-xl border border-border/70 cursor-pointer hover:border-[#6699F3]/40 hover:bg-[#6699F3]/3 transition-colors has-[:checked]:border-[#6699F3]/50 has-[:checked]:bg-[#6699F3]/5"
+          >
             <input
-              name="published" type="checkbox" value="true"
-              defaultChecked={initial?.published ?? false}
-              className="rounded"
+              name={name} type="checkbox" value="true"
+              defaultChecked={checked}
+              className="mt-0.5 accent-[#6699F3] shrink-0"
             />
-            <span className="text-sm">Publicado</span>
+            <div>
+              <p className="text-sm font-medium leading-tight">{label}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{desc}</p>
+            </div>
           </label>
-        )}
+        ))}
       </div>
 
+      {/* ── Vitrine ─── */}
       {courseId && (
         <VitrineSection
           courseId={courseId}
@@ -538,17 +574,18 @@ function CourseForm({
         />
       )}
 
-      <div className="flex gap-2 pt-1">
+      {/* ── Ações ─── */}
+      <div className="flex gap-2 pt-2 border-t border-border/50">
         <button
           type="submit" disabled={isPending}
-          className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50 font-medium"
+          className="flex items-center gap-1.5 text-sm px-5 py-2.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50 font-medium"
         >
           <Save className="w-4 h-4" />
           {isPending ? "Salvando..." : courseId ? "Salvar alterações" : "Criar curso"}
         </button>
         <button
           type="button" onClick={onCancel}
-          className="text-sm px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors"
+          className="text-sm px-4 py-2.5 rounded-lg border border-border hover:bg-muted transition-colors"
         >
           Cancelar
         </button>
