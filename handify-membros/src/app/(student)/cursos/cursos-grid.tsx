@@ -372,11 +372,18 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
   const isLocked = !course.isEnrolled;
   const isMaterial = course.course_type === "material";
 
-  return (
-    <button
-      onClick={onClick}
-      className="group handify-card overflow-hidden text-left w-full hover:shadow-md transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6699F3]"
-    >
+  // Cursos matriculados navegam direto para a última aula assistida (ou primeira)
+  const lessonHref = course.isEnrolled
+    ? course.lastLessonId
+      ? `/aulas/${course.lastLessonId}`
+      : course.firstLessonId
+      ? `/aulas/${course.firstLessonId}`
+      : null
+    : null;
+
+  const cardClassName = "group handify-card overflow-hidden text-left w-full hover:shadow-md transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6699F3]";
+
+  const cardContent = (<>
       {/* Thumbnail */}
       <div className="aspect-video relative overflow-hidden bg-[#6699F3]/10">
         {course.thumbnail_url ? (
@@ -481,7 +488,13 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
           </div>
         )}
       </div>
-    </button>
+    </>);
+
+  if (lessonHref) {
+    return <Link href={lessonHref} className={cardClassName}>{cardContent}</Link>;
+  }
+  return (
+    <button onClick={onClick} className={cardClassName}>{cardContent}</button>
   );
 }
 
