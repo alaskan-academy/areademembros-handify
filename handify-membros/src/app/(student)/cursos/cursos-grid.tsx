@@ -434,7 +434,7 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
       </div>
 
       {/* Info — altura fixa para padronizar todos os cards */}
-      <div className="p-4 h-[120px] flex flex-col justify-between overflow-hidden">
+      <div className="p-4 min-h-[120px] flex flex-col justify-between overflow-hidden">
         {/* Topo: categoria + título */}
         <div className="min-h-0">
           {course.categoryName && (
