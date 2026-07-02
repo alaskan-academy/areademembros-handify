@@ -433,10 +433,10 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
         </span>
       </div>
 
-      {/* Info — altura fixa para padronizar todos os cards */}
-      <div className="p-4 min-h-[120px] flex flex-col justify-between overflow-hidden">
-        {/* Topo: categoria + título */}
-        <div className="min-h-0">
+      {/* Info — altura fixa uniforme; top cresce, bottom nunca é empurrado */}
+      <div className="p-4 h-[144px] flex flex-col gap-2 overflow-hidden">
+        {/* Topo: categoria + título — ocupa espaço disponível, nunca transborda */}
+        <div className="flex-1 min-h-0 overflow-hidden">
           {course.categoryName && (
             <p className="text-[10px] font-medium text-[#6699F3] uppercase tracking-wide line-clamp-1 mb-1">
               {course.categoryName}
@@ -447,9 +447,9 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
           </h3>
         </div>
 
-        {/* Rodapé: progresso ou preço */}
+        {/* Rodapé: progresso ou preço — sempre na base, nunca comprimido */}
         {course.isEnrolled && course.progress && course.progress.total > 0 ? (
-          <div className="space-y-1">
+          <div className="shrink-0 space-y-1">
             <div className="flex justify-between items-center text-[10px] text-muted-foreground">
               <span>{course.progress.completed}/{course.progress.total} aulas</span>
               <span className="font-semibold" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
@@ -470,7 +470,7 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
             </p>
           </div>
         ) : (
-          <div className="flex items-center justify-between">
+          <div className="shrink-0 flex items-center justify-between">
             <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
               <Clock className="w-3 h-3" />
               {course.workload_hours}h

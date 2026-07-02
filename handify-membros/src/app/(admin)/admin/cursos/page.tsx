@@ -9,13 +9,14 @@ export default async function AdminCoursesPage() {
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/dashboard");
 
-  const [{ data: courses }, { data: categories }, { data: forums }] = await Promise.all([
+  const [{ data: courses }, { data: categories }, { data: forums }, { data: showcaseRows }] = await Promise.all([
     supabase
       .from("courses")
-      .select("id, title, slug, description, price, product_codes, workload_hours, course_type, is_subscription_only, has_certificate, published, category_id, forum_id, thumbnail_url, category:categories(name), forum:forums(title, slug)")
+      .select("id, title, slug, description, price, product_codes, workload_hours, course_type, is_subscription_only, has_certificate, published, category_id, forum_id, thumbnail_url, checkout_url, category:categories(name), forum:forums(title, slug)")
       .order("created_at", { ascending: false }),
     supabase.from("categories").select("id, name").order("name"),
     supabase.from("forums").select("id, title, slug").order("title"),
+    supabase.from("showcase_courses").select("course_id, sales_video_panda_id, position, active"),
   ]);
 
   type CourseRow = {
@@ -24,13 +25,24 @@ export default async function AdminCoursesPage() {
     course_type: "course" | "material"; is_subscription_only: boolean;
     has_certificate: boolean; published: boolean;
     category_id: string | null; forum_id: string | null; thumbnail_url: string | null;
+    checkout_url: string | null;
     category: { name: string } | null;
     forum: { title: string; slug: string } | null;
   };
 
+  type ShowcaseRow = { course_id: string; sales_video_panda_id: string | null; position: number; active: boolean };
+  const showcaseMap = Object.fromEntries(
+    ((showcaseRows ?? []) as ShowcaseRow[]).map((r) => [r.course_id, r])
+  );
+
+  const coursesWithShowcase = ((courses as unknown as CourseRow[] | null) ?? []).map((c) => ({
+    ...c,
+    showcase: showcaseMap[c.id] ?? null,
+  }));
+
   return (
     <CourseManager
-      courses={(courses as unknown as CourseRow[] | null) ?? []}
+      courses={coursesWithShowcase}
       categories={(categories as { id: string; name: string }[] | null) ?? []}
       forums={(forums as { id: string; title: string; slug: string }[] | null) ?? []}
     />

@@ -115,6 +115,7 @@ const CourseSchema = z.object({
   category_id: z.string().uuid().nullable().optional(),
   forum_id: z.string().uuid().nullable().optional(),
   thumbnail_url: z.string().optional().nullable(),
+  checkout_url: z.string().url().nullable().optional(),
 });
 
 export async function createCourse(
@@ -137,6 +138,7 @@ export async function createCourse(
     category_id: (formData.get("category_id") as string) || null,
     forum_id: (formData.get("forum_id") as string) || null,
     thumbnail_url: (formData.get("thumbnail_url") as string) || null,
+    checkout_url: (formData.get("checkout_url") as string)?.trim() || null,
   };
 
   const parsed = CourseSchema.safeParse(raw);
@@ -171,6 +173,7 @@ export async function updateCourse(
     category_id: (formData.get("category_id") as string) || null,
     forum_id: (formData.get("forum_id") as string) || null,
     thumbnail_url: (formData.get("thumbnail_url") as string) || null,
+    checkout_url: (formData.get("checkout_url") as string)?.trim() || null,
   };
 
   const parsed = CourseSchema.safeParse(raw);

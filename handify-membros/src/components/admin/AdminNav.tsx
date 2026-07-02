@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, BookOpen, ShoppingBag, Users, Star,
+  Home, BookOpen, Users, Star,
   Image as ImageIcon, Bell, Mail, Newspaper,
   MessageSquare, Flag, BarChart3, Menu as MenuIcon, X, FileText,
   ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, Zap, Store,
@@ -25,8 +25,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Catálogo",
     items: [
-      { href: "/admin/cursos",  icon: BookOpen,    label: "Cursos" },
-      { href: "/admin/vitrine", icon: ShoppingBag, label: "Vitrine" },
+      { href: "/admin/cursos", icon: BookOpen, label: "Cursos" },
     ],
   },
   {
