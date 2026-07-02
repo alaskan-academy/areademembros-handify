@@ -344,6 +344,52 @@ export async function sendNewCourseEmail({
   }
 }
 
+// ─── Reembolso / cancelamento ────────────────────────────────────────────────
+
+export async function sendRefundEmail({
+  to,
+  studentName,
+  courseTitle,
+}: {
+  to: string;
+  studentName: string;
+  courseTitle: string;
+}): Promise<void> {
+  const firstName = studentName.split(" ")[0];
+  const vitrineUrl = `${appUrl()}/vitrine`;
+
+  const { error } = await getResend().emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to,
+    subject: "Seu reembolso foi processado — a Handify continua aqui por você",
+    html: emailWrapper(`
+      <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+        Olá, ${firstName}!
+      </h1>
+      <p style="color:#2D2D2D;font-size:16px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Confirmamos que o reembolso do curso <strong>${courseTitle}</strong> foi processado com sucesso.
+        Entendemos que às vezes o momento não é o ideal — e tudo bem!
+      </p>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Quando você se sentir pronta para aprender e criar, a Handify vai estar aqui esperando por você.
+        Nossos cursos foram feitos com muito carinho para acompanhar o seu ritmo — seja ele qual for.
+      </p>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 28px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Dá uma espiada nos nossos cursos quando quiser — tem muita coisa bonita te esperando!
+      </p>
+      ${ctaButton(vitrineUrl, "Explorar cursos")}
+      <p style="color:#999999;font-size:13px;margin:0;line-height:1.6;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Dúvidas? Responda este e-mail — nossa equipe está aqui para ajudar.
+      </p>
+    `),
+  });
+
+  if (error) {
+    console.error("[email] refund error:", error);
+  }
+}
+
 // ─── Novo post no feed de notícias ────────────────────────────────────────────
 
 export async function sendNewsPostEmail({

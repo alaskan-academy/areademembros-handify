@@ -8,7 +8,7 @@ import {
   type PaytPayload,
 } from "@/lib/payments/payt";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
-import { sendAccessConfirmedEmail } from "@/lib/email";
+import { sendAccessConfirmedEmail, sendRefundEmail } from "@/lib/email";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -204,6 +204,20 @@ export async function POST(req: NextRequest) {
         });
         processed++;
         console.info(`[payt-webhook] Matrícula revogada: user=${user.id} curso=${course.id} motivo=${payload.status}`);
+
+        // E-mail de reembolso (fire-and-forget, não bloqueia a resposta)
+        ;(async () => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .maybeSingle();
+          await sendRefundEmail({
+            to: buyerEmail,
+            studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
+            courseTitle: course.title,
+          });
+        })().catch((e) => console.error("[payt-webhook] refund email:", e));
       }
     }
   }
