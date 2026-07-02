@@ -395,6 +395,34 @@ function CourseForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Estado da vitrine (inline, substituindo VitrineSection)
+  const [inVitrine, setInVitrine] = useState(initial?.showcase != null);
+  const [salesVideo, setSalesVideo] = useState(initial?.showcase?.sales_video_panda_id ?? "");
+  const [vitrineActive, setVitrineActive] = useState(initial?.showcase?.active ?? true);
+  const [isPendingVitrine, startVitrineTransition] = useTransition();
+  const [vitrineSaved, setVitrineSaved] = useState(false);
+  const checkoutUrlRef = useRef<HTMLInputElement>(null);
+
+  function handleVitrineToggleOff() {
+    setInVitrine(false);
+    if (courseId) startVitrineTransition(async () => { await removeShowcaseCourse(courseId); });
+  }
+
+  function handleVitrineSave() {
+    if (!courseId) return;
+    const fd = new FormData();
+    fd.set("course_id", courseId);
+    fd.set("sales_video_panda_id", salesVideo);
+    fd.set("checkout_url", checkoutUrlRef.current?.value ?? initial?.checkout_url ?? "");
+    fd.set("position", String(initial?.showcase?.position ?? 0));
+    fd.set("active", String(vitrineActive));
+    startVitrineTransition(async () => {
+      await upsertShowcaseCourse(fd);
+      setVitrineSaved(true);
+      setTimeout(() => setVitrineSaved(false), 2000);
+    });
+  }
+
   function slugify(v: string) {
     return v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -439,31 +467,25 @@ function CourseForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
-      {/* ── Tipo + Thumbnail ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-start">
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Tipo de conteúdo</label>
-            <div className="flex gap-3">
-              {(["course", "material"] as const).map((t) => (
-                <label key={t} className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-border hover:border-[#6699F3]/50 transition-colors has-[:checked]:border-[#6699F3] has-[:checked]:bg-[#6699F3]/5">
-                  <input
-                    type="radio"
-                    name="course_type"
-                    value={t}
-                    defaultChecked={(initial?.course_type ?? "course") === t}
-                    className="accent-[#6699F3]"
-                  />
-                  <span className="text-sm font-medium">
-                    {t === "course" ? "Curso" : "Material Didático"}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="w-full sm:w-48">
-          <ThumbnailUpload defaultUrl={initial?.thumbnail_url} />
+      {/* ── Thumbnail ─── */}
+      <ThumbnailUpload defaultUrl={initial?.thumbnail_url} />
+
+      {/* ── Tipo de conteúdo ─── */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-medium text-muted-foreground">Tipo de conteúdo</label>
+        <div className="flex gap-3">
+          {(["course", "material"] as const).map((t) => (
+            <label key={t} className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-border hover:border-[#6699F3]/50 transition-colors has-[:checked]:border-[#6699F3] has-[:checked]:bg-[#6699F3]/5">
+              <input
+                type="radio" name="course_type" value={t}
+                defaultChecked={(initial?.course_type ?? "course") === t}
+                className="accent-[#6699F3]"
+              />
+              <span className="text-sm font-medium">
+                {t === "course" ? "Curso" : "Material Didático"}
+              </span>
+            </label>
+          ))}
         </div>
       </div>
 
@@ -504,8 +526,8 @@ function CourseForm({
         />
       </div>
 
-      {/* ── Venda e acesso ─── */}
-      <SectionDivider label="Venda e acesso" />
+      {/* ── Preço e acesso ─── */}
+      <SectionDivider label="Preço e acesso" />
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
@@ -526,16 +548,96 @@ function CourseForm({
 
       <ProductCodesInput defaultCodes={initial?.product_codes ?? []} />
 
+      {/* ── Vendas ─── */}
+      <SectionDivider label="Vendas" />
+
       <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">Link de checkout (Payt)</label>
         <input
-          name="checkout_url"
-          type="url"
+          ref={checkoutUrlRef}
+          name="checkout_url" type="url"
           defaultValue={initial?.checkout_url ?? ""}
           placeholder="https://pay.payt.com.br/..."
           className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
         />
       </div>
+
+      {/* Vitrine — só exibe ao editar curso existente */}
+      {courseId && (
+        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-[#6699F3]" />
+              <span className="text-sm font-semibold">Vitrine</span>
+              <span className="text-[11px] text-muted-foreground">— exibição pública para quem ainda não comprou</span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={inVitrine}
+                onChange={(e) => {
+                  if (!e.target.checked) handleVitrineToggleOff();
+                  else setInVitrine(true);
+                }}
+                className="accent-[#6699F3] rounded"
+              />
+              <span className="text-sm font-medium">{inVitrine ? "Na vitrine" : "Fora da vitrine"}</span>
+            </label>
+          </div>
+
+          {/* Campos (visíveis só quando na vitrine) */}
+          {inVitrine && (
+            <div className="space-y-3 pt-1 border-t border-border/40">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  ID do vídeo de vendas (Panda)
+                </label>
+                <input
+                  type="text"
+                  value={salesVideo}
+                  onChange={(e) => setSalesVideo(e.target.value)}
+                  placeholder="UUID ou URL do vídeo de apresentação"
+                  className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Vídeo exibido no modal da vitrine — diferente do vídeo da aula.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setVitrineActive((v) => !v)}
+                  className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors ${
+                    vitrineActive
+                      ? "border-[#72CF92]/50 bg-[#72CF92]/10 text-[#72CF92]"
+                      : "border-border/60 text-muted-foreground"
+                  }`}
+                >
+                  {vitrineActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {vitrineActive ? "Visível na vitrine" : "Oculto"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleVitrineSave}
+                  disabled={isPendingVitrine}
+                  className="flex items-center gap-1.5 text-sm font-medium bg-[#6699F3] text-white px-4 py-2 rounded-lg hover:bg-[#5580d4] disabled:opacity-60 transition-colors"
+                >
+                  {isPendingVitrine ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : vitrineSaved ? (
+                    "Salvo ✓"
+                  ) : (
+                    <><Save className="w-3.5 h-3.5" /> Salvar vitrine</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Organização ─── */}
       <SectionDivider label="Organização" />
@@ -565,15 +667,6 @@ function CourseForm({
         ))}
       </div>
 
-      {/* ── Vitrine ─── */}
-      {courseId && (
-        <VitrineSection
-          courseId={courseId}
-          showcase={initial?.showcase ?? null}
-          checkoutUrl={initial?.checkout_url ?? ""}
-        />
-      )}
-
       {/* ── Ações ─── */}
       <div className="flex gap-2 pt-2 border-t border-border/50">
         <button
@@ -591,118 +684,6 @@ function CourseForm({
         </button>
       </div>
     </form>
-  );
-}
-
-// ─── Seção Vitrine ─────────────────────────────────────────────────────────────
-
-function VitrineSection({
-  courseId,
-  showcase,
-  checkoutUrl,
-}: {
-  courseId: string;
-  showcase: Course["showcase"] | null;
-  checkoutUrl: string;
-}) {
-  const [inVitrine, setInVitrine] = useState(showcase !== null);
-  const [salesVideo, setSalesVideo] = useState(showcase?.sales_video_panda_id ?? "");
-  const [active, setActive] = useState(showcase?.active ?? true);
-  const [isPending, startTransition] = useTransition();
-  const [saved, setSaved] = useState(false);
-
-  function handleToggleOff() {
-    setInVitrine(false);
-    startTransition(async () => {
-      await removeShowcaseCourse(courseId);
-    });
-  }
-
-  function handleSave() {
-    const fd = new FormData();
-    fd.set("course_id", courseId);
-    fd.set("sales_video_panda_id", salesVideo);
-    fd.set("checkout_url", checkoutUrl);
-    fd.set("position", String(showcase?.position ?? 0));
-    fd.set("active", String(active));
-    startTransition(async () => {
-      await upsertShowcaseCourse(fd);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    });
-  }
-
-  return (
-    <div className="border border-border rounded-xl p-4 space-y-3 bg-muted/20">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <ShoppingBag className="w-4 h-4 text-[#6699F3]" />
-          Vitrine
-        </h3>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={inVitrine}
-            onChange={(e) => {
-              if (!e.target.checked) handleToggleOff();
-              else setInVitrine(true);
-            }}
-            className="rounded"
-          />
-          <span className="text-sm">{inVitrine ? "Na vitrine" : "Fora da vitrine"}</span>
-        </label>
-      </div>
-
-      {inVitrine && (
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              ID do vídeo de vendas (Panda)
-            </label>
-            <input
-              type="text"
-              value={salesVideo}
-              onChange={(e) => setSalesVideo(e.target.value)}
-              placeholder="UUID ou URL do vídeo de apresentação"
-              className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Vídeo de apresentação/vendas exibido no modal da vitrine — diferente do vídeo da aula.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setActive((v) => !v)}
-              className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors ${
-                active
-                  ? "border-[#72CF92]/50 bg-[#72CF92]/10 text-[#72CF92]"
-                  : "border-border/60 text-muted-foreground"
-              }`}
-            >
-              {active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-              {active ? "Visível na vitrine" : "Oculto"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isPending}
-              className="flex items-center gap-1.5 text-sm font-medium bg-[#6699F3] text-white px-4 py-2 rounded-lg hover:bg-[#5580d4] disabled:opacity-60 transition-colors"
-            >
-              {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : saved ? (
-                "Salvo ✓"
-              ) : (
-                <><Save className="w-3.5 h-3.5" /> Salvar vitrine</>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 
