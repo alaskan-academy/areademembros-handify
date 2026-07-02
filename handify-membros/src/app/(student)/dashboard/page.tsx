@@ -294,9 +294,9 @@ function CourseProgressCard({ card }: { card: CourseCard }) {
         </div>
       </Link>
 
-      <div className="p-4 flex flex-col gap-3 flex-1">
+      <div className="p-4 flex flex-col gap-4 flex-1">
         <Link href={`/cursos/${course.slug}`}>
-          <h3 className="font-semibold text-sm line-clamp-2 hover:text-[#6699F3] transition-colors">
+          <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] leading-5 hover:text-[#6699F3] transition-colors">
             {course.title}
           </h3>
         </Link>
