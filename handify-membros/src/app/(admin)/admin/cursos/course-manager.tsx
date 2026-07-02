@@ -546,7 +546,6 @@ function CourseForm({
       <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">Link de checkout (Payt)</label>
         <input
-          ref={checkoutUrlRef}
           name="checkout_url" type="url"
           defaultValue={initial?.checkout_url ?? ""}
           placeholder="https://pay.payt.com.br/..."
