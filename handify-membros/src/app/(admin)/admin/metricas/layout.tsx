@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart2, Video, Trophy, TrendingDown } from "lucide-react";
+import { BarChart2, Video, Trophy, TrendingDown, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/metricas/videos", label: "Vídeos", icon: Video, exact: false },
   { href: "/admin/metricas/alunas", label: "Ranking de Alunas", icon: Trophy, exact: false },
   { href: "/admin/metricas/funil", label: "Funil & Segmentos", icon: TrendingDown, exact: false },
+  { href: "/admin/metricas/engajamento", label: "Engajamento", icon: Activity, exact: false },
 ];
 
 export default function MetricasLayout({ children }: { children: React.ReactNode }) {

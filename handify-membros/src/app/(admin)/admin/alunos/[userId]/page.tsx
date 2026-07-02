@@ -4,12 +4,15 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import AlunaDetail from "./aluna-detail";
+import type { ActivityItem } from "@/components/admin/alunos/ActivityTab";
 import { decryptCpf, formatCpf } from "@/lib/cpf-crypto";
 
 export default async function AlunaDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ userId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -23,7 +26,7 @@ export default async function AlunaDetailPage({
     .single();
   if (me?.role !== "admin") redirect("/dashboard");
 
-  const { userId } = await params;
+  const [{ userId }, { tab }] = await Promise.all([params, searchParams]);
   const service = createServiceClient();
 
   // Perfil da aluna
@@ -162,6 +165,88 @@ export default async function AlunaDetailPage({
     .eq("published", true)
     .order("title");
 
+  // Activity queries — all in parallel, only need userId
+  const [
+    { data: actForumPosts },
+    { data: actForumComments },
+    { data: actNewsComments },
+    { data: actSuggestions },
+    { data: actLessons },
+  ] = await Promise.all([
+    service
+      .from("forum_posts")
+      .select("id, title, body, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    service
+      .from("forum_comments")
+      .select("id, body, created_at, post:forum_posts!post_id(title)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    service
+      .from("news_comments")
+      .select("id, body, created_at, post:news_posts!post_id(title)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    service
+      .from("supplier_suggestions")
+      .select("id, name, status, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    service
+      .from("lesson_progress")
+      .select("id, updated_at, lesson:lessons!lesson_id(title)")
+      .eq("user_id", userId)
+      .eq("completed", true)
+      .order("updated_at", { ascending: false })
+      .limit(50),
+  ]);
+
+  type ForumPostRow = { id: string; title: string | null; body: string | null; created_at: string };
+  type ForumCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
+  type NewsCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
+  type SuggestionRow = { id: string; name: string | null; status: string | null; created_at: string };
+  type LessonProgressRow = { id: string; updated_at: string; lesson: { title: string | null } | null };
+
+  const activityItems: ActivityItem[] = [
+    ...((actForumPosts ?? []) as unknown as ForumPostRow[]).map((p) => ({
+      id: p.id,
+      type: "forum_post" as const,
+      content: p.title ?? p.body?.slice(0, 120) ?? "Post no fórum",
+      date: p.created_at,
+    })),
+    ...((actForumComments ?? []) as unknown as ForumCommentRow[]).map((c) => ({
+      id: c.id,
+      type: "forum_comment" as const,
+      content: c.body?.slice(0, 120) ?? "Comentário",
+      context: c.post?.title ?? undefined,
+      date: c.created_at,
+    })),
+    ...((actNewsComments ?? []) as unknown as NewsCommentRow[]).map((c) => ({
+      id: c.id,
+      type: "news_comment" as const,
+      content: c.body?.slice(0, 120) ?? "Comentário",
+      context: c.post?.title ?? undefined,
+      date: c.created_at,
+    })),
+    ...((actSuggestions ?? []) as unknown as SuggestionRow[]).map((s) => ({
+      id: s.id,
+      type: "suggestion" as const,
+      content: s.name ?? "Sugestão de fornecedor",
+      status: s.status ?? undefined,
+      date: s.created_at,
+    })),
+    ...((actLessons ?? []) as unknown as LessonProgressRow[]).map((lp) => ({
+      id: lp.id,
+      type: "lesson_completed" as const,
+      content: lp.lesson?.title ?? "Aula concluída",
+      date: lp.updated_at,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   type CourseEntry = {
     id: string;
     title: string;
@@ -213,6 +298,8 @@ export default async function AlunaDetailPage({
       </Link>
 
       <AlunaDetail
+        defaultTab={tab === "atividade" ? "atividade" : "perfil"}
+        activity={activityItems}
         profile={{
           id: profile.id,
           full_name: profile.full_name,

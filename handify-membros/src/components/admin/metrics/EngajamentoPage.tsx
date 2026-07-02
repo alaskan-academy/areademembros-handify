@@ -1,0 +1,212 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Trophy, MessageSquare, MessageCircle, Store, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export type EngajamentoEntry = {
+  userId: string;
+  profile: { full_name: string | null; email: string; avatar_url: string | null };
+  score: number;
+  forumPosts: number;
+  forumComments: number;
+  newsComments: number;
+  suggestions: number;
+};
+
+interface Props {
+  ranking: EngajamentoEntry[];
+  totals: { posts: number; comments: number; suggestions: number; activeStudents: number };
+  periodo: string;
+}
+
+const PERIODS = [
+  { value: "7d", label: "7 dias" },
+  { value: "30d", label: "30 dias" },
+  { value: "all", label: "Tudo" },
+];
+
+export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
+  const router = useRouter();
+
+  function setPeriodo(p: string) {
+    const url =
+      p === "all"
+        ? "/admin/metricas/engajamento"
+        : `/admin/metricas/engajamento?periodo=${p}`;
+    router.replace(url);
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header + period selector */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="font-semibold text-lg">Engajamento da Comunidade</h2>
+          <p className="text-sm text-muted-foreground">
+            Alunas mais ativas em posts, comentários e sugestões
+          </p>
+        </div>
+        <div className="flex gap-1 bg-muted rounded-xl p-1">
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => setPeriodo(p.value)}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-lg transition-all",
+                periodo === p.value
+                  ? "bg-white text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="w-4 h-4 text-[#6699F3]" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Alunas ativas
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.activeStudents}</p>
+        </div>
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <MessageSquare className="w-4 h-4 text-[#6699F3]" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Posts
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.posts}</p>
+        </div>
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <MessageCircle className="w-4 h-4 text-[#72CF92]" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Comentários
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.comments}</p>
+        </div>
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Store className="w-4 h-4 text-[#FEC649]" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Sugestões
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.suggestions}</p>
+        </div>
+      </div>
+
+      {/* Ranking table */}
+      <div className="handify-card overflow-hidden">
+        <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-[#FEC649]" />
+          <h3 className="font-semibold">Top 20 — Mais Engajadas</h3>
+          <span className="ml-auto text-xs text-muted-foreground">
+            Fórmula: post×3 + comentário×2 + sugestão×3
+          </span>
+        </div>
+        {ranking.length === 0 ? (
+          <div className="py-16 text-center">
+            <Trophy className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">Nenhuma atividade no período</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border/40">
+            {ranking.map((entry, idx) => {
+              const initial =
+                entry.profile.full_name?.charAt(0)?.toUpperCase() ?? "?";
+              const maxScore = ranking[0]?.score ?? 1;
+              const pct = Math.round((entry.score / maxScore) * 100);
+              const totalComments = entry.forumComments + entry.newsComments;
+
+              return (
+                <div key={entry.userId} className="px-5 py-4 flex items-center gap-4">
+                  {/* Rank */}
+                  <div
+                    className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                      idx === 0
+                        ? "bg-[#FEC649]/20 text-yellow-700"
+                        : idx === 1
+                        ? "bg-muted text-muted-foreground"
+                        : idx === 2
+                        ? "bg-orange-100 text-orange-700"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {idx + 1}
+                  </div>
+
+                  {/* Avatar */}
+                  {entry.profile.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={entry.profile.avatar_url}
+                      alt=""
+                      className="w-9 h-9 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-[#6699F3]/15 flex items-center justify-center text-sm font-bold text-[#6699F3] shrink-0">
+                      {initial}
+                    </div>
+                  )}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <Link
+                        href={`/admin/alunos/${entry.userId}?tab=atividade`}
+                        className="text-sm font-semibold hover:text-[#6699F3] transition-colors truncate"
+                      >
+                        {entry.profile.full_name ?? entry.profile.email ?? "Aluna"}
+                      </Link>
+                      <span className="text-sm font-bold text-[#6699F3] shrink-0">
+                        {entry.score} pts
+                      </span>
+                    </div>
+                    {/* Score bar */}
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#6699F3] transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    {/* Breakdown */}
+                    <div className="flex gap-3 mt-1.5">
+                      {entry.forumPosts > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          <span className="font-semibold">{entry.forumPosts}</span> post
+                          {entry.forumPosts !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {totalComments > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          <span className="font-semibold">{totalComments}</span> coment.
+                        </span>
+                      )}
+                      {entry.suggestions > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          <span className="font-semibold">{entry.suggestions}</span> sugest.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

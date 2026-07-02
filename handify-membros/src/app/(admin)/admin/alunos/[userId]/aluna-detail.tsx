@@ -28,6 +28,7 @@ import {
   toggleBanAction,
   updateStudentEmailAction,
 } from "./actions";
+import ActivityTab, { type ActivityItem } from "@/components/admin/alunos/ActivityTab";
 
 type CourseEntry = {
   id: string;
@@ -73,6 +74,8 @@ interface Props {
   courses: CourseEntry[];
   certificates: Certificate[];
   auditLog: AuditEntry[];
+  activity: ActivityItem[];
+  defaultTab?: "perfil" | "atividade";
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -83,8 +86,9 @@ const ACTION_LABELS: Record<string, string> = {
   update_email: "E-mail atualizado",
 };
 
-export default function AlunaDetail({ profile, courses, certificates, auditLog }: Props) {
+export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, defaultTab = "perfil" }: Props) {
   const initial = profile.full_name?.charAt(0)?.toUpperCase() ?? "?";
+  const [activeTab, setActiveTab] = useState<"perfil" | "atividade">(defaultTab);
   const [banPending, startBanTransition] = useTransition();
   const [banned, setBanned] = useState(profile.banned);
   const [editingEmail, setEditingEmail] = useState(false);
@@ -190,6 +194,33 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog }
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="border-b border-border">
+        <nav className="flex gap-1 -mb-px">
+          {(["perfil", "atividade"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={cn(
+                "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize",
+                activeTab === t
+                  ? "border-[#6699F3] text-[#6699F3]"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+              )}
+            >
+              {t === "perfil" ? "Perfil" : `Atividade${activity.length > 0 ? ` (${activity.length})` : ""}`}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {activeTab === "atividade" && (
+        <div className="handify-card p-5">
+          <ActivityTab items={activity} />
+        </div>
+      )}
+
+      {activeTab === "perfil" && <>
       {/* Dados cadastrais */}
       <div className="handify-card p-5">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-4">
@@ -435,6 +466,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog }
           )}
         </div>
       </div>
+      </>}
     </div>
   );
 }
