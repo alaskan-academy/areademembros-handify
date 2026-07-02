@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import FeedPostCard, { type FeedPostData } from "@/components/community/FeedPostCard";
 import { Newspaper } from "lucide-react";
 
-export const metadata = { title: "Feed de Notícias — Handify" };
+export const metadata = { title: "Avisos — Handify" };
 
 export default async function FeedPage() {
   const supabase = await createClient();
@@ -59,7 +59,7 @@ export default async function FeedPage() {
           <Newspaper className="w-5 h-5 text-[#6699F3]" />
         </div>
         <div>
-          <h1 className="font-black text-xl text-foreground">Feed de Notícias</h1>
+          <h1 className="font-black text-xl text-foreground">Avisos</h1>
           <p className="text-sm text-muted-foreground">Novidades, avisos e destaques da Handify</p>
         </div>
       </div>

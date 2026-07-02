@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import FeedAdminClient, { type AdminNewsPost } from "./FeedAdminClient";
 import { Newspaper } from "lucide-react";
 
-export const metadata = { title: "Feed de Notícias — Admin Handify" };
+export const metadata = { title: "Avisos — Admin Handify" };
 
 export default async function AdminFeedPage() {
   const supabase = await createClient();
@@ -36,7 +36,7 @@ export default async function AdminFeedPage() {
           <Newspaper className="w-5 h-5 text-[#6699F3]" />
         </div>
         <div>
-          <h1 className="font-black text-xl text-foreground">Feed de Notícias</h1>
+          <h1 className="font-black text-xl text-foreground">Avisos</h1>
           <p className="text-sm text-muted-foreground">Crie e gerencie publicações para as alunas</p>
         </div>
       </div>
