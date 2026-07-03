@@ -58,14 +58,14 @@ export default function LessonCompleteButton({
   const showUnmarkState = optimisticCompleted && hovering && !isPending;
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+    <div className="flex flex-col gap-2 w-full">
       <button
         onClick={handleClick}
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
         disabled={isPending}
         className={cn(
-          "flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full sm:w-auto",
+          "flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 w-full min-h-[48px]",
           optimisticCompleted
             ? showUnmarkState
               ? "bg-red-50 border border-red-200 text-red-500 cursor-pointer"

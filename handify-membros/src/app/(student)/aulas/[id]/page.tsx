@@ -228,12 +228,12 @@ export default async function LessonPage({
           <div className="flex flex-col gap-3 pt-2">
             {/* Marcar concluída + badge prévia */}
             {(hasAccess && user || lesson.is_preview) && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex flex-col gap-2">
                 {hasAccess && user && (
                   <LessonCompleteButton lessonId={id} isCompleted={isCompleted} />
                 )}
                 {lesson.is_preview && (
-                  <span className="inline-flex items-center gap-2 text-sm text-[#72CF92] font-medium bg-[#72CF92]/10 px-3 py-2 rounded-full self-start sm:self-auto">
+                  <span className="inline-flex items-center gap-2 text-sm text-[#72CF92] font-medium bg-[#72CF92]/10 px-3 py-2 rounded-full self-start">
                     <span className="w-2 h-2 rounded-full bg-[#72CF92]" />
                     Prévia gratuita
                   </span>

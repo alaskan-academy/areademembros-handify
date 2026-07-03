@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import dynamic from "next/dynamic";
-import { FileText, Code, Globe, Download } from "lucide-react";
+import { FileText, Code, Globe, Download, ChevronDown, ChevronUp } from "lucide-react";
 
 const HtmlBlock = dynamic(() => import("./HtmlBlock"), { ssr: false });
 const EmbedBlock = dynamic(() => import("./EmbedBlock"), { ssr: false });
@@ -135,7 +135,7 @@ interface ContentBlocksProps {
 }
 
 export default function ContentBlocks({ blocks, materials, videoPlayerProps }: ContentBlocksProps) {
-  if (!blocks.length && !materials.length) return null;
+  const [materialsOpen, setMaterialsOpen] = useState(false);
 
   const materialById = Object.fromEntries(materials.map((m) => [m.id, m]));
 
@@ -146,6 +146,9 @@ export default function ContentBlocks({ blocks, materials, videoPlayerProps }: C
       .filter((id): id is string => Boolean(id))
   );
   const orphanMaterials = materials.filter((m) => !referencedMaterialIds.has(m.id));
+
+  const hasContent = blocks.length > 0 || orphanMaterials.length > 0;
+  if (!hasContent) return null;
 
   return (
     <div className="space-y-6 pt-4 border-t border-border">
@@ -187,9 +190,39 @@ export default function ContentBlocks({ blocks, materials, videoPlayerProps }: C
         );
       })}
 
-      {orphanMaterials.map((m) => (
-        <DownloadBlock key={m.id} material={m} />
-      ))}
+      {/* Materiais da aula — botão toggle */}
+      {orphanMaterials.length > 0 && (
+        <div>
+          <button
+            onClick={() => setMaterialsOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border hover:border-[#6699F3]/50 bg-white hover:bg-[#6699F3]/5 transition-all text-sm font-medium text-foreground"
+          >
+            <span className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#6699F3]/10 flex items-center justify-center shrink-0">
+                <Download className="w-4 h-4 text-[#6699F3]" />
+              </div>
+              <span>
+                Materiais da aula
+                <span className="ml-1.5 text-xs font-semibold text-[#6699F3] bg-[#6699F3]/10 px-1.5 py-0.5 rounded-full">
+                  {orphanMaterials.length}
+                </span>
+              </span>
+            </span>
+            {materialsOpen
+              ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+              : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+            }
+          </button>
+
+          {materialsOpen && (
+            <div className="mt-2 space-y-2">
+              {orphanMaterials.map((m) => (
+                <DownloadBlock key={m.id} material={m} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
