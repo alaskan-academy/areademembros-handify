@@ -83,6 +83,11 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
     (post?.blocks ?? []).find((b: any) => b.type === 'html')?.content ?? ''
   )
 
+  // Dica / Destaque — imagem de capa opcional
+  const [coverImage, setCoverImage] = useState(
+    (post?.type === 'dica' || post?.type === 'destaque') ? (post?.media?.[0]?.url ?? '') : ''
+  )
+
   // Receita
   const rd = post?.recipe_data as ReceitaData | undefined
   const [recipeMedia, setRecipeMedia]   = useState(post?.media?.[0]?.url ?? '')
@@ -158,6 +163,8 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
           .filter(m => m.url)
       } else if (type === 'receita') {
         if (recipeMedia.trim()) media = [{ url: recipeMedia.trim(), alt: title, order: 0 }]
+      } else if (type === 'dica' || type === 'destaque') {
+        if (coverImage.trim()) media = [{ url: coverImage.trim(), alt: title, order: 0 }]
       }
 
       // Monta recipe_data
@@ -377,17 +384,24 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
 
         {/* ── Destaque ─────────────────────────────────────────────────── */}
         {type === 'destaque' && (
-          <div>
-            <label className={LABEL_CLS}>ID da aluna em destaque (UUID do perfil)</label>
-            <input
-              value={featuredStudentId}
-              onChange={e => setFeaturedStudentId(e.target.value)}
-              className={INPUT_CLS}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          <div className="space-y-4">
+            <ImageUploader
+              label="Imagem de capa (opcional)"
+              value={coverImage}
+              onChange={setCoverImage}
             />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Encontre o UUID da aluna na página de Alunas do admin.
-            </p>
+            <div>
+              <label className={LABEL_CLS}>ID da aluna em destaque (UUID do perfil)</label>
+              <input
+                value={featuredStudentId}
+                onChange={e => setFeaturedStudentId(e.target.value)}
+                className={INPUT_CLS}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Encontre o UUID da aluna na página de Alunas do admin.
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -521,18 +535,25 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
 
       {/* ── Seção dica (bloco HTML) ──────────────────────────────────────────── */}
       {type === 'dica' && (
-        <div className="bg-white rounded-xl border border-border/60 p-5">
-          <h2 className="text-sm font-semibold mb-3">Conteúdo HTML / Rico</h2>
-          <p className="text-xs text-muted-foreground mb-2">
-            HTML será sanitizado antes de exibir. Use tags básicas: h3, p, ul, li, strong, em, a.
-          </p>
-          <textarea
-            value={htmlBlock}
-            onChange={e => setHtmlBlock(e.target.value)}
-            rows={10}
-            className={`${INPUT_CLS} resize-y font-mono text-xs`}
-            placeholder="<h3>Título</h3><p>Conteúdo...</p>"
+        <div className="bg-white rounded-xl border border-border/60 p-5 space-y-4">
+          <h2 className="text-sm font-semibold">Conteúdo HTML / Rico</h2>
+          <ImageUploader
+            label="Imagem de capa (opcional)"
+            value={coverImage}
+            onChange={setCoverImage}
           />
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">
+              HTML será sanitizado antes de exibir. Use tags básicas: h3, p, ul, li, strong, em, a.
+            </p>
+            <textarea
+              value={htmlBlock}
+              onChange={e => setHtmlBlock(e.target.value)}
+              rows={10}
+              className={`${INPUT_CLS} resize-y font-mono text-xs`}
+              placeholder="<h3>Título</h3><p>Conteúdo...</p>"
+            />
+          </div>
         </div>
       )}
 
