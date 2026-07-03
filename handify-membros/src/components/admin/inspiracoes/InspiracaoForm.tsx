@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { adminUpsertPost, adminDeletePost } from '@/lib/inspiracoes/actions'
 import type { InspiracaoType, InspiracaoPostRow, ReceitaData } from '@/lib/inspiracoes/types'
+import { ImageUploader } from './ImageUploader'
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -304,45 +305,36 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
 
         {/* ── Mídia: foto ───────────────────────────────────────────────── */}
         {type === 'foto' && (
-          <div>
-            <label className={LABEL_CLS}>URL da imagem</label>
-            <input
-              type="url"
-              value={mediaUrls[0] ?? ''}
-              onChange={e => updateMediaUrl(0, e.target.value)}
-              className={INPUT_CLS}
-              placeholder="https://..."
-            />
-            {mediaUrls[0] && (
-              <img
-                src={mediaUrls[0]}
-                alt=""
-                className="mt-2 w-full max-h-48 object-cover rounded-lg border border-border/40"
-              />
-            )}
-          </div>
+          <ImageUploader
+            label="Imagem"
+            value={mediaUrls[0] ?? ''}
+            onChange={url => updateMediaUrl(0, url)}
+          />
         )}
 
         {/* ── Mídia: carrossel ─────────────────────────────────────────── */}
         {type === 'carrossel' && (
           <div>
             <label className={LABEL_CLS}>Imagens do carrossel</label>
-            <div className="space-y-2">
+            <div className="space-y-4">
               {mediaUrls.map((url, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    type="url"
+                <div key={i} className="relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      Imagem {i + 1}
+                    </span>
+                    {mediaUrls.length > 1 && (
+                      <button type="button" onClick={() => removeMediaUrl(i)}
+                        className="text-[10px] text-red-500 hover:underline flex items-center gap-1">
+                        <X className="w-3 h-3" />
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                  <ImageUploader
                     value={url}
-                    onChange={e => updateMediaUrl(i, e.target.value)}
-                    className={`${INPUT_CLS} flex-1`}
-                    placeholder={`URL da imagem ${i + 1}`}
+                    onChange={newUrl => updateMediaUrl(i, newUrl)}
                   />
-                  {mediaUrls.length > 1 && (
-                    <button type="button" onClick={() => removeMediaUrl(i)}
-                      className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
               ))}
               <button type="button" onClick={addMediaUrl}
@@ -407,17 +399,11 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
 
           {/* Imagem da receita */}
           <div>
-            <label className={LABEL_CLS}>Imagem da receita</label>
-            <input
-              type="url"
+            <ImageUploader
+              label="Imagem da receita"
               value={recipeMedia}
-              onChange={e => setRecipeMedia(e.target.value)}
-              className={INPUT_CLS}
-              placeholder="https://..."
+              onChange={setRecipeMedia}
             />
-            {recipeMedia && (
-              <img src={recipeMedia} alt="" className="mt-2 w-full max-h-48 object-cover rounded-lg border border-border/40" />
-            )}
           </div>
 
           {/* Ingredientes */}
