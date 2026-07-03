@@ -293,7 +293,7 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
       {posts.length === 0 && !showForm && (
         <div className="text-center py-16 text-muted-foreground">
           <p className="font-medium">Nenhum post ainda</p>
-          <p className="text-sm mt-1">Crie o primeiro post do feed de notícias.</p>
+          <p className="text-sm mt-1">Crie o primeiro aviso para as alunas.</p>
         </div>
       )}
 

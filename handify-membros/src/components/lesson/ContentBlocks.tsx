@@ -139,6 +139,14 @@ export default function ContentBlocks({ blocks, materials, videoPlayerProps }: C
 
   const materialById = Object.fromEntries(materials.map((m) => [m.id, m]));
 
+  const referencedMaterialIds = new Set(
+    blocks
+      .filter((b) => b.type === "download")
+      .map((b) => parseContent(b.content).material_id as string | undefined)
+      .filter((id): id is string => Boolean(id))
+  );
+  const orphanMaterials = materials.filter((m) => !referencedMaterialIds.has(m.id));
+
   return (
     <div className="space-y-6 pt-4 border-t border-border">
       {blocks.map((block) => {
@@ -179,6 +187,9 @@ export default function ContentBlocks({ blocks, materials, videoPlayerProps }: C
         );
       })}
 
+      {orphanMaterials.map((m) => (
+        <DownloadBlock key={m.id} material={m} />
+      ))}
     </div>
   );
 }

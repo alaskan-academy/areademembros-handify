@@ -27,7 +27,7 @@ function timeAgo(dateStr: string): string {
 const TYPE_CONFIG = {
   forum_post: { icon: MessageSquare, label: "Post no fórum", color: "#6699F3", bg: "bg-[#6699F3]/10" },
   forum_comment: { icon: MessageCircle, label: "Comentário no fórum", color: "#6699F3", bg: "bg-[#6699F3]/10" },
-  news_comment: { icon: Newspaper, label: "Comentário no feed", color: "#72CF92", bg: "bg-[#72CF92]/10" },
+  news_comment: { icon: Newspaper, label: "Comentário nos avisos", color: "#72CF92", bg: "bg-[#72CF92]/10" },
   suggestion: { icon: Store, label: "Sugestão de fornecedor", color: "#FEC649", bg: "bg-[#FEC649]/15" },
   lesson_completed: { icon: CheckCircle2, label: "Aula concluída", color: "#72CF92", bg: "bg-[#72CF92]/10" },
 };
