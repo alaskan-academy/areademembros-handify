@@ -5,8 +5,7 @@ import { Search, SlidersHorizontal, Loader2, ChevronDown, X } from 'lucide-react
 import { cn } from '@/lib/utils'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
 import type { InspiracaoPost, InspiracaoType, InspiracaoCursor } from '@/lib/inspiracoes/types'
-import { InspiracaoCard } from './InspiracaoCard'
-import { InspiracaoModal } from './InspiracaoModal'
+import { InspiracaoFeedItem } from './InspiracaoFeedItem'
 
 const TIPOS: { value: InspiracaoType | ''; label: string }[] = [
   { value: '',          label: 'Todos' },
@@ -47,7 +46,6 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
   const [posts, setPosts] = useState(initialPosts)
   const [cursor, setCursor] = useState(initialCursor)
   const [hasMore, setHasMore] = useState(initialHasMore)
-  const [selected, setSelected] = useState<InspiracaoPost | null>(null)
 
   const activeFilterCount = (tipo !== '' ? 1 : 0) + (nicho !== '' ? 1 : 0)
 
@@ -205,13 +203,12 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="max-w-2xl mx-auto space-y-5">
             {posts.map(post => (
-              <InspiracaoCard
+              <InspiracaoFeedItem
                 key={post.id}
                 post={post}
                 userId={userId}
-                onClick={() => setSelected(post)}
               />
             ))}
           </div>
@@ -232,15 +229,6 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
             </div>
           )}
         </>
-      )}
-
-      {/* Modal */}
-      {selected && (
-        <InspiracaoModal
-          post={selected}
-          userId={userId}
-          onClose={() => setSelected(null)}
-        />
       )}
     </>
   )
