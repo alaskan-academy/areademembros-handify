@@ -15,8 +15,7 @@ export default async function FeedPage() {
       .from("news_posts")
       .select(`
         id, title, body, image_url, pinned, created_at,
-        author:profiles!author_id (full_name, avatar_url),
-        news_comments(count)
+        author:profiles!author_id (full_name, avatar_url)
       `)
       .eq("published", true)
       .order("pinned", { ascending: false })
@@ -49,7 +48,6 @@ export default async function FeedPage() {
     created_at: p.created_at,
     author: (p.author as unknown as { full_name: string; avatar_url: string | null } | null),
     like_count: likeCountMap.get(p.id) ?? 0,
-    comment_count: (p.news_comments as unknown as [{ count: number }])[0]?.count ?? 0,
   }));
 
   return (

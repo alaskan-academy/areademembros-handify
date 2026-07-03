@@ -40,7 +40,7 @@ const QUICK_ACTION_GROUPS = [
   {
     label: "Comunidade",
     items: [
-      { href: "/admin/comunidade/feed",  icon: Newspaper, label: "Feed de Notícias",   desc: "Publicar avisos e novidades", color: "#72CF92" },
+      { href: "/admin/comunidade/feed",  icon: Newspaper, label: "Avisos",             desc: "Publicar avisos e novidades", color: "#72CF92" },
       { href: "/admin/comunidade/forum", icon: Flag,      label: "Moderação do Fórum", desc: "Aprovar e moderar posts",     color: "#6699F3" },
     ],
   },

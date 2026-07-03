@@ -172,6 +172,8 @@ export default async function AlunaDetailPage({
     { data: actNewsComments },
     { data: actSuggestions },
     { data: actLessons },
+    { data: actInspLikes },
+    { data: actInspBookmarks },
   ] = await Promise.all([
     service
       .from("forum_posts")
@@ -203,6 +205,18 @@ export default async function AlunaDetailPage({
       .eq("completed", true)
       .order("updated_at", { ascending: false })
       .limit(50),
+    service
+      .from("inspiration_likes")
+      .select("post_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    service
+      .from("inspiration_bookmarks")
+      .select("post_id, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
   ]);
 
   type ForumPostRow = { id: string; title: string | null; body: string | null; created_at: string };
@@ -210,6 +224,8 @@ export default async function AlunaDetailPage({
   type NewsCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
   type SuggestionRow = { id: string; name: string | null; status: string | null; created_at: string };
   type LessonProgressRow = { id: string; updated_at: string; lesson: { title: string | null } | null };
+  type InspLikeRow = { post_id: string; created_at: string };
+  type InspBookmarkRow = { post_id: string; created_at: string };
 
   const activityItems: ActivityItem[] = [
     ...((actForumPosts ?? []) as unknown as ForumPostRow[]).map((p) => ({
@@ -244,6 +260,18 @@ export default async function AlunaDetailPage({
       type: "lesson_completed" as const,
       content: lp.lesson?.title ?? "Aula concluída",
       date: lp.updated_at,
+    })),
+    ...((actInspLikes ?? []) as unknown as InspLikeRow[]).map((l) => ({
+      id: `like_${l.post_id}`,
+      type: "insp_like" as const,
+      content: "Curtiu uma inspiração",
+      date: l.created_at,
+    })),
+    ...((actInspBookmarks ?? []) as unknown as InspBookmarkRow[]).map((b) => ({
+      id: `bookmark_${b.post_id}`,
+      type: "insp_bookmark" as const,
+      content: "Salvou uma inspiração",
+      date: b.created_at,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

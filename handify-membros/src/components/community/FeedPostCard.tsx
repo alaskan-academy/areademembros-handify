@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
-import { Heart, MessageCircle, ChevronDown, ChevronUp, Trash2, Pin, Send, Loader2 } from "lucide-react";
+import { Heart, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toggleNewsLike, addNewsComment, deleteNewsComment, getNewsComments } from "@/app/(student)/comunidade/feed/actions";
-import type { FeedCommentRow } from "@/app/(student)/comunidade/feed/actions";
-
-export type FeedComment = FeedCommentRow;
+import { toggleNewsLike } from "@/app/(student)/comunidade/feed/actions";
 
 export type FeedPostData = {
   id: string;
@@ -20,7 +17,6 @@ export type FeedPostData = {
   created_at: string;
   author: { full_name: string; avatar_url: string | null } | null;
   like_count: number;
-  comment_count: number;
 };
 
 interface Props {
@@ -37,33 +33,13 @@ function Avatar({ name, url, size = 8 }: { name: string; url?: string | null; si
   return <div className={cls} style={{ width: px, height: px, background: "#6699F3", fontSize: size < 8 ? "0.6rem" : undefined }}>{initial}</div>;
 }
 
-export default function FeedPostCard({ post, userId, initialLiked }: Props) {
+export default function FeedPostCard({ post, userId: _userId, initialLiked }: Props) {
   const [liked, setLiked] = useState(initialLiked);
   const [likeCount, setLikeCount] = useState(post.like_count);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<FeedComment[] | null>(null);
-  const [commentCount, setCommentCount] = useState(post.comment_count);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [commentBody, setCommentBody] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const bodyPreview = post.body.length > 300 && !expanded ? post.body.slice(0, 300) + "…" : post.body;
-
-  async function loadComments() {
-    if (comments !== null) return;
-    setLoadingComments(true);
-    const data = await getNewsComments(post.id);
-    setComments(data);
-    setLoadingComments(false);
-  }
-
-  function handleToggleComments() {
-    if (!showComments && comments === null) loadComments();
-    setShowComments((v) => !v);
-  }
 
   function handleLike() {
     const wasLiked = liked;
@@ -72,24 +48,6 @@ export default function FeedPostCard({ post, userId, initialLiked }: Props) {
     startTransition(async () => {
       await toggleNewsLike(post.id);
     });
-  }
-
-  async function handleComment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!commentBody.trim() || submitting) return;
-    setSubmitting(true);
-    const result = await addNewsComment(post.id, commentBody.trim());
-    setSubmitting(false);
-    if ("error" in result) return;
-    setComments((prev) => [...(prev ?? []), result]);
-    setCommentCount((c) => c + 1);
-    setCommentBody("");
-  }
-
-  async function handleDeleteComment(commentId: string) {
-    await deleteNewsComment(commentId);
-    setComments((prev) => (prev ?? []).filter((c) => c.id !== commentId));
-    setCommentCount((c) => Math.max(0, c - 1));
   }
 
   const authorName = post.author?.full_name || "Handify";
@@ -150,87 +108,7 @@ export default function FeedPostCard({ post, userId, initialLiked }: Props) {
           <Heart className={cn("w-4 h-4", liked && "fill-current")} />
           <span>{likeCount > 0 ? likeCount : ""}</span>
         </button>
-
-        <button
-          onClick={handleToggleComments}
-          className="flex items-center gap-1.5 text-sm font-medium text-foreground/50 hover:text-[#6699F3] transition-colors"
-        >
-          <MessageCircle className="w-4 h-4" />
-          <span>{commentCount > 0 ? commentCount : ""} {commentCount === 1 ? "comentário" : "comentários"}</span>
-          {showComments ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
       </div>
-
-      {/* Seção de comentários */}
-      {showComments && (
-        <div className="border-t border-border/40 bg-muted/30 px-5 py-4 space-y-4">
-          {loadingComments && (
-            <div className="flex justify-center py-4">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            </div>
-          )}
-
-          {comments !== null && (
-            <div className="space-y-3">
-              {comments.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-2">Seja o primeiro a comentar!</p>
-              )}
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-2.5">
-                  <Avatar name={comment.profiles?.full_name || "?"} url={comment.profiles?.avatar_url} size={7} />
-                  <div className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 border border-border/40">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-xs font-semibold">{comment.profiles?.full_name || "Usuária"}</span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ptBR })}
-                        </span>
-                        {comment.user_id === userId && (
-                          <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-muted-foreground hover:text-red-500 transition-colors"
-                            aria-label="Deletar comentário"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm text-foreground/80 mt-0.5 whitespace-pre-line">{comment.body}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Form de comentário */}
-          <form onSubmit={handleComment} className="flex gap-2.5">
-            <Avatar name="Você" size={7} />
-            <div className="flex-1 flex gap-2">
-              <textarea
-                ref={textareaRef}
-                value={commentBody}
-                onChange={(e) => setCommentBody(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleComment(e as unknown as React.FormEvent); }
-                }}
-                placeholder="Escreva um comentário… (Enter para enviar)"
-                rows={1}
-                className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 placeholder:text-muted-foreground"
-                style={{ minHeight: "44px" }}
-              />
-              <button
-                type="submit"
-                disabled={!commentBody.trim() || submitting}
-                className="p-2 rounded-lg bg-[#6699F3] text-white disabled:opacity-40 hover:opacity-90 transition-opacity shrink-0 self-end"
-                aria-label="Enviar comentário"
-              >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </article>
   );
 }

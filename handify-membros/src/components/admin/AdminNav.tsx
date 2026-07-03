@@ -31,8 +31,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Alunas",
     items: [
-      { href: "/admin/alunos",      icon: Users, label: "Alunas" },
-      { href: "/admin/plano-anual", icon: Star,  label: "Plano Anual" },
+      { href: "/admin/alunos", icon: Users, label: "Alunas" },
     ],
   },
   {
@@ -41,12 +40,13 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/banners",      icon: ImageIcon, label: "Banners" },
       { href: "/admin/notificacoes", icon: Bell,      label: "Notificações" },
       { href: "/admin/emails",       icon: Mail,      label: "E-mails" },
+      { href: "/admin/plano-anual",  icon: Star,      label: "Plano Anual" },
     ],
   },
   {
     label: "Comunidade",
     items: [
-      { href: "/admin/comunidade/feed",  icon: Newspaper,     label: "Feed de Notícias" },
+      { href: "/admin/comunidade/feed",  icon: Newspaper,     label: "Avisos" },
       { href: "/admin/forums",           icon: MessageSquare, label: "Fóruns" },
       { href: "/admin/comunidade/forum", icon: Flag,          label: "Moderação do Fórum", badgeKey: "forum" },
     ],
