@@ -89,7 +89,7 @@ export function LessonSidebarMobile({ courseModules, lessonId, completedSet }: P
 export function LessonSidebarDesktop({ courseModules, lessonId, completedSet }: Props) {
   if (!courseModules.length) return null;
   return (
-    <aside className="hidden lg:block space-y-3 self-start sticky top-4">
+    <aside className="hidden lg:block space-y-3 sticky top-20">
       <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">
         Conteúdo do curso
       </h2>

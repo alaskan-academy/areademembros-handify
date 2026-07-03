@@ -6,16 +6,10 @@ import { Heart, MessageCircle, ChevronDown, ChevronUp, Trash2, Pin, Send, Loader
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { createClient } from "@/lib/supabase/client";
-import { toggleNewsLike, addNewsComment, deleteNewsComment } from "@/app/(student)/comunidade/feed/actions";
+import { toggleNewsLike, addNewsComment, deleteNewsComment, getNewsComments } from "@/app/(student)/comunidade/feed/actions";
+import type { FeedCommentRow } from "@/app/(student)/comunidade/feed/actions";
 
-export type FeedComment = {
-  id: string;
-  body: string;
-  created_at: string;
-  user_id: string;
-  profiles: { full_name: string; avatar_url: string | null } | null;
-};
+export type FeedComment = FeedCommentRow;
 
 export type FeedPostData = {
   id: string;
@@ -61,13 +55,8 @@ export default function FeedPostCard({ post, userId, initialLiked }: Props) {
   async function loadComments() {
     if (comments !== null) return;
     setLoadingComments(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("news_comments")
-      .select("id, body, created_at, user_id, profiles!user_id (full_name, avatar_url)")
-      .eq("post_id", post.id)
-      .order("created_at", { ascending: true });
-    setComments((data as unknown as FeedComment[]) ?? []);
+    const data = await getNewsComments(post.id);
+    setComments(data);
     setLoadingComments(false);
   }
 

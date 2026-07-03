@@ -37,7 +37,7 @@ export default function InstallPrompt() {
 
   useEffect(() => {
     if (isRunningAsPWA()) return;
-    if (sessionStorage.getItem(DISMISSED_KEY)) return;
+    if (localStorage.getItem(DISMISSED_KEY)) return;
 
     const detected = detectPlatform();
     setPlatform(detected);
@@ -58,7 +58,7 @@ export default function InstallPrompt() {
   }, []);
 
   function dismiss() {
-    sessionStorage.setItem(DISMISSED_KEY, "1");
+    localStorage.setItem(DISMISSED_KEY, "1");
     setVisible(false);
   }
 

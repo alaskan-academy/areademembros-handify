@@ -1,8 +1,30 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+
+export type FeedCommentRow = {
+  id: string;
+  body: string;
+  created_at: string;
+  user_id: string;
+  profiles: { full_name: string; avatar_url: string | null } | null;
+};
+
+export async function getNewsComments(postId: string): Promise<FeedCommentRow[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const service = createServiceClient();
+  const { data } = await service
+    .from("news_comments")
+    .select("id, body, created_at, user_id, profiles!user_id(full_name, avatar_url)")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+  return (data as unknown as FeedCommentRow[]) ?? [];
+}
 
 async function getAuthUser() {
   const supabase = await createClient();

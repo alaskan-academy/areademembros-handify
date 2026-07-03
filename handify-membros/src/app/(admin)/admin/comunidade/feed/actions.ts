@@ -135,12 +135,28 @@ async function notifyNewsPost(postId: string) {
 
     const { data: profiles } = await service
       .from("profiles")
-      .select("full_name, email, email_prefs")
+      .select("id, full_name, email, email_prefs")
       .eq("role", "student")
+      .eq("banned", false)
       .not("email", "is", null);
 
     if (!profiles?.length) return;
 
+    // In-app notifications em batch
+    const BATCH = 500;
+    for (let i = 0; i < profiles.length; i += BATCH) {
+      const batch = profiles.slice(i, i + BATCH).map((p) => ({
+        user_id: p.id,
+        type: "news_post",
+        title: "Nova publicação",
+        body: post.title,
+        link: `/comunidade/feed`,
+        read: false,
+      }));
+      await service.from("notifications").insert(batch);
+    }
+
+    // E-mails apenas para quem não optou por não receber
     const eligible = profiles.filter(
       (p) => (p.email_prefs as Record<string, boolean> | null)?.news_post !== false
     );

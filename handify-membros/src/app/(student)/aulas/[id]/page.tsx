@@ -275,7 +275,7 @@ export default async function LessonPage({
         </div>
 
         {/* Coluna lateral: sidebar + banner lateral num único filho do grid para não vazar para linha 2 */}
-        <div className="hidden lg:flex flex-col gap-4 self-start">
+        <div className="hidden lg:flex flex-col gap-4">
           <LessonSidebarDesktop {...sidebarProps} />
           <BannerDisplay slot="lateral" />
         </div>
