@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export type ActivityItem = {
   id: string;
-  type: "forum_post" | "forum_comment" | "news_comment" | "suggestion" | "lesson_completed" | "insp_like" | "insp_bookmark";
+  type: "forum_post" | "forum_comment" | "news_comment" | "suggestion" | "lesson_completed" | "insp_like" | "insp_bookmark" | "insp_comment";
   content: string;
   context?: string;
   status?: string;
@@ -32,6 +32,7 @@ const TYPE_CONFIG = {
   lesson_completed:{ icon: CheckCircle2,   label: "Aula concluída",         color: "#72CF92", bg: "bg-[#72CF92]/10",  filter: "lessons"     as FilterKey },
   insp_like:       { icon: Heart,          label: "Curtiu inspiração",      color: "#f87171", bg: "bg-red-50",        filter: "inspiracoes" as FilterKey },
   insp_bookmark:   { icon: Bookmark,       label: "Salvou inspiração",      color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "inspiracoes" as FilterKey },
+  insp_comment:    { icon: MessageCircle,  label: "Comentou em inspiração", color: "#a855f7", bg: "bg-purple-50",     filter: "inspiracoes" as FilterKey },
 };
 
 function timeAgo(dateStr: string): string {
@@ -70,7 +71,8 @@ export default function ActivityTab({ items }: { items: ActivityItem[] }) {
   const lessonsCompleted = items.filter((i) => i.type === "lesson_completed").length;
   const inspLikes       = items.filter((i) => i.type === "insp_like").length;
   const inspBookmarks   = items.filter((i) => i.type === "insp_bookmark").length;
-  const score = forumPosts * 3 + comments * 2 + suggestions * 3 + lessonsCompleted + inspLikes + inspBookmarks * 2;
+  const inspComments    = items.filter((i) => i.type === "insp_comment").length;
+  const score = forumPosts * 3 + comments * 2 + suggestions * 3 + lessonsCompleted + inspLikes + inspBookmarks * 2 + inspComments;
 
   return (
     <div className="space-y-4">
@@ -96,9 +98,9 @@ export default function ActivityTab({ items }: { items: ActivityItem[] }) {
             {suggestions} sugestão{suggestions !== 1 ? "ões" : ""}
           </span>
         )}
-        {(inspLikes + inspBookmarks) > 0 && (
+        {(inspLikes + inspBookmarks + inspComments) > 0 && (
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-500">
-            {inspLikes} curtida{inspLikes !== 1 ? "s" : ""} · {inspBookmarks} salvo{inspBookmarks !== 1 ? "s" : ""}
+            {inspLikes} curtida{inspLikes !== 1 ? "s" : ""} · {inspBookmarks} salvo{inspBookmarks !== 1 ? "s" : ""}{inspComments > 0 ? ` · ${inspComments} comentário${inspComments !== 1 ? "s" : ""}` : ""}
           </span>
         )}
         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">

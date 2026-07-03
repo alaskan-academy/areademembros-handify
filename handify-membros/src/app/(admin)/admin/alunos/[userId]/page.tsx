@@ -174,6 +174,7 @@ export default async function AlunaDetailPage({
     { data: actLessons },
     { data: actInspLikes },
     { data: actInspBookmarks },
+    { data: actInspComments },
   ] = await Promise.all([
     service
       .from("forum_posts")
@@ -207,13 +208,19 @@ export default async function AlunaDetailPage({
       .limit(50),
     service
       .from("inspiration_likes")
-      .select("post_id, created_at")
+      .select("post_id, created_at, post:inspiration_posts!post_id(title)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(100),
     service
       .from("inspiration_bookmarks")
-      .select("post_id, created_at")
+      .select("post_id, created_at, post:inspiration_posts!post_id(title)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    service
+      .from("inspiration_comments")
+      .select("id, body, created_at, post:inspiration_posts!post_id(title)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(100),
@@ -224,8 +231,9 @@ export default async function AlunaDetailPage({
   type NewsCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
   type SuggestionRow = { id: string; name: string | null; status: string | null; created_at: string };
   type LessonProgressRow = { id: string; updated_at: string; lesson: { title: string | null } | null };
-  type InspLikeRow = { post_id: string; created_at: string };
-  type InspBookmarkRow = { post_id: string; created_at: string };
+  type InspLikeRow = { post_id: string; created_at: string; post: { title: string | null } | null };
+  type InspBookmarkRow = { post_id: string; created_at: string; post: { title: string | null } | null };
+  type InspCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
 
   const activityItems: ActivityItem[] = [
     ...((actForumPosts ?? []) as unknown as ForumPostRow[]).map((p) => ({
@@ -264,14 +272,21 @@ export default async function AlunaDetailPage({
     ...((actInspLikes ?? []) as unknown as InspLikeRow[]).map((l) => ({
       id: `like_${l.post_id}`,
       type: "insp_like" as const,
-      content: "Curtiu uma inspiração",
+      content: l.post?.title ?? "Inspiração",
       date: l.created_at,
     })),
     ...((actInspBookmarks ?? []) as unknown as InspBookmarkRow[]).map((b) => ({
       id: `bookmark_${b.post_id}`,
       type: "insp_bookmark" as const,
-      content: "Salvou uma inspiração",
+      content: b.post?.title ?? "Inspiração",
       date: b.created_at,
+    })),
+    ...((actInspComments ?? []) as unknown as InspCommentRow[]).map((c) => ({
+      id: c.id,
+      type: "insp_comment" as const,
+      content: c.body?.slice(0, 120) ?? "Comentário",
+      context: c.post?.title ?? undefined,
+      date: c.created_at,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

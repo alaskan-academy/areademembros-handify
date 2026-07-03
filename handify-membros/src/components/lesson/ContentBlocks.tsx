@@ -190,9 +190,9 @@ export default function ContentBlocks({ blocks, materials, videoPlayerProps }: C
         );
       })}
 
-      {/* Materiais da aula — botão toggle */}
+      {/* Materiais da aula — botão toggle (apenas desktop; mobile usa LessonBottomSheet) */}
       {orphanMaterials.length > 0 && (
-        <div>
+        <div className="hidden lg:block">
           <button
             onClick={() => setMaterialsOpen((v) => !v)}
             className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border hover:border-[#6699F3]/50 bg-white hover:bg-[#6699F3]/5 transition-all text-sm font-medium text-foreground"
