@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, MessageCircle, Newspaper, Store, CheckCircle2, Heart, Bookmark } from "lucide-react";
+import { MessageSquare, MessageCircle, Store, CheckCircle2, Heart, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ActivityItem = {
   id: string;
-  type: "forum_post" | "forum_comment" | "news_comment" | "suggestion" | "lesson_completed" | "insp_like" | "insp_bookmark" | "insp_comment";
+  type: "forum_post" | "forum_comment" | "suggestion" | "lesson_completed" | "insp_like" | "insp_bookmark" | "insp_comment";
   content: string;
   context?: string;
   status?: string;
@@ -27,7 +27,6 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 const TYPE_CONFIG = {
   forum_post:      { icon: MessageSquare,  label: "Post no fórum",         color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "forum"       as FilterKey },
   forum_comment:   { icon: MessageCircle,  label: "Comentário no fórum",   color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "comments"    as FilterKey },
-  news_comment:    { icon: Newspaper,      label: "Comentário nos avisos",  color: "#72CF92", bg: "bg-[#72CF92]/10",  filter: "comments"    as FilterKey },
   suggestion:      { icon: Store,          label: "Sugestão de fornecedor", color: "#FEC649", bg: "bg-[#FEC649]/15",  filter: "suggestions" as FilterKey },
   lesson_completed:{ icon: CheckCircle2,   label: "Aula concluída",         color: "#72CF92", bg: "bg-[#72CF92]/10",  filter: "lessons"     as FilterKey },
   insp_like:       { icon: Heart,          label: "Curtiu inspiração",      color: "#f87171", bg: "bg-red-50",        filter: "inspiracoes" as FilterKey },
@@ -66,7 +65,7 @@ export default function ActivityTab({ items }: { items: ActivityItem[] }) {
   }
 
   const forumPosts      = items.filter((i) => i.type === "forum_post").length;
-  const comments        = items.filter((i) => i.type === "forum_comment" || i.type === "news_comment").length;
+  const comments        = items.filter((i) => i.type === "forum_comment").length;
   const suggestions     = items.filter((i) => i.type === "suggestion").length;
   const lessonsCompleted = items.filter((i) => i.type === "lesson_completed").length;
   const inspLikes       = items.filter((i) => i.type === "insp_like").length;

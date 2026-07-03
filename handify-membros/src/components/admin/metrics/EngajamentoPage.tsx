@@ -11,7 +11,6 @@ export type EngajamentoEntry = {
   score: number;
   forumPosts: number;
   forumComments: number;
-  newsComments: number;
   suggestions: number;
   lessonsCompleted: number;
   inspLikes: number;
@@ -182,7 +181,7 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
                 "Aluna sem nome";
               const maxScore = ranking[0]?.score ?? 1;
               const pct = Math.round((entry.score / maxScore) * 100);
-              const totalComments = entry.forumComments + entry.newsComments;
+              const totalComments = entry.forumComments;
               const totalInsp = entry.inspLikes + entry.inspBookmarks + entry.inspComments;
 
               return (

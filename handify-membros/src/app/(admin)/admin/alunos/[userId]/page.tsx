@@ -169,7 +169,6 @@ export default async function AlunaDetailPage({
   const [
     { data: actForumPosts },
     { data: actForumComments },
-    { data: actNewsComments },
     { data: actSuggestions },
     { data: actLessons },
     { data: actInspLikes },
@@ -185,12 +184,6 @@ export default async function AlunaDetailPage({
     service
       .from("forum_comments")
       .select("id, body, created_at, post:forum_posts!post_id(title)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    service
-      .from("news_comments")
-      .select("id, body, created_at, post:news_posts!post_id(title)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(100),
@@ -228,7 +221,6 @@ export default async function AlunaDetailPage({
 
   type ForumPostRow = { id: string; title: string | null; body: string | null; created_at: string };
   type ForumCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
-  type NewsCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
   type SuggestionRow = { id: string; name: string | null; status: string | null; created_at: string };
   type LessonProgressRow = { id: string; updated_at: string; lesson: { title: string | null } | null };
   type InspLikeRow = { post_id: string; created_at: string; post: { title: string | null } | null };
@@ -245,13 +237,6 @@ export default async function AlunaDetailPage({
     ...((actForumComments ?? []) as unknown as ForumCommentRow[]).map((c) => ({
       id: c.id,
       type: "forum_comment" as const,
-      content: c.body?.slice(0, 120) ?? "Comentário",
-      context: c.post?.title ?? undefined,
-      date: c.created_at,
-    })),
-    ...((actNewsComments ?? []) as unknown as NewsCommentRow[]).map((c) => ({
-      id: c.id,
-      type: "news_comment" as const,
       content: c.body?.slice(0, 120) ?? "Comentário",
       context: c.post?.title ?? undefined,
       date: c.created_at,

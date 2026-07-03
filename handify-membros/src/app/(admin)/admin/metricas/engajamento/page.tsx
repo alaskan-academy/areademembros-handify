@@ -34,7 +34,6 @@ export default async function EngajamentoAdminPage({
   // Step 1: query all activity tables in parallel
   const fpq = service.from("forum_posts").select("id, user_id");
   const fcq = service.from("forum_comments").select("id, user_id");
-  const ncq = service.from("news_comments").select("id, user_id");
   const ssq = service.from("supplier_suggestions").select("id, user_id");
   const lpq = service.from("lesson_progress").select("user_id").eq("completed", true);
   const ilq = service.from("inspiration_likes").select("user_id");
@@ -44,7 +43,6 @@ export default async function EngajamentoAdminPage({
   const [
     { data: forumPostsRaw },
     { data: forumCommentsRaw },
-    { data: newsCommentsRaw },
     { data: suggestionsRaw },
     { data: lessonsRaw },
     { data: inspLikesRaw },
@@ -53,7 +51,6 @@ export default async function EngajamentoAdminPage({
   ] = await Promise.all([
     since ? fpq.gte("created_at", since) : fpq,
     since ? fcq.gte("created_at", since) : fcq,
-    since ? ncq.gte("created_at", since) : ncq,
     since ? ssq.gte("created_at", since) : ssq,
     since ? lpq.gte("updated_at", since) : lpq,
     since ? ilq.gte("created_at", since) : ilq,
@@ -63,7 +60,6 @@ export default async function EngajamentoAdminPage({
 
   const forumPosts = (forumPostsRaw ?? []) as Row[];
   const forumComments = (forumCommentsRaw ?? []) as Row[];
-  const newsComments = (newsCommentsRaw ?? []) as Row[];
   const suggestions = (suggestionsRaw ?? []) as Row[];
   const lessons = (lessonsRaw ?? []) as { user_id: string }[];
   const inspLikes = (inspLikesRaw ?? []) as { user_id: string }[];
@@ -74,7 +70,6 @@ export default async function EngajamentoAdminPage({
   type Counts = {
     forumPosts: number;
     forumComments: number;
-    newsComments: number;
     suggestions: number;
     lessonsCompleted: number;
     inspLikes: number;
@@ -88,7 +83,6 @@ export default async function EngajamentoAdminPage({
       scores[userId] = {
         forumPosts: 0,
         forumComments: 0,
-        newsComments: 0,
         suggestions: 0,
         lessonsCompleted: 0,
         inspLikes: 0,
@@ -99,7 +93,6 @@ export default async function EngajamentoAdminPage({
 
   for (const r of forumPosts) { ensure(r.user_id); scores[r.user_id].forumPosts++; }
   for (const r of forumComments) { ensure(r.user_id); scores[r.user_id].forumComments++; }
-  for (const r of newsComments) { ensure(r.user_id); scores[r.user_id].newsComments++; }
   for (const r of suggestions) { ensure(r.user_id); scores[r.user_id].suggestions++; }
   for (const r of lessons) { ensure(r.user_id); scores[r.user_id].lessonsCompleted++; }
   for (const r of inspLikes) { ensure(r.user_id); scores[r.user_id].inspLikes++; }
@@ -129,7 +122,6 @@ export default async function EngajamentoAdminPage({
         profile: profile ?? { full_name: null, email: "", avatar_url: null },
         forumPosts: c.forumPosts,
         forumComments: c.forumComments,
-        newsComments: c.newsComments,
         suggestions: c.suggestions,
         lessonsCompleted: c.lessonsCompleted,
         inspLikes: c.inspLikes,
@@ -138,7 +130,6 @@ export default async function EngajamentoAdminPage({
         score:
           c.forumPosts * 3 +
           c.forumComments * 2 +
-          c.newsComments * 2 +
           c.suggestions * 3 +
           c.lessonsCompleted +
           c.inspLikes * 1 +
@@ -151,7 +142,7 @@ export default async function EngajamentoAdminPage({
 
   const totals = {
     posts: forumPosts.length,
-    comments: forumComments.length + newsComments.length,
+    comments: forumComments.length,
     suggestions: suggestions.length,
     lessonsCompleted: lessons.length,
     activeStudents: Object.keys(scores).length,
