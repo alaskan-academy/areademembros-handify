@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Play, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,11 +23,12 @@ export type CourseCardData = {
 };
 
 export function CourseProgressCard({ card }: { card: CourseCardData }) {
+  const [modalOpen, setModalOpen] = useState(false);
   const { course, progress, lastLessonId, firstLessonId } = card;
   const isComplete = progress.percentage === 100;
   const hasStarted = !!lastLessonId;
 
-  // Calcula próxima aula (após a última assistida, na ordem)
+  // Próxima aula = a que vem após a última assistida na ordem
   const flatLessons = [...card.modules]
     .sort((a, b) => a.position - b.position)
     .flatMap(m => [...m.lessons].sort((a, b) => a.position - b.position));
@@ -35,6 +37,7 @@ export function CourseProgressCard({ card }: { card: CourseCardData }) {
     ? flatLessons[lastIdx + 1].id
     : null;
 
+  // Botão "Continuar" vai para a próxima aula
   const href = nextLessonId
     ? `/aulas/${nextLessonId}`
     : lastLessonId
@@ -44,17 +47,16 @@ export function CourseProgressCard({ card }: { card: CourseCardData }) {
     : `/cursos/${course.slug}`;
 
   return (
-    <div className="handify-card overflow-hidden flex flex-col">
-      <CourseMenuModal
-        course={course}
-        modules={card.modules}
-        completedLessonIds={card.completedLessonIds}
-        lastLessonId={lastLessonId}
-        firstLessonId={firstLessonId}
-        nextLessonId={nextLessonId}
-        progress={progress}
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setModalOpen(true)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setModalOpen(true); } }}
+        className="handify-card overflow-hidden flex flex-col cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6699F3]"
       >
-        <div className="aspect-video bg-muted relative overflow-hidden cursor-pointer group/thumb">
+        {/* Thumbnail */}
+        <div className="aspect-video bg-muted relative overflow-hidden group/thumb">
           {course.thumbnail_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -72,72 +74,75 @@ export function CourseProgressCard({ card }: { card: CourseCardData }) {
               Concluído ✓
             </div>
           )}
+          {/* Ícone de menu ao hover */}
+          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="bg-white/90 text-[#6699F3] text-xs font-semibold px-3 py-1.5 rounded-full">
+              Ver conteúdo
+            </span>
+          </div>
         </div>
-      </CourseMenuModal>
 
-      <div className="p-4 flex flex-col gap-4 flex-1">
-        <Link href={`/cursos/${course.slug}`}>
-          <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] leading-5 hover:text-[#6699F3] transition-colors">
+        {/* Info */}
+        <div className="p-4 flex flex-col gap-3 flex-1">
+          <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem] leading-5 group-hover:text-[#6699F3] transition-colors">
             {course.title}
           </h3>
-        </Link>
 
-        {progress.total > 0 && (
-          <div className="space-y-1">
-            <div className="flex justify-between items-center text-[11px] text-muted-foreground">
-              <span>
-                {progress.completed}/{progress.total} aulas
-              </span>
-              <span
-                className={cn(
-                  "font-semibold",
-                  isComplete ? "text-[#72CF92]" : "text-[#6699F3]"
-                )}
-              >
-                {progress.percentage}%
-              </span>
+          {progress.total > 0 && (
+            <div className="space-y-1">
+              <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                <span>{progress.completed}/{progress.total} aulas</span>
+                <span className={cn("font-semibold", isComplete ? "text-[#72CF92]" : "text-[#6699F3]")}>
+                  {progress.percentage}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${progress.percentage}%`,
+                    background: isComplete ? "#72CF92" : "#6699F3",
+                  }}
+                />
+              </div>
             </div>
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${progress.percentage}%`,
-                  background: isComplete ? "#72CF92" : "#6699F3",
-                }}
-              />
-            </div>
-          </div>
-        )}
+          )}
 
-        <Link
-          href={href}
-          className={cn(
-            "mt-auto flex items-center justify-center gap-2 py-2.5 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors",
-            isComplete
-              ? "bg-[#72CF92]/15 text-[#72CF92] hover:bg-[#72CF92]/25"
-              : hasStarted
-              ? "bg-[#6699F3] text-white hover:bg-[#5580d4]"
-              : "bg-muted text-foreground hover:bg-muted/80"
-          )}
-        >
-          {isComplete ? (
-            <>
-              <RotateCcw className="w-3.5 h-3.5" />
-              Rever curso
-            </>
-          ) : hasStarted ? (
-            <>
-              <Play className="w-3.5 h-3.5 fill-current" />
-              Continuar
-            </>
-          ) : (
-            <>
-              <Play className="w-3.5 h-3.5" />
-              Começar
-            </>
-          )}
-        </Link>
+          {/* Botão Continuar — stopPropagation para não abrir o modal */}
+          <Link
+            href={href}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "mt-auto flex items-center justify-center gap-2 py-2.5 px-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors",
+              isComplete
+                ? "bg-[#72CF92]/15 text-[#72CF92] hover:bg-[#72CF92]/25"
+                : hasStarted
+                ? "bg-[#6699F3] text-white hover:bg-[#5580d4]"
+                : "bg-muted text-foreground hover:bg-muted/80"
+            )}
+          >
+            {isComplete ? (
+              <><RotateCcw className="w-3.5 h-3.5" />Rever curso</>
+            ) : hasStarted ? (
+              <><Play className="w-3.5 h-3.5 fill-current" />Continuar</>
+            ) : (
+              <><Play className="w-3.5 h-3.5" />Começar</>
+            )}
+          </Link>
+        </div>
       </div>
-    </div>
+
+      <CourseMenuModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        course={course}
+        modules={card.modules}
+        completedLessonIds={card.completedLessonIds}
+        lastLessonId={lastLessonId}
+        firstLessonId={firstLessonId}
+        nextLessonId={nextLessonId}
+        progress={progress}
+      />
+    </>
   );
 }
