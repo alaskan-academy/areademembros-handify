@@ -64,6 +64,13 @@ export async function createStudentAction(
   if (authErr) {
     console.error("[createStudent] auth error:", authErr);
     if (authErr.message.includes("already registered")) {
+      // Redireciona para o perfil existente (funciona mesmo para contas admin)
+      const { data: existing } = await service
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .single();
+      if (existing?.id) redirect(`/admin/alunos/${existing.id}`);
       return { error: "Este e-mail já está cadastrado." };
     }
     return { error: `Erro ao criar aluna: ${authErr.message}` };

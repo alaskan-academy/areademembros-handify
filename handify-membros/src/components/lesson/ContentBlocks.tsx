@@ -179,37 +179,6 @@ export default function ContentBlocks({ blocks, materials, videoPlayerProps }: C
         );
       })}
 
-      {/* Materiais avulsos (sem bloco download) */}
-      {materials.filter((m) => {
-        const referencedIds = blocks
-          .filter((b) => b.type === "download")
-          .map((b) => {
-            try { return (JSON.parse(b.content) as { material_id: string }).material_id; }
-            catch { return null; }
-          })
-          .filter(Boolean);
-        return !referencedIds.includes(m.id);
-      }).length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Materiais da aula
-          </p>
-          {materials
-            .filter((m) => {
-              const referencedIds = blocks
-                .filter((b) => b.type === "download")
-                .map((b) => {
-                  try { return (JSON.parse(b.content) as { material_id: string }).material_id; }
-                  catch { return null; }
-                })
-                .filter(Boolean);
-              return !referencedIds.includes(m.id);
-            })
-            .map((m) => (
-              <DownloadBlock key={m.id} material={m} />
-            ))}
-        </div>
-      )}
     </div>
   );
 }
