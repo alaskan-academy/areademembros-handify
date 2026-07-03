@@ -37,7 +37,9 @@ function getPandaEmbedUrl(videoUrl: string): string | null {
   try {
     const url = new URL(videoUrl)
     if (!url.hostname.includes('pandavideo')) return null
-    // Já é URL de embed com ?v=
+    // Já é URL de embed — usar diretamente sem reconstruir
+    if (url.pathname.includes('/embed/')) return videoUrl
+    // Tem ?v= mas não é embed URL
     const v = url.searchParams.get('v')
     if (v) return `https://player.pandavideo.com.br/embed/?v=${v}`
     // ID no path (ex: /videos/UUID)
