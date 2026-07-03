@@ -37,6 +37,9 @@ export default async function EngajamentoAdminPage({
   const ncq = service.from("news_comments").select("id, user_id");
   const ssq = service.from("supplier_suggestions").select("id, user_id");
   const lpq = service.from("lesson_progress").select("user_id").eq("completed", true);
+  const ilq = service.from("inspiration_likes").select("user_id");
+  const ibq = service.from("inspiration_bookmarks").select("user_id");
+  const icq = service.from("inspiration_comments").select("user_id").eq("approved", true);
 
   const [
     { data: forumPostsRaw },
@@ -44,12 +47,18 @@ export default async function EngajamentoAdminPage({
     { data: newsCommentsRaw },
     { data: suggestionsRaw },
     { data: lessonsRaw },
+    { data: inspLikesRaw },
+    { data: inspBookmarksRaw },
+    { data: inspCommentsRaw },
   ] = await Promise.all([
     since ? fpq.gte("created_at", since) : fpq,
     since ? fcq.gte("created_at", since) : fcq,
     since ? ncq.gte("created_at", since) : ncq,
     since ? ssq.gte("created_at", since) : ssq,
     since ? lpq.gte("updated_at", since) : lpq,
+    since ? ilq.gte("created_at", since) : ilq,
+    since ? ibq.gte("created_at", since) : ibq,
+    since ? icq.gte("created_at", since) : icq,
   ]);
 
   const forumPosts = (forumPostsRaw ?? []) as Row[];
@@ -57,6 +66,9 @@ export default async function EngajamentoAdminPage({
   const newsComments = (newsCommentsRaw ?? []) as Row[];
   const suggestions = (suggestionsRaw ?? []) as Row[];
   const lessons = (lessonsRaw ?? []) as { user_id: string }[];
+  const inspLikes = (inspLikesRaw ?? []) as { user_id: string }[];
+  const inspBookmarks = (inspBookmarksRaw ?? []) as { user_id: string }[];
+  const inspComments = (inspCommentsRaw ?? []) as { user_id: string }[];
 
   // Step 2: aggregate counts by user_id
   type Counts = {
@@ -65,6 +77,9 @@ export default async function EngajamentoAdminPage({
     newsComments: number;
     suggestions: number;
     lessonsCompleted: number;
+    inspLikes: number;
+    inspBookmarks: number;
+    inspComments: number;
   };
   const scores: Record<string, Counts> = {};
 
@@ -76,6 +91,9 @@ export default async function EngajamentoAdminPage({
         newsComments: 0,
         suggestions: 0,
         lessonsCompleted: 0,
+        inspLikes: 0,
+        inspBookmarks: 0,
+        inspComments: 0,
       };
   }
 
@@ -84,6 +102,9 @@ export default async function EngajamentoAdminPage({
   for (const r of newsComments) { ensure(r.user_id); scores[r.user_id].newsComments++; }
   for (const r of suggestions) { ensure(r.user_id); scores[r.user_id].suggestions++; }
   for (const r of lessons) { ensure(r.user_id); scores[r.user_id].lessonsCompleted++; }
+  for (const r of inspLikes) { ensure(r.user_id); scores[r.user_id].inspLikes++; }
+  for (const r of inspBookmarks) { ensure(r.user_id); scores[r.user_id].inspBookmarks++; }
+  for (const r of inspComments) { ensure(r.user_id); scores[r.user_id].inspComments++; }
 
   // Step 3: collect unique user IDs and fetch their profiles
   const userIds = Object.keys(scores);
@@ -111,12 +132,18 @@ export default async function EngajamentoAdminPage({
         newsComments: c.newsComments,
         suggestions: c.suggestions,
         lessonsCompleted: c.lessonsCompleted,
+        inspLikes: c.inspLikes,
+        inspBookmarks: c.inspBookmarks,
+        inspComments: c.inspComments,
         score:
           c.forumPosts * 3 +
           c.forumComments * 2 +
           c.newsComments * 2 +
           c.suggestions * 3 +
-          c.lessonsCompleted,
+          c.lessonsCompleted +
+          c.inspLikes * 1 +
+          c.inspBookmarks * 2 +
+          c.inspComments * 3,
       };
     })
     .sort((a, b) => b.score - a.score)
@@ -128,6 +155,9 @@ export default async function EngajamentoAdminPage({
     suggestions: suggestions.length,
     lessonsCompleted: lessons.length,
     activeStudents: Object.keys(scores).length,
+    inspLikes: inspLikes.length,
+    inspBookmarks: inspBookmarks.length,
+    inspComments: inspComments.length,
   };
 
   return (

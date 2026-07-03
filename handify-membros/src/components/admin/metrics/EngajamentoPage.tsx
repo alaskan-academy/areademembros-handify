@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Trophy, MessageSquare, MessageCircle, Store, Users, CheckCircle2 } from "lucide-react";
+import { Trophy, MessageSquare, MessageCircle, Store, Users, CheckCircle2, Heart, Bookmark, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StudentMiniModal } from "./StudentMiniModal";
 
@@ -14,6 +14,9 @@ export type EngajamentoEntry = {
   newsComments: number;
   suggestions: number;
   lessonsCompleted: number;
+  inspLikes: number;
+  inspBookmarks: number;
+  inspComments: number;
 };
 
 interface Props {
@@ -24,6 +27,9 @@ interface Props {
     suggestions: number;
     lessonsCompleted: number;
     activeStudents: number;
+    inspLikes: number;
+    inspBookmarks: number;
+    inspComments: number;
   };
   periodo: string;
 }
@@ -74,7 +80,7 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <div className="handify-card p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <Users className="w-3.5 h-3.5 text-[#6699F3]" />
@@ -97,7 +103,7 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
           <div className="flex items-center gap-1.5 mb-1">
             <MessageCircle className="w-3.5 h-3.5 text-[#72CF92]" />
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              Comentários
+              Coment.
             </p>
           </div>
           <p className="text-2xl font-bold">{totals.comments}</p>
@@ -120,6 +126,33 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
           </div>
           <p className="text-2xl font-bold">{totals.lessonsCompleted}</p>
         </div>
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Heart className="w-3.5 h-3.5 text-red-400" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Curtidas
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.inspLikes}</p>
+        </div>
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Bookmark className="w-3.5 h-3.5 text-[#6699F3]" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Salvos
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.inspBookmarks}</p>
+        </div>
+        <div className="handify-card p-4">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-[#FEC649]" />
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Em Insp.
+            </p>
+          </div>
+          <p className="text-2xl font-bold">{totals.inspComments}</p>
+        </div>
       </div>
 
       {/* Ranking table */}
@@ -128,7 +161,7 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
           <Trophy className="w-4 h-4 text-[#FEC649]" />
           <h3 className="font-semibold">Top 20 — Mais Engajadas</h3>
           <span className="ml-auto text-xs text-muted-foreground hidden sm:block">
-            post×3 + comentário×2 + sugestão×3 + aula×1
+            post×3 · coment×2 · sugestão×3 · aula×1 · curtida×1 · salvo×2 · coment.insp×3
           </span>
         </div>
         {ranking.length === 0 ? (
@@ -150,6 +183,7 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
               const maxScore = ranking[0]?.score ?? 1;
               const pct = Math.round((entry.score / maxScore) * 100);
               const totalComments = entry.forumComments + entry.newsComments;
+              const totalInsp = entry.inspLikes + entry.inspBookmarks + entry.inspComments;
 
               return (
                 <div key={entry.userId} className="px-5 py-4 flex items-center gap-4">
@@ -232,6 +266,11 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
                         <span className="text-[11px] text-muted-foreground">
                           <span className="font-semibold">{entry.lessonsCompleted}</span> aula
                           {entry.lessonsCompleted !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {totalInsp > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          ✦ <span className="font-semibold">{totalInsp}</span> insp.
                         </span>
                       )}
                     </div>

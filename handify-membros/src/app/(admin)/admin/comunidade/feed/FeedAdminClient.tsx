@@ -2,13 +2,15 @@
 
 import { useState, useRef, useTransition } from "react";
 import Image from "next/image";
-import { Plus, X, Edit2, Trash2, Pin, PinOff, Eye, EyeOff, Loader2, Upload, ImageIcon } from "lucide-react";
+import { Plus, X, Edit2, Trash2, Pin, PinOff, Eye, EyeOff, Loader2, Upload, ImageIcon, MessageCircle, ChevronDown, ChevronUp, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   createNewsPost, updateNewsPost, deleteNewsPost,
   toggleNewsPublished, toggleNewsPinned, uploadCommunityImage,
+  getNewsCommentsAdmin, deleteNewsCommentAdmin,
 } from "./actions";
+import type { AdminFeedComment } from "./actions";
 
 export type AdminNewsPost = {
   id: string;
@@ -38,6 +40,35 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
+
+  // Comentários por post
+  const [commentsOpen, setCommentsOpen] = useState<Record<string, boolean>>({});
+  const [commentsData, setCommentsData] = useState<Record<string, AdminFeedComment[]>>({});
+  const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({});
+
+  async function handleToggleComments(postId: string) {
+    const nowOpen = !commentsOpen[postId];
+    setCommentsOpen((prev) => ({ ...prev, [postId]: nowOpen }));
+    if (nowOpen && !commentsData[postId]) {
+      setCommentsLoading((prev) => ({ ...prev, [postId]: true }));
+      const data = await getNewsCommentsAdmin(postId);
+      setCommentsData((prev) => ({ ...prev, [postId]: data }));
+      setCommentsLoading((prev) => ({ ...prev, [postId]: false }));
+    }
+  }
+
+  async function handleDeleteComment(postId: string, commentId: string) {
+    if (!confirm("Deletar este comentário?")) return;
+    const result = await deleteNewsCommentAdmin(commentId);
+    if (result.error) return;
+    setCommentsData((prev) => ({
+      ...prev,
+      [postId]: (prev[postId] ?? []).filter((c) => c.id !== commentId),
+    }));
+    setPosts((prev) => prev.map((p) =>
+      p.id === postId ? { ...p, comment_count: Math.max(0, p.comment_count - 1) } : p
+    ));
+  }
 
   function openCreate() {
     setEditingId(null);
@@ -306,7 +337,7 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
             </div>
 
             {/* Barra de ações */}
-            <div className="border-t border-border/40 px-4 py-2 flex items-center gap-1">
+            <div className="border-t border-border/40 px-4 py-2 flex items-center gap-1 flex-wrap">
               <button
                 onClick={() => openEdit(post)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -338,6 +369,17 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
                 {post.pinned ? "Desfixar" : "Fixar"}
               </button>
 
+              {post.comment_count > 0 && (
+                <button
+                  onClick={() => handleToggleComments(post.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  {post.comment_count} {post.comment_count === 1 ? "comentário" : "comentários"}
+                  {commentsOpen[post.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+              )}
+
               <div className="flex-1" />
 
               <button
@@ -347,6 +389,45 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
                 <Trash2 className="w-3.5 h-3.5" /> Excluir
               </button>
             </div>
+
+            {/* Seção de comentários expandível */}
+            {commentsOpen[post.id] && (
+              <div className="border-t border-border/40 bg-muted/30 px-4 py-3 space-y-2">
+                {commentsLoading[post.id] ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (commentsData[post.id] ?? []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-2">Nenhum comentário.</p>
+                ) : (
+                  (commentsData[post.id] ?? []).map((comment) => (
+                    <div key={comment.id} className="flex items-start gap-2.5 bg-white rounded-lg border border-border/40 px-3 py-2">
+                      <div className="w-7 h-7 rounded-full bg-[#6699F3]/15 flex items-center justify-center shrink-0">
+                        <User className="w-3.5 h-3.5 text-[#6699F3]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-xs font-semibold">
+                            {comment.profiles?.full_name || "Aluna"}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ptBR })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-foreground/80 mt-0.5 whitespace-pre-line">{comment.body}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteComment(post.id, comment.id)}
+                        className="p-1 text-muted-foreground hover:text-red-500 transition-colors shrink-0"
+                        aria-label="Deletar comentário"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -175,6 +175,33 @@ async function notifyNewsPost(postId: string) {
   }
 }
 
+export type AdminFeedComment = {
+  id: string;
+  body: string;
+  created_at: string;
+  user_id: string;
+  profiles: { full_name: string; avatar_url: string | null } | null;
+};
+
+export async function getNewsCommentsAdmin(postId: string): Promise<AdminFeedComment[]> {
+  await assertAdmin();
+  const service = createServiceClient();
+  const { data } = await service
+    .from("news_comments")
+    .select("id, body, created_at, user_id, profiles!user_id(full_name, avatar_url)")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+  return (data as unknown as AdminFeedComment[]) ?? [];
+}
+
+export async function deleteNewsCommentAdmin(commentId: string): Promise<{ error?: string }> {
+  await assertAdmin();
+  const service = createServiceClient();
+  const { error } = await service.from("news_comments").delete().eq("id", commentId);
+  if (error) return { error: "Erro ao deletar comentário" };
+  return {};
+}
+
 export async function toggleNewsPinned(
   id: string,
   pinned: boolean
