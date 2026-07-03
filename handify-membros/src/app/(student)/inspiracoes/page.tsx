@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Sparkles, Bookmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
 import { InspiracaoFeed } from '@/components/inspiracoes/InspiracaoFeed'
 
@@ -12,7 +13,16 @@ export default async function InspiracoesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const page = await getInspiracoesFeed(user.id)
+  const service = createServiceClient()
+  const [page, { data: coursesRaw }] = await Promise.all([
+    getInspiracoesFeed(user.id),
+    service
+      .from('courses')
+      .select('id, title')
+      .eq('published', true)
+      .order('title'),
+  ])
+  const courses = (coursesRaw ?? []) as { id: string; title: string }[]
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -44,6 +54,7 @@ export default async function InspiracoesPage() {
           initialPosts={page.posts}
           initialCursor={page.next_cursor}
           initialHasMore={page.has_more}
+          courses={courses}
         />
       </div>
     </div>

@@ -32,7 +32,7 @@ function Carrossel({ images }: { images: { url: string; alt?: string }[] }) {
 
   return (
     <div className="relative">
-      <div className="overflow-hidden bg-black">
+      <div className="overflow-hidden bg-white">
         <img
           src={images[idx].url}
           alt={images[idx].alt ?? ''}
@@ -122,7 +122,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
 
       {/* Mídia */}
       {post.type === 'foto' && post.media[0] && (
-        <div className="bg-black">
+        <div className="bg-white">
           <img
             src={post.media[0].url}
             alt={post.media[0].alt ?? post.title}

@@ -34,11 +34,13 @@ interface Props {
   initialPosts: InspiracaoPost[]
   initialCursor: InspiracaoCursor | null
   initialHasMore: boolean
+  courses?: { id: string; title: string }[]
 }
 
-export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHasMore }: Props) {
+export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHasMore, courses = [] }: Props) {
   const [tipo, setTipo] = useState<InspiracaoType | ''>('')
   const [nicho, setNicho] = useState('')
+  const [courseId, setCourseId] = useState('')
   const [busca, setBusca] = useState('')
   const [debouncedBusca, setDebouncedBusca] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -47,7 +49,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
   const [cursor, setCursor] = useState(initialCursor)
   const [hasMore, setHasMore] = useState(initialHasMore)
 
-  const activeFilterCount = (tipo !== '' ? 1 : 0) + (nicho !== '' ? 1 : 0)
+  const activeFilterCount = (tipo !== '' ? 1 : 0) + (nicho !== '' ? 1 : 0) + (courseId !== '' ? 1 : 0)
 
   const [isFetching, startFetch] = useTransition()
   const [isLoadingMore, startLoadMore] = useTransition()
@@ -71,6 +73,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
       const page = await getInspiracoesFeed(userId, {
         tipo: tipo || undefined,
         nicho: nicho || undefined,
+        curso_id: courseId || undefined,
         busca: debouncedBusca || undefined,
       })
       setPosts(page.posts)
@@ -78,14 +81,14 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
       setHasMore(page.has_more)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo, nicho, debouncedBusca])
+  }, [tipo, nicho, courseId, debouncedBusca])
 
   function loadMore() {
     if (!hasMore || !cursor) return
     startLoadMore(async () => {
       const page = await getInspiracoesFeed(
         userId,
-        { tipo: tipo || undefined, nicho: nicho || undefined, busca: debouncedBusca || undefined },
+        { tipo: tipo || undefined, nicho: nicho || undefined, curso_id: courseId || undefined, busca: debouncedBusca || undefined },
         cursor
       )
       setPosts(prev => [...prev, ...page.posts])
@@ -176,10 +179,44 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
               </div>
             </div>
 
+            {/* Curso */}
+            {courses.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Curso</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setCourseId('')}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                      courseId === ''
+                        ? 'bg-[#FEC649] text-[#6b4f00] shadow-sm'
+                        : 'bg-muted/60 text-foreground/70 hover:bg-[#FEC649]/20 hover:text-[#6b4f00]'
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {courses.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => setCourseId(c.id)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                        courseId === c.id
+                          ? 'bg-[#FEC649] text-[#6b4f00] shadow-sm'
+                          : 'bg-muted/60 text-foreground/70 hover:bg-[#FEC649]/20 hover:text-[#6b4f00]'
+                      )}
+                    >
+                      {c.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Limpar */}
             {activeFilterCount > 0 && (
               <button
-                onClick={() => { setTipo(''); setNicho('') }}
+                onClick={() => { setTipo(''); setNicho(''); setCourseId('') }}
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-3 h-3" />
