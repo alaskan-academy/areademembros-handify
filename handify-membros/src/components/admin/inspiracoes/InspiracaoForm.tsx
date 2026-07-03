@@ -194,7 +194,7 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
 
       // Monta blocks
       let blocks: { type: 'html' | 'video_meta'; content: string; position: number }[] | undefined = undefined
-      if (type === 'dica' && htmlBlock.trim()) {
+      if (type === 'dica' && htmlBlock.trim() && htmlBlock.trim() !== '<p></p>') {
         blocks = [{ type: 'html', content: htmlBlock.trim(), position: 0 }]
       }
       if (type === 'video') {
@@ -205,7 +205,7 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
         id: post?.id,
         type,
         title: title.trim(),
-        body: body.trim() || undefined,
+        body: (body.trim() && body.trim() !== '<p></p>') ? body.trim() : undefined,
         media,
         video_url: type === 'video' ? videoUrl.trim() || undefined : undefined,
         blocks,

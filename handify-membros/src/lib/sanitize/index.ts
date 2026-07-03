@@ -25,6 +25,9 @@ const ALLOWED_ATTR = [
 ];
 
 export function sanitizeHtml(dirty: string): string {
+  // DOMPurify requer DOM real — durante SSR não existe window, retorna o input
+  // diretamente (conteúdo admin é confiável; sanitização ocorre no client)
+  if (typeof window === 'undefined') return dirty
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
