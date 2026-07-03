@@ -20,6 +20,7 @@ export default async function InspiracoesPage() {
       .from('courses')
       .select('id, title')
       .eq('published', true)
+      .eq('course_type', 'course')
       .order('title'),
   ])
   const courses = (coursesRaw ?? []) as { id: string; title: string }[]
