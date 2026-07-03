@@ -109,6 +109,9 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
   const pandaEmbedUrl = post.type === 'video' && !ytId && post.video_url
     ? getPandaEmbedUrl(post.video_url)
     : null
+  const videoAspect = post.type === 'video'
+    ? (post.blocks.find(b => b.type === 'video_meta')?.content ?? '16/9')
+    : '16/9'
 
   return (
     <article className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
@@ -162,7 +165,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
       )}
 
       {post.type === 'video' && ytId && (
-        <div className="aspect-video">
+        <div style={{ aspectRatio: videoAspect, maxHeight: '80vh' }}>
           <iframe
             src={`https://www.youtube.com/embed/${ytId}`}
             title={post.title}
@@ -173,7 +176,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
         </div>
       )}
       {post.type === 'video' && pandaEmbedUrl && (
-        <div className="aspect-video">
+        <div style={{ aspectRatio: videoAspect, maxHeight: '80vh' }}>
           <iframe
             src={pandaEmbedUrl}
             title={post.title}

@@ -8,6 +8,7 @@ import {
   ArrowLeft, Plus, X, Image as ImageIcon, Play, ChefHat,
   Lightbulb, Star, GalleryHorizontal, Check,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { adminUpsertPost, adminDeletePost } from '@/lib/inspiracoes/actions'
 import type { InspiracaoType, InspiracaoPostRow, ReceitaData } from '@/lib/inspiracoes/types'
 import { ImageUploader } from './ImageUploader'
@@ -83,6 +84,9 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
 
   // Video
   const [videoUrl, setVideoUrl] = useState(post?.video_url ?? '')
+  const [videoAspect, setVideoAspect] = useState<'16/9' | '9/16' | '1/1'>(
+    ((post?.blocks ?? []).find((b: any) => b.type === 'video_meta')?.content as '16/9' | '9/16' | '1/1') ?? '16/9'
+  )
 
   // Dica — bloco HTML
   const [htmlBlock, setHtmlBlock] = useState(
@@ -189,9 +193,12 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
       }
 
       // Monta blocks
-      let blocks = undefined
+      let blocks: { type: 'html' | 'video_meta'; content: string; position: number }[] | undefined = undefined
       if (type === 'dica' && htmlBlock.trim()) {
-        blocks = [{ type: 'html' as const, content: htmlBlock.trim(), position: 0 }]
+        blocks = [{ type: 'html', content: htmlBlock.trim(), position: 0 }]
+      }
+      if (type === 'video') {
+        blocks = [{ type: 'video_meta', content: videoAspect, position: 0 }]
       }
 
       await adminUpsertPost(adminId, {
@@ -360,17 +367,39 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
 
         {/* ── Vídeo ────────────────────────────────────────────────────── */}
         {type === 'video' && (
-          <div>
-            <label className={LABEL_CLS}>URL do vídeo (YouTube ou Panda Video)</label>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={e => setVideoUrl(e.target.value)}
-              className={INPUT_CLS}
-              placeholder="https://youtube.com/watch?v=... ou https://player.pandavideo.com.br/..."
-            />
+          <div className="space-y-3">
+            <div>
+              <label className={LABEL_CLS}>URL do vídeo (YouTube ou Panda Video)</label>
+              <input
+                type="url"
+                value={videoUrl}
+                onChange={e => setVideoUrl(e.target.value)}
+                className={INPUT_CLS}
+                placeholder="https://youtube.com/watch?v=... ou https://player.pandavideo.com.br/..."
+              />
+            </div>
+            <div>
+              <label className={LABEL_CLS}>Proporção do vídeo</label>
+              <div className="flex gap-2">
+                {([['16/9', 'Horizontal (16:9)'], ['9/16', 'Vertical (9:16)'], ['1/1', 'Quadrado (1:1)']] as const).map(([val, label]) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setVideoAspect(val)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                      videoAspect === val
+                        ? 'bg-[#6699F3] text-white border-[#6699F3]'
+                        : 'bg-white text-foreground/70 border-border hover:border-[#6699F3]/50'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {ytId && (
-              <div className="mt-2 rounded-xl overflow-hidden border border-border/40 aspect-video">
+              <div className="rounded-xl overflow-hidden border border-border/40 aspect-video">
                 <iframe
                   src={`https://www.youtube.com/embed/${ytId}`}
                   className="w-full h-full"
@@ -380,8 +409,11 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
               </div>
             )}
             {videoUrl && !ytId && videoUrl.includes('pandavideo') && (
-              <div className="mt-2 rounded-xl overflow-hidden border border-border/40 aspect-video">
-                <iframe src={videoUrl} className="w-full h-full" allowFullScreen />
+              <div
+                className="rounded-xl overflow-hidden border border-border/40"
+                style={{ aspectRatio: videoAspect, maxHeight: '80vh' }}
+              >
+                <iframe src={videoUrl} className="w-full h-full" allowFullScreen style={{ border: 'none' }} />
               </div>
             )}
           </div>

@@ -11,7 +11,7 @@ export interface MediaItem {
 }
 
 export interface ContentBlock {
-  type: 'text' | 'html' | 'embed' | 'download'
+  type: 'text' | 'html' | 'embed' | 'download' | 'video_meta'
   content: string
   position: number
 }
