@@ -580,14 +580,28 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
             onChange={setCoverImage}
           />
           <div>
-            <label className={LABEL_CLS}>Conteúdo</label>
-            <RichTextEditor
+            <label className={LABEL_CLS}>Conteúdo HTML</label>
+            <textarea
               value={htmlBlock}
-              onChange={setHtmlBlock}
-              placeholder="Digite o conteúdo da dica..."
-              minHeight={200}
+              onChange={e => setHtmlBlock(e.target.value)}
+              rows={12}
+              className={`${INPUT_CLS} resize-y font-mono text-xs`}
+              placeholder={'<h2>Título da dica</h2>\n<p>Explicação...</p>\n<ul>\n  <li>Item 1</li>\n</ul>'}
+              spellCheck={false}
             />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Digite HTML diretamente. Tags suportadas: h1–h4, p, ul, ol, li, strong, em, a, img, blockquote, table, div, span.
+            </p>
           </div>
+          {htmlBlock.trim() && htmlBlock.trim() !== '<p></p>' && (
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Preview</p>
+              <div
+                className="prose prose-sm max-w-none border border-border/40 rounded-lg p-4 bg-muted/20 text-foreground/80"
+                dangerouslySetInnerHTML={{ __html: htmlBlock }}
+              />
+            </div>
+          )}
         </div>
       )}
 

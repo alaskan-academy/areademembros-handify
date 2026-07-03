@@ -28,6 +28,17 @@ function getYouTubeId(url: string): string | null {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+// Decodifica entidades HTML básicas antes de sanitizar — necessário quando o conteúdo
+// foi salvo com Tiptap (que escapa tags como &lt;h2&gt; em vez de <h2>)
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
 function getPandaEmbedUrl(videoUrl: string): string | null {
   if (!videoUrl) return null
   if (UUID_RE.test(videoUrl.trim())) {
@@ -330,7 +341,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
               {post.body && (
                 <div
                   className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.body)) }}
                 />
               )}
               {post.blocks.map((block, i) => {
@@ -342,7 +353,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                     <div
                       key={i}
                       className="prose prose-sm max-w-none text-foreground/80"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(block.content)) }}
                     />
                   )
                 }
@@ -378,7 +389,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                   {post.body && (
                     <div
                       className="prose prose-sm max-w-none text-foreground/80 bg-muted rounded-xl p-4 text-left w-full leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.body)) }}
                     />
                   )}
                 </div>
@@ -386,7 +397,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                 post.body && (
                   <div
                     className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.body)) }}
                   />
                 )
               )}
@@ -397,7 +408,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
           {!['dica', 'receita', 'destaque'].includes(post.type) && post.body && (
             <div
               className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.body)) }}
             />
           )}
 
