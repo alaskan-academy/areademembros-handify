@@ -271,7 +271,10 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
         {post.type === 'dica' && (
           <div className="space-y-2">
             {post.body && (
-              <p className="text-sm text-foreground/80 leading-relaxed">{post.body}</p>
+              <div
+                className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+              />
             )}
             {post.blocks.map((block, i) => {
               if (block.type === 'text') {
@@ -316,20 +319,29 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                   )}
                 </div>
                 {post.body && (
-                  <div className="text-sm text-foreground/80 bg-muted rounded-xl p-4 text-left w-full leading-relaxed">
-                    {post.body}
-                  </div>
+                  <div
+                    className="prose prose-sm max-w-none text-foreground/80 bg-muted rounded-xl p-4 text-left w-full leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+                  />
                 )}
               </div>
             ) : (
-              post.body && <p className="text-sm text-foreground/80 leading-relaxed">{post.body}</p>
+              post.body && (
+                <div
+                  className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+                />
+              )
             )}
           </div>
         )}
 
         {/* Body para demais tipos (foto, carrossel, video) */}
         {!['dica', 'receita', 'destaque'].includes(post.type) && post.body && (
-          <p className="text-sm text-foreground/80 leading-relaxed">{post.body}</p>
+          <div
+            className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+          />
         )}
 
         {/* Tags */}

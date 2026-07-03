@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -10,6 +11,11 @@ import {
 import { adminUpsertPost, adminDeletePost } from '@/lib/inspiracoes/actions'
 import type { InspiracaoType, InspiracaoPostRow, ReceitaData } from '@/lib/inspiracoes/types'
 import { ImageUploader } from './ImageUploader'
+
+const RichTextEditor = dynamic(
+  () => import('@/components/editor/RichTextEditor'),
+  { ssr: false, loading: () => <div className="h-32 rounded-lg border border-border/60 bg-muted/30 animate-pulse" /> }
+)
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -301,12 +307,11 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
         {/* Legenda / corpo */}
         <div>
           <label className={LABEL_CLS}>Legenda / corpo</label>
-          <textarea
+          <RichTextEditor
             value={body}
-            onChange={e => setBody(e.target.value)}
-            rows={4}
-            className={`${INPUT_CLS} resize-none`}
+            onChange={setBody}
             placeholder="Descrição do post, contexto, dicas gerais..."
+            minHeight={120}
           />
         </div>
 
@@ -536,22 +541,19 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
       {/* ── Seção dica (bloco HTML) ──────────────────────────────────────────── */}
       {type === 'dica' && (
         <div className="bg-white rounded-xl border border-border/60 p-5 space-y-4">
-          <h2 className="text-sm font-semibold">Conteúdo HTML / Rico</h2>
+          <h2 className="text-sm font-semibold">Conteúdo Rico</h2>
           <ImageUploader
             label="Imagem de capa (opcional)"
             value={coverImage}
             onChange={setCoverImage}
           />
           <div>
-            <p className="text-xs text-muted-foreground mb-2">
-              HTML será sanitizado antes de exibir. Use tags básicas: h3, p, ul, li, strong, em, a.
-            </p>
-            <textarea
+            <label className={LABEL_CLS}>Conteúdo</label>
+            <RichTextEditor
               value={htmlBlock}
-              onChange={e => setHtmlBlock(e.target.value)}
-              rows={10}
-              className={`${INPUT_CLS} resize-y font-mono text-xs`}
-              placeholder="<h3>Título</h3><p>Conteúdo...</p>"
+              onChange={setHtmlBlock}
+              placeholder="Digite o conteúdo da dica..."
+              minHeight={200}
             />
           </div>
         </div>
