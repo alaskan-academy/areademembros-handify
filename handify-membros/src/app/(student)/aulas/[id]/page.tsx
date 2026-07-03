@@ -274,8 +274,8 @@ export default async function LessonPage({
           <BannerDisplay slot="pos-aula" />
         </div>
 
-        {/* Coluna lateral: sidebar + banner lateral num único filho do grid para não vazar para linha 2 */}
-        <div className="hidden lg:flex flex-col gap-4">
+        {/* Coluna lateral: sidebar + banner sticky juntos para não sobreposer um ao outro */}
+        <div className="hidden lg:flex flex-col gap-4 self-start sticky top-20">
           <LessonSidebarDesktop {...sidebarProps} />
           <BannerDisplay slot="lateral" />
         </div>

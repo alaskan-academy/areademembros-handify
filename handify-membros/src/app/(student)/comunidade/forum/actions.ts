@@ -5,6 +5,28 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+export type ForumCommentRow = {
+  id: string;
+  body: string;
+  created_at: string;
+  user_id: string;
+  parent_id: string | null;
+  profiles: { full_name: string; avatar_url: string | null; role: string } | null;
+};
+
+export async function getForumComments(postId: string): Promise<ForumCommentRow[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const service = createServiceClient();
+  const { data } = await service
+    .from("forum_comments")
+    .select("id, body, created_at, user_id, parent_id, profiles!user_id(full_name, avatar_url, role)")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+  return (data as unknown as ForumCommentRow[]) ?? [];
+}
+
 async function getAuthUser() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

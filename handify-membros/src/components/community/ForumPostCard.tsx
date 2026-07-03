@@ -6,17 +6,10 @@ import { Heart, MessageCircle, ChevronDown, ChevronUp, Trash2, Pin, Send, Loader
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { createClient } from "@/lib/supabase/client";
-import { addForumComment, deleteForumComment, toggleForumLike } from "@/app/(student)/comunidade/forum/actions";
+import { addForumComment, deleteForumComment, toggleForumLike, getForumComments } from "@/app/(student)/comunidade/forum/actions";
+import type { ForumCommentRow } from "@/app/(student)/comunidade/forum/actions";
 
-export type ForumComment = {
-  id: string;
-  body: string;
-  created_at: string;
-  user_id: string;
-  parent_id: string | null;
-  profiles: { full_name: string; avatar_url: string | null; role: string } | null;
-};
+export type ForumComment = ForumCommentRow;
 
 export type ForumPostData = {
   id: string;
@@ -67,13 +60,8 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
   async function loadComments() {
     if (comments !== null) return;
     setLoadingComments(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("forum_comments")
-      .select("id, body, created_at, user_id, parent_id, profiles!user_id (full_name, avatar_url, role)")
-      .eq("post_id", post.id)
-      .order("created_at", { ascending: true });
-    setComments((data as unknown as ForumComment[]) ?? []);
+    const data = await getForumComments(post.id);
+    setComments(data);
     setLoadingComments(false);
   }
 
