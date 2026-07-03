@@ -16,7 +16,7 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   Link as LinkIcon, Unlink,
   Highlighter, Palette,
-  Undo, Redo, Quote,
+  Undo, Redo, Quote, CornerDownLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -367,6 +367,16 @@ function Toolbar({ editor }: { editor: Editor }) {
         title="Alinhar à direita"
       >
         <AlignRight className="w-3.5 h-3.5" />
+      </ToolBtn>
+
+      <div className="w-px h-4 bg-border mx-1" />
+
+      {/* Quebra de linha */}
+      <ToolBtn
+        onClick={() => editor.chain().focus().setHardBreak().run()}
+        title="Quebra de linha (↵)"
+      >
+        <CornerDownLeft className="w-3.5 h-3.5" />
       </ToolBtn>
 
       <div className="w-px h-4 bg-border mx-1" />
