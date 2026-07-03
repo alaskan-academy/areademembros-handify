@@ -18,7 +18,7 @@ export function StudentListModal({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  useModalBackGuard(open, () => setOpen(false));
+  const markNavigating = useModalBackGuard(open, () => setOpen(false));
 
   return (
     <>
@@ -115,7 +115,7 @@ export function StudentListModal({
                 <Link
                   href="/admin/alunos"
                   className="text-xs font-medium text-[#6699F3] hover:underline flex items-center gap-1"
-                  onClick={() => setOpen(false)}
+                  onClick={markNavigating}
                 >
                   Ver todas em Alunas <ChevronRight className="w-3 h-3" />
                 </Link>

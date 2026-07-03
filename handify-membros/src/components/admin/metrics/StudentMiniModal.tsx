@@ -23,7 +23,7 @@ export function StudentMiniModal({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  useModalBackGuard(open, () => setOpen(false));
+  const markNavigating = useModalBackGuard(open, () => setOpen(false));
 
   const displayName = student.name ?? student.email;
   const initial = displayName.charAt(0).toUpperCase();
@@ -92,7 +92,7 @@ export function StudentMiniModal({
             <div className="flex gap-2">
               <Link
                 href={`/admin/alunos/${student.id}`}
-                onClick={() => setOpen(false)}
+                onClick={markNavigating}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold bg-[#6699F3] text-white rounded-lg hover:bg-[#5580d4] transition-colors"
               >
                 <UserCircle className="w-4 h-4" />
@@ -100,7 +100,7 @@ export function StudentMiniModal({
               </Link>
               <Link
                 href={`/admin/alunos/${student.id}?tab=atividade`}
-                onClick={() => setOpen(false)}
+                onClick={markNavigating}
                 className="flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-[#6699F3] border border-[#6699F3]/30 rounded-lg hover:bg-[#6699F3]/5 transition-colors"
                 title="Ver atividade"
                 aria-label="Ver atividade"

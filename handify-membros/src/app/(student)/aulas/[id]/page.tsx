@@ -8,7 +8,8 @@ import Link from "next/link";
 import { Lock, ChevronLeft } from "lucide-react";
 import NextLessonButton from "@/components/player/NextLessonButton";
 import BannerDisplay from "@/components/banner/BannerDisplay";
-import { LessonSidebarMobile, LessonSidebarDesktop } from "@/components/lesson/LessonSidebar";
+import { LessonSidebarDesktop } from "@/components/lesson/LessonSidebar";
+import { LessonBottomSheet } from "@/components/lesson/LessonBottomSheet";
 
 type CourseRef = { id: string; title: string; slug: string };
 type LessonModule = { id: string; title: string; position: number; course_id: string; course: CourseRef };
@@ -227,12 +228,12 @@ export default async function LessonPage({
           <div className="flex flex-col gap-3 pt-2">
             {/* Marcar concluída + badge prévia */}
             {(hasAccess && user || lesson.is_preview) && (
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 {hasAccess && user && (
                   <LessonCompleteButton lessonId={id} isCompleted={isCompleted} />
                 )}
                 {lesson.is_preview && (
-                  <span className="inline-flex items-center gap-2 text-sm text-[#72CF92] font-medium bg-[#72CF92]/10 px-3 py-2 rounded-full">
+                  <span className="inline-flex items-center gap-2 text-sm text-[#72CF92] font-medium bg-[#72CF92]/10 px-3 py-2 rounded-full self-start sm:self-auto">
                     <span className="w-2 h-2 rounded-full bg-[#72CF92]" />
                     Prévia gratuita
                   </span>
@@ -263,8 +264,11 @@ export default async function LessonPage({
             )}
           </div>
 
-          {/* Sidebar colapsável — só mobile */}
-          <LessonSidebarMobile {...sidebarProps} />
+          {/* Bottom sheet — só mobile: Materiais + Menu do curso */}
+          <LessonBottomSheet
+            materials={materials}
+            {...sidebarProps}
+          />
 
           {/* Banner pós-aula */}
           <BannerDisplay slot="pos-aula" />

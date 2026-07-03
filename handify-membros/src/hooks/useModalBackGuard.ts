@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { activeModalRef } from "@/lib/modal-back-state";
 
 /**
  * Intercepta o botão voltar enquanto um modal está aberto.
  * Em vez de navegar para a página anterior, fecha o modal.
  * Coordena com BackButtonGuard para evitar conflito.
+ *
+ * Retorna `markNavigating()` — chame antes de navegar via Link dentro do modal
+ * para evitar que o cleanup chame history.back() e cancele a navegação.
  */
 export function useModalBackGuard(isOpen: boolean, onClose: () => void) {
   const onCloseRef = useRef(onClose);
@@ -36,4 +39,8 @@ export function useModalBackGuard(isOpen: boolean, onClose: () => void) {
       }
     };
   }, [isOpen]);
+
+  // Chame antes de navegar por um Link dentro do modal — evita que o cleanup
+  // chame history.back() concorrentemente com a navegação do Next.js.
+  return useCallback(() => { closedByBackRef.current = true; }, []);
 }

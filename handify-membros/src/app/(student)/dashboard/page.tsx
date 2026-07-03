@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Play, RotateCcw, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CourseMenuModal, type CourseMenuModule } from "@/components/student/CourseMenuModal";
 
 type EnrolledCourse = {
   id: string;
@@ -18,6 +19,8 @@ type CourseCard = {
   lastLessonId: string | null;
   firstLessonId: string | null;
   lastAccess: string | null;
+  modules: CourseMenuModule[];
+  completedLessonIds: string[];
 };
 
 export default async function MinhaJornadaPage() {
@@ -52,12 +55,12 @@ export default async function MinhaJornadaPage() {
 
     const { data: modules } = await supabase
       .from("modules")
-      .select("course_id, id, position, lessons(id, position, archived)")
+      .select("course_id, id, title, position, lessons(id, title, position, is_preview, archived)")
       .eq("archived", false)
       .in("course_id", courseIds);
 
-    type LessonRef = { id: string; position: number; archived: boolean };
-    type ModuleRow = { course_id: string; id: string; position: number; lessons: LessonRef[] };
+    type LessonRef = { id: string; title: string; position: number; is_preview: boolean; archived: boolean };
+    type ModuleRow = { course_id: string; id: string; title: string; position: number; lessons: LessonRef[] };
     const modRows = (modules as ModuleRow[] | null) ?? [];
 
     // first lesson por curso (menor position de módulo e aula)
@@ -88,6 +91,7 @@ export default async function MinhaJornadaPage() {
       {};
     const lastLessonMap: Record<string, string> = {};
     const lastAccessMap: Record<string, string> = {};
+    const completedSet = new Set<string>();
 
     if (allLessonIds.length > 0) {
       const { data: allProgress } = await supabase
@@ -112,7 +116,6 @@ export default async function MinhaJornadaPage() {
         lessonCount[cid] = (lessonCount[cid] ?? 0) + (mod.lessons ?? []).filter((l) => !l.archived).length;
       }
 
-      const completedSet = new Set<string>();
       for (const p of progressRows) {
         if (p.completed) completedSet.add(p.lesson_id);
       }
@@ -147,12 +150,29 @@ export default async function MinhaJornadaPage() {
     }
 
     for (const course of courses) {
+      const courseMods = (courseModules[course.id] ?? [])
+        .sort((a, b) => a.position - b.position)
+        .map((m) => ({
+          id: m.id,
+          title: m.title,
+          position: m.position,
+          lessons: (m.lessons ?? [])
+            .filter((l) => !l.archived)
+            .sort((a, b) => a.position - b.position)
+            .map((l) => ({ id: l.id, title: l.title, position: l.position, is_preview: l.is_preview })),
+        }));
+
+      const courseCompletedIds = (courseModules[course.id] ?? [])
+        .flatMap((m) => (m.lessons ?? []).filter((l) => !l.archived && completedSet.has(l.id)).map((l) => l.id));
+
       cards.push({
         course,
         progress: progressMap[course.id] ?? { completed: 0, total: 0, percentage: 0 },
         lastLessonId: lastLessonMap[course.id] ?? null,
         firstLessonId: firstLessonMap[course.id] ?? null,
         lastAccess: lastAccessMap[course.id] ?? null,
+        modules: courseMods,
+        completedLessonIds: courseCompletedIds,
       });
     }
   }
@@ -272,7 +292,14 @@ function CourseProgressCard({ card }: { card: CourseCard }) {
 
   return (
     <div className="group handify-card overflow-hidden flex flex-col">
-      <Link href={href} className="block">
+      <CourseMenuModal
+        course={course}
+        modules={card.modules}
+        completedLessonIds={card.completedLessonIds}
+        lastLessonId={lastLessonId}
+        firstLessonId={firstLessonId}
+        progress={progress}
+      >
         <div className="aspect-video bg-muted relative overflow-hidden">
           {course.thumbnail_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -292,7 +319,7 @@ function CourseProgressCard({ card }: { card: CourseCard }) {
             </div>
           )}
         </div>
-      </Link>
+      </CourseMenuModal>
 
       <div className="p-4 flex flex-col gap-4 flex-1">
         <Link href={`/cursos/${course.slug}`}>
