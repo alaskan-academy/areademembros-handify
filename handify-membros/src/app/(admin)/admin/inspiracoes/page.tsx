@@ -26,7 +26,7 @@ export default async function AdminInspiracoesPage() {
   const service = createServiceClient()
   const { data: posts } = await service
     .from('inspiration_posts')
-    .select('id, type, title, tags, published, archived, pinned, media, created_at')
+    .select('id, type, title, tags, published, archived, pinned, media, created_at, course:courses!course_id(title)')
     .order('created_at', { ascending: false })
 
   const { count: pendingCount } = await service
@@ -125,6 +125,7 @@ function PostSection({
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Post</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground hidden sm:table-cell">Tipo</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground hidden md:table-cell">Tags</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground hidden lg:table-cell">Curso</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground hidden lg:table-cell">Data</th>
               <th className="px-4 py-3" />
             </tr>
@@ -170,6 +171,15 @@ function PostSection({
                         <span className="text-[10px] text-muted-foreground">+{p.tags.length - 2}</span>
                       )}
                     </div>
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    {p.course?.title ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-medium truncate max-w-[140px] inline-block">
+                        {p.course.title}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground/40">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <span className="text-[11px] text-muted-foreground">
