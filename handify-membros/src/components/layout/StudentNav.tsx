@@ -42,7 +42,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  useModalBackGuard(drawerOpen, () => setDrawerOpen(false));
+  const markDrawerNavigating = useModalBackGuard(drawerOpen, () => setDrawerOpen(false));
 
   const visibleItems = navItems.filter((item) => {
     if (item.visible_to === "guest") return true;
@@ -216,7 +216,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
                     href={item.href}
                     target={item.target}
                     rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
-                    onClick={() => setDrawerOpen(false)}
+                    onClick={() => { markDrawerNavigating(); setDrawerOpen(false); }}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5",
                       isAdmin

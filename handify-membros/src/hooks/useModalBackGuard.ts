@@ -21,6 +21,8 @@ export function useModalBackGuard(isOpen: boolean, onClose: () => void) {
 
     activeModalRef.current = true;
     closedByBackRef.current = false;
+    // Guarda a URL atual para saber se houve navegação no cleanup.
+    const urlOnOpen = window.location.href;
     history.pushState({ __handify_modal: true }, "");
 
     function handlePopState() {
@@ -32,9 +34,11 @@ export function useModalBackGuard(isOpen: boolean, onClose: () => void) {
     return () => {
       window.removeEventListener("popstate", handlePopState);
       activeModalRef.current = false;
-      // Se o modal fechou pelo X/backdrop (não pelo botão voltar),
-      // precisamos remover o estado que pushamos para não deixar entrada fantasma.
-      if (!closedByBackRef.current) {
+      // Se o modal fechou pelo X/backdrop (não pelo botão voltar) E a URL não
+      // mudou (não houve navegação), remove o estado fantasma com history.back().
+      // Se a URL mudou, o usuário navegou para outra página — não chamamos
+      // history.back() para não anular a navegação.
+      if (!closedByBackRef.current && window.location.href === urlOnOpen) {
         history.back();
       }
     };

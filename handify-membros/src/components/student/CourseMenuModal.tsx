@@ -19,6 +19,7 @@ interface Props {
   completedLessonIds: string[];
   lastLessonId: string | null;
   firstLessonId: string | null;
+  nextLessonId: string | null;
   progress: { completed: number; total: number; percentage: number };
   children: React.ReactNode;
 }
@@ -29,6 +30,7 @@ export function CourseMenuModal({
   completedLessonIds,
   lastLessonId,
   firstLessonId,
+  nextLessonId,
   progress,
   children,
 }: Props) {
@@ -39,7 +41,10 @@ export function CourseMenuModal({
   const isComplete = progress.percentage === 100;
   const hasStarted = !!lastLessonId;
 
-  const href = lastLessonId
+  // CTA vai para a próxima aula (não a última assistida)
+  const href = nextLessonId
+    ? `/aulas/${nextLessonId}`
+    : lastLessonId
     ? `/aulas/${lastLessonId}`
     : firstLessonId
     ? `/aulas/${firstLessonId}`
@@ -121,7 +126,8 @@ export function CourseMenuModal({
                     <ul className="divide-y divide-border/50">
                       {[...(m.lessons ?? [])].sort((a, b) => a.position - b.position).map((l) => {
                         const done = completedSet.has(l.id);
-                        const isNext = !hasStarted && l.id === firstLessonId;
+                        const isLast = l.id === lastLessonId;
+                        const isNext = l.id === (nextLessonId ?? (!hasStarted ? firstLessonId : null));
                         return (
                           <li key={l.id}>
                             <Link
@@ -131,8 +137,10 @@ export function CourseMenuModal({
                                 "flex items-center gap-2.5 px-3 py-2.5 text-xs transition-colors min-h-[44px]",
                                 isNext
                                   ? "bg-[#6699F3]/5 hover:bg-[#6699F3]/10"
+                                  : isLast
+                                  ? "bg-muted/50 hover:bg-muted/70"
                                   : "hover:bg-muted/60",
-                                done && "text-muted-foreground"
+                                done && !isLast && !isNext && "text-muted-foreground"
                               )}
                             >
                               {done ? (
@@ -144,7 +152,13 @@ export function CourseMenuModal({
                                 )} />
                               )}
                               <span className="line-clamp-2 leading-snug flex-1">{l.title}</span>
-                              {l.is_preview && !done && (
+                              {isNext && (
+                                <span className="text-[10px] bg-[#6699F3] text-white px-1.5 py-0.5 rounded-full shrink-0 font-semibold">próxima</span>
+                              )}
+                              {isLast && !isNext && (
+                                <span className="text-[10px] text-muted-foreground shrink-0">última</span>
+                              )}
+                              {l.is_preview && !done && !isNext && !isLast && (
                                 <span className="text-[10px] text-[#72CF92] shrink-0">(grátis)</span>
                               )}
                             </Link>

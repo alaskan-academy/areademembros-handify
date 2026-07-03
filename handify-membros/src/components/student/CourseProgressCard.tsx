@@ -26,7 +26,18 @@ export function CourseProgressCard({ card }: { card: CourseCardData }) {
   const isComplete = progress.percentage === 100;
   const hasStarted = !!lastLessonId;
 
-  const href = lastLessonId
+  // Calcula próxima aula (após a última assistida, na ordem)
+  const flatLessons = [...card.modules]
+    .sort((a, b) => a.position - b.position)
+    .flatMap(m => [...m.lessons].sort((a, b) => a.position - b.position));
+  const lastIdx = lastLessonId ? flatLessons.findIndex(l => l.id === lastLessonId) : -1;
+  const nextLessonId = lastIdx >= 0 && lastIdx < flatLessons.length - 1
+    ? flatLessons[lastIdx + 1].id
+    : null;
+
+  const href = nextLessonId
+    ? `/aulas/${nextLessonId}`
+    : lastLessonId
     ? `/aulas/${lastLessonId}`
     : firstLessonId
     ? `/aulas/${firstLessonId}`
@@ -40,6 +51,7 @@ export function CourseProgressCard({ card }: { card: CourseCardData }) {
         completedLessonIds={card.completedLessonIds}
         lastLessonId={lastLessonId}
         firstLessonId={firstLessonId}
+        nextLessonId={nextLessonId}
         progress={progress}
       >
         <div className="aspect-video bg-muted relative overflow-hidden cursor-pointer group/thumb">
