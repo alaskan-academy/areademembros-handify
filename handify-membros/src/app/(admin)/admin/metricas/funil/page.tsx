@@ -3,8 +3,11 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { Ghost, Zap, Target, Star, Clock, TrendingDown, Users, Award } from "lucide-react";
 import { InfoTooltip } from "../metric-tooltip";
+import { StudentMiniModal, type StudentBasic } from "@/components/admin/metrics/StudentMiniModal";
+import { StudentListModal } from "@/components/admin/metrics/StudentListModal";
+import { FunnelTableClient, type FunnelRowData } from "./FunnelTableClient";
 
-type Profile = { id: string; full_name: string | null; email: string };
+type Profile = { id: string; full_name: string | null; email: string; avatar_url: string | null };
 type SegmentEntry = { profile: Profile; courseTitle: string; extra?: string };
 
 async function assertAdmin() {
@@ -40,15 +43,15 @@ export default async function FunilPage() {
     service.from("lessons").select("id, title, module:modules(course_id)"),
     service
       .from("profiles")
-      .select("id, full_name, email")
+      .select("id, full_name, email, avatar_url")
       .eq("role", "student")
       .eq("banned", false),
   ]);
 
   // ── Mapa: lessonId → courseId + title ────────────────────────────
-  const lessonCourseMap = new Map<string, string>(); // lessonId → courseId
-  const lessonTitleMap = new Map<string, string>();  // lessonId → title
-  const lessonCountByCourse = new Map<string, number>(); // courseId → total lições
+  const lessonCourseMap = new Map<string, string>();
+  const lessonTitleMap = new Map<string, string>();
+  const lessonCountByCourse = new Map<string, number>();
   for (const l of lessons ?? []) {
     const courseId = (l.module as unknown as { course_id: string } | null)?.course_id;
     if (!courseId) continue;
@@ -58,11 +61,11 @@ export default async function FunilPage() {
   }
 
   // ── Mapas de progresso ────────────────────────────────────────────
-  const startedByCourse = new Map<string, Set<string>>(); // courseId → Set<userId>
-  const completedCountByUserCourse = new Map<string, number>(); // `userId:courseId` → count
-  const lastActiveByUserCourse = new Map<string, string>(); // `userId:courseId` → ISO date
-  const firstProgressByUserCourse = new Map<string, string>(); // `userId:courseId` → earliest ISO date
-  const stalledLessonCount = new Map<string, number>(); // lessonId → usuárias travadas
+  const startedByCourse = new Map<string, Set<string>>();
+  const completedCountByUserCourse = new Map<string, number>();
+  const lastActiveByUserCourse = new Map<string, string>();
+  const firstProgressByUserCourse = new Map<string, string>();
+  const stalledLessonCount = new Map<string, number>();
 
   for (const p of allProgress ?? []) {
     const courseId = lessonCourseMap.get(p.lesson_id);
@@ -85,14 +88,15 @@ export default async function FunilPage() {
     if (!currentFirst || p.updated_at < currentFirst) firstProgressByUserCourse.set(key, p.updated_at);
   }
 
-  // ── Certificados por usuária e por curso ─────────────────────────
+  // ── Certificados ─────────────────────────────────────────────────
   const certsByUserCourse = new Set<string>(); // `userId:courseId`
-  const certsByUser = new Map<string, number>(); // userId → total certs
-  const certsByCourse = new Map<string, number>(); // courseId → total certs
+  const certsByUser = new Map<string, number>();
+  const certUserIdsByCourse = new Map<string, string[]>();
   for (const c of certs ?? []) {
     certsByUserCourse.add(`${c.user_id}:${c.course_id}`);
     certsByUser.set(c.user_id, (certsByUser.get(c.user_id) ?? 0) + 1);
-    certsByCourse.set(c.course_id, (certsByCourse.get(c.course_id) ?? 0) + 1);
+    if (!certUserIdsByCourse.has(c.course_id)) certUserIdsByCourse.set(c.course_id, []);
+    certUserIdsByCourse.get(c.course_id)!.push(c.user_id);
   }
 
   // ── Matrículas por curso ─────────────────────────────────────────
@@ -103,31 +107,44 @@ export default async function FunilPage() {
     enrollByCourse.get(e.course_id)!.push({ userId: e.user_id, grantedAt: e.granted_at });
   }
 
-  // ── Funil por curso ──────────────────────────────────────────────
-  type CourseFunnel = {
-    courseId: string;
-    title: string;
-    enrolled: number;
-    started: number;
-    q50: number;
-    q75: number;
-    certified: number;
-    avgActivationDays: number | null;
+  // ── Mapa de profiles ─────────────────────────────────────────────
+  const profileMap = new Map<string, Profile>((profiles ?? []).map((p) => [p.id, p]));
+  const courseMap = new Map((courses ?? []).map((c) => [c.id, c.title]));
+
+  const toBasic = (userId: string): StudentBasic | null => {
+    const p = profileMap.get(userId);
+    if (!p) return null;
+    return { id: userId, name: p.full_name, email: p.email, avatar: p.avatar_url };
   };
 
-  const courseFunnels: CourseFunnel[] = (courses ?? [])
+  const toBasicFromProfile = (p: Profile): StudentBasic => ({
+    id: p.id,
+    name: p.full_name,
+    email: p.email,
+    avatar: p.avatar_url,
+  });
+
+  // ── Funil por curso ──────────────────────────────────────────────
+  const courseFunnels: FunnelRowData[] = (courses ?? [])
     .map((course) => {
-      const enrolled = enrollByCourse.get(course.id) ?? [];
+      const enrolledEntries = enrollByCourse.get(course.id) ?? [];
       const totalLessons = lessonCountByCourse.get(course.id) ?? 0;
-      let started = 0, q50 = 0, q75 = 0;
+
+      const enrolledStudents: StudentBasic[] = [];
+      const startedStudents: StudentBasic[] = [];
+      const q50Students: StudentBasic[] = [];
+      const q75Students: StudentBasic[] = [];
       let totalActivDays = 0, activCount = 0;
 
-      for (const { userId, grantedAt } of enrolled) {
-        const key = `${userId}:${course.id}`;
+      for (const { userId, grantedAt } of enrolledEntries) {
+        const s = toBasic(userId);
+        if (s) enrolledStudents.push(s);
+
         const hasStarted = startedByCourse.get(course.id)?.has(userId) ?? false;
         if (!hasStarted) continue;
-        started++;
+        if (s) startedStudents.push(s);
 
+        const key = `${userId}:${course.id}`;
         const firstProgress = firstProgressByUserCourse.get(key);
         if (firstProgress) {
           const days = (new Date(firstProgress).getTime() - new Date(grantedAt).getTime()) / 86400000;
@@ -137,34 +154,39 @@ export default async function FunilPage() {
         if (totalLessons === 0) continue;
         const completed = completedCountByUserCourse.get(key) ?? 0;
         const pct = completed / totalLessons;
-        if (pct >= 0.5) q50++;
-        if (pct >= 0.75) q75++;
+        if (pct >= 0.5 && s) q50Students.push(s);
+        if (pct >= 0.75 && s) q75Students.push(s);
       }
+
+      const certifiedStudents: StudentBasic[] = (certUserIdsByCourse.get(course.id) ?? [])
+        .map((uid) => toBasic(uid))
+        .filter((s): s is StudentBasic => s !== null);
 
       return {
         courseId: course.id,
         title: course.title,
-        enrolled: enrolled.length,
-        started,
-        q50,
-        q75,
-        certified: certsByCourse.get(course.id) ?? 0,
+        enrolledCount: enrolledStudents.length,
+        startedCount: startedStudents.length,
+        q50Count: q50Students.length,
+        q75Count: q75Students.length,
+        certifiedCount: certifiedStudents.length,
         avgActivationDays: activCount > 0 ? Math.round(totalActivDays / activCount) : null,
+        enrolledStudents,
+        startedStudents,
+        q50Students,
+        q75Students,
+        certifiedStudents,
       };
     })
-    .filter((f) => f.enrolled > 0)
-    .sort((a, b) => b.enrolled - a.enrolled);
+    .filter((f) => f.enrolledCount > 0)
+    .sort((a, b) => b.enrolledCount - a.enrolledCount);
 
-  // ── Segmentos ───────────────────────────────────────────────────
-  const profileMap = new Map<string, Profile>((profiles ?? []).map((p) => [p.id, p]));
-  const courseMap = new Map((courses ?? []).map((c) => [c.id, c.title]));
-
+  // ── Segmentos ────────────────────────────────────────────────────
   const ghosts: SegmentEntry[] = [];
   const stalled: SegmentEntry[] = [];
   const nearCompletion: SegmentEntry[] = [];
   const upsellReady: SegmentEntry[] = [];
 
-  // Usuárias já processadas por segmento (evita duplicatas)
   const ghostUsers = new Set<string>();
   const stalledUsers = new Set<string>();
   const nearUsers = new Set<string>();
@@ -201,7 +223,6 @@ export default async function FunilPage() {
     }
   }
 
-  // Upsell: tem pelo menos 1 certificado
   for (const [userId, count] of certsByUser.entries()) {
     const profile = profileMap.get(userId);
     if (!profile) continue;
@@ -235,7 +256,6 @@ export default async function FunilPage() {
     ? Math.round((totalCerts / totalEnrollments) * 100)
     : 0;
 
-  // Tempo médio global de ativação
   let globalActivDays = 0, globalActivCount = 0;
   for (const [key, firstProgress] of firstProgressByUserCourse.entries()) {
     const [userId, courseId] = key.split(":");
@@ -263,21 +283,21 @@ export default async function FunilPage() {
           label="Taxa de ativação"
           value={`${taxaAtivacao}%`}
           color="#72CF92"
-          tooltip="Percentual de alunas matriculadas que assistiram pelo menos uma aula (têm algum registro de progresso)."
+          tooltip="Percentual de alunas matriculadas que assistiram pelo menos uma aula."
         />
         <StatCard
           icon={Award}
           label="Taxa de conclusão"
           value={`${taxaConclusao}%`}
           color="#FEC649"
-          tooltip="Percentual de matrículas que resultaram em certificado (certificados ÷ matrículas × 100)."
+          tooltip="Percentual de matrículas que resultaram em certificado."
         />
         <StatCard
           icon={Clock}
           label="Dias até 1ª aula"
           value={avgActivDays !== null ? `${avgActivDays}d` : "—"}
           color="#6699F3"
-          tooltip="Média de dias entre a data da matrícula e a primeira aula assistida. Quanto menor, mais rápida a ativação."
+          tooltip="Média de dias entre a data da matrícula e a primeira aula assistida."
         />
       </div>
 
@@ -288,48 +308,9 @@ export default async function FunilPage() {
           Funil de conclusão por curso
         </h2>
         <p className="text-xs text-muted-foreground mb-5">
-          Cada linha mostra quantas alunas avançaram em cada etapa do curso.
+          Clique em qualquer número para ver as alunas daquele grupo. Clique no nome do curso para editar.
         </p>
-        {courseFunnels.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum curso com matrículas ainda.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="pb-2 font-medium text-muted-foreground">Curso</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Matrículas</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Iniciaram</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">50%+</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">75%+</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right">Certificadas</th>
-                  <th className="pb-2 font-medium text-muted-foreground text-right whitespace-nowrap">
-                    Dias até 1ª aula
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {courseFunnels.map((f) => {
-                  const pct = (n: number) =>
-                    f.enrolled > 0 ? Math.round((n / f.enrolled) * 100) : 0;
-                  return (
-                    <tr key={f.courseId}>
-                      <td className="py-3 pr-4 font-medium max-w-[200px] truncate">{f.title}</td>
-                      <td className="py-3 pr-4 text-right tabular-nums">{f.enrolled}</td>
-                      <FunnelCell value={f.started} pct={pct(f.started)} color="#6699F3" />
-                      <FunnelCell value={f.q50} pct={pct(f.q50)} color="#72CF92" />
-                      <FunnelCell value={f.q75} pct={pct(f.q75)} color="#FEC649" />
-                      <FunnelCell value={f.certified} pct={pct(f.certified)} color="#72CF92" highlight />
-                      <td className="py-3 text-right tabular-nums text-muted-foreground text-xs">
-                        {f.avgActivationDays !== null ? `${f.avgActivationDays}d` : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <FunnelTableClient rows={courseFunnels} />
       </div>
 
       {/* Segmentos */}
@@ -339,7 +320,7 @@ export default async function FunilPage() {
           Segmentos acionáveis para pós-venda
         </h2>
         <p className="text-xs text-muted-foreground mb-4">
-          Grupos de alunas prontos para abordagem direcionada.
+          Clique no número de cada segmento para ver todas as alunas. Clique em um nome para ver o perfil.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <SegmentCard
@@ -349,6 +330,7 @@ export default async function FunilPage() {
             count={ghosts.length}
             items={ghosts.slice(0, 5)}
             tooltip="Matriculadas mas nunca assistiram nenhuma aula. Oportunidade de reengajamento com e-mail de boas-vindas ou oferta de suporte."
+            allStudents={ghosts.map(({ profile }) => toBasicFromProfile(profile))}
           />
           <SegmentCard
             icon={TrendingDown}
@@ -357,6 +339,7 @@ export default async function FunilPage() {
             count={stalled.length}
             items={stalled.slice(0, 5)}
             tooltip="Iniciaram o curso mas ficaram inativas por 7+ dias e ainda não concluíram. Candidatas a e-mail de reengajamento."
+            allStudents={stalled.map(({ profile }) => toBasicFromProfile(profile))}
           />
           <SegmentCard
             icon={Target}
@@ -365,6 +348,7 @@ export default async function FunilPage() {
             count={nearCompletion.length}
             items={nearCompletion.slice(0, 5)}
             tooltip="Completaram 75%+ das aulas mas ainda não têm certificado. Um empurrãozinho pode fechar a conclusão."
+            allStudents={nearCompletion.map(({ profile }) => toBasicFromProfile(profile))}
           />
           <SegmentCard
             icon={Star}
@@ -373,6 +357,7 @@ export default async function FunilPage() {
             count={upsellReady.length}
             items={upsellReady.slice(0, 5)}
             tooltip="Já concluíram pelo menos um curso com certificado. Fãs da plataforma — alvo ideal para oferecer novos cursos."
+            allStudents={upsellReady.map(({ profile }) => toBasicFromProfile(profile))}
           />
         </div>
       </div>
@@ -432,23 +417,8 @@ function StatCard({ icon: Icon, label, value, color, tooltip }: {
   );
 }
 
-function FunnelCell({
-  value, pct, color, highlight = false,
-}: {
-  value: number; pct: number; color: string; highlight?: boolean;
-}) {
-  return (
-    <td className="py-3 pr-4 text-right tabular-nums">
-      <span className={highlight ? "font-semibold" : ""} style={highlight ? { color } : undefined}>
-        {value}
-      </span>
-      <span className="text-xs text-muted-foreground ml-1.5">({pct}%)</span>
-    </td>
-  );
-}
-
 function SegmentCard({
-  icon: Icon, label, color, count, items, tooltip,
+  icon: Icon, label, color, count, items, tooltip, allStudents,
 }: {
   icon: React.ElementType;
   label: string;
@@ -456,6 +426,7 @@ function SegmentCard({
   count: number;
   items: SegmentEntry[];
   tooltip: string;
+  allStudents: StudentBasic[];
 }) {
   return (
     <div className="handify-card p-5 flex flex-col gap-3">
@@ -467,7 +438,18 @@ function SegmentCard({
           </div>
           <div>
             <p className="text-sm font-semibold">{label}</p>
-            <p className="text-2xl font-bold leading-tight" style={{ color }}>{count}</p>
+            <StudentListModal
+              title={label}
+              subtitle={`${count} aluna${count !== 1 ? "s" : ""} neste segmento`}
+              students={allStudents}
+            >
+              <span
+                className="text-2xl font-bold leading-tight cursor-pointer hover:opacity-70 transition-opacity block"
+                style={{ color }}
+              >
+                {count}
+              </span>
+            </StudentListModal>
           </div>
         </div>
         <InfoTooltip text={tooltip} />
@@ -476,20 +458,32 @@ function SegmentCard({
       {items.length > 0 && (
         <div className="space-y-1.5 border-t border-border/60 pt-3">
           {items.map(({ profile, courseTitle, extra }) => (
-            <div key={profile.id + courseTitle} className="min-w-0">
-              <p className="text-xs font-medium truncate">{profile.full_name ?? profile.email}</p>
-              {courseTitle && (
-                <p className="text-[10px] text-muted-foreground truncate">{courseTitle}</p>
-              )}
-              {extra && (
-                <p className="text-[10px] font-medium" style={{ color }}>{extra}</p>
-              )}
-            </div>
+            <StudentMiniModal
+              key={profile.id + courseTitle}
+              student={{ id: profile.id, name: profile.full_name, email: profile.email, avatar: profile.avatar_url }}
+              className="block cursor-pointer"
+            >
+              <div className="min-w-0 hover:bg-muted/40 rounded-lg px-1 py-0.5 -mx-1 transition-colors">
+                <p className="text-xs font-medium truncate">{profile.full_name ?? profile.email}</p>
+                {courseTitle && (
+                  <p className="text-[10px] text-muted-foreground truncate">{courseTitle}</p>
+                )}
+                {extra && (
+                  <p className="text-[10px] font-medium" style={{ color }}>{extra}</p>
+                )}
+              </div>
+            </StudentMiniModal>
           ))}
           {count > items.length && (
-            <p className="text-[10px] text-muted-foreground pt-1">
-              +{count - items.length} outras
-            </p>
+            <StudentListModal
+              title={label}
+              subtitle={`${count} aluna${count !== 1 ? "s" : ""} neste segmento`}
+              students={allStudents}
+            >
+              <p className="text-[10px] text-muted-foreground pt-1 cursor-pointer hover:text-[#6699F3] transition-colors">
+                +{count - items.length} outras — ver todas
+              </p>
+            </StudentListModal>
           )}
         </div>
       )}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Trophy, MessageSquare, MessageCircle, Store, Users, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StudentMiniModal } from "./StudentMiniModal";
 
 export type EngajamentoEntry = {
   userId: string;
@@ -186,12 +186,19 @@ export default function EngajamentoPage({ ranking, totals, periodo }: Props) {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <Link
-                        href={`/admin/alunos/${entry.userId}?tab=atividade`}
-                        className="text-sm font-semibold hover:text-[#6699F3] transition-colors truncate"
+                      <StudentMiniModal
+                        student={{
+                          id: entry.userId,
+                          name: entry.profile.full_name,
+                          email: entry.profile.email,
+                          avatar: entry.profile.avatar_url,
+                        }}
+                        className="inline"
                       >
-                        {displayName}
-                      </Link>
+                        <span className="text-sm font-semibold hover:text-[#6699F3] transition-colors truncate cursor-pointer">
+                          {displayName}
+                        </span>
+                      </StudentMiniModal>
                       <span className="text-sm font-bold text-[#6699F3] shrink-0">
                         {entry.score} pts
                       </span>

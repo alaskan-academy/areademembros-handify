@@ -5,6 +5,7 @@ import { Trophy, BookOpen, Award, Activity, UserCheck, Clock } from "lucide-reac
 import { InfoTooltip } from "../metric-tooltip";
 import Image from "next/image";
 import { FinancialRankings, type StudentRow, type CourseEnroll } from "./FinancialRankings";
+import { StudentMiniModal } from "@/components/admin/metrics/StudentMiniModal";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -259,16 +260,22 @@ export default async function AlunaRankingPage() {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {newest.map((p) => (
-            <div key={p.id} className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/40">
-              <Avatar name={p.full_name ?? p.email} url={p.avatar_url} size={32} />
-              <div className="min-w-0">
-                <p className="text-xs font-medium truncate">{p.full_name ?? "—"}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{p.email}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {new Date(p.created_at).toLocaleDateString("pt-BR")}
-                </p>
+            <StudentMiniModal
+              key={p.id}
+              student={{ id: p.id, name: p.full_name, email: p.email, avatar: p.avatar_url, createdAt: p.created_at }}
+              className="block"
+            >
+              <div className="flex items-center gap-2.5 p-3 rounded-lg bg-muted/40 cursor-pointer hover:bg-muted/60 transition-colors">
+                <Avatar name={p.full_name ?? p.email} url={p.avatar_url} size={32} />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium truncate">{p.full_name ?? "—"}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{p.email}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
               </div>
-            </div>
+            </StudentMiniModal>
           ))}
         </div>
       </div>
@@ -322,24 +329,26 @@ function RankingCard({
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhum dado ainda.</p>
       ) : (
-        <div className="space-y-2.5">
-          {items.map(({ id, name, email, avatar, value, badge }, i) => (
-            <div key={id} className="flex items-center gap-3">
-              <span className="text-base w-6 shrink-0 text-center">
-                {medals[i] ?? <span className="text-xs text-muted-foreground font-bold">{i + 1}</span>}
-              </span>
-              <Avatar name={name} url={avatar} size={32} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{name}</p>
-                <p className="text-xs text-muted-foreground truncate">{email}</p>
+        <div className="space-y-1.5">
+          {items.map(({ id, name, email, avatar, value }, i) => (
+            <StudentMiniModal key={id} student={{ id, name, email, avatar }} className="block">
+              <div className="flex items-center gap-3 cursor-pointer hover:bg-muted/30 rounded-xl px-2 -mx-2 py-1 transition-colors">
+                <span className="text-base w-6 shrink-0 text-center">
+                  {medals[i] ?? <span className="text-xs text-muted-foreground font-bold">{i + 1}</span>}
+                </span>
+                <Avatar name={name} url={avatar} size={32} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{email}</p>
+                </div>
+                <span
+                  className="text-xs font-semibold px-2 py-1 rounded-full shrink-0"
+                  style={{ background: color + "20", color }}
+                >
+                  {value}
+                </span>
               </div>
-              <span
-                className="text-xs font-semibold px-2 py-1 rounded-full shrink-0"
-                style={{ background: color + "20", color }}
-              >
-                {value}
-              </span>
-            </div>
+            </StudentMiniModal>
           ))}
         </div>
       )}
