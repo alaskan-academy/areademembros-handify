@@ -7,7 +7,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
-import { extractPandaVideoId } from '@/lib/video/panda-api'
 import type { InspiracaoPost, InspiracaoType } from '@/lib/inspiracoes/types'
 import { LikeButton } from './LikeButton'
 import { BookmarkButton } from './BookmarkButton'
@@ -25,6 +24,27 @@ const TYPE_CONFIG: Record<InspiracaoType, { label: string; icon: React.ElementTy
 function getYouTubeId(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
   return m?.[1] ?? null
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function getPandaEmbedUrl(videoUrl: string): string | null {
+  if (!videoUrl) return null
+  // UUID puro
+  if (UUID_RE.test(videoUrl.trim())) {
+    return `https://player.pandavideo.com.br/embed/?v=${videoUrl.trim()}`
+  }
+  try {
+    const url = new URL(videoUrl)
+    if (!url.hostname.includes('pandavideo')) return null
+    // Já é URL de embed com ?v=
+    const v = url.searchParams.get('v')
+    if (v) return `https://player.pandavideo.com.br/embed/?v=${v}`
+    // ID no path (ex: /videos/UUID)
+    const seg = url.pathname.split('/').find(s => UUID_RE.test(s))
+    if (seg) return `https://player.pandavideo.com.br/embed/?v=${seg}`
+  } catch {}
+  return null
 }
 
 function Carrossel({ images }: { images: { url: string; alt?: string }[] }) {
@@ -84,9 +104,8 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(false)
   const { label, icon: Icon, badge } = TYPE_CONFIG[post.type]
   const ytId = post.type === 'video' && post.video_url ? getYouTubeId(post.video_url) : null
-  const isPanda = post.type === 'video' && !ytId && !!post.video_url && post.video_url.includes('pandavideo')
-  const pandaEmbedUrl = isPanda
-    ? `https://player.pandavideo.com.br/embed/?v=${encodeURIComponent(extractPandaVideoId(post.video_url!))}`
+  const pandaEmbedUrl = post.type === 'video' && !ytId && post.video_url
+    ? getPandaEmbedUrl(post.video_url)
     : null
 
   return (
