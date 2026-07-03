@@ -53,35 +53,42 @@ export default async function FeedPage() {
   }));
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <div className="flex items-center gap-3 mb-6 sm:mb-8">
-        <div className="w-10 h-10 rounded-xl bg-[#6699F3]/10 flex items-center justify-center shrink-0">
-          <Newspaper className="w-5 h-5 text-[#6699F3]" />
-        </div>
-        <div>
-          <h1 className="font-black text-xl sm:text-2xl text-foreground">Avisos</h1>
-          <p className="text-sm text-muted-foreground">Novidades, avisos e destaques da Handify</p>
+    <div className="min-h-screen bg-[#F5F5F0]">
+      {/* Hero */}
+      <div className="bg-white border-b border-border/60">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 text-center">
+          <p className="text-sm font-medium text-[#6699F3] uppercase tracking-wide mb-3">
+            Novidades
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-black text-[#0F0F0F]">
+            Avisos da <span className="text-[#6699F3]">Handify</span>
+          </h1>
+          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
+            Novidades, lançamentos e destaques direto da equipe Handify.
+          </p>
         </div>
       </div>
 
-      {posts.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Newspaper className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">Nenhuma publicação ainda</p>
-          <p className="text-sm mt-1">Em breve teremos novidades por aqui!</p>
-        </div>
-      ) : (
-        <div className="space-y-5">
-          {posts.map((post) => (
-            <FeedPostCard
-              key={post.id}
-              post={post}
-              userId={user.id}
-              initialLiked={likedIds.has(post.id)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {posts.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <Newspaper className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">Nenhuma publicação ainda</p>
+            <p className="text-sm mt-1">Em breve teremos novidades por aqui!</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {posts.map((post) => (
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                userId={user.id}
+                initialLiked={likedIds.has(post.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

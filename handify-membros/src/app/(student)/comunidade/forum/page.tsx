@@ -59,17 +59,23 @@ export default async function ForumLandingPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <div className="flex items-center gap-3 mb-6 sm:mb-8">
-        <div className="w-10 h-10 rounded-xl bg-[#6699F3]/10 flex items-center justify-center shrink-0">
-          <MessageSquare className="w-5 h-5 text-[#6699F3]" />
-        </div>
-        <div>
-          <h1 className="font-black text-xl sm:text-2xl text-foreground">Fórum da Comunidade</h1>
-          <p className="text-sm text-muted-foreground">Discussões por área</p>
+    <div className="min-h-screen bg-[#F5F5F0]">
+      {/* Hero */}
+      <div className="bg-white border-b border-border/60">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 text-center">
+          <p className="text-sm font-medium text-[#6699F3] uppercase tracking-wide mb-3">
+            Comunidade
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-black text-[#0F0F0F]">
+            Fórum da <span className="text-[#6699F3]">Comunidade</span>
+          </h1>
+          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
+            Tire dúvidas, compartilhe projetos e troque ideias com outras artesãs.
+          </p>
         </div>
       </div>
 
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       {(forums ?? []).length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -109,6 +115,7 @@ export default async function ForumLandingPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

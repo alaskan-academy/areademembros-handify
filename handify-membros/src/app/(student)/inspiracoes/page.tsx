@@ -15,30 +15,37 @@ export default async function InspiracoesPage() {
   const page = await getInspiracoesFeed(user.id)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      <div className="flex items-center gap-3 mb-6 sm:mb-8">
-        <div className="w-10 h-10 rounded-xl bg-[#6699F3]/10 flex items-center justify-center shrink-0">
-          <Sparkles className="w-5 h-5 text-[#6699F3]" />
+    <div className="min-h-screen bg-[#F5F5F0]">
+      {/* Hero */}
+      <div className="bg-white border-b border-border/60">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 text-center">
+          <p className="text-sm font-medium text-[#6699F3] uppercase tracking-wide mb-3">
+            Comunidade
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-black text-[#0F0F0F]">
+            <span className="text-[#6699F3]">Inspirações</span> Handify
+          </h1>
+          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
+            Receitas, fotos, dicas e destaques do universo do artesanato.
+          </p>
+          <Link
+            href="/inspiracoes/salvos"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#6699F3] border border-[#6699F3]/30 rounded-xl hover:bg-[#6699F3]/5 transition-colors"
+          >
+            <Bookmark className="w-4 h-4" />
+            Ver salvos
+          </Link>
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-black text-xl sm:text-2xl text-foreground">Inspirações</h1>
-          <p className="text-sm text-muted-foreground">Receitas, fotos, dicas e destaques</p>
-        </div>
-        <Link
-          href="/inspiracoes/salvos"
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[#6699F3] border border-[#6699F3]/30 rounded-xl hover:bg-[#6699F3]/5 transition-colors"
-        >
-          <Bookmark className="w-3.5 h-3.5" />
-          Salvos
-        </Link>
       </div>
 
-      <InspiracaoFeed
-        userId={user.id}
-        initialPosts={page.posts}
-        initialCursor={page.next_cursor}
-        initialHasMore={page.has_more}
-      />
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <InspiracaoFeed
+          userId={user.id}
+          initialPosts={page.posts}
+          initialCursor={page.next_cursor}
+          initialHasMore={page.has_more}
+        />
+      </div>
     </div>
   )
 }
