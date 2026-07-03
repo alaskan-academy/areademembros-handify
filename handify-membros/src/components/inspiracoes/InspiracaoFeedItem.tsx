@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import {
-  ChevronLeft, ChevronRight, ExternalLink, MessageCircle, User,
+  ChevronLeft, ChevronRight, MessageCircle, User,
   Image as ImageIcon, PlayCircle, ChefHat, Lightbulb, Star, GalleryHorizontal
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
+import { extractPandaVideoId } from '@/lib/video/panda-api'
 import type { InspiracaoPost, InspiracaoType } from '@/lib/inspiracoes/types'
 import { LikeButton } from './LikeButton'
 import { BookmarkButton } from './BookmarkButton'
@@ -83,6 +84,10 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(false)
   const { label, icon: Icon, badge } = TYPE_CONFIG[post.type]
   const ytId = post.type === 'video' && post.video_url ? getYouTubeId(post.video_url) : null
+  const isPanda = post.type === 'video' && !ytId && !!post.video_url && post.video_url.includes('pandavideo')
+  const pandaEmbedUrl = isPanda
+    ? `https://player.pandavideo.com.br/embed/?v=${encodeURIComponent(extractPandaVideoId(post.video_url!))}`
+    : null
 
   return (
     <article className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
@@ -136,7 +141,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
       )}
 
       {post.type === 'video' && ytId && (
-        <div className="aspect-video bg-black">
+        <div className="aspect-video">
           <iframe
             src={`https://www.youtube.com/embed/${ytId}`}
             title={post.title}
@@ -146,17 +151,16 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
           />
         </div>
       )}
-      {post.type === 'video' && !ytId && post.video_url && (
-        <div className="px-4 pb-3">
-          <a
-            href={post.video_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-[#6699F3] hover:underline"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Abrir vídeo
-          </a>
+      {post.type === 'video' && pandaEmbedUrl && (
+        <div className="aspect-video">
+          <iframe
+            src={pandaEmbedUrl}
+            title={post.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+            className="w-full h-full"
+            style={{ border: 'none' }}
+          />
         </div>
       )}
 
