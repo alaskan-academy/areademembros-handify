@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
-  ChevronLeft, ChevronRight, MessageCircle, User,
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageCircle, User,
   Image as ImageIcon, PlayCircle, ChefHat, Lightbulb, Star, GalleryHorizontal
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -30,19 +30,15 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function getPandaEmbedUrl(videoUrl: string): string | null {
   if (!videoUrl) return null
-  // UUID puro
   if (UUID_RE.test(videoUrl.trim())) {
     return `https://player.pandavideo.com.br/embed/?v=${videoUrl.trim()}`
   }
   try {
     const url = new URL(videoUrl)
     if (!url.hostname.includes('pandavideo')) return null
-    // Já é URL de embed — usar diretamente sem reconstruir
     if (url.pathname.includes('/embed/')) return videoUrl
-    // Tem ?v= mas não é embed URL
     const v = url.searchParams.get('v')
     if (v) return `https://player.pandavideo.com.br/embed/?v=${v}`
-    // ID no path (ex: /videos/UUID)
     const seg = url.pathname.split('/').find(s => UUID_RE.test(s))
     if (seg) return `https://player.pandavideo.com.br/embed/?v=${seg}`
   } catch {}
@@ -97,6 +93,9 @@ function Carrossel({ images }: { images: { url: string; alt?: string }[] }) {
   )
 }
 
+// Altura máxima do conteúdo antes de mostrar "Ver mais"
+const MAX_CONTENT_H = 320
+
 interface Props {
   post: InspiracaoPost
   userId: string
@@ -104,6 +103,10 @@ interface Props {
 
 export function InspiracaoFeedItem({ post, userId }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const [needsExpand, setNeedsExpand] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+
   const { label, icon: Icon, badge } = TYPE_CONFIG[post.type]
   const ytId = post.type === 'video' && post.video_url ? getYouTubeId(post.video_url) : null
   const pandaEmbedUrl = post.type === 'video' && !ytId && post.video_url
@@ -112,6 +115,13 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
   const videoAspect = post.type === 'video'
     ? (post.blocks.find(b => b.type === 'video_meta')?.content ?? '16/9')
     : '16/9'
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (el && el.scrollHeight > MAX_CONTENT_H + 24) {
+      setNeedsExpand(true)
+    }
+  }, [])
 
   return (
     <article className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
@@ -149,7 +159,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
         </div>
       </div>
 
-      {/* Mídia */}
+      {/* Mídia — sempre visível, fora do truncamento */}
       {post.type === 'foto' && post.media[0] && (
         <div className="bg-white">
           <img
@@ -188,207 +198,247 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
         </div>
       )}
 
-      {/* Conteúdo */}
-      <div className="px-4 pt-3 space-y-3">
+      {/* Imagem de capa da dica — sempre visível */}
+      {post.type === 'dica' && post.media[0] && (
+        <div className="bg-white">
+          <img
+            src={post.media[0].url}
+            alt={post.media[0].alt ?? post.title}
+            className="w-full max-h-[480px] object-contain"
+          />
+        </div>
+      )}
 
-        {/* RECEITA */}
-        {post.type === 'receita' && post.recipe_data && (
-          <div className="space-y-4">
-            {post.media[0] && (
-              <img
-                src={post.media[0].url}
-                alt={post.title}
-                className="w-full rounded-xl object-cover max-h-64"
-              />
-            )}
+      {/* Conteúdo — truncável com "Ver mais" */}
+      <div
+        ref={contentRef}
+        className="relative overflow-hidden"
+        style={{
+          maxHeight: needsExpand && !expanded ? `${MAX_CONTENT_H}px` : undefined,
+          transition: needsExpand ? 'max-height 0.3s ease' : undefined,
+        }}
+      >
+        <div className="px-4 pt-3 space-y-3">
 
-            {(post.recipe_data.tempo || post.recipe_data.temperatura || post.recipe_data.nivel) && (
-              <div className="flex flex-wrap gap-4 bg-muted/50 rounded-xl p-3">
-                {post.recipe_data.tempo && (
-                  <div className="text-xs">
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Tempo</p>
-                    <p className="font-semibold mt-0.5">{post.recipe_data.tempo}</p>
-                  </div>
-                )}
-                {post.recipe_data.temperatura && (
-                  <div className="text-xs">
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Temperatura</p>
-                    <p className="font-semibold mt-0.5">{post.recipe_data.temperatura}</p>
-                  </div>
-                )}
-                {post.recipe_data.nivel && (
-                  <div className="text-xs">
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Nível</p>
-                    <p className="font-semibold mt-0.5">{post.recipe_data.nivel}</p>
-                  </div>
-                )}
-              </div>
-            )}
+          {/* RECEITA */}
+          {post.type === 'receita' && post.recipe_data && (
+            <div className="space-y-4">
+              {post.media[0] && (
+                <img
+                  src={post.media[0].url}
+                  alt={post.title}
+                  className="w-full rounded-xl object-cover max-h-64"
+                />
+              )}
 
-            {post.recipe_data.paleta_cores && post.recipe_data.paleta_cores.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold mb-2">Paleta de cores</p>
-                <div className="flex gap-2 flex-wrap">
-                  {post.recipe_data.paleta_cores.map((hex, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1">
-                      <div className="w-9 h-9 rounded-lg border border-border/60 shadow-sm" style={{ background: hex }} />
-                      <span className="text-[9px] text-muted-foreground font-mono">{hex}</span>
+              {(post.recipe_data.tempo || post.recipe_data.temperatura || post.recipe_data.nivel) && (
+                <div className="flex flex-wrap gap-4 bg-muted/50 rounded-xl p-3">
+                  {post.recipe_data.tempo && (
+                    <div className="text-xs">
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Tempo</p>
+                      <p className="font-semibold mt-0.5">{post.recipe_data.tempo}</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {post.recipe_data.ingredientes && post.recipe_data.ingredientes.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold mb-2">Ingredientes</p>
-                <ul className="space-y-1">
-                  {post.recipe_data.ingredientes.map((ing, i) => (
-                    <li key={i} className="flex justify-between items-center text-xs text-foreground/80 py-1.5 border-b border-border/30 last:border-0">
-                      <span>{ing.item}</span>
-                      <span className="font-semibold text-foreground ml-4 shrink-0">{ing.quantidade}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {post.recipe_data.passos && post.recipe_data.passos.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold mb-2">Modo de preparo</p>
-                <ol className="space-y-2.5">
-                  {post.recipe_data.passos.map((passo, i) => (
-                    <li key={i} className="flex gap-3 text-xs text-foreground/80 leading-relaxed">
-                      <span className="shrink-0 w-5 h-5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-bold flex items-center justify-center text-[10px]">
-                        {i + 1}
-                      </span>
-                      {passo}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-
-            {post.recipe_data.dicas && (
-              <div className="bg-[#72CF92]/10 rounded-xl p-3 border border-[#72CF92]/20">
-                <p className="text-xs font-semibold text-[#2a9d5a] mb-1">💡 Dicas</p>
-                <p className="text-xs text-foreground/75 leading-relaxed">{post.recipe_data.dicas}</p>
-              </div>
-            )}
-
-            {(post.recipe_data.custo_medio || post.recipe_data.preco_venda) && (
-              <div className="flex gap-6">
-                {post.recipe_data.custo_medio && (
-                  <div className="text-xs">
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Custo médio</p>
-                    <p className="font-bold mt-0.5">{post.recipe_data.custo_medio}</p>
-                  </div>
-                )}
-                {post.recipe_data.preco_venda && (
-                  <div className="text-xs">
-                    <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Preço de venda</p>
-                    <p className="font-bold mt-0.5 text-[#6699F3]">{post.recipe_data.preco_venda}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* DICA */}
-        {post.type === 'dica' && (
-          <div className="space-y-2">
-            {post.body && (
-              <div
-                className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
-              />
-            )}
-            {post.blocks.map((block, i) => {
-              if (block.type === 'text') {
-                return <p key={i} className="text-sm text-foreground/80 leading-relaxed">{block.content}</p>
-              }
-              if (block.type === 'html') {
-                return (
-                  <div
-                    key={i}
-                    className="prose prose-sm max-w-none text-foreground/80"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
-                  />
-                )
-              }
-              return null
-            })}
-          </div>
-        )}
-
-        {/* DESTAQUE */}
-        {post.type === 'destaque' && (
-          <div>
-            {post.featured_student ? (
-              <div className="flex flex-col items-center text-center gap-3 py-2">
-                {post.featured_student.avatar_url ? (
-                  <img
-                    src={post.featured_student.avatar_url}
-                    alt={post.featured_student.full_name ?? ''}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-[#6699F3]/30"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-[#6699F3]/10 flex items-center justify-center">
-                    <User className="w-10 h-10 text-[#6699F3]/40" />
-                  </div>
-                )}
-                <div>
-                  <p className="font-bold text-base">{post.featured_student.full_name ?? 'Aluna'}</p>
-                  {post.featured_student.bio && (
-                    <p className="text-sm text-foreground/70 mt-1 leading-relaxed max-w-sm mx-auto">
-                      {post.featured_student.bio}
-                    </p>
+                  )}
+                  {post.recipe_data.temperatura && (
+                    <div className="text-xs">
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Temperatura</p>
+                      <p className="font-semibold mt-0.5">{post.recipe_data.temperatura}</p>
+                    </div>
+                  )}
+                  {post.recipe_data.nivel && (
+                    <div className="text-xs">
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Nível</p>
+                      <p className="font-semibold mt-0.5">{post.recipe_data.nivel}</p>
+                    </div>
                   )}
                 </div>
-                {post.body && (
-                  <div
-                    className="prose prose-sm max-w-none text-foreground/80 bg-muted rounded-xl p-4 text-left w-full leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
-                  />
-                )}
-              </div>
-            ) : (
-              post.body && (
+              )}
+
+              {post.recipe_data.paleta_cores && post.recipe_data.paleta_cores.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2">Paleta de cores</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {post.recipe_data.paleta_cores.map((hex, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1">
+                        <div className="w-9 h-9 rounded-lg border border-border/60 shadow-sm" style={{ background: hex }} />
+                        <span className="text-[9px] text-muted-foreground font-mono">{hex}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {post.recipe_data.ingredientes && post.recipe_data.ingredientes.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2">Ingredientes</p>
+                  <ul className="space-y-1">
+                    {post.recipe_data.ingredientes.map((ing, i) => (
+                      <li key={i} className="flex justify-between items-center text-xs text-foreground/80 py-1.5 border-b border-border/30 last:border-0">
+                        <span>{ing.item}</span>
+                        <span className="font-semibold text-foreground ml-4 shrink-0">{ing.quantidade}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {post.recipe_data.passos && post.recipe_data.passos.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2">Modo de preparo</p>
+                  <ol className="space-y-2.5">
+                    {post.recipe_data.passos.map((passo, i) => (
+                      <li key={i} className="flex gap-3 text-xs text-foreground/80 leading-relaxed">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-bold flex items-center justify-center text-[10px]">
+                          {i + 1}
+                        </span>
+                        {passo}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {post.recipe_data.dicas && (
+                <div className="bg-[#72CF92]/10 rounded-xl p-3 border border-[#72CF92]/20">
+                  <p className="text-xs font-semibold text-[#2a9d5a] mb-1">💡 Dicas</p>
+                  <p className="text-xs text-foreground/75 leading-relaxed">{post.recipe_data.dicas}</p>
+                </div>
+              )}
+
+              {(post.recipe_data.custo_medio || post.recipe_data.preco_venda) && (
+                <div className="flex gap-6">
+                  {post.recipe_data.custo_medio && (
+                    <div className="text-xs">
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Custo médio</p>
+                      <p className="font-bold mt-0.5">{post.recipe_data.custo_medio}</p>
+                    </div>
+                  )}
+                  {post.recipe_data.preco_venda && (
+                    <div className="text-xs">
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Preço de venda</p>
+                      <p className="font-bold mt-0.5 text-[#6699F3]">{post.recipe_data.preco_venda}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* DICA */}
+          {post.type === 'dica' && (
+            <div className="space-y-2">
+              {post.body && (
                 <div
                   className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
                 />
-              )
-            )}
-          </div>
-        )}
+              )}
+              {post.blocks.map((block, i) => {
+                if (block.type === 'text') {
+                  return <p key={i} className="text-sm text-foreground/80 leading-relaxed">{block.content}</p>
+                }
+                if (block.type === 'html') {
+                  return (
+                    <div
+                      key={i}
+                      className="prose prose-sm max-w-none text-foreground/80"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.content) }}
+                    />
+                  )
+                }
+                return null
+              })}
+            </div>
+          )}
 
-        {/* Body para demais tipos (foto, carrossel, video) */}
-        {!['dica', 'receita', 'destaque'].includes(post.type) && post.body && (
-          <div
-            className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
-          />
-        )}
+          {/* DESTAQUE */}
+          {post.type === 'destaque' && (
+            <div>
+              {post.featured_student ? (
+                <div className="flex flex-col items-center text-center gap-3 py-2">
+                  {post.featured_student.avatar_url ? (
+                    <img
+                      src={post.featured_student.avatar_url}
+                      alt={post.featured_student.full_name ?? ''}
+                      className="w-20 h-20 rounded-full object-cover border-2 border-[#6699F3]/30"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-[#6699F3]/10 flex items-center justify-center">
+                      <User className="w-10 h-10 text-[#6699F3]/40" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-bold text-base">{post.featured_student.full_name ?? 'Aluna'}</p>
+                    {post.featured_student.bio && (
+                      <p className="text-sm text-foreground/70 mt-1 leading-relaxed max-w-sm mx-auto">
+                        {post.featured_student.bio}
+                      </p>
+                    )}
+                  </div>
+                  {post.body && (
+                    <div
+                      className="prose prose-sm max-w-none text-foreground/80 bg-muted rounded-xl p-4 text-left w-full leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+                    />
+                  )}
+                </div>
+              ) : (
+                post.body && (
+                  <div
+                    className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+                  />
+                )
+              )}
+            </div>
+          )}
 
-        {/* Tags */}
-        {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {post.tags.map(tag => (
-              <span
-                key={tag}
-                className="text-xs px-2 py-0.5 rounded-full bg-[#6699F3]/8 text-[#6699F3] border border-[#6699F3]/20 font-medium"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
+          {/* Body para demais tipos (foto, carrossel, video) */}
+          {!['dica', 'receita', 'destaque'].includes(post.type) && post.body && (
+            <div
+              className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.body) }}
+            />
+          )}
+
+        </div>
+
+        {/* Gradiente ao truncar */}
+        {needsExpand && !expanded && (
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none" />
         )}
       </div>
 
+      {/* Tags — fora do truncamento, sempre visíveis */}
+      {post.tags.length > 0 && (
+        <div className="px-4 pt-2 pb-1 flex flex-wrap gap-1.5">
+          {post.tags.map(tag => (
+            <span
+              key={tag}
+              className="text-xs px-2 py-0.5 rounded-full bg-[#6699F3]/8 text-[#6699F3] border border-[#6699F3]/20 font-medium"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Botão Ver mais / Ver menos */}
+      {needsExpand && (
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="w-full py-2 text-sm text-[#6699F3] font-semibold flex items-center justify-center gap-1 hover:bg-[#6699F3]/5 transition-colors"
+        >
+          {expanded ? (
+            <>Ver menos <ChevronUp className="w-4 h-4" /></>
+          ) : (
+            <>Ver mais <ChevronDown className="w-4 h-4" /></>
+          )}
+        </button>
+      )}
+
       {/* Ações */}
-      <div className="px-4 py-3 flex items-center gap-3 mt-1">
+      <div className="px-4 py-3 flex items-center gap-3 border-t border-border/40">
         <LikeButton
           postId={post.id}
           userId={userId}
