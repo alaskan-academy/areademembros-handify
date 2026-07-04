@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Store, Plus } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { Store, Plus, ChevronDown, Check } from 'lucide-react'
 import { FornecedorCard } from './FornecedorCard'
 import { FornecedorFiltros as FiltrosBar } from './FornecedorFiltros'
 import { SugestaoModal } from './SugestaoModal'
@@ -22,6 +22,19 @@ export function FornecedoresPage({ suppliers, userId, categories = [], initialPr
   })
   const [sugestaoOpen, setSugestaoOpen] = useState(false)
   const [reviewSupplier, setReviewSupplier] = useState<SupplierWithDetails | null>(null)
+  const [nichoOpen, setNichoOpen] = useState(false)
+  const nichoRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!nichoOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (nichoRef.current && !nichoRef.current.contains(e.target as Node)) {
+        setNichoOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [nichoOpen])
 
   const filtered = useMemo(() => {
     let result = suppliers
@@ -65,32 +78,37 @@ export function FornecedoresPage({ suppliers, userId, categories = [], initialPr
         </button>
       </div>
 
-      {/* Toggle de categoria (nicho) */}
+      {/* Dropdown de nicho */}
       {categories.length > 0 && (
-        <div className="flex flex-wrap gap-1 bg-white rounded-2xl p-1.5 border border-border/60">
+        <div className="relative" ref={nichoRef}>
           <button
-            onClick={() => handleTabChange('')}
-            className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold px-3 py-2.5 rounded-xl transition-all ${
-              produto === ''
-                ? 'bg-[#6699F3] text-white shadow-sm'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
+            onClick={() => setNichoOpen(o => !o)}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white border border-border/60 rounded-xl text-sm font-medium text-foreground hover:border-[#6699F3]/40 transition-colors"
           >
-            Todos
+            <span className={produto ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}>
+              {produto ? (categories.find(c => c.slug === produto)?.name ?? 'Todos os nichos') : 'Todos os nichos'}
+            </span>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${nichoOpen ? 'rotate-180' : ''}`} />
           </button>
-          {categories.map(cat => (
-            <button
-              key={cat.slug}
-              onClick={() => handleTabChange(cat.slug)}
-              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold px-3 py-2.5 rounded-xl transition-all ${
-                produto === cat.slug
-                  ? 'bg-[#6699F3] text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+
+          {nichoOpen && (
+            <div className="absolute z-20 mt-1 w-full bg-white border border-border/60 rounded-xl shadow-md overflow-hidden">
+              {[{ slug: '', name: 'Todos os nichos' }, ...categories].map(cat => (
+                <button
+                  key={cat.slug}
+                  onClick={() => { handleTabChange(cat.slug); setNichoOpen(false) }}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
+                    produto === cat.slug
+                      ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold'
+                      : 'text-foreground hover:bg-gray-50'
+                  }`}
+                >
+                  {cat.name}
+                  {produto === cat.slug && <Check className="w-4 h-4 shrink-0" />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
