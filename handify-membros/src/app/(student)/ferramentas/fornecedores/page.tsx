@@ -24,7 +24,15 @@ export default async function FornecedoresRoute({
 
   const { produto } = await searchParams
   const validSlugs = categories.map(c => c.slug)
-  const initialProduto = produto && validSlugs.includes(produto) ? produto : ''
+
+  // Aliases de slugs antigos → slug atual da categoria correspondente
+  const SLUG_ALIASES: Record<string, string> = {
+    velas: categories.find(c => c.name.toLowerCase().includes('velas'))?.slug ?? '',
+    sabonetes: categories.find(c => c.name.toLowerCase().includes('saboaria'))?.slug ?? '',
+  }
+
+  const resolved = produto ? (SLUG_ALIASES[produto] ?? produto) : ''
+  const initialProduto = resolved && validSlugs.includes(resolved) ? resolved : ''
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
