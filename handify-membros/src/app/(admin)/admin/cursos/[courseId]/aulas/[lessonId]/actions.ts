@@ -144,11 +144,6 @@ export async function deleteMaterial(materialId: string): Promise<void> {
 
   if (!material) throw new Error("Material não encontrado");
 
-  const serviceClient = createServiceClient();
-  await serviceClient.storage
-    .from("lesson-materials")
-    .remove([material.file_path]);
-
   const { error } = await supabase
     .from("lesson_materials")
     .delete()
@@ -156,5 +151,71 @@ export async function deleteMaterial(materialId: string): Promise<void> {
 
   if (error) throw new Error("Erro ao deletar material: " + error.message);
 
+  // Só remove do Storage se nenhuma outra aula referencia o mesmo arquivo
+  const { count } = await supabase
+    .from("lesson_materials")
+    .select("id", { count: "exact", head: true })
+    .eq("file_path", material.file_path);
+
+  if ((count ?? 0) === 0) {
+    const serviceClient = createServiceClient();
+    await serviceClient.storage
+      .from("lesson-materials")
+      .remove([material.file_path]);
+  }
+
   revalidatePath(`/aulas/${material.lesson_id}`);
+}
+
+export async function listAllMaterials(currentLessonId: string): Promise<
+  Array<{
+    id: string;
+    name: string;
+    file_path: string;
+    lesson_id: string;
+    lesson_title: string;
+    course_title: string;
+  }>
+> {
+  await assertAdmin();
+  const service = createServiceClient();
+
+  const { data } = await service
+    .from("lesson_materials")
+    .select("id, name, file_path, lesson_id, lessons!lesson_id(title, modules!module_id(courses!course_id(title)))")
+    .neq("lesson_id", currentLessonId)
+    .order("name");
+
+  return (data ?? []).map((m: any) => ({
+    id: m.id,
+    name: m.name,
+    file_path: m.file_path,
+    lesson_id: m.lesson_id,
+    lesson_title: m.lessons?.title ?? "—",
+    course_title: m.lessons?.modules?.courses?.title ?? "—",
+  }));
+}
+
+export async function linkMaterial(data: {
+  lessonId: string;
+  name: string;
+  filePath: string;
+}): Promise<void> {
+  await assertAdmin();
+
+  z.object({
+    lessonId: z.string().uuid(),
+    name: z.string().min(1).max(200),
+    filePath: z.string().min(1),
+  }).parse({ lessonId: data.lessonId, name: data.name, filePath: data.filePath });
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("lesson_materials").insert({
+    lesson_id: data.lessonId,
+    name: data.name,
+    file_path: data.filePath,
+  });
+
+  if (error) throw new Error("Erro ao vincular material: " + error.message);
+  revalidatePath(`/aulas/${data.lessonId}`);
 }

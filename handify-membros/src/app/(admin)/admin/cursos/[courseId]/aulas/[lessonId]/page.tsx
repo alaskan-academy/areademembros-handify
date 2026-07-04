@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import AdminBlocksEditor from "./blocks-editor";
 import AdminMaterialsUploader from "./materials-uploader";
+import { listAllMaterials } from "./actions";
 
 export default async function AdminLessonPage({
   params,
@@ -25,7 +26,7 @@ export default async function AdminLessonPage({
     .single();
   if (profile?.role !== "admin") redirect("/dashboard");
 
-  const [{ data: lesson }, { data: course }, { data: blocksData }, { data: materialsData }] =
+  const [{ data: lesson }, { data: course }, { data: blocksData }, { data: materialsData }, allMaterialsData] =
     await Promise.all([
       supabase
         .from("lessons")
@@ -47,6 +48,7 @@ export default async function AdminLessonPage({
         .select("id, name, file_path")
         .eq("lesson_id", lessonId)
         .order("id"),
+      listAllMaterials(lessonId),
     ]);
 
   if (!lesson || !course) notFound();
@@ -106,6 +108,7 @@ export default async function AdminLessonPage({
               file_path: string;
             }> | null) ?? []
           }
+          allMaterials={allMaterialsData}
         />
       </div>
     </div>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { Upload, Trash2, Copy, Check } from "lucide-react";
-import { uploadMaterial, deleteMaterial } from "./actions";
+import { Upload, Trash2, Copy, Check, Link2, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { uploadMaterial, deleteMaterial, linkMaterial } from "./actions";
 
 interface Material {
   id: string;
@@ -10,17 +10,31 @@ interface Material {
   file_path: string;
 }
 
+interface AllMaterial {
+  id: string;
+  name: string;
+  file_path: string;
+  lesson_id: string;
+  lesson_title: string;
+  course_title: string;
+}
+
 export default function AdminMaterialsUploader({
   lessonId,
   initialMaterials,
+  allMaterials = [],
 }: {
   lessonId: string;
   initialMaterials: Material[];
+  allMaterials?: AllMaterial[];
 }) {
   const [materials, setMaterials] = useState<Material[]>(initialMaterials);
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
@@ -62,6 +76,28 @@ export default function AdminMaterialsUploader({
     });
   }
 
+  function handleLink(m: AllMaterial) {
+    startTransition(async () => {
+      try {
+        await linkMaterial({ lessonId, name: m.name, filePath: m.file_path });
+        setLinkedIds((prev) => new Set(prev).add(m.id));
+        setError(null);
+        window.location.reload();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro ao vincular");
+      }
+    });
+  }
+
+  const filteredAll = allMaterials.filter((m) => {
+    const q = search.toLowerCase();
+    return (
+      m.name.toLowerCase().includes(q) ||
+      m.lesson_title.toLowerCase().includes(q) ||
+      m.course_title.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="space-y-4">
       <h2 className="font-semibold">Materiais da Aula</h2>
@@ -102,7 +138,71 @@ export default function AdminMaterialsUploader({
         </button>
       </form>
 
-      {/* Lista de materiais existentes */}
+      {/* Vincular material de outra aula */}
+      {allMaterials.length > 0 && (
+        <div className="handify-card overflow-hidden">
+          <button
+            onClick={() => setLinkOpen((o) => !o)}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <Link2 className="w-3.5 h-3.5" />
+              Vincular material de outra aula
+            </span>
+            {linkOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+
+          {linkOpen && (
+            <div className="border-t border-border px-4 pb-4 space-y-3 pt-3">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nome, aula ou curso..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full text-sm pl-8 pr-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+                />
+              </div>
+
+              {filteredAll.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Nenhum material encontrado.
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                  {filteredAll.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-muted/50"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">{m.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">
+                          {m.course_title} · {m.lesson_title}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleLink(m)}
+                        disabled={isPending || linkedIds.has(m.id)}
+                        className="shrink-0 flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-[#6699F3]/10 text-[#6699F3] hover:bg-[#6699F3]/20 transition-colors disabled:opacity-50"
+                      >
+                        {linkedIds.has(m.id) ? (
+                          <><Check className="w-3 h-3" /> Vinculado</>
+                        ) : (
+                          <><Link2 className="w-3 h-3" /> Vincular</>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Lista de materiais desta aula */}
       {materials.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">
           Nenhum material enviado ainda.
