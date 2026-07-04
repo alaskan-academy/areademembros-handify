@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { redirect, notFound } from "next/navigation";
 import ForumPage from "./ForumPage";
 
@@ -44,20 +45,25 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
     if (!hasAccess) notFound();
   }
 
-  // Buscar posts do fórum com contagens
-  const [postsResult, allLikesResult, userLikesResult] = await Promise.all([
-    supabase
-      .from("forum_posts")
-      .select(`
-        id, title, body, image_url, attachment_url, attachment_name,
-        pinned, approved, created_at, user_id,
-        author:profiles!user_id (full_name, avatar_url),
-        forum_comments(count)
-      `)
-      .eq("forum_id", forum.id)
-      .order("pinned", { ascending: false })
-      .order("created_at", { ascending: false }),
+  const service = createServiceClient();
 
+  // 1. Buscar posts do fórum
+  const postsResult = await supabase
+    .from("forum_posts")
+    .select(`
+      id, title, body, image_url, attachment_url, attachment_name,
+      pinned, approved, created_at, user_id,
+      author:profiles!user_id (full_name, avatar_url)
+    `)
+    .eq("forum_id", forum.id)
+    .order("pinned", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  const postIds = (postsResult.data ?? []).map((p) => p.id);
+
+  // 2. Buscar likes e comentários em paralelo usando os IDs dos posts
+  // forum_comments(count) via RLS é instável — service client + count em JS
+  const [allLikesResult, userLikesResult, commentsResult] = await Promise.all([
     supabase
       .from("post_likes")
       .select("target_id")
@@ -68,6 +74,10 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
       .select("target_id")
       .eq("target_type", "forum_post")
       .eq("user_id", user.id),
+
+    postIds.length > 0
+      ? service.from("forum_comments").select("post_id").in("post_id", postIds)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const likeCountMap = new Map<string, number>();
@@ -76,12 +86,16 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
   });
   const likedIds = new Set((userLikesResult.data ?? []).map((l) => l.target_id));
 
+  const commentCountMap = new Map<string, number>();
+  ((commentsResult as { data: { post_id: string }[] | null }).data ?? []).forEach((c) => {
+    commentCountMap.set(c.post_id, (commentCountMap.get(c.post_id) ?? 0) + 1);
+  });
+
   type PostRaw = {
     id: string; title: string; body: string; image_url: string | null;
     attachment_url: string | null; attachment_name: string | null;
     pinned: boolean; approved: boolean; created_at: string; user_id: string;
     author: { full_name: string; avatar_url: string | null } | null;
-    forum_comments: [{ count: number }];
   };
 
   const posts = (postsResult.data as unknown as PostRaw[] ?? []).map((p) => ({
@@ -97,7 +111,7 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
     user_id: p.user_id,
     author: p.author,
     like_count: likeCountMap.get(p.id) ?? 0,
-    comment_count: (p.forum_comments as unknown as [{ count: number }])[0]?.count ?? 0,
+    comment_count: commentCountMap.get(p.id) ?? 0,
   }));
 
   return (

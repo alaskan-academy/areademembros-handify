@@ -186,26 +186,30 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
       )}
 
       {post.type === 'video' && ytId && (
-        <div style={{ aspectRatio: videoAspect, maxHeight: '80vh' }}>
-          <iframe
-            src={`https://www.youtube.com/embed/${ytId}`}
-            title={post.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="w-full h-full"
-          />
+        <div className="flex justify-center bg-black/5">
+          <div style={{ aspectRatio: videoAspect, maxHeight: '80vh', maxWidth: '100%' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${ytId}`}
+              title={post.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
         </div>
       )}
       {post.type === 'video' && pandaEmbedUrl && (
-        <div style={{ aspectRatio: videoAspect, maxHeight: '80vh' }}>
-          <iframe
-            src={pandaEmbedUrl}
-            title={post.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-            className="w-full h-full"
-            style={{ border: 'none' }}
-          />
+        <div className="flex justify-center bg-black/5">
+          <div style={{ aspectRatio: videoAspect, maxHeight: '80vh', maxWidth: '100%' }}>
+            <iframe
+              src={pandaEmbedUrl}
+              title={post.title}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              className="w-full h-full"
+              style={{ border: 'none' }}
+            />
+          </div>
         </div>
       )}
 

@@ -13,7 +13,11 @@ const ALLOWED_TAGS = [
   "hr",
   "code", "pre",
   "span", "div",
-  "mark",  // Tiptap Highlight extension
+  "mark",       // Tiptap Highlight extension
+  "section",    // wrapper semântico em HTML de dicas
+  "details",    // acordeão nativo HTML
+  "summary",    // cabeçalho do <details>
+  "style",      // CSS inline de blocos HTML admin — admin é confiável
 ];
 
 const ALLOWED_ATTR = [
