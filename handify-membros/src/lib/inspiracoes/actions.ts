@@ -48,9 +48,9 @@ export async function getInspiracoesFeed(
     query = query.contains('tags', [filtros.nicho])
   }
 
-  // Filtro por curso relacionado
+  // Filtro por curso relacionado (course_ids[] tem prioridade; fallback para course_id legado)
   if (filtros.curso_id) {
-    query = query.eq('course_id', filtros.curso_id)
+    query = query.contains('course_ids', [filtros.curso_id])
   }
 
   // Busca por palavra-chave (pg_trgm no banco, filtra localmente para flexibilidade)
@@ -320,6 +320,7 @@ export async function adminUpsertPost(
     media: fields.media ?? [],
     blocks: fields.blocks ?? [],
     tags: fields.tags ?? [],
+    course_ids: fields.course_ids ?? [],
   }
 
   const { data, error } = id

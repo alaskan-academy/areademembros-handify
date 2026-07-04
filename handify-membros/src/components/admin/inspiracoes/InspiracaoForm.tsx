@@ -62,7 +62,7 @@ export function InspiracaoForm({ post, adminId, courses, categories = [] }: Prop
   const [title, setTitle]         = useState(post?.title ?? '')
   const [body, setBody]           = useState(post?.body ?? '')
   const [tags, setTags]           = useState<Set<string>>(new Set(post?.tags ?? []))
-  const [courseId, setCourseId]   = useState(post?.course_id ?? '')
+  const [courseIds, setCourseIds] = useState<Set<string>>(new Set(post?.course_ids ?? []))
   const [published, setPublished] = useState(post?.published ?? false)
   const [pinned, setPinned]       = useState(post?.pinned ?? false)
   const [archived, setArchived]   = useState(post?.archived ?? false)
@@ -146,6 +146,14 @@ export function InspiracaoForm({ post, adminId, courses, categories = [] }: Prop
     })
   }
 
+  function toggleCourse(id: string) {
+    setCourseIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
   // ── Submit ──────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -202,7 +210,7 @@ export function InspiracaoForm({ post, adminId, courses, categories = [] }: Prop
         blocks,
         recipe_data,
         tags: [...tags],
-        course_id: courseId || undefined,
+        course_ids: [...courseIds],
         featured_student_id: type === 'destaque' ? featuredStudentId.trim() || undefined : undefined,
         published,
         pinned,
@@ -619,16 +627,31 @@ export function InspiracaoForm({ post, adminId, courses, categories = [] }: Prop
         </div>
       )}
 
-      {/* Curso relacionado */}
+      {/* Cursos relacionados */}
       {courses.length > 0 && (
-        <div className="bg-white rounded-xl border border-border/60 p-5">
-          <h2 className="text-sm font-semibold mb-3">Curso relacionado (opcional)</h2>
-          <select value={courseId} onChange={e => setCourseId(e.target.value)} className={INPUT_CLS}>
-            <option value="">Nenhum</option>
+        <div className="bg-white rounded-xl border border-border/60 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Cursos relacionados (opcional)</h2>
+            {courseIds.size > 0 && (
+              <span className="text-xs text-[#6699F3] font-medium">{courseIds.size} selecionado{courseIds.size > 1 ? 's' : ''}</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
             {courses.map(c => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => toggleCourse(c.id)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                  courseIds.has(c.id)
+                    ? 'bg-[#FEC649] text-[#6b4f00] border-[#FEC649]'
+                    : 'bg-white text-muted-foreground border-border/60 hover:border-[#FEC649]/60'
+                }`}
+              >
+                {c.title}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       )}
 

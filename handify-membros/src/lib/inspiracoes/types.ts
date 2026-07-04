@@ -48,6 +48,7 @@ export interface InspiracaoPostRow {
   recipe_data: ReceitaData | null
   tags: string[]
   course_id: string | null
+  course_ids: string[]
   featured_student_id: string | null
   published: boolean
   archived: boolean
@@ -125,6 +126,7 @@ export interface UpsertInspiracaoPayload {
   recipe_data?: ReceitaData
   tags?: string[]
   course_id?: string | null
+  course_ids?: string[]
   featured_student_id?: string | null
   published?: boolean
   archived?: boolean
