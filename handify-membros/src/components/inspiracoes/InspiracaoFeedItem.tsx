@@ -339,30 +339,33 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
             </div>
           )}
 
-          {/* DICA */}
+          {/* DICA — bloco html tem prioridade; body só aparece se não houver bloco */}
           {post.type === 'dica' && (
             <div className="space-y-2">
-              {post.body && (
-                <div
-                  className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.body)) }}
-                />
+              {post.blocks.some(b => b.type === 'html' || b.type === 'text') ? (
+                post.blocks.map((block, i) => {
+                  if (block.type === 'text') {
+                    return <p key={i} className="text-sm text-foreground/80 leading-relaxed">{block.content}</p>
+                  }
+                  if (block.type === 'html') {
+                    return (
+                      <div
+                        key={i}
+                        className="prose prose-sm max-w-none text-foreground/80"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(block.content)) }}
+                      />
+                    )
+                  }
+                  return null
+                })
+              ) : (
+                post.body && (
+                  <div
+                    className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.body)) }}
+                  />
+                )
               )}
-              {post.blocks.map((block, i) => {
-                if (block.type === 'text') {
-                  return <p key={i} className="text-sm text-foreground/80 leading-relaxed">{block.content}</p>
-                }
-                if (block.type === 'html') {
-                  return (
-                    <div
-                      key={i}
-                      className="prose prose-sm max-w-none text-foreground/80"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(block.content)) }}
-                    />
-                  )
-                }
-                return null
-              })}
             </div>
           )}
 
