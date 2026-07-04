@@ -17,27 +17,16 @@ const TIPOS: { value: InspiracaoType | ''; label: string }[] = [
   { value: 'destaque',  label: 'Destaques' },
 ]
 
-const NICHOS: { value: string; label: string }[] = [
-  { value: '',           label: 'Todos' },
-  { value: 'velas',      label: 'Velas' },
-  { value: 'sabonetes',  label: 'Sabonetes' },
-  { value: 'costura',    label: 'Costura' },
-  { value: 'croche',     label: 'Crochê' },
-  { value: 'tricot',     label: 'Tricot' },
-  { value: 'macrame',    label: 'Macramê' },
-  { value: 'decoupage',  label: 'Decoupage' },
-  { value: 'pintura',    label: 'Pintura' },
-]
-
 interface Props {
   userId: string
   initialPosts: InspiracaoPost[]
   initialCursor: InspiracaoCursor | null
   initialHasMore: boolean
   courses?: { id: string; title: string }[]
+  categories?: { id: string; name: string; slug: string }[]
 }
 
-export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHasMore, courses = [] }: Props) {
+export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHasMore, courses = [], categories = [] }: Props) {
   const [tipo, setTipo] = useState<InspiracaoType | ''>('')
   const [nicho, setNicho] = useState('')
   const [courseId, setCourseId] = useState('')
@@ -158,26 +147,39 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
               </div>
             </div>
 
-            {/* Nicho */}
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Artesanato</p>
-              <div className="flex flex-wrap gap-1.5">
-                {NICHOS.map(n => (
+            {/* Categoria */}
+            {categories.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Artesanato</p>
+                <div className="flex flex-wrap gap-1.5">
                   <button
-                    key={n.value}
-                    onClick={() => setNicho(n.value)}
+                    onClick={() => setNicho('')}
                     className={cn(
                       'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                      nicho === n.value
+                      nicho === ''
                         ? 'bg-[#72CF92] text-white shadow-sm'
                         : 'bg-muted/60 text-foreground/70 hover:bg-[#72CF92]/15 hover:text-[#2a9d5a]'
                     )}
                   >
-                    {n.label}
+                    Todos
                   </button>
-                ))}
+                  {categories.map(c => (
+                    <button
+                      key={c.slug}
+                      onClick={() => setNicho(c.slug)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                        nicho === c.slug
+                          ? 'bg-[#72CF92] text-white shadow-sm'
+                          : 'bg-muted/60 text-foreground/70 hover:bg-[#72CF92]/15 hover:text-[#2a9d5a]'
+                      )}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Curso */}
             {courses.length > 0 && (

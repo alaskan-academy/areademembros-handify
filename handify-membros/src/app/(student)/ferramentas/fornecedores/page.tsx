@@ -1,12 +1,10 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getSuppliers } from '@/lib/fornecedores/actions'
 import { FornecedoresPage } from '@/components/ferramentas/fornecedores/FornecedoresPage'
-import type { ProductTag } from '@/lib/fornecedores/types'
 
 export const metadata = { title: 'Fornecedores | Handify' }
-
-const VALID_PRODUCTS: ProductTag[] = ['velas', 'sabonetes']
 
 export default async function FornecedoresRoute({
   searchParams,
@@ -17,16 +15,25 @@ export default async function FornecedoresRoute({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { produto } = await searchParams
-  const initialProduto = VALID_PRODUCTS.includes(produto as ProductTag)
-    ? (produto as ProductTag)
-    : ''
+  const service = createServiceClient()
+  const [suppliers, { data: categoriesRaw }] = await Promise.all([
+    getSuppliers(user.id),
+    service.from('categories').select('id, name, slug').order('name'),
+  ])
+  const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
 
-  const suppliers = await getSuppliers(user.id)
+  const { produto } = await searchParams
+  const validSlugs = categories.map(c => c.slug)
+  const initialProduto = produto && validSlugs.includes(produto) ? produto : ''
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
-      <FornecedoresPage suppliers={suppliers} userId={user.id} initialProduto={initialProduto} />
+      <FornecedoresPage
+        suppliers={suppliers}
+        userId={user.id}
+        categories={categories}
+        initialProduto={initialProduto}
+      />
     </div>
   )
 }

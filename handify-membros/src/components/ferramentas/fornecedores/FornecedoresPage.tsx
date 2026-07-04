@@ -6,22 +6,17 @@ import { FornecedorCard } from './FornecedorCard'
 import { FornecedorFiltros as FiltrosBar } from './FornecedorFiltros'
 import { SugestaoModal } from './SugestaoModal'
 import { ReviewsModal } from './ReviewsModal'
-import type { SupplierWithDetails, FornecedorFiltros, ProductTag } from '@/lib/fornecedores/types'
-
-const PRODUCT_TABS: { key: ProductTag | ''; label: string; icon: string }[] = [
-  { key: '',          label: 'Todos',     icon: '✨' },
-  { key: 'velas',     label: 'Velas',     icon: '🕯️' },
-  { key: 'sabonetes', label: 'Sabonetes', icon: '🧼' },
-]
+import type { SupplierWithDetails, FornecedorFiltros } from '@/lib/fornecedores/types'
 
 interface Props {
   suppliers: SupplierWithDetails[]
   userId: string
-  initialProduto?: ProductTag | ''
+  categories?: { id: string; name: string; slug: string }[]
+  initialProduto?: string
 }
 
-export function FornecedoresPage({ suppliers, userId, initialProduto = '' }: Props) {
-  const [produto, setProduto] = useState<ProductTag | ''>(initialProduto)
+export function FornecedoresPage({ suppliers, userId, categories = [], initialProduto = '' }: Props) {
+  const [produto, setProduto] = useState<string>(initialProduto)
   const [filtros, setFiltros] = useState<FornecedorFiltros>({
     produto: '', categoria: '', canal: '', busca: '',
   })
@@ -43,7 +38,7 @@ export function FornecedoresPage({ suppliers, userId, initialProduto = '' }: Pro
     return result
   }, [suppliers, produto, filtros])
 
-  function handleTabChange(key: ProductTag | '') {
+  function handleTabChange(key: string) {
     setProduto(key)
     setFiltros(f => ({ ...f, produto: '' }))
   }
@@ -70,23 +65,34 @@ export function FornecedoresPage({ suppliers, userId, initialProduto = '' }: Pro
         </button>
       </div>
 
-      {/* Toggle de produto */}
-      <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-border/60">
-        {PRODUCT_TABS.map(tab => (
+      {/* Toggle de categoria (nicho) */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-1 bg-white rounded-2xl p-1.5 border border-border/60">
           <button
-            key={tab.key}
-            onClick={() => handleTabChange(tab.key)}
+            onClick={() => handleTabChange('')}
             className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold px-3 py-2.5 rounded-xl transition-all ${
-              produto === tab.key
+              produto === ''
                 ? 'bg-[#6699F3] text-white shadow-sm'
                 : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <span>{tab.icon}</span>
-            {tab.label}
+            Todos
           </button>
-        ))}
-      </div>
+          {categories.map(cat => (
+            <button
+              key={cat.slug}
+              onClick={() => handleTabChange(cat.slug)}
+              className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-bold px-3 py-2.5 rounded-xl transition-all ${
+                produto === cat.slug
+                  ? 'bg-[#6699F3] text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Filtros de categoria / canal / busca */}
       <FiltrosBar

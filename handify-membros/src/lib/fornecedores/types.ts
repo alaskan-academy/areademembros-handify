@@ -1,10 +1,5 @@
 // ── Tag constants ─────────────────────────────────────────────────────────────
 
-export const PRODUCT_TAGS = {
-  velas:     'Velas Artesanais',
-  sabonetes: 'Sabonetes',
-} as const
-
 export const CATEGORY_TAGS = {
   essencias:  'Essências',
   ceras:      'Ceras / Bases',
@@ -26,10 +21,9 @@ export const CHANNEL_LABELS = {
   mercadolivre:  'Mercado Livre',
 } as const
 
-export type ProductTag  = keyof typeof PRODUCT_TAGS
 export type CategoryTag = keyof typeof CATEGORY_TAGS
 export type Channel     = keyof typeof CHANNEL_LABELS
-export type SupplierTag = ProductTag | CategoryTag
+export type SupplierTag = string
 
 // ── DB row types ──────────────────────────────────────────────────────────────
 
@@ -94,8 +88,8 @@ export type SupplierReviewWithProfile = SupplierReviewRow & {
 // ── Filter state ──────────────────────────────────────────────────────────────
 
 export type FornecedorFiltros = {
-  produto:  ProductTag | ''
+  produto:   string
   categoria: CategoryTag | ''
-  canal:    Channel | ''
-  busca:    string
+  canal:     Channel | ''
+  busca:     string
 }

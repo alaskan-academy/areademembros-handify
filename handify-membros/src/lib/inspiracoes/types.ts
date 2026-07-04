@@ -2,7 +2,7 @@
 
 export type InspiracaoType = 'foto' | 'carrossel' | 'video' | 'receita' | 'dica' | 'destaque'
 
-export type InspiracaoNicho = 'velas' | 'sabonetes' | 'costura' | 'croche' | 'tricot' | 'macrame' | 'decoupage' | 'pintura' | 'outros'
+export type InspiracaoNicho = string
 
 export interface MediaItem {
   url: string

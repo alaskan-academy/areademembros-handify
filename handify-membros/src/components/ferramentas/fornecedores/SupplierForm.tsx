@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Plus, X } from 'lucide-react'
 import { adminUpsertSupplier, adminDeleteSupplier } from '@/lib/fornecedores/actions'
-import { PRODUCT_TAGS, CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
+import { CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
 
 type Channel = { channel: string; url: string }
 
 interface Props {
   supplier?: any
+  categories?: { id: string; name: string; slug: string }[]
 }
 
-export function SupplierForm({ supplier }: Props) {
+export function SupplierForm({ supplier, categories = [] }: Props) {
   const router = useRouter()
   const isEdit = !!supplier
 
@@ -87,7 +88,11 @@ export function SupplierForm({ supplier }: Props) {
     router.push('/admin/fornecedores')
   }
 
-  const allTags = { ...PRODUCT_TAGS, ...CATEGORY_TAGS }
+  const nicheTagEntries = categories.map(c => [c.slug, c.name] as [string, string])
+  const allTags: Record<string, string> = {
+    ...Object.fromEntries(nicheTagEntries),
+    ...CATEGORY_TAGS,
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

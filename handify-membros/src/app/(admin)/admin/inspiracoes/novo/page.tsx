@@ -14,15 +14,15 @@ export default async function NovoInspiracaoPage() {
   if (profile?.role !== 'admin') redirect('/dashboard')
 
   const service = createServiceClient()
-  const { data: courses } = await service
-    .from('courses')
-    .select('id, title')
-    .eq('published', true)
-    .order('title')
+  const [{ data: courses }, { data: categoriesRaw }] = await Promise.all([
+    service.from('courses').select('id, title').eq('published', true).order('title'),
+    service.from('categories').select('id, name, slug').order('name'),
+  ])
+  const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
 
   return (
     <div className="max-w-3xl mx-auto">
-      <InspiracaoForm adminId={user.id} courses={courses ?? []} />
+      <InspiracaoForm adminId={user.id} courses={courses ?? []} categories={categories} />
     </div>
   )
 }

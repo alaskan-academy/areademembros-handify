@@ -29,16 +29,6 @@ const TYPE_OPTIONS: { value: InspiracaoType; icon: any; label: string; desc: str
   { value: 'destaque',  icon: Star,               label: 'Destaque',  desc: 'Aluna em destaque' },
 ]
 
-const NICHO_TAGS = [
-  { key: 'velas',      label: '🕯️ Velas' },
-  { key: 'sabonetes',  label: '🧼 Sabonetes' },
-  { key: 'costura',    label: '✂️ Costura' },
-  { key: 'croche',     label: '🧶 Crochê' },
-  { key: 'tricot',     label: '🧵 Tricô' },
-  { key: 'macrame',    label: '🪢 Macramê' },
-  { key: 'decoupage',  label: '🎨 Decoupage' },
-  { key: 'pintura',    label: '🖌️ Pintura' },
-]
 
 const NIVEL_OPTIONS = ['Iniciante', 'Intermediário', 'Avançado']
 
@@ -51,6 +41,7 @@ interface Props {
   post?: InspiracaoPostRow
   adminId: string
   courses: { id: string; title: string }[]
+  categories?: { id: string; name: string; slug: string }[]
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -62,7 +53,7 @@ function getYouTubeId(url: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function InspiracaoForm({ post, adminId, courses }: Props) {
+export function InspiracaoForm({ post, adminId, courses, categories = [] }: Props) {
   const router = useRouter()
   const isEdit = !!post
 
@@ -605,26 +596,28 @@ export function InspiracaoForm({ post, adminId, courses }: Props) {
         </div>
       )}
 
-      {/* Tags de nicho */}
-      <div className="bg-white rounded-xl border border-border/60 p-5 space-y-3">
-        <h2 className="text-sm font-semibold">Tags de nicho</h2>
-        <div className="flex flex-wrap gap-2">
-          {NICHO_TAGS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => toggleTag(key)}
-              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                tags.has(key)
-                  ? 'bg-[#6699F3] text-white border-[#6699F3]'
-                  : 'bg-white text-muted-foreground border-border/60 hover:border-[#6699F3]/60'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      {/* Tags de categoria */}
+      {categories.length > 0 && (
+        <div className="bg-white rounded-xl border border-border/60 p-5 space-y-3">
+          <h2 className="text-sm font-semibold">Categorias de artesanato</h2>
+          <div className="flex flex-wrap gap-2">
+            {categories.map(({ slug, name }) => (
+              <button
+                key={slug}
+                type="button"
+                onClick={() => toggleTag(slug)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                  tags.has(slug)
+                    ? 'bg-[#6699F3] text-white border-[#6699F3]'
+                    : 'bg-white text-muted-foreground border-border/60 hover:border-[#6699F3]/60'
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Curso relacionado */}
       {courses.length > 0 && (

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Heart, ExternalLink, Camera, ShoppingBag, MessageCircle, Globe, BadgeCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toggleFavorite } from '@/lib/fornecedores/actions'
-import { CHANNEL_LABELS, PRODUCT_TAGS, CATEGORY_TAGS } from '@/lib/fornecedores/types'
+import { CHANNEL_LABELS, CATEGORY_TAGS } from '@/lib/fornecedores/types'
 import type { SupplierWithDetails, Channel } from '@/lib/fornecedores/types'
 
 const CHANNEL_ICONS: Record<Channel, React.ReactNode> = {
@@ -43,8 +43,8 @@ export function FornecedorCard({ supplier, userId, onOpenReviews }: Props) {
     setLoading(false)
   }
 
-  const productTags = supplier.tags.filter(t => t in PRODUCT_TAGS)
   const categoryTags = supplier.tags.filter(t => t in CATEGORY_TAGS)
+  const nicheTags = supplier.tags.filter(t => !(t in CATEGORY_TAGS))
 
   return (
     <div className="bg-white rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow flex flex-col">
@@ -68,12 +68,12 @@ export function FornecedorCard({ supplier, userId, onOpenReviews }: Props) {
             )}
           </div>
 
-          {/* Product tags */}
-          {productTags.length > 0 && (
+          {/* Niche tags (from categories) */}
+          {nicheTags.length > 0 && (
             <div className="flex gap-1 flex-wrap mt-1">
-              {productTags.map(t => (
-                <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#72CF92]/15 text-green-700">
-                  {PRODUCT_TAGS[t as keyof typeof PRODUCT_TAGS]}
+              {nicheTags.map(t => (
+                <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#72CF92]/15 text-green-700 capitalize">
+                  {t}
                 </span>
               ))}
             </div>

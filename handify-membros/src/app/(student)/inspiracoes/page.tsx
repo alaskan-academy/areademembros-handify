@@ -14,7 +14,7 @@ export default async function InspiracoesPage() {
   if (!user) redirect('/login')
 
   const service = createServiceClient()
-  const [page, { data: coursesRaw }] = await Promise.all([
+  const [page, { data: coursesRaw }, { data: categoriesRaw }] = await Promise.all([
     getInspiracoesFeed(user.id),
     service
       .from('courses')
@@ -22,8 +22,13 @@ export default async function InspiracoesPage() {
       .eq('published', true)
       .eq('course_type', 'course')
       .order('title'),
+    service
+      .from('categories')
+      .select('id, name, slug')
+      .order('name'),
   ])
   const courses = (coursesRaw ?? []) as { id: string; title: string }[]
+  const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -56,6 +61,7 @@ export default async function InspiracoesPage() {
           initialCursor={page.next_cursor}
           initialHasMore={page.has_more}
           courses={courses}
+          categories={categories}
         />
       </div>
     </div>
