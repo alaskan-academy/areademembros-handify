@@ -58,7 +58,7 @@ function injectResizeScript(html: string, token: string): string {
 
 // HTML completo (<!DOCTYPE ou <html>) → iframe srcdoc que se auto-ajusta à altura do conteúdo
 function HtmlDocument({ html }: { html: string }) {
-  const [height, setHeight] = useState(300);
+  const [height, setHeight] = useState(600);
   const token = useState(() => `ht-${Math.random().toString(36).slice(2)}`)[0];
 
   useEffect(() => {
@@ -83,6 +83,7 @@ function HtmlDocument({ html }: { html: string }) {
         title="Conteúdo personalizado"
         className="w-full border-0 block"
         style={{ height }}
+        scrolling="no"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
         loading="lazy"
       />
