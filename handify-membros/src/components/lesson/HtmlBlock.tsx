@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { sanitizeHtml } from "@/lib/sanitize";
 
 function HtmlSnippet({ html }: { html: string }) {
@@ -32,60 +32,46 @@ function HtmlSnippet({ html }: { html: string }) {
   );
 }
 
-// Injeta script no HTML do iframe que reporta a altura real do conteúdo via postMessage
-function injectResizeScript(html: string, token: string): string {
-  const script = `<script>
-(function(){
-  var tok='${token}';
-  function report(){
-    var h=Math.max(
-      document.body.scrollHeight||0,
-      document.documentElement.scrollHeight||0,
-      document.body.offsetHeight||0,
-      document.documentElement.offsetHeight||0
-    );
-    window.parent.postMessage({type:'handify-iframe-resize',token:tok,height:h},'*');
-  }
-  if(document.readyState==='complete'){report();}
-  window.addEventListener('load',report);
-  if(typeof ResizeObserver!=='undefined'){new ResizeObserver(report).observe(document.body);}
-})();
-<\/script>`;
-  return html.includes("</body>")
-    ? html.replace("</body>", script + "</body>")
-    : html + script;
-}
-
 // HTML completo (<!DOCTYPE ou <html>) → iframe srcdoc que se auto-ajusta à altura do conteúdo
 function HtmlDocument({ html }: { html: string }) {
-  const [height, setHeight] = useState(600);
-  const token = useState(() => `ht-${Math.random().toString(36).slice(2)}`)[0];
+  const [height, setHeight] = useState(400);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (
-        e.data?.type === "handify-iframe-resize" &&
-        e.data?.token === token &&
-        typeof e.data?.height === "number" &&
-        e.data.height > 0
-      ) {
-        setHeight(e.data.height);
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [token]);
+  // Lê a altura diretamente do DOM do iframe (funciona porque o sandbox tem allow-same-origin)
+  const measure = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+      if (!doc?.body) return;
+      const h = Math.max(
+        doc.body.scrollHeight,
+        doc.documentElement?.scrollHeight ?? 0,
+      );
+      if (h > 50) setHeight(h);
+    } catch {
+      // cross-origin inesperado — ignora
+    }
+  }, []);
+
+  const handleLoad = useCallback(() => {
+    measure();
+    // Re-mede após carregamento de fontes web (Google Fonts altera o layout)
+    setTimeout(measure, 300);
+    setTimeout(measure, 1000);
+  }, [measure]);
 
   return (
     <div className="w-full overflow-hidden rounded-xl border border-border shadow-sm">
       <iframe
-        srcDoc={injectResizeScript(html, token)}
+        ref={iframeRef}
+        srcDoc={html}
         title="Conteúdo personalizado"
         className="w-full border-0 block"
         style={{ height }}
         scrolling="no"
+        onLoad={handleLoad}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-        loading="lazy"
       />
     </div>
   );
