@@ -1,2 +1,7 @@
-# Claude Code config
-.claude/
+# Claude Code config — ignora tudo exceto os planos do projeto
+.claude/*
+!.claude/plans
+!.claude/plans/**
+handify-membros/.claude/*
+!handify-membros/.claude/plans
+!handify-membros/.claude/plans/**
