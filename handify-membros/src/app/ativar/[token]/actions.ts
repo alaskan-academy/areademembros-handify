@@ -70,16 +70,17 @@ export async function activateAccount(
 
   const email = tokenRow.email;
 
-  // Verifica se já tem conta
+  // Verifica se já tem conta (comparação case-insensitive)
   const { data: existing } = await service.auth.admin.listUsers();
+  const emailLower = email.toLowerCase();
   const alreadyExists = existing?.users?.some(
-    (u) => u.email?.toLowerCase() === email.toLowerCase()
+    (u) => u.email?.toLowerCase() === emailLower
   );
 
   if (alreadyExists) {
     // Conta já existe — concede a matrícula pendente e marca token como usado
     const existingUser = existing.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
+      (u) => u.email?.toLowerCase() === emailLower
     );
     if (existingUser && tokenRow.course_id) {
       await service.from("enrollments").upsert(

@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
         const { data: tokenRow } = await supabase
           .from("activation_tokens")
           .insert({
-            email: buyerEmail,
+            email: buyerEmail.toLowerCase(),
             course_id: course.id,
             buyer_name: buyerName ?? null,
             buyer_phone: payload.customer.phone?.trim() ?? null,

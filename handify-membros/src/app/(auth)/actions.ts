@@ -17,7 +17,7 @@ async function grantPendingEnrollments(email: string, userId: string) {
   const { data: tokens } = await service
     .from("activation_tokens")
     .select("token, course_id")
-    .eq("email", email)
+    .eq("email", email.toLowerCase())
     .eq("used", false)
     .gt("expires_at", new Date().toISOString())
     .not("course_id", "is", null);
