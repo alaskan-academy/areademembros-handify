@@ -165,32 +165,18 @@ export default async function AlunaDetailPage({
     .eq("published", true)
     .order("title");
 
-  // Histórico de compras (payment_events pelo e-mail da aluna)
-  const { data: rawPaymentEvents } = await service
-    .from("payment_events")
-    .select("id, product_code, event_type, processed, error, created_at")
-    .eq("buyer_email", profile.email ?? "")
-    .order("created_at", { ascending: false })
-    .limit(30);
-
-  // Mapeia product_code → título do curso
   type CourseWithCodes = { id: string; title: string; thumbnail_url: string | null; slug: string; product_codes: string[] | null };
   const coursesWithCodes = (allCourses ?? []) as unknown as CourseWithCodes[];
 
-  const paymentEvents = (rawPaymentEvents ?? []).map((pe) => {
-    const matched = coursesWithCodes.find((c) =>
-      (c.product_codes ?? []).includes(pe.product_code)
-    );
-    return {
-      id: pe.id,
-      product_code: pe.product_code as string,
-      event_type: pe.event_type as string,
-      processed: pe.processed as boolean,
-      error: pe.error as string | null,
-      created_at: pe.created_at as string,
-      course_title: matched?.title ?? null,
-    };
-  });
+  // Compras via Payt — uma entrada por curso (inclui order bumps e upsells)
+  const paytEnrollments = enrollmentRows
+    .filter((e) => e.source === "payt")
+    .map((e) => ({
+      id: e.id,
+      course_title: e.course?.title ?? null,
+      granted_at: e.granted_at,
+      expires_at: e.expires_at,
+    }));
 
   // Activity queries — all in parallel, only need userId
   const [
@@ -365,7 +351,7 @@ export default async function AlunaDetailPage({
           hasPushEnabled,
         }}
         courses={courseEntries}
-        paymentEvents={paymentEvents}
+        paytEnrollments={paytEnrollments}
         certificates={(certificates ?? []) as unknown as {
           id: string;
           verify_hash: string;
