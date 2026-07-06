@@ -27,6 +27,10 @@ function FieldError({ msg }: { msg?: string }) {
 export default function CadastroPage() {
   const [state, formAction, isPending] = useActionState(cadastroAction, initialState);
   const [birthDate, setBirthDate] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cpf, setCpf] = useState("");
   const fe = state?.fieldErrors ?? {};
 
   function handleBirthDate(e: React.ChangeEvent<HTMLInputElement>) {
@@ -80,6 +84,8 @@ export default function CadastroPage() {
                   id="full_name"
                   name="full_name"
                   type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Maria Silva"
                   autoComplete="name"
                   required
@@ -95,6 +101,8 @@ export default function CadastroPage() {
                   id="email"
                   name="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="voce@email.com"
                   autoComplete="email"
                   required
@@ -113,6 +121,8 @@ export default function CadastroPage() {
                   id="phone"
                   name="phone"
                   type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="(11) 99999-9999"
                   autoComplete="tel"
                   required
@@ -131,6 +141,8 @@ export default function CadastroPage() {
                   id="cpf"
                   name="cpf"
                   type="text"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
                   placeholder="000.000.000-00"
                   autoComplete="off"
                   inputMode="numeric"

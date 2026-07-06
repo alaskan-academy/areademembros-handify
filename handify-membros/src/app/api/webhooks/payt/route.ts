@@ -19,7 +19,7 @@ async function logPaymentEvent(
     event_type: string;
     buyer_email: string;
     buyer_name?: string;
-    payload: PaytPayload;
+    payload: Record<string, unknown>;
     processed: boolean;
     error?: string;
   }
@@ -52,11 +52,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
-  // 1. Parsear e validar payload com Zod
+  // 1. Parsear e validar payload com Zod (rawJson preserva todos os campos da Payt)
   let payload: PaytPayload;
+  let rawJson: Record<string, unknown>;
   try {
-    const json = JSON.parse(await req.text());
-    payload = PaytPayloadSchema.parse(json);
+    rawJson = JSON.parse(await req.text());
+    payload = PaytPayloadSchema.parse(rawJson);
   } catch (err) {
     console.warn("[payt-webhook] Payload inválido:", err);
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
       event_type: payload.status,
       buyer_email: buyerEmail,
       buyer_name: buyerName,
-      payload,
+      payload: rawJson,
       processed: false,
     });
     return NextResponse.json({ received: true });
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
       event_type: payload.status,
       buyer_email: buyerEmail,
       buyer_name: buyerName,
-      payload,
+      payload: rawJson,
       processed: false,
       error: msg,
     });
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
       event_type: payload.status,
       buyer_email: buyerEmail,
       buyer_name: buyerName,
-      payload,
+      payload: rawJson,
       processed: true, // token criado e e-mail enviado — tratado com sucesso
     });
     return NextResponse.json({ received: true });

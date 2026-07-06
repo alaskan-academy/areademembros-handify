@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { loginAction } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ export default function LoginPage({
   searchParams: Promise<{ redirect?: string; msg?: string }>;
 }) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
+  const [email, setEmail] = useState("");
 
   return (
     <Card>
@@ -51,6 +52,8 @@ export default function LoginPage({
               id="email"
               name="email"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="voce@email.com"
               autoComplete="email"
               required

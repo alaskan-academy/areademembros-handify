@@ -37,6 +37,9 @@ export default function CadastroEmailForm({
 }) {
   const [state, formAction, isPending] = useActionState(cadastroAction, initialState);
   const [birthDate, setBirthDate] = useState("");
+  const [fullName, setFullName] = useState(defaultName ?? "");
+  const [phone, setPhone] = useState(defaultPhone ?? "");
+  const [cpf, setCpf] = useState(defaultCpf ?? "");
   const fe = state?.fieldErrors ?? {};
 
   function handleBirthDate(e: React.ChangeEvent<HTMLInputElement>) {
@@ -85,9 +88,10 @@ export default function CadastroEmailForm({
                   id="full_name"
                   name="full_name"
                   type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Maria Silva"
                   autoComplete="name"
-                  defaultValue={defaultName ?? ""}
                   required
                   disabled={isPending}
                   aria-invalid={!!fe.full_name}
@@ -123,9 +127,10 @@ export default function CadastroEmailForm({
                   id="phone"
                   name="phone"
                   type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   placeholder="(11) 99999-9999"
                   autoComplete="tel"
-                  defaultValue={defaultPhone ?? ""}
                   required
                   disabled={isPending}
                   aria-invalid={!!fe.phone}
@@ -148,11 +153,12 @@ export default function CadastroEmailForm({
                   id="cpf"
                   name="cpf"
                   type="text"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
                   placeholder="000.000.000-00"
                   autoComplete="off"
                   inputMode="numeric"
                   maxLength={14}
-                  defaultValue={defaultCpf ?? ""}
                   required
                   disabled={isPending}
                   aria-invalid={!!fe.cpf}

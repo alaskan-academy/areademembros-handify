@@ -20,13 +20,14 @@ export default function RecuperarSenhaPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [email, setEmail] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const email = (formData.get("email") as string)?.trim();
+    const emailValue = (formData.get("email") as string)?.trim();
 
     startTransition(async () => {
       // 1. Verifica server-side se o e-mail existe
@@ -39,7 +40,7 @@ export default function RecuperarSenhaPage() {
 
       // 2. Dispara o reset do lado do browser (garante PKCE code_verifier no browser)
       const supabase = createClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailValue, {
         redirectTo: `${window.location.origin}/auth/callback?next=/nova-senha`,
       });
 
@@ -88,6 +89,8 @@ export default function RecuperarSenhaPage() {
                 id="email"
                 name="email"
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="voce@email.com"
                 autoComplete="email"
                 required
