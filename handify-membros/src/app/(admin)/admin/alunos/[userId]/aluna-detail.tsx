@@ -20,6 +20,9 @@ import {
   UserCircle,
   Bell,
   BellOff,
+  ShoppingBag,
+  AlertCircle,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -59,6 +62,16 @@ type AuditEntry = {
   admin: { full_name: string | null } | null;
 };
 
+type PaymentEvent = {
+  id: string;
+  product_code: string;
+  event_type: string;
+  processed: boolean;
+  error: string | null;
+  created_at: string;
+  course_title: string | null;
+};
+
 interface Props {
   profile: {
     id: string;
@@ -75,6 +88,7 @@ interface Props {
   certificates: Certificate[];
   auditLog: AuditEntry[];
   activity: ActivityItem[];
+  paymentEvents: PaymentEvent[];
   defaultTab?: "perfil" | "atividade";
 }
 
@@ -89,7 +103,7 @@ const ACTION_LABELS: Record<string, string> = {
   delete_forum_post: "Post do fórum deletado",
 };
 
-export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, defaultTab = "perfil" }: Props) {
+export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, paymentEvents, defaultTab = "perfil" }: Props) {
   const initial = profile.full_name?.charAt(0)?.toUpperCase() ?? "?";
   const [activeTab, setActiveTab] = useState<"perfil" | "atividade">(defaultTab);
   const [banPending, startBanTransition] = useTransition();
@@ -391,6 +405,54 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
             )}
           </section>
 
+          {/* Compras (payment_events) */}
+          <section className="handify-card overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-[#6699F3]" />
+              <h2 className="font-semibold">
+                Compras{" "}
+                <span className="text-muted-foreground font-normal text-sm">
+                  ({paymentEvents.filter((p) => p.event_type === "paid").length})
+                </span>
+              </h2>
+            </div>
+            {paymentEvents.length === 0 ? (
+              <div className="py-6 text-center text-muted-foreground text-sm">
+                Nenhum evento de pagamento.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {paymentEvents.map((pe) => (
+                  <li key={pe.id} className="px-5 py-3 space-y-0.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium line-clamp-1">
+                          {pe.course_title ?? pe.product_code}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {pe.product_code}
+                        </p>
+                      </div>
+                      <PaymentEventBadge eventType={pe.event_type} processed={pe.processed} error={pe.error} />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {new Date(pe.created_at).toLocaleString("pt-BR", {
+                        day: "2-digit", month: "2-digit", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </p>
+                    {pe.error && (
+                      <p className="text-[11px] text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        {pe.error}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {/* Auditoria */}
           {auditLog.length > 0 && (
             <section className="handify-card overflow-hidden">
@@ -613,6 +675,49 @@ function CourseRow({ course, userId }: { course: CourseEntry; userId: string }) 
         </form>
       )}
     </div>
+  );
+}
+
+function PaymentEventBadge({ eventType, processed, error }: { eventType: string; processed: boolean; error: string | null }) {
+  if (eventType === "paid" && processed) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#72CF92]/15 text-[#3d9e5a] shrink-0">
+        <CheckCircle2 className="w-3 h-3" /> Pago
+      </span>
+    );
+  }
+  if (eventType === "paid" && !processed) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-700 shrink-0">
+        <AlertCircle className="w-3 h-3" /> Pago/Erro
+      </span>
+    );
+  }
+  if (eventType === "waiting_payment") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-600 shrink-0">
+        <Clock className="w-3 h-3" /> Aguardando
+      </span>
+    );
+  }
+  if (eventType === "refunded" || eventType === "chargeback") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600 shrink-0">
+        <AlertCircle className="w-3 h-3" /> {eventType === "refunded" ? "Reembolso" : "Chargeback"}
+      </span>
+    );
+  }
+  if (error) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-600 shrink-0">
+        <AlertCircle className="w-3 h-3" /> Erro
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground shrink-0">
+      {eventType}
+    </span>
   );
 }
 
