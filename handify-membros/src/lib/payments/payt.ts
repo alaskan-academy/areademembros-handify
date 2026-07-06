@@ -178,7 +178,9 @@ export function extractProductCodes(payload: PaytPayload): string[] {
 // ── Classificação de status ───────────────────────────────────────────────────
 
 const GRANT_STATUSES = new Set(["paid", "approved", "completed", "confirmed"]);
-const REVOKE_STATUSES = new Set(["refunded", "cancelled", "canceled", "chargeback", "expired"]);
+// Apenas estornos reais (pagamento foi feito e revertido) devem revogar acesso.
+// PIX/boleto expirado ou cancelado antes do pagamento → "ignore" (nada a desfazer).
+const REVOKE_STATUSES = new Set(["refunded", "chargeback"]);
 
 export function classifyEvent(status: string): "grant" | "revoke" | "ignore" {
   if (GRANT_STATUSES.has(status)) return "grant";
