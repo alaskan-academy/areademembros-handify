@@ -20,6 +20,7 @@ async function logPaymentEvent(
     buyer_email: string;
     buyer_name?: string;
     payload: Record<string, unknown>;
+    amount_paid?: number | null;
     processed: boolean;
     error?: string;
   }
@@ -31,6 +32,7 @@ async function logPaymentEvent(
     buyer_email: data.buyer_email,
     buyer_name: data.buyer_name ?? null,
     payload: data.payload,
+    amount_paid: data.amount_paid ?? null,
     processed: data.processed,
     error: data.error ?? null,
   });
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest) {
   const buyerEmail = payload.customer.email;
   const buyerName = payload.customer.name?.trim() || undefined;
   const mainProductCode = payload.product.code;
+  const amountPaid = payload.transaction?.total_price ?? null;
 
   // 4. Status desconhecido — ack sem processar (não é erro, só aguarda)
   if (action === "ignore") {
@@ -83,6 +86,7 @@ export async function POST(req: NextRequest) {
       buyer_email: buyerEmail,
       buyer_name: buyerName,
       payload: rawJson,
+      amount_paid: amountPaid,
       processed: false,
     });
     return NextResponse.json({ received: true });
@@ -106,6 +110,7 @@ export async function POST(req: NextRequest) {
       buyer_email: buyerEmail,
       buyer_name: buyerName,
       payload: rawJson,
+      amount_paid: amountPaid,
       processed: false,
       error: msg,
     });
@@ -152,6 +157,7 @@ export async function POST(req: NextRequest) {
       buyer_email: buyerEmail,
       buyer_name: buyerName,
       payload: rawJson,
+      amount_paid: amountPaid,
       processed: true, // token criado e e-mail enviado — tratado com sucesso
     });
     return NextResponse.json({ received: true });

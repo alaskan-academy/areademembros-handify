@@ -33,12 +33,17 @@ export default async function AlunaRankingPage() {
     { data: enrollsAll },
     { data: allProfiles },
     { data: courses },
+    { data: paymentEvents },
   ] = await Promise.all([
     service.from("lesson_progress").select("user_id, lesson_id, completed, updated_at"),
     service.from("certificates").select("user_id, course_id, issued_at"),
     service.from("enrollments").select("user_id, course_id, granted_at, source"),
     service.from("profiles").select("id, full_name, email, avatar_url, created_at").eq("role", "student").eq("banned", false),
     service.from("courses").select("id, title, price"),
+    service.from("payment_events")
+      .select("buyer_email, amount_paid")
+      .eq("processed", true)
+      .not("amount_paid", "is", null),
   ]);
 
   const profiles = (allProfiles ?? []) as Profile[];
@@ -105,18 +110,24 @@ export default async function AlunaRankingPage() {
   const alunaComProgresso = new Set(progressAll?.map((p) => p.user_id) ?? []).size;
 
   // ── Rankings financeiros ─────────────────────────────────────────
-  // Gasto total (somente matrículas payt com preço registrado no curso)
-  const spentByUser = new Map<string, number>();
-  const buyCountByUser = new Map<string, number>();
+  // Gasto real por e-mail (valor pago via Payt — transaction.total_price em centavos)
+  const spentByEmail = new Map<string, number>();
+  const txCountByEmail = new Map<string, number>();
+  for (const pe of paymentEvents ?? []) {
+    if (!pe.buyer_email || !pe.amount_paid) continue;
+    const email = pe.buyer_email.toLowerCase();
+    spentByEmail.set(email, (spentByEmail.get(email) ?? 0) + pe.amount_paid);
+    txCountByEmail.set(email, (txCountByEmail.get(email) ?? 0) + 1);
+  }
 
-  // Matrículas completas por usuária para o modal
+  // Mapa e-mail → perfil para cruzar com payment_events
+  const profileByEmail = new Map(profiles.map((p) => [p.email.toLowerCase(), p]));
+
+  // Matrículas completas por usuária (para modal)
   const enrollsByUserFull = new Map<string, CourseEnroll[]>();
-
   for (const e of enrollsAll ?? []) {
     const course = coursePriceMap.get(e.course_id);
     if (!course) continue;
-
-    // Acumula lista completa de matrículas (para modal)
     if (!enrollsByUserFull.has(e.user_id)) enrollsByUserFull.set(e.user_id, []);
     enrollsByUserFull.get(e.user_id)!.push({
       courseId: e.course_id,
@@ -125,37 +136,41 @@ export default async function AlunaRankingPage() {
       source: e.source ?? "manual",
       grantedAt: e.granted_at,
     });
-
-    // Apenas compras payt com preço para ranking financeiro
-    if (e.source === "payt" && course.price) {
-      spentByUser.set(e.user_id, (spentByUser.get(e.user_id) ?? 0) + course.price);
-      buyCountByUser.set(e.user_id, (buyCountByUser.get(e.user_id) ?? 0) + 1);
-    }
   }
 
-  const toStudentRow = (id: string): StudentRow | null => {
-    const p = profileMap.get(id);
-    if (!p) return null;
-    return {
-      id,
-      name: p.full_name ?? p.email,
-      email: p.email,
-      avatar: p.avatar_url,
-      totalSpent: spentByUser.get(id) ?? 0,
-      buyCount: buyCountByUser.get(id) ?? 0,
-    };
-  };
-
-  const topBySpent: StudentRow[] = [...spentByUser.entries()]
+  const topBySpent: StudentRow[] = [...spentByEmail.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map(([id]) => toStudentRow(id))
+    .map(([email, totalCents]) => {
+      const p = profileByEmail.get(email);
+      if (!p) return null;
+      return {
+        id: p.id,
+        name: p.full_name ?? p.email,
+        email: p.email,
+        avatar: p.avatar_url,
+        totalSpent: totalCents / 100,
+        buyCount: txCountByEmail.get(email) ?? 0,
+      };
+    })
     .filter((x): x is StudentRow => x !== null);
 
-  const topByBuys: StudentRow[] = [...buyCountByUser.entries()]
+  // "Mais compras" = mais transações Payt distintas
+  const topByBuys: StudentRow[] = [...txCountByEmail.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map(([id]) => toStudentRow(id))
+    .map(([email, count]) => {
+      const p = profileByEmail.get(email);
+      if (!p) return null;
+      return {
+        id: p.id,
+        name: p.full_name ?? p.email,
+        email: p.email,
+        avatar: p.avatar_url,
+        totalSpent: (spentByEmail.get(email) ?? 0) / 100,
+        buyCount: count,
+      };
+    })
     .filter((x): x is StudentRow => x !== null);
 
   // Apenas dados dos usuários relevantes para o modal (mantém prop pequena)
