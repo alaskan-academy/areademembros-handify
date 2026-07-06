@@ -98,13 +98,17 @@ export default async function MetricasPage() {
       {/* Cards de totais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label="Alunas ativas" value={totalAlunas ?? 0} color="#6699F3"
-          tooltip="Alunas com conta ativa e não banidas na plataforma." />
+          tooltip="Alunas com conta ativa e não banidas na plataforma."
+          href="/admin/alunos?tab=cadastradas" />
         <StatCard icon={BookOpen} label="Matrículas ativas" value={totalMatriculas ?? 0} color="#72CF92"
-          tooltip="Matrículas com acesso vigente — vitalícias ou dentro do prazo de validade." />
+          tooltip="Matrículas com acesso vigente — vitalícias ou dentro do prazo de validade."
+          href="/admin/metricas/alunas" />
         <StatCard icon={Award} label="Certificados emitidos" value={totalCertificados ?? 0} color="#FEC649"
-          tooltip="Total de certificados de conclusão gerados na plataforma." />
+          tooltip="Total de certificados de conclusão gerados na plataforma."
+          href="/admin/metricas/certificados" />
         <StatCard icon={TrendingUp} label="Taxa de conclusão" value={`${taxaConclusao}%`} color="#6699F3"
-          tooltip="Proporção de certificados em relação às matrículas ativas (certificados ÷ matrículas × 100)." />
+          tooltip="Proporção de certificados em relação às matrículas ativas (certificados ÷ matrículas × 100)."
+          href="/admin/metricas/conclusao" />
       </div>
 
       {/* Push */}
@@ -219,15 +223,16 @@ export default async function MetricasPage() {
   );
 }
 
-function StatCard({ icon: Icon, label, value, color, tooltip }: {
+function StatCard({ icon: Icon, label, value, color, tooltip, href }: {
   icon: React.ElementType;
   label: string;
   value: number | string;
   color: string;
   tooltip?: string;
+  href?: string;
 }) {
-  return (
-    <div className="handify-card p-5">
+  const inner = (
+    <>
       <div className="flex items-center gap-2 mb-3">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: color + "20" }}>
           <Icon className="w-4 h-4" style={{ color }} />
@@ -236,8 +241,18 @@ function StatCard({ icon: Icon, label, value, color, tooltip }: {
         {tooltip && <InfoTooltip text={tooltip} />}
       </div>
       <p className="text-3xl font-bold">{value}</p>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="handify-card p-5 block hover:border-[#6699F3]/40 hover:shadow-md transition-all group">
+        {inner}
+      </Link>
+    );
+  }
+
+  return <div className="handify-card p-5">{inner}</div>;
 }
 
 function WebhookStatus({ processed, error }: { processed: boolean | null; error: string | null }) {
