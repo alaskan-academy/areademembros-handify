@@ -77,8 +77,18 @@ export async function activateAccount(
   );
 
   if (alreadyExists) {
+    // Conta já existe — concede a matrícula pendente e marca token como usado
+    const existingUser = existing.users.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+    if (existingUser && tokenRow.course_id) {
+      await service.from("enrollments").upsert(
+        { user_id: existingUser.id, course_id: tokenRow.course_id, source: "payt", granted_at: new Date().toISOString(), expires_at: null },
+        { onConflict: "user_id,course_id" }
+      );
+    }
     await service.from("activation_tokens").update({ used: true }).eq("token", parsed.data.token);
-    return { error: "Você já possui uma conta com este e-mail. Faça login normalmente." };
+    return { error: "Você já possui uma conta com este e-mail. Faça login para acessar seu curso." };
   }
 
   // Cria conta no Supabase Auth (email_confirm: true — fluxo de ativação substitui verificação)

@@ -12,6 +12,29 @@ import { sendWelcomeEmail } from "@/lib/email";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { createServiceClient } from "@/lib/supabase/service";
 
+async function grantPendingEnrollments(email: string, userId: string) {
+  const service = createServiceClient();
+  const { data: tokens } = await service
+    .from("activation_tokens")
+    .select("token, course_id")
+    .eq("email", email)
+    .eq("used", false)
+    .gt("expires_at", new Date().toISOString())
+    .not("course_id", "is", null);
+
+  if (!tokens?.length) return;
+
+  for (const t of tokens) {
+    if (!t.course_id) continue;
+    await service.from("enrollments").upsert(
+      { user_id: userId, course_id: t.course_id, source: "payt", granted_at: new Date().toISOString(), expires_at: null },
+      { onConflict: "user_id,course_id" }
+    );
+    await service.from("activation_tokens").update({ used: true }).eq("token", t.token);
+  }
+  console.info(`[cadastro] ${tokens.length} matrícula(s) pendente(s) concedida(s) para ${email}`);
+}
+
 export type ActionResult = {
   error?: string;
   success?: string;
@@ -106,6 +129,11 @@ export async function cadastroAction(
     if (Object.keys(profileUpdate).length > 0) {
       await supabase.from("profiles").update(profileUpdate).eq("id", userId);
     }
+
+    // Concede matrículas pendentes de compras feitas antes do cadastro
+    grantPendingEnrollments(parsed.data.email, userId).catch(
+      (e) => console.error("[cadastro] pending enrollments:", e)
+    );
   }
 
   // Dispara boas-vindas em background
