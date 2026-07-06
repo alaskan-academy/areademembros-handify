@@ -597,20 +597,22 @@ function CourseRow({ course, userId }: { course: CourseEntry; userId: string }) 
           {grantState.success && (
             <p className="text-xs text-green-600">{grantState.success}</p>
           )}
-          <div className="flex gap-2 flex-wrap">
-            <input
-              name="reason"
-              required
-              placeholder="Motivo (obrigatório)"
-              className="flex-1 min-w-0 text-xs px-2.5 py-1.5 rounded border border-border bg-white focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50"
-            />
+          <div className="flex gap-2 flex-wrap items-end">
+            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+              <label className="text-[10px] text-muted-foreground leading-none">Motivo</label>
+              <input
+                name="reason"
+                required
+                placeholder="Motivo (obrigatório)"
+                className="text-xs px-2.5 py-1.5 rounded border border-border bg-white focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50"
+              />
+            </div>
             <div className="flex flex-col gap-0.5">
               <label className="text-[10px] text-muted-foreground leading-none">Expiração (opcional)</label>
               <input
                 name="expires_at"
                 type="date"
                 min={new Date().toISOString().split("T")[0]}
-                title="Expiração (opcional)"
                 className="text-xs px-2.5 py-1.5 rounded border border-border bg-white focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50 w-36"
               />
             </div>
