@@ -92,35 +92,76 @@ export async function cadastroAction(
     return { fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { data: signUpData, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      data: { full_name: parsed.data.full_name },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/cursos`,
-    },
-  });
+  const emailLower = parsed.data.email.toLowerCase();
+  const service = createServiceClient();
 
-  if (error) {
-    console.error("[cadastro] supabase signUp error:", error.message, error.status);
-    const msg = error.message.toLowerCase();
-    if (msg.includes("already registered") || msg.includes("already been registered")) {
-      return { error: "Este e-mail já está cadastrado. Tente fazer login." };
+  // Verifica se há compra pendente (token de ativação não usado)
+  const { data: pendingTokens } = await service
+    .from("activation_tokens")
+    .select("token")
+    .eq("email", emailLower)
+    .eq("used", false)
+    .gt("expires_at", new Date().toISOString())
+    .limit(1);
+
+  const hasPendingPurchase = !!pendingTokens?.length;
+
+  let userId: string | null = null;
+
+  if (hasPendingPurchase) {
+    // Comprou antes de cadastrar — cria conta via service client sem enviar e-mail
+    const { data: created, error } = await service.auth.admin.createUser({
+      email: emailLower,
+      password: parsed.data.password,
+      email_confirm: true,
+      user_metadata: { full_name: parsed.data.full_name },
+    });
+
+    if (error) {
+      console.error("[cadastro] admin.createUser error:", error.message, error.status);
+      const msg = error.message.toLowerCase();
+      if (msg.includes("already registered") || msg.includes("already exists") || msg.includes("already been registered")) {
+        return { error: "Este e-mail já está cadastrado. Tente fazer login." };
+      }
+      return { error: "Erro ao criar conta. Tente novamente ou entre em contato com o suporte." };
     }
-    if (msg.includes("rate limit") || msg.includes("email rate")) {
-      return { error: "Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente." };
+
+    userId = created?.user?.id ?? null;
+  } else {
+    // Cadastro comum — envia e-mail de confirmação
+    const supabase = await createClient();
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: {
+        data: { full_name: parsed.data.full_name },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/cursos`,
+      },
+    });
+
+    if (error) {
+      console.error("[cadastro] supabase signUp error:", error.message, error.status);
+      const msg = error.message.toLowerCase();
+      if (msg.includes("already registered") || msg.includes("already been registered")) {
+        return { error: "Este e-mail já está cadastrado. Tente fazer login." };
+      }
+      if (msg.includes("rate limit") || msg.includes("email rate")) {
+        return { error: "Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente." };
+      }
+      if (msg.includes("password") && msg.includes("weak")) {
+        return { fieldErrors: { password: "Senha muito fraca. Use letras, números e símbolos." } };
+      }
+      if (msg.includes("invalid email")) {
+        return { fieldErrors: { email: "E-mail inválido." } };
+      }
+      if (error.status === 500 || !error.message || error.message === "{}") {
+        return { error: "Erro temporário ao criar conta. Tente novamente em alguns instantes ou entre em contato com o suporte." };
+      }
+      return { error: "Erro ao criar conta. Tente novamente." };
     }
-    if (msg.includes("password") && msg.includes("weak")) {
-      return { fieldErrors: { password: "Senha muito fraca. Use letras, números e símbolos." } };
-    }
-    if (msg.includes("invalid email")) {
-      return { fieldErrors: { email: "E-mail inválido." } };
-    }
-    return { error: `Erro ao criar conta: ${error.message}` };
+
+    userId = signUpData?.user?.id ?? null;
   }
-
-  const userId = signUpData?.user?.id;
 
   if (userId) {
     const profileUpdate: Record<string, string> = {};
@@ -144,11 +185,11 @@ export async function cadastroAction(
     }
 
     if (Object.keys(profileUpdate).length > 0) {
-      await supabase.from("profiles").update(profileUpdate).eq("id", userId);
+      await service.from("profiles").update(profileUpdate).eq("id", userId);
     }
 
     // Concede matrículas pendentes de compras feitas antes do cadastro
-    grantPendingEnrollments(parsed.data.email, userId).catch(
+    grantPendingEnrollments(emailLower, userId).catch(
       (e) => console.error("[cadastro] pending enrollments:", e)
     );
   }
@@ -158,9 +199,11 @@ export async function cadastroAction(
     (e) => console.error("[cadastro] welcome email:", e)
   );
 
-  return {
-    success: "Conta criada! Verifique seu e-mail para confirmar o acesso.",
-  };
+  if (hasPendingPurchase) {
+    return { success: "Conta criada! Você já pode fazer login e acessar seu curso." };
+  }
+
+  return { success: "Conta criada! Verifique seu e-mail para confirmar o acesso." };
 }
 
 /** Verifica se o e-mail está cadastrado (sem expor token de reset). */
