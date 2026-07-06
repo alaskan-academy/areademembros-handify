@@ -614,21 +614,22 @@ function CourseRow({ course, userId }: { course: CourseEntry; userId: string }) 
                 className="text-xs px-2.5 py-1.5 rounded border border-border bg-white focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50 w-36"
               />
             </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={grantPending}
-              className="px-3 py-1 text-xs font-semibold text-white bg-[#6699F3] hover:bg-[#5580d4] rounded-md transition-colors disabled:opacity-50"
-            >
-              {grantPending ? "Salvando…" : "Dar acesso"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("idle")}
-              className="px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              Cancelar
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={grantPending}
+                className="px-3 py-1 text-xs font-semibold text-white bg-[#6699F3] hover:bg-[#5580d4] rounded-md transition-colors disabled:opacity-50"
+              >
+                {grantPending ? "Salvando…" : "Dar acesso"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("idle")}
+                className="px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </form>
       )}
