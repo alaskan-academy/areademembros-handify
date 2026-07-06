@@ -17,7 +17,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const initialState = { error: undefined, success: undefined };
+const initialState = { error: undefined, success: undefined, fieldErrors: undefined };
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="text-xs text-destructive mt-1">{msg}</p>;
+}
 
 export default function CadastroEmailForm({
   email,
@@ -32,6 +37,7 @@ export default function CadastroEmailForm({
 }) {
   const [state, formAction, isPending] = useActionState(cadastroAction, initialState);
   const [birthDate, setBirthDate] = useState("");
+  const fe = state?.fieldErrors ?? {};
 
   function handleBirthDate(e: React.ChangeEvent<HTMLInputElement>) {
     let v = e.target.value.replace(/\D/g, "");
@@ -84,12 +90,14 @@ export default function CadastroEmailForm({
                   defaultValue={defaultName ?? ""}
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.full_name}
                 />
-                {defaultName && (
+                {defaultName && !fe.full_name && (
                   <p className="text-xs text-[#6699F3]">
                     Preenchido automaticamente com o nome da sua compra.
                   </p>
                 )}
+                <FieldError msg={fe.full_name} />
               </div>
 
               {/* E-mail bloqueado */}
@@ -105,7 +113,7 @@ export default function CadastroEmailForm({
                 </p>
               </div>
 
-              {/* WhatsApp — pre-preenchido se vier do Payt */}
+              {/* WhatsApp */}
               <div className="space-y-2">
                 <Label htmlFor="phone" className="flex items-center gap-1.5">
                   <Phone className="w-4 h-4 text-[#6699F3]" />
@@ -120,15 +128,17 @@ export default function CadastroEmailForm({
                   defaultValue={defaultPhone ?? ""}
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.phone}
                 />
-                {defaultPhone && (
+                {defaultPhone && !fe.phone && (
                   <p className="text-xs text-[#6699F3]">
                     Preenchido automaticamente com o número da sua compra.
                   </p>
                 )}
+                <FieldError msg={fe.phone} />
               </div>
 
-              {/* CPF — pre-preenchido se vier do Payt */}
+              {/* CPF */}
               <div className="space-y-2">
                 <Label htmlFor="cpf" className="flex items-center gap-1.5">
                   <CreditCard className="w-4 h-4 text-[#6699F3]" />
@@ -145,12 +155,14 @@ export default function CadastroEmailForm({
                   defaultValue={defaultCpf ?? ""}
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.cpf}
                 />
-                {defaultCpf && (
+                {defaultCpf && !fe.cpf && (
                   <p className="text-xs text-[#6699F3]">
                     Preenchido automaticamente com o CPF da sua compra.
                   </p>
                 )}
+                <FieldError msg={fe.cpf} />
               </div>
 
               {/* Data de nascimento */}
@@ -187,7 +199,9 @@ export default function CadastroEmailForm({
                   autoComplete="new-password"
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.password}
                 />
+                <FieldError msg={fe.password} />
               </div>
 
               {/* Confirmar senha */}
@@ -200,7 +214,9 @@ export default function CadastroEmailForm({
                   autoComplete="new-password"
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.confirm_password}
                 />
+                <FieldError msg={fe.confirm_password} />
               </div>
             </>
           )}

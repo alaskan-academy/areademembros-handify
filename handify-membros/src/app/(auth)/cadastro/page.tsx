@@ -17,11 +17,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const initialState = { error: undefined, success: undefined };
+const initialState = { error: undefined, success: undefined, fieldErrors: undefined };
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="text-xs text-destructive mt-1">{msg}</p>;
+}
 
 export default function CadastroPage() {
   const [state, formAction, isPending] = useActionState(cadastroAction, initialState);
   const [birthDate, setBirthDate] = useState("");
+  const fe = state?.fieldErrors ?? {};
 
   function handleBirthDate(e: React.ChangeEvent<HTMLInputElement>) {
     let v = e.target.value.replace(/\D/g, "");
@@ -78,7 +84,9 @@ export default function CadastroPage() {
                   autoComplete="name"
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.full_name}
                 />
+                <FieldError msg={fe.full_name} />
               </div>
 
               <div className="space-y-2">
@@ -91,7 +99,9 @@ export default function CadastroPage() {
                   autoComplete="email"
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.email}
                 />
+                <FieldError msg={fe.email} />
               </div>
 
               <div className="space-y-2">
@@ -107,7 +117,9 @@ export default function CadastroPage() {
                   autoComplete="tel"
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.phone}
                 />
+                <FieldError msg={fe.phone} />
               </div>
 
               <div className="space-y-2">
@@ -125,7 +137,9 @@ export default function CadastroPage() {
                   maxLength={14}
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.cpf}
                 />
+                <FieldError msg={fe.cpf} />
               </div>
 
               <div className="space-y-2">
@@ -160,7 +174,9 @@ export default function CadastroPage() {
                   autoComplete="new-password"
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.password}
                 />
+                <FieldError msg={fe.password} />
               </div>
 
               <div className="space-y-2">
@@ -172,7 +188,9 @@ export default function CadastroPage() {
                   autoComplete="new-password"
                   required
                   disabled={isPending}
+                  aria-invalid={!!fe.confirm_password}
                 />
+                <FieldError msg={fe.confirm_password} />
               </div>
             </>
           )}

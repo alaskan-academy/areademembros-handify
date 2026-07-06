@@ -38,6 +38,7 @@ async function grantPendingEnrollments(email: string, userId: string) {
 export type ActionResult = {
   error?: string;
   success?: string;
+  fieldErrors?: Record<string, string>;
 };
 
 export async function loginAction(
@@ -83,7 +84,12 @@ export async function cadastroAction(
 
   const parsed = cadastroSchema.safeParse(raw);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const field = String(issue.path[0] ?? "");
+      if (field && !fieldErrors[field]) fieldErrors[field] = issue.message;
+    }
+    return { fieldErrors };
   }
 
   const supabase = await createClient();
@@ -123,7 +129,7 @@ export async function cadastroAction(
         console.warn("[cadastro] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
       }
     } else if (rawCpf && rawCpf.length !== 11) {
-      return { error: "CPF inválido. Verifique e tente novamente." };
+      return { fieldErrors: { cpf: "CPF inválido. Verifique e tente novamente." } };
     }
 
     if (Object.keys(profileUpdate).length > 0) {
