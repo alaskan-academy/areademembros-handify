@@ -103,10 +103,21 @@ export async function cadastroAction(
   });
 
   if (error) {
-    if (error.message.includes("already registered")) {
+    console.error("[cadastro] supabase signUp error:", error.message, error.status);
+    const msg = error.message.toLowerCase();
+    if (msg.includes("already registered") || msg.includes("already been registered")) {
       return { error: "Este e-mail já está cadastrado. Tente fazer login." };
     }
-    return { error: "Erro ao criar conta. Tente novamente." };
+    if (msg.includes("rate limit") || msg.includes("email rate")) {
+      return { error: "Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente." };
+    }
+    if (msg.includes("password") && msg.includes("weak")) {
+      return { fieldErrors: { password: "Senha muito fraca. Use letras, números e símbolos." } };
+    }
+    if (msg.includes("invalid email")) {
+      return { fieldErrors: { email: "E-mail inválido." } };
+    }
+    return { error: `Erro ao criar conta: ${error.message}` };
   }
 
   const userId = signUpData?.user?.id;
