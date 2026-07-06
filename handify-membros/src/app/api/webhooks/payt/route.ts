@@ -189,15 +189,17 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // revoke — marca matrícula como expirada agora
-      const { error } = await supabase
+      const { data: revoked, error } = await supabase
         .from("enrollments")
         .update({ expires_at: now })
         .eq("user_id", user.id)
-        .eq("course_id", course.id);
+        .eq("course_id", course.id)
+        .select("id");
 
       if (error) {
         console.error(`[payt-webhook] Erro ao revogar ${course.id}:`, error.message);
-      } else {
+      } else if (revoked && revoked.length > 0) {
+        // Só loga e envia email se havia matrícula ativa para revogar
         await supabase.from("audit_log").insert({
           admin_id: null,
           action: "enrollment.revoked",
@@ -213,19 +215,24 @@ export async function POST(req: NextRequest) {
         processed++;
         console.info(`[payt-webhook] Matrícula revogada: user=${user.id} curso=${course.id} motivo=${payload.status}`);
 
-        // E-mail de reembolso (fire-and-forget, não bloqueia a resposta)
-        ;(async () => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", user.id)
-            .maybeSingle();
-          await sendRefundEmail({
-            to: buyerEmail,
-            studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
-            courseTitle: course.title,
-          });
-        })().catch((e) => console.error("[payt-webhook] refund email:", e));
+        // Email de reembolso só para estorno real (não para PIX expirado/cancelado sem pagamento)
+        const isRealRefund = ["refunded", "chargeback"].includes(payload.status);
+        if (isRealRefund) {
+          ;(async () => {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("id", user.id)
+              .maybeSingle();
+            await sendRefundEmail({
+              to: buyerEmail,
+              studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
+              courseTitle: course.title,
+            });
+          })().catch((e) => console.error("[payt-webhook] refund email:", e));
+        }
+      } else {
+        console.info(`[payt-webhook] Revoke ignorado (sem matrícula ativa): user=${user.id} curso=${course.id} motivo=${payload.status}`);
       }
     }
   }
