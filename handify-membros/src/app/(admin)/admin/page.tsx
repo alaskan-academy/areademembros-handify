@@ -147,10 +147,10 @@ export default async function AdminHomePage() {
       : 0;
 
   const KPI_CARDS = [
-    { icon: Users,      label: "Alunas ativas",     value: totalAlunas ?? 0,      color: "#6699F3" },
-    { icon: BookOpen,   label: "Matrículas ativas",  value: totalMatriculas ?? 0,   color: "#72CF92" },
-    { icon: Award,      label: "Certificados",        value: totalCertificados ?? 0, color: "#FEC649" },
-    { icon: TrendingUp, label: "Taxa de conclusão",   value: `${taxaConclusao}%`,   color: "#6699F3" },
+    { icon: Users,      label: "Alunas ativas",     value: totalAlunas ?? 0,      color: "#6699F3", href: "/admin/alunos?tab=cadastradas" },
+    { icon: BookOpen,   label: "Matrículas ativas",  value: totalMatriculas ?? 0,   color: "#72CF92", href: "/admin/metricas/alunas" },
+    { icon: Award,      label: "Certificados",        value: totalCertificados ?? 0, color: "#FEC649", href: "/admin/metricas/certificados" },
+    { icon: TrendingUp, label: "Taxa de conclusão",   value: `${taxaConclusao}%`,   color: "#6699F3", href: "/admin/metricas/conclusao" },
   ];
 
   return (
@@ -249,8 +249,8 @@ export default async function AdminHomePage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {KPI_CARDS.map(({ icon: Icon, label, value, color }) => (
-          <div key={label} className="handify-card p-5">
+        {KPI_CARDS.map(({ icon: Icon, label, value, color, href }) => (
+          <Link key={label} href={href} className="handify-card p-5 block hover:border-[#6699F3]/40 hover:shadow-md transition-all">
             <div
               className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
               style={{ background: color + "20" }}
@@ -259,7 +259,7 @@ export default async function AdminHomePage() {
             </div>
             <p className="text-2xl font-bold text-[#2D2D2D]">{value}</p>
             <p className="text-xs text-[#2D2D2D]/50 mt-1 font-medium">{label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
