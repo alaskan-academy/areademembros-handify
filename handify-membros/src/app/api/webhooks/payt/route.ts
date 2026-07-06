@@ -76,7 +76,8 @@ export async function POST(req: NextRequest) {
   const buyerEmail = payload.customer.email;
   const buyerName = payload.customer.name?.trim() || undefined;
   const mainProductCode = payload.product.code;
-  const amountPaid = payload.transaction?.total_price ?? null;
+  // Só registra valor pago em eventos de pagamento confirmado
+  const amountPaid = action === "grant" ? (payload.transaction?.total_price ?? null) : null;
 
   // 4. Status desconhecido — ack sem processar (não é erro, só aguarda)
   if (action === "ignore") {
