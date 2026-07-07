@@ -191,14 +191,15 @@ export async function cadastroAction(
     );
   }
 
-  // Dispara boas-vindas em background
+  if (hasPendingPurchase) {
+    // Já recebeu "Acesso liberado" quando comprou — não enviar Boas-vindas
+    return { success: "Conta criada! Você já pode fazer login e acessar seu curso." };
+  }
+
+  // Cadastro sem compra prévia — envia Boas-vindas
   sendWelcomeEmail({ to: parsed.data.email, studentName: parsed.data.full_name }).catch(
     (e) => console.error("[cadastro] welcome email:", e)
   );
-
-  if (hasPendingPurchase) {
-    return { success: "Conta criada! Você já pode fazer login e acessar seu curso." };
-  }
 
   return { success: "Conta criada! Verifique seu e-mail para confirmar o acesso." };
 }

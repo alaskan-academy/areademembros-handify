@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { z } from "zod";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
+import { sendAccessConfirmedEmail } from "@/lib/email";
 
 async function getAdminId(): Promise<string> {
   const supabase = await createClient();
@@ -96,6 +97,22 @@ export async function grantAccessAction(
     target_id: enrollment.id,
     meta: { user_id, course_id, reason, expires_at: expires_at ?? null },
   });
+
+  // E-mail de acesso liberado em background
+  ;(async () => {
+    const [{ data: profile }, { data: course }] = await Promise.all([
+      service.from("profiles").select("email, full_name").eq("id", user_id).single(),
+      service.from("courses").select("title, slug").eq("id", course_id).single(),
+    ]);
+    if (profile?.email && course?.title) {
+      await sendAccessConfirmedEmail({
+        to: profile.email,
+        studentName: profile.full_name ?? profile.email,
+        courseTitle: course.title,
+        courseSlug: course.slug,
+      });
+    }
+  })().catch((e) => console.error("[grantAccess] email:", e));
 
   revalidatePath(`/admin/alunos/${user_id}`);
   return { success: "Acesso concedido com sucesso." };
