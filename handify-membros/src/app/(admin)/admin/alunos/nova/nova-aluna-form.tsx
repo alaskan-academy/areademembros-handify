@@ -41,6 +41,48 @@ export default function NovaAlunaForm() {
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+            Telefone / WhatsApp
+          </label>
+          <input
+            name="phone"
+            type="tel"
+            placeholder="(11) 99999-9999"
+            className="w-full text-sm px-3 py-2.5 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+            Data de nascimento
+          </label>
+          <input
+            name="date_of_birth"
+            type="date"
+            className="w-full text-sm px-3 py-2.5 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+          CPF
+        </label>
+        <input
+          name="cpf"
+          type="text"
+          inputMode="numeric"
+          maxLength={14}
+          placeholder="000.000.000-00"
+          className="w-full text-sm px-3 py-2.5 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Armazenado criptografado · usado apenas no certificado de conclusão
+        </p>
+      </div>
+
       <div>
         <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
           Senha temporária

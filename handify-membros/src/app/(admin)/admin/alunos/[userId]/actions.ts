@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { z } from "zod";
+import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 
 async function getAdminId(): Promise<string> {
   const supabase = await createClient();
@@ -196,6 +197,14 @@ const profileSchema = z.object({
   email: z.string().email("E-mail inválido"),
   phone: z.string().max(30).optional().or(z.literal("")),
   date_of_birth: z.string().optional().or(z.literal("")),
+  cpf: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || v.replace(/\D/g, "").length === 11,
+      "CPF deve ter 11 dígitos"
+    ),
   admin_notes: z.string().max(5000).optional().or(z.literal("")),
 });
 
@@ -216,11 +225,13 @@ export async function updateProfileAction(
     email: formData.get("email"),
     phone: formData.get("phone") || "",
     date_of_birth: formData.get("date_of_birth") || "",
+    cpf: formData.get("cpf") || "",
     admin_notes: formData.get("admin_notes") || "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { user_id, full_name, email, phone, date_of_birth, admin_notes } = parsed.data;
+  const { user_id, full_name, email, phone, date_of_birth, cpf, admin_notes } = parsed.data;
+  const rawCpf = cpf ? cpf.replace(/\D/g, "") : "";
   const service = createServiceClient();
 
   // Busca e-mail atual para detectar se mudou
@@ -240,15 +251,21 @@ export async function updateProfileAction(
     if (authErr) return { error: `Erro ao atualizar e-mail: ${authErr.message}` };
   }
 
+  const updateData: Record<string, unknown> = {
+    full_name,
+    phone: phone || null,
+    date_of_birth: date_of_birth || null,
+    admin_notes: admin_notes || null,
+  };
+  if (emailChanged) updateData.email = email;
+  if (rawCpf.length === 11) {
+    updateData.cpf_encrypted = encryptCpf(rawCpf);
+    updateData.cpf_hash = hashCpf(rawCpf);
+  }
+
   const { error } = await service
     .from("profiles")
-    .update({
-      full_name,
-      email: emailChanged ? email : undefined,
-      phone: phone || null,
-      date_of_birth: date_of_birth || null,
-      admin_notes: admin_notes || null,
-    })
+    .update(updateData)
     .eq("id", user_id);
 
   if (error) {
@@ -266,6 +283,7 @@ export async function updateProfileAction(
       email: emailChanged ? email : undefined,
       phone: phone || null,
       date_of_birth: date_of_birth || null,
+      cpf_updated: rawCpf.length === 11,
     },
   });
 

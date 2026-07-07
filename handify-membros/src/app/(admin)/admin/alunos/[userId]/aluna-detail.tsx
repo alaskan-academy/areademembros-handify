@@ -573,6 +573,27 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
                   />
                 </div>
 
+                {/* CPF */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <CreditCard className="w-3 h-3" /> CPF
+                  </label>
+                  <input
+                    name="cpf"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={14}
+                    defaultValue=""
+                    placeholder={profile.cpf_masked ?? "000.000.000-00"}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    {profile.cpf_masked
+                      ? `Atual: ${profile.cpf_masked} · deixe em branco para manter`
+                      : "Deixe em branco para não alterar · armazenado criptografado"}
+                  </p>
+                </div>
+
                 {/* Anotações admin */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
