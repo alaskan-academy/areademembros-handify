@@ -9,6 +9,11 @@ export const cadastroSchema = z
   .object({
     full_name: z.string().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
     email: z.string().email("E-mail inválido"),
+    phone: z.string().min(1, "WhatsApp obrigatório"),
+    cpf: z.string().refine(
+      (v) => v.replace(/\D/g, "").length === 11,
+      "CPF inválido. Verifique e tente novamente."
+    ),
     password: z.string().min(8, "Senha deve ter ao menos 8 caracteres"),
     confirm_password: z.string(),
   })
