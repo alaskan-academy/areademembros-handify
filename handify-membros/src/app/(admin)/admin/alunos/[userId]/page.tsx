@@ -32,7 +32,7 @@ export default async function AlunaDetailPage({
   // Perfil da aluna
   const { data: profile } = await service
     .from("profiles")
-    .select("id, full_name, email, role, banned, created_at, avatar_url, phone, date_of_birth, cpf_encrypted")
+    .select("id, full_name, email, role, banned, created_at, avatar_url, phone, date_of_birth, cpf_encrypted, admin_notes")
     .eq("id", userId)
     .single();
 
@@ -347,6 +347,7 @@ export default async function AlunaDetailPage({
           created_at: profile.created_at,
           phone: (profile as { phone?: string | null }).phone ?? null,
           date_of_birth: (profile as { date_of_birth?: string | null }).date_of_birth ?? null,
+          admin_notes: (profile as { admin_notes?: string | null }).admin_notes ?? null,
           cpf_masked: cpfMasked,
           hasPushEnabled,
         }}

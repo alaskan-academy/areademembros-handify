@@ -21,6 +21,9 @@ import {
   Bell,
   BellOff,
   ShoppingBag,
+  X,
+  NotebookPen,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -28,7 +31,9 @@ import {
   revokeAccessAction,
   toggleBanAction,
   updateStudentEmailAction,
+  updateProfileAction,
 } from "./actions";
+import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import ActivityTab, { type ActivityItem } from "@/components/admin/alunos/ActivityTab";
 
 type CourseEntry = {
@@ -76,6 +81,7 @@ interface Props {
     created_at: string;
     phone: string | null;
     date_of_birth: string | null;
+    admin_notes: string | null;
     cpf_masked: string | null;
     hasPushEnabled: boolean;
   };
@@ -105,6 +111,9 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
   const [banned, setBanned] = useState(profile.banned);
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailState, emailAction, emailPending] = useActionState(updateStudentEmailAction, {});
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileState, profileAction, profilePending] = useActionState(updateProfileAction, {});
+  useModalBackGuard(editingProfile, () => setEditingProfile(false));
 
   const enrolledCourses = courses.filter((c) => c.enrollment !== null);
   const unenrolledCourses = courses.filter((c) => c.enrollment === null);
@@ -236,10 +245,19 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
       {activeTab === "perfil" && <>
       {/* Dados cadastrais */}
       <div className="handify-card p-5">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2 mb-4">
-          <UserCircle className="w-4 h-4" />
-          Dados cadastrais
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+            <UserCircle className="w-4 h-4" />
+            Dados cadastrais
+          </h2>
+          <button
+            onClick={() => setEditingProfile(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-[#6699F3]/40 transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Editar
+          </button>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div className="space-y-0.5">
             <p className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -296,6 +314,32 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
             </span>
           </p>
         </div>
+      </div>
+
+      {/* Anotações admin */}
+      <div className="handify-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+            <NotebookPen className="w-4 h-4" />
+            Anotações internas
+          </h2>
+          <button
+            onClick={() => setEditingProfile(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-[#6699F3]/40 transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            Editar
+          </button>
+        </div>
+        {profile.admin_notes ? (
+          <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+            {profile.admin_notes}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground/50 italic">
+            Nenhuma anotação. Use para registrar observações internas sobre esta aluna — visível apenas para admins.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -484,6 +528,139 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
         </div>
       </div>
       </>}
+
+      {/* Modal de edição de perfil */}
+      {editingProfile && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+          onClick={() => setEditingProfile(false)}
+        >
+          <div
+            className="handify-card w-full max-w-lg flex flex-col overflow-hidden"
+            style={{ maxHeight: "90vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+              <UserCircle className="w-5 h-5 text-[#6699F3]" />
+              <h2 className="font-semibold flex-1">Editar perfil</h2>
+              <button
+                onClick={() => setEditingProfile(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Formulário */}
+            <form action={profileAction} className="overflow-y-auto flex-1">
+              <input type="hidden" name="user_id" value={profile.id} />
+
+              <div className="px-5 py-5 space-y-4">
+                {/* Nome */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Nome completo
+                  </label>
+                  <input
+                    name="full_name"
+                    required
+                    defaultValue={profile.full_name ?? ""}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                    placeholder="Nome da aluna"
+                  />
+                </div>
+
+                {/* Telefone + Nascimento em grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> Telefone / WhatsApp
+                    </label>
+                    <input
+                      name="phone"
+                      type="tel"
+                      defaultValue={profile.phone ?? ""}
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                      <Calendar className="w-3 h-3" /> Data de nascimento
+                    </label>
+                    <input
+                      name="date_of_birth"
+                      type="date"
+                      defaultValue={profile.date_of_birth ?? ""}
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                    />
+                  </div>
+                </div>
+
+                {/* E-mail — read-only com aviso */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <Mail className="w-3 h-3" /> E-mail
+                  </label>
+                  <p className="px-3 py-2 text-sm border border-border/50 rounded-lg bg-muted/30 text-muted-foreground">
+                    {profile.email ?? "—"}
+                    <span className="ml-2 text-[11px] text-muted-foreground/60">· edite no card acima</span>
+                  </p>
+                </div>
+
+                {/* Anotações admin */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <NotebookPen className="w-3 h-3" /> Anotações internas
+                    <span className="normal-case font-normal text-muted-foreground/60 ml-1">— visível apenas para admins</span>
+                  </label>
+                  <textarea
+                    name="admin_notes"
+                    rows={4}
+                    defaultValue={profile.admin_notes ?? ""}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 resize-none"
+                    placeholder="Ex: cliente solicitou reembolso em jun/24, potencial para curso avançado de sabonetes…"
+                  />
+                </div>
+
+                {/* Feedback */}
+                {profileState.error && (
+                  <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+                    {profileState.error}
+                  </div>
+                )}
+                {profileState.success && (
+                  <div className="rounded-lg bg-[#72CF92]/10 border border-[#72CF92]/30 px-4 py-3 text-sm text-[#3d9e5a]">
+                    {profileState.success}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-4 border-t border-border flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingProfile(false)}
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={profilePending}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  {profilePending ? "Salvando…" : "Salvar alterações"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

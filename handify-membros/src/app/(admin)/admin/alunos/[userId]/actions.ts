@@ -188,6 +188,66 @@ export async function toggleBanAction(
   return {};
 }
 
+// ─── Atualizar perfil ────────────────────────────────────────────────────────
+
+const profileSchema = z.object({
+  user_id: z.string().uuid(),
+  full_name: z.string().min(1, "Nome obrigatório").max(200),
+  phone: z.string().max(30).optional().or(z.literal("")),
+  date_of_birth: z.string().optional().or(z.literal("")),
+  admin_notes: z.string().max(5000).optional().or(z.literal("")),
+});
+
+export async function updateProfileAction(
+  _prev: { error?: string; success?: string },
+  formData: FormData
+): Promise<{ error?: string; success?: string }> {
+  let adminId: string;
+  try {
+    adminId = await getAdminId();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const parsed = profileSchema.safeParse({
+    user_id: formData.get("user_id"),
+    full_name: formData.get("full_name"),
+    phone: formData.get("phone") || "",
+    date_of_birth: formData.get("date_of_birth") || "",
+    admin_notes: formData.get("admin_notes") || "",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { user_id, full_name, phone, date_of_birth, admin_notes } = parsed.data;
+  const service = createServiceClient();
+
+  const { error } = await service
+    .from("profiles")
+    .update({
+      full_name,
+      phone: phone || null,
+      date_of_birth: date_of_birth || null,
+      admin_notes: admin_notes || null,
+    })
+    .eq("id", user_id);
+
+  if (error) {
+    console.error("[updateProfile] error:", error);
+    return { error: "Erro ao salvar perfil. Tente novamente." };
+  }
+
+  await service.from("audit_log").insert({
+    admin_id: adminId,
+    action: "update_profile",
+    target_type: "user",
+    target_id: user_id,
+    meta: { full_name, phone: phone || null, date_of_birth: date_of_birth || null },
+  });
+
+  revalidatePath(`/admin/alunos/${user_id}`);
+  return { success: "Perfil atualizado com sucesso." };
+}
+
 // ─── Atualizar e-mail ─────────────────────────────────────────────────────────
 
 const emailSchema = z.object({
