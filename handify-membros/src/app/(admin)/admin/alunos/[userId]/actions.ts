@@ -193,6 +193,7 @@ export async function toggleBanAction(
 const profileSchema = z.object({
   user_id: z.string().uuid(),
   full_name: z.string().min(1, "Nome obrigatório").max(200),
+  email: z.string().email("E-mail inválido"),
   phone: z.string().max(30).optional().or(z.literal("")),
   date_of_birth: z.string().optional().or(z.literal("")),
   admin_notes: z.string().max(5000).optional().or(z.literal("")),
@@ -212,19 +213,38 @@ export async function updateProfileAction(
   const parsed = profileSchema.safeParse({
     user_id: formData.get("user_id"),
     full_name: formData.get("full_name"),
+    email: formData.get("email"),
     phone: formData.get("phone") || "",
     date_of_birth: formData.get("date_of_birth") || "",
     admin_notes: formData.get("admin_notes") || "",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const { user_id, full_name, phone, date_of_birth, admin_notes } = parsed.data;
+  const { user_id, full_name, email, phone, date_of_birth, admin_notes } = parsed.data;
   const service = createServiceClient();
+
+  // Busca e-mail atual para detectar se mudou
+  const { data: current } = await service
+    .from("profiles")
+    .select("email")
+    .eq("id", user_id)
+    .single();
+
+  const emailChanged = current?.email?.toLowerCase() !== email.toLowerCase();
+
+  if (emailChanged) {
+    const { error: authErr } = await service.auth.admin.updateUserById(user_id, {
+      email,
+      email_confirm: true,
+    });
+    if (authErr) return { error: `Erro ao atualizar e-mail: ${authErr.message}` };
+  }
 
   const { error } = await service
     .from("profiles")
     .update({
       full_name,
+      email: emailChanged ? email : undefined,
       phone: phone || null,
       date_of_birth: date_of_birth || null,
       admin_notes: admin_notes || null,
@@ -241,7 +261,12 @@ export async function updateProfileAction(
     action: "update_profile",
     target_type: "user",
     target_id: user_id,
-    meta: { full_name, phone: phone || null, date_of_birth: date_of_birth || null },
+    meta: {
+      full_name,
+      email: emailChanged ? email : undefined,
+      phone: phone || null,
+      date_of_birth: date_of_birth || null,
+    },
   });
 
   revalidatePath(`/admin/alunos/${user_id}`);
