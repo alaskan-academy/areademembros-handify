@@ -47,8 +47,9 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
 
   const service = createServiceClient();
 
-  // 1. Buscar posts do fórum
-  const postsResult = await supabase
+  // 1. Buscar posts do fórum — service client para que o join em profiles
+  //    não seja bloqueado pelo RLS (policies de profiles permitem só leitura própria)
+  const postsResult = await service
     .from("forum_posts")
     .select(`
       id, title, body, image_url, attachment_url, attachment_name,
