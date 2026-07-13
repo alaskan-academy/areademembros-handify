@@ -122,8 +122,8 @@ export default function ActivateForm({
           <h1 className="text-lg font-bold text-foreground">
             Criar sua conta
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Esta é a primeira e única etapa. Depois é só entrar com seu e-mail e senha — você nunca mais precisará fazer isso.
+          <p className="text-foreground/80 text-sm leading-relaxed">
+            <span className="font-semibold text-[#6699F3]">Esta é a primeira e única etapa.</span> Depois é só entrar com seu e-mail e senha — você nunca mais precisará fazer isso.
           </p>
         </div>
 
