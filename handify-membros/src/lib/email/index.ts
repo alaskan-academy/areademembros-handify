@@ -80,11 +80,7 @@ a { text-decoration: none; }
           <td colspan="3" class="footer-td" style="padding:20px 48px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">
             <p style="color:#999999;font-size:12px;margin:0;line-height:1.6;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
               Handify&#8482; — Plataforma de Cursos de Artesanato<br>
-              Este é um e-mail automático, não responda a esta mensagem.<br><br>
-              Precisa de ajuda? Fale com a gente:<br>
-              <a href="mailto:contato@handify.com.br" style="color:#6699F3;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">contato@handify.com.br</a>
-              &nbsp;|&nbsp;
-              <a href="https://wa.me/554284296823" style="color:#6699F3;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">WhatsApp (42) 8429-6823</a>
+              Este é um e-mail automático, não responda a esta mensagem.
             </p>
           </td>
         </tr>
@@ -104,6 +100,17 @@ a { text-decoration: none; }
 
 </body>
 </html>`;
+}
+
+function supportBlock() {
+  return `<div style="border-top:1px solid #eeeeee;margin-top:28px;padding-top:18px;">
+  <p style="color:#888888;font-size:13px;margin:0;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+    Precisa de ajuda? Fale com a gente:<br>
+    <a href="mailto:contato@handify.com.br" style="color:#6699F3;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">contato@handify.com.br</a>
+    &nbsp;|&nbsp;
+    <a href="https://wa.me/554284296823" style="color:#6699F3;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">WhatsApp (42) 8429-6823</a>
+  </p>
+</div>`;
 }
 
 // Botão CTA com table — única forma confiável de ter fundo colorido + padding em Outlook.
@@ -160,6 +167,7 @@ export async function sendWelcomeEmail({
         Explore nossos cursos de artesanato e comece sua jornada criativa hoje mesmo.
       </p>
       ${ctaButton(`${appUrl()}/cursos`, "Explorar cursos")}
+      ${supportBlock()}
     `),
   });
 
@@ -206,6 +214,7 @@ export async function sendAccessConfirmedEmail({
           : "Clique no botão abaixo para acessar o curso. Bons estudos!"}
       </p>
       ${ctaButton(courseUrl, activationToken ? "Criar minha conta e acessar" : "Acessar o curso")}
+      ${supportBlock()}
     `),
   });
 
@@ -245,6 +254,7 @@ export async function sendCertificateEmail({
         Seu certificado já está disponível para download na plataforma. Você pode verificar, compartilhar e baixar a qualquer momento pela sua área de perfil.
       </p>
       ${ctaButton(profileUrl, "Ver meu certificado")}
+      ${supportBlock()}
     `),
   });
 
@@ -290,6 +300,7 @@ export async function sendReengagementEmail({
       </p>
       ${progressBar(pct)}
       ${ctaButton(courseUrl, "Continuar curso")}
+      ${supportBlock()}
     `),
   });
 
@@ -340,6 +351,7 @@ export async function sendNewCourseEmail({
       <p style="color:#cccccc;font-size:12px;margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;">
         <a href="${appUrl()}/perfil" style="color:#aaaaaa;text-decoration:underline;font-family:Arial,Helvetica,sans-serif;">Cancelar inscrição neste tipo de e-mail</a>
       </p>
+      ${supportBlock()}
     `),
   });
 
@@ -383,9 +395,7 @@ export async function sendRefundEmail({
         Dá uma espiada nos nossos cursos quando quiser — tem muita coisa bonita te esperando!
       </p>
       ${ctaButton(vitrineUrl, "Explorar cursos")}
-      <p style="color:#999999;font-size:13px;margin:0;line-height:1.6;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        Dúvidas? Responda este e-mail — nossa equipe está aqui para ajudar.
-      </p>
+      ${supportBlock()}
     `),
   });
 
@@ -433,6 +443,7 @@ export async function sendNewsPostEmail({
         Para não receber e-mails de novidades, ajuste suas preferências na
         <a href="${appUrl()}/perfil" style="color:#6699F3;text-decoration:underline;">área de perfil</a>.
       </p>
+      ${supportBlock()}
     `),
   });
 
