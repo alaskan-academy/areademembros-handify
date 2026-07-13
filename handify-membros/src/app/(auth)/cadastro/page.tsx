@@ -52,7 +52,7 @@ export default function CadastroPage() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Criar conta</CardTitle>
         <CardDescription className="text-foreground/80 text-sm leading-relaxed">
-          <span className="font-semibold text-[#6699F3]">Você faz isso só uma vez!</span> Depois é só entrar com seu e-mail e senha.
+          <span className="font-semibold text-[#6699F3]">Tranquila, é rapidinho!</span> Você faz esse cadastro só uma vez e já entra direto nos seus cursos.
         </CardDescription>
       </CardHeader>
 
@@ -197,7 +197,7 @@ export default function CadastroPage() {
             </>
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 bg-white rounded-b-xl">
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Criando conta e entrando…" : "Criar conta"}
           </Button>

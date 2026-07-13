@@ -123,7 +123,7 @@ export default function ActivateForm({
             Criar sua conta
           </h1>
           <p className="text-foreground/80 text-sm leading-relaxed">
-            <span className="font-semibold text-[#6699F3]">Você faz isso só uma vez!</span> Depois é só entrar com seu e-mail e senha.
+            <span className="font-semibold text-[#6699F3]">Tranquila, é rapidinho!</span> Você faz esse cadastro só uma vez e já entra direto nos seus cursos.
           </p>
         </div>
 
