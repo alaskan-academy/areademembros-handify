@@ -148,7 +148,7 @@ export default function CadastroPage() {
                 <Label htmlFor="date_of_birth" className="flex items-center gap-1.5">
                   <Cake className="w-4 h-4 text-[#6699F3]" />
                   Data de nascimento
-                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+                  <span className="text-[#999] font-normal text-xs">(opcional)</span>
                 </Label>
                 <Input
                   id="date_of_birth"
@@ -162,7 +162,7 @@ export default function CadastroPage() {
                   disabled={isPending}
                 />
                 <input type="hidden" name="date_of_birth" value={birthToISO(birthDate)} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-[#999]">
                   Para promoções especiais na sua data!
                 </p>
               </div>
@@ -202,11 +202,11 @@ export default function CadastroPage() {
             {isPending ? "Criando conta e entrando…" : "Criar conta"}
           </Button>
 
-          <p className="text-sm text-center text-muted-foreground">
+          <p className="text-sm text-center text-[#888]">
             Já tem conta?{" "}
             <Link
               href="/login"
-              className="text-foreground font-medium underline-offset-4 hover:underline"
+              className="text-[#2D2D2D] font-medium underline-offset-4 hover:underline"
             >
               Entrar
             </Link>

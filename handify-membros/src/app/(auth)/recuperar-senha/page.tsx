@@ -109,7 +109,7 @@ export default function RecuperarSenhaPage() {
 
           <Link
             href="/login"
-            className="text-sm text-muted-foreground underline-offset-4 hover:underline hover:text-foreground text-center w-full"
+            className="text-sm text-[#888] underline-offset-4 hover:underline hover:text-[#2D2D2D] text-center w-full"
           >
             Voltar para o login
           </Link>

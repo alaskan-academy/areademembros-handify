@@ -66,7 +66,7 @@ export default function LoginPage({
               <Label htmlFor="password">Senha</Label>
               <Link
                 href="/recuperar-senha"
-                className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                className="text-xs text-[#888] hover:text-[#2D2D2D] underline-offset-4 hover:underline"
               >
                 Esqueci minha senha
               </Link>
@@ -87,11 +87,11 @@ export default function LoginPage({
             {isPending ? "Entrando…" : "Entrar"}
           </Button>
 
-          <p className="text-sm text-center text-muted-foreground">
+          <p className="text-sm text-center text-[#888]">
             Não tem conta?{" "}
             <Link
               href="/cadastro"
-              className="text-foreground font-medium underline-offset-4 hover:underline"
+              className="text-[#2D2D2D] font-medium underline-offset-4 hover:underline"
             >
               Criar conta
             </Link>

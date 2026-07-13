@@ -108,11 +108,11 @@ export default function CadastroEmailForm({
               <div className="space-y-2">
                 <Label>E-mail</Label>
                 <div className="flex items-center gap-2 border border-border rounded-md px-3 py-2 bg-muted/40">
-                  <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <Lock className="w-4 h-4 text-[#888] shrink-0" />
                   <span className="text-sm flex-1">{email}</span>
                 </div>
                 <input type="hidden" name="email" value={email} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-[#888]">
                   E-mail vinculado à sua compra — não pode ser alterado.
                 </p>
               </div>
@@ -176,7 +176,7 @@ export default function CadastroEmailForm({
                 <Label htmlFor="date_of_birth" className="flex items-center gap-1.5">
                   <Cake className="w-4 h-4 text-[#6699F3]" />
                   Data de nascimento
-                  <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
+                  <span className="text-[#888] font-normal text-xs">(opcional)</span>
                 </Label>
                 <Input
                   id="date_of_birth"
@@ -190,7 +190,7 @@ export default function CadastroEmailForm({
                   disabled={isPending}
                 />
                 <input type="hidden" name="date_of_birth" value={birthToISO(birthDate)} />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-[#888]">
                   Para promoções especiais na sua data!
                 </p>
               </div>
@@ -233,9 +233,9 @@ export default function CadastroEmailForm({
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? "Criando conta…" : "Criar minha conta"}
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-sm text-center text-[#888]">
               Já tem conta?{" "}
-              <Link href="/login" className="text-foreground font-medium underline-offset-4 hover:underline">
+              <Link href="/login" className="text-[#2D2D2D] font-medium underline-offset-4 hover:underline">
                 Entrar
               </Link>
             </p>
@@ -244,8 +244,8 @@ export default function CadastroEmailForm({
 
         {state?.success && (
           <CardFooter>
-            <p className="text-sm text-center text-muted-foreground w-full">
-              <Link href="/login" className="text-foreground font-medium underline-offset-4 hover:underline">
+            <p className="text-sm text-center text-[#888] w-full">
+              <Link href="/login" className="text-[#2D2D2D] font-medium underline-offset-4 hover:underline">
                 Ir para o login
               </Link>
             </p>

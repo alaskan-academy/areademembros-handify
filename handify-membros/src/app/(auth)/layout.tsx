@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               unoptimized
               className="object-contain"
             />
-            <span className="text-xs text-muted-foreground tracking-wide">
+            <span className="text-xs text-[#888] tracking-wide">
               Um espaço feito para aprender e criar.
             </span>
           </div>
@@ -32,7 +32,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Rodapé */}
-      <footer className="py-4 text-center text-xs text-muted-foreground border-t border-border/40">
+      <footer className="py-4 text-center text-xs text-[#888] border-t border-border/40">
         © {new Date().getFullYear()} Handify™ — Todos os direitos reservados
       </footer>
     </div>
