@@ -52,7 +52,7 @@ export default function CadastroPage() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Criar conta</CardTitle>
         <CardDescription className="text-foreground/80 text-sm leading-relaxed">
-          <span className="font-semibold text-[#6699F3]">Você só fará isso uma vez</span> — depois é só entrar com e-mail e senha.
+          <span className="font-semibold text-[#6699F3]">Você faz isso só uma vez!</span> Depois é só entrar com seu e-mail e senha.
         </CardDescription>
       </CardHeader>
 
