@@ -52,7 +52,7 @@ export default function CadastroPage() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Criar conta</CardTitle>
         <CardDescription>
-          Você só precisa fazer isso uma vez — depois é só entrar com seu e-mail e senha.
+          Você só fará isso uma vez — depois é só entrar com e-mail e senha.
         </CardDescription>
       </CardHeader>
 
@@ -65,11 +65,7 @@ export default function CadastroPage() {
             >
               {state.error}
             </div>
-          )}
-
-          <div className="rounded-md bg-[#6699F3]/8 border border-[#6699F3]/20 px-4 py-3 text-sm text-[#4d7de0]">
-            Esta é a primeira e única etapa de criação da sua conta. Após isso, você já entra direto na plataforma e nunca mais precisará passar por aqui.
-          </div>
+          }}
 
           {true && (
             <>
