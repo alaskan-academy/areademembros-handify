@@ -80,7 +80,11 @@ a { text-decoration: none; }
           <td colspan="3" class="footer-td" style="padding:20px 48px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">
             <p style="color:#999999;font-size:12px;margin:0;line-height:1.6;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
               Handify&#8482; — Plataforma de Cursos de Artesanato<br>
-              Este é um e-mail automático, não responda a esta mensagem.
+              Este é um e-mail automático, não responda a esta mensagem.<br><br>
+              Precisa de ajuda? Fale com a gente:<br>
+              <a href="mailto:contato@handify.com.br" style="color:#6699F3;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">contato@handify.com.br</a>
+              &nbsp;|&nbsp;
+              <a href="https://wa.me/554284296823" style="color:#6699F3;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">WhatsApp (42) 8429-6823</a>
             </p>
           </td>
         </tr>
