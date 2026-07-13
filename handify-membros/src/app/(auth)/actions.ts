@@ -207,12 +207,12 @@ export async function cadastroAction(
 /** Verifica se o e-mail está cadastrado (sem expor token de reset). */
 export async function checkEmailExistsAction(email: string): Promise<boolean> {
   const service = createServiceClient();
-  const { data: usersData } = await service.auth.admin.listUsers();
-  return (
-    usersData?.users?.some(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    ) ?? false
-  );
+  const { data } = await service
+    .from("profiles")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .maybeSingle();
+  return !!data;
 }
 
 export async function recuperarSenhaAction(
