@@ -65,11 +65,10 @@ export default function CadastroPage() {
             >
               {state.error}
             </div>
-          }}
+          )}
 
-          {true && (
-            <>
-              <div className="space-y-2">
+          <>
+            <div className="space-y-2">
                 <Label htmlFor="full_name">Nome completo</Label>
                 <Input
                   id="full_name"
@@ -196,7 +195,6 @@ export default function CadastroPage() {
                 <FieldError msg={fe.confirm_password} />
               </div>
             </>
-          )}
         </CardContent>
 
         <CardFooter className="flex flex-col gap-4">
