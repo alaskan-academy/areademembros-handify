@@ -183,7 +183,7 @@ function PostSection({
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <span className="text-[11px] text-muted-foreground">
-                      {new Date(p.created_at).toLocaleDateString('pt-BR')}
+                      {new Date(p.created_at).toLocaleDateString('pt-BR', { timeZone: "America/Sao_Paulo" })}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">

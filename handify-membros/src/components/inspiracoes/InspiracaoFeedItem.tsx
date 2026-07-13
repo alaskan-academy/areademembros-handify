@@ -159,12 +159,12 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
             <p className="text-xs text-muted-foreground mt-0.5">
               por {post.author.full_name ?? 'Handify'}
               {' · '}
-              {new Date(post.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {new Date(post.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: "America/Sao_Paulo" })}
             </p>
           )}
           {!post.author && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              {new Date(post.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {new Date(post.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: "America/Sao_Paulo" })}
             </p>
           )}
         </div>

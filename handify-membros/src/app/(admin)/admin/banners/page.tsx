@@ -110,8 +110,8 @@ export default async function BannersPage() {
                     </span>
                     {b.starts_at && (
                       <span>
-                        {new Date(b.starts_at).toLocaleDateString("pt-BR")}
-                        {b.ends_at && ` → ${new Date(b.ends_at).toLocaleDateString("pt-BR")}`}
+                        {new Date(b.starts_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                        {b.ends_at && ` → ${new Date(b.ends_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}`}
                       </span>
                     )}
                     {b.product_codes.length > 0 && (

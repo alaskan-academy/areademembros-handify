@@ -93,7 +93,7 @@ export default async function StaticPage({
           <p className="text-xs text-foreground/30 mt-12 pt-6 border-t border-border/30">
             Última atualização:{" "}
             {new Date(page.created_at).toLocaleDateString("pt-BR", {
-              day: "2-digit", month: "long", year: "numeric",
+              day: "2-digit", month: "long", year: "numeric", timeZone: "America/Sao_Paulo",
             })}
           </p>
         </div>

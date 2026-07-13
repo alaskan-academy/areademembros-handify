@@ -191,7 +191,7 @@ export async function generateCertificatePdf(
 
   // Carga horária e data
   const dateStr = issuedAt.toLocaleDateString("pt-BR", {
-    day: "2-digit", month: "long", year: "numeric",
+    day: "2-digit", month: "long", year: "numeric", timeZone: "America/Sao_Paulo",
   });
   page.drawText(`Carga horária: ${workloadHours} hora${workloadHours !== 1 ? "s" : ""}`, {
     x: cx, y: contentY, size: 9.5, font: regular, color: MID_GRAY,

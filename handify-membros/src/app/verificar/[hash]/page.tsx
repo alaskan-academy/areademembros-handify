@@ -58,6 +58,7 @@ export default async function VerificarPage({
     day: "2-digit",
     month: "long",
     year: "numeric",
+    timeZone: "America/Sao_Paulo",
   });
 
   return (

@@ -155,7 +155,7 @@ export async function GET() {
     }
 
     const lastActivity = lastActivityByUser[p.id]
-      ? new Date(lastActivityByUser[p.id]).toLocaleDateString("pt-BR")
+      ? new Date(lastActivityByUser[p.id]).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
       : "Nunca";
 
     return [
@@ -163,17 +163,17 @@ export async function GET() {
       escape(p.email ?? ""),
       escape(p.phone ?? ""),
       escape(p.date_of_birth
-        ? new Date(p.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR")
+        ? new Date(p.date_of_birth + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
         : ""),
       escape(myEnrolls.length),
       escape(courseTitles),
       escape(sourceLabel),
-      escape(firstEnrollAt ? new Date(firstEnrollAt).toLocaleDateString("pt-BR") : ""),
+      escape(firstEnrollAt ? new Date(firstEnrollAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : ""),
       escape(completedLessons.size),
       escape(avgProgress),
       escape(certCountByUser[p.id] ?? 0),
       escape(lastActivity),
-      escape(new Date(p.created_at).toLocaleDateString("pt-BR")),
+      escape(new Date(p.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })),
       escape(p.banned ? "Banida" : "Ativa"),
     ].join(",");
   });

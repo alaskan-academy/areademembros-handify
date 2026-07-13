@@ -85,7 +85,7 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
                   )}
                   <span className="text-xs font-medium">{r.profiles?.full_name ?? 'Aluna'}</span>
                   <span className="text-[10px] text-muted-foreground ml-auto">
-                    {new Date(r.created_at).toLocaleDateString('pt-BR')}
+                    {new Date(r.created_at).toLocaleDateString('pt-BR', { timeZone: "America/Sao_Paulo" })}
                   </span>
                 </div>
                 <p className="text-xs text-foreground/80 leading-relaxed">{r.body}</p>

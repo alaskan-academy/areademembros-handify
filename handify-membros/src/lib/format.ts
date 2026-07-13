@@ -17,6 +17,8 @@ export function formatPrice(price: number): string {
   }).format(price);
 }
 
+export const TZ_BR = "America/Sao_Paulo";
+
 export function formatRelativeDate(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -25,5 +27,13 @@ export function formatRelativeDate(dateStr: string): string {
   if (days === 0) return "hoje";
   if (days === 1) return "ontem";
   if (days < 7) return `${days} dias atrás`;
-  return date.toLocaleDateString("pt-BR");
+  return date.toLocaleDateString("pt-BR", { timeZone: TZ_BR });
+}
+
+export function formatDateBR(dateStr: string, opts?: Intl.DateTimeFormatOptions): string {
+  return new Date(dateStr).toLocaleDateString("pt-BR", { timeZone: TZ_BR, ...opts });
+}
+
+export function formatDateTimeBR(dateStr: string, opts?: Intl.DateTimeFormatOptions): string {
+  return new Date(dateStr).toLocaleString("pt-BR", { timeZone: TZ_BR, ...opts });
 }

@@ -381,7 +381,7 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
             />
             <p className="text-xs text-muted-foreground ml-auto">
               {new Date(post.created_at).toLocaleDateString('pt-BR', {
-                day: '2-digit', month: 'short', year: 'numeric',
+                day: '2-digit', month: 'short', year: 'numeric', timeZone: "America/Sao_Paulo",
               })}
             </p>
           </div>

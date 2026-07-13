@@ -11,6 +11,10 @@ CREATE TABLE IF NOT EXISTS public.forums (
 
 ALTER TABLE public.forums ENABLE ROW LEVEL SECURITY;
 
+-- 2. Vincular cursos a fóruns (deve existir ANTES das policies que referenciam c.forum_id)
+ALTER TABLE public.courses
+  ADD COLUMN IF NOT EXISTS forum_id uuid REFERENCES public.forums(id) ON DELETE SET NULL;
+
 -- Admin gerencia tudo
 CREATE POLICY "Admin gerencia fóruns" ON public.forums
   FOR ALL TO authenticated
@@ -29,10 +33,6 @@ CREATE POLICY "Membro lê fórum acessível" ON public.forums
         AND (e.expires_at IS NULL OR e.expires_at > now())
     )
   );
-
--- 2. Vincular cursos a fóruns
-ALTER TABLE public.courses
-  ADD COLUMN IF NOT EXISTS forum_id uuid REFERENCES public.forums(id) ON DELETE SET NULL;
 
 -- 3. Vincular posts ao fórum (novo campo)
 ALTER TABLE public.forum_posts

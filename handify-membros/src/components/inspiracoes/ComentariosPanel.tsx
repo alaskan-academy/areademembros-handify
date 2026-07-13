@@ -71,7 +71,7 @@ export function ComentariosPanel({ postId, userId }: Props) {
                 <p className="text-xs font-semibold leading-none mb-1">{c.profiles?.full_name ?? 'Aluna'}</p>
                 <p className="text-xs text-foreground/75 leading-relaxed">{c.body}</p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  {new Date(c.created_at).toLocaleDateString('pt-BR')}
+                  {new Date(c.created_at).toLocaleDateString('pt-BR', { timeZone: "America/Sao_Paulo" })}
                 </p>
               </div>
             </div>

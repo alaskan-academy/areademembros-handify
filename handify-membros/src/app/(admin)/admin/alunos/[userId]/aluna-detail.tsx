@@ -235,7 +235,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
             </p>
             <p className="text-sm font-medium">
               {profile.date_of_birth
-                ? new Date(profile.date_of_birth + "T00:00:00").toLocaleDateString("pt-BR")
+                ? new Date(profile.date_of_birth + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
                 : <span className="text-muted-foreground/50">Não informado</span>}
             </p>
           </div>
@@ -267,7 +267,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
             Membro desde{" "}
             <span className="font-medium text-foreground">
               {new Date(profile.created_at).toLocaleDateString("pt-BR", {
-                day: "2-digit", month: "long", year: "numeric",
+                day: "2-digit", month: "long", year: "numeric", timeZone: "America/Sao_Paulo",
               })}
             </span>
           </p>
@@ -385,7 +385,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
                         {c.course?.title ?? "Curso"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(c.issued_at).toLocaleDateString("pt-BR")}
+                        {new Date(c.issued_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                       </p>
                     </div>
                     <Link
@@ -440,7 +440,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
                       <p className="text-[11px] text-muted-foreground">
                         {new Date(e.granted_at).toLocaleString("pt-BR", {
                           day: "2-digit", month: "2-digit", year: "numeric",
-                          hour: "2-digit", minute: "2-digit",
+                          hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo",
                         })}
                       </p>
                     </li>
@@ -476,6 +476,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
                         year: "numeric",
                         hour: "2-digit",
                         minute: "2-digit",
+                        timeZone: "America/Sao_Paulo",
                       })}
                     </p>
                   </li>

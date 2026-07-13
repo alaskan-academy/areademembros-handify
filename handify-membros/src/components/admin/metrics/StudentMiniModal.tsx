@@ -83,7 +83,7 @@ export function StudentMiniModal({
                 )}
                 {student.createdAt && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Membro desde {new Date(student.createdAt).toLocaleDateString("pt-BR")}
+                    Membro desde {new Date(student.createdAt).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}
                   </p>
                 )}
               </div>
