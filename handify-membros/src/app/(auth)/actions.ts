@@ -263,7 +263,7 @@ export async function novaSenhaAction(
     return { error: "Erro ao atualizar senha. O link pode ter expirado." };
   }
 
-  redirect("/login?msg=senha-atualizada");
+  redirect("/cursos");
 }
 
 export async function logoutAction(): Promise<void> {
