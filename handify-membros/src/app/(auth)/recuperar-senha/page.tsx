@@ -100,7 +100,7 @@ export default function RecuperarSenhaPage() {
           )}
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 bg-white border-t-0 rounded-b-xl">
           {!success && (
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? "Enviando…" : "Enviar instruções"}

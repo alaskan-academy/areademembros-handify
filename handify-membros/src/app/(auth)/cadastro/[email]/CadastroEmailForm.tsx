@@ -229,7 +229,7 @@ export default function CadastroEmailForm({
         </CardContent>
 
         {!state?.success && (
-          <CardFooter className="flex flex-col gap-4">
+          <CardFooter className="flex flex-col gap-4 bg-white border-t-0 rounded-b-xl">
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? "Criando conta…" : "Criar minha conta"}
             </Button>
@@ -243,7 +243,7 @@ export default function CadastroEmailForm({
         )}
 
         {state?.success && (
-          <CardFooter>
+          <CardFooter className="bg-white border-t-0 rounded-b-xl">
             <p className="text-sm text-center text-[#888] w-full">
               <Link href="/login" className="text-[#2D2D2D] font-medium underline-offset-4 hover:underline">
                 Ir para o login

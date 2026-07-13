@@ -197,7 +197,7 @@ export default function CadastroPage() {
             </>
         </CardContent>
 
-        <CardFooter className="flex flex-col gap-4 bg-white rounded-b-xl">
+        <CardFooter className="flex flex-col gap-4 bg-white border-t-0 rounded-b-xl">
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Criando conta e entrando…" : "Criar conta"}
           </Button>
