@@ -52,7 +52,7 @@ export default function CadastroPage() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl">Criar conta</CardTitle>
         <CardDescription>
-          Preencha seus dados para começar
+          Você só precisa fazer isso uma vez — depois é só entrar com seu e-mail e senha.
         </CardDescription>
       </CardHeader>
 
@@ -67,16 +67,11 @@ export default function CadastroPage() {
             </div>
           )}
 
-          {state?.success && (
-            <div
-              role="status"
-              className="rounded-md bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-700 dark:text-green-400"
-            >
-              {state.success}
-            </div>
-          )}
+          <div className="rounded-md bg-[#6699F3]/8 border border-[#6699F3]/20 px-4 py-3 text-sm text-[#4d7de0]">
+            Esta é a primeira e única etapa de criação da sua conta. Após isso, você já entra direto na plataforma e nunca mais precisará passar por aqui.
+          </div>
 
-          {!state?.success && (
+          {true && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="full_name">Nome completo</Label>
@@ -208,36 +203,21 @@ export default function CadastroPage() {
           )}
         </CardContent>
 
-        {!state?.success && (
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Criando conta…" : "Criar conta"}
-            </Button>
+        <CardFooter className="flex flex-col gap-4">
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Criando conta e entrando…" : "Criar conta"}
+          </Button>
 
-            <p className="text-sm text-center text-muted-foreground">
-              Já tem conta?{" "}
-              <Link
-                href="/login"
-                className="text-foreground font-medium underline-offset-4 hover:underline"
-              >
-                Entrar
-              </Link>
-            </p>
-          </CardFooter>
-        )}
-
-        {state?.success && (
-          <CardFooter>
-            <p className="text-sm text-center text-muted-foreground w-full">
-              <Link
-                href="/login"
-                className="text-foreground font-medium underline-offset-4 hover:underline"
-              >
-                Voltar para o login
-              </Link>
-            </p>
-          </CardFooter>
-        )}
+          <p className="text-sm text-center text-muted-foreground">
+            Já tem conta?{" "}
+            <Link
+              href="/login"
+              className="text-foreground font-medium underline-offset-4 hover:underline"
+            >
+              Entrar
+            </Link>
+          </p>
+        </CardFooter>
       </form>
     </Card>
   );

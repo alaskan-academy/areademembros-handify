@@ -123,7 +123,7 @@ export default function ActivateForm({
             Criar sua conta
           </h1>
           <p className="text-muted-foreground text-sm">
-            Seu acesso já está liberado! Complete seus dados para entrar.
+            Esta é a primeira e única etapa. Depois é só entrar com seu e-mail e senha — você nunca mais precisará fazer isso.
           </p>
         </div>
 
