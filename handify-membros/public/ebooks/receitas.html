@@ -368,9 +368,20 @@ const R={
 
 let currentId=0;
 
+// Mede a altura real após o layout assentar (rAF garante que o browser terminou o reflow)
 function notifyHeight(){
-  try{window.parent.postMessage({type:'handify-resize',height:document.body.scrollHeight},'*');}catch(e){}
+  requestAnimationFrame(function(){
+    var h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight);
+    try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){}
+  });
 }
+
+// ResizeObserver dentro do HTML: reporta qualquer mudança de tamanho automaticamente
+(function(){
+  if(!window.ResizeObserver) return;
+  var ro=new ResizeObserver(function(){ notifyHeight(); });
+  ro.observe(document.body);
+})();
 
 function showPicker(){
   document.getElementById('picker').style.display='block';
@@ -378,8 +389,8 @@ function showPicker(){
   document.getElementById('backBtn').style.display='none';
   document.getElementById('printBtn').style.display='none';
   currentId=0;
-  setTimeout(notifyHeight,50);
-  setTimeout(notifyHeight,300);
+  // ResizeObserver dispara automaticamente; notifyHeight aqui é backup
+  notifyHeight();
 }
 
 function showRecipe(id){
@@ -395,8 +406,8 @@ function showRecipe(id){
   document.getElementById('backBtn').textContent='← Receitas';
   document.getElementById('printBtn').style.display='block';
   window.scrollTo(0,0);
-  setTimeout(notifyHeight,50);
-  setTimeout(notifyHeight,400);
+  // ResizeObserver dispara automaticamente; notifyHeight aqui é backup
+  notifyHeight();
 }
 
 function goBack(){
