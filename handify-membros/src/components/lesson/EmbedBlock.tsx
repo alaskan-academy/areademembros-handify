@@ -16,47 +16,51 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-    let observer: MutationObserver | null = null;
+    let ro: ResizeObserver | null = null;
 
-    // Manipula o DOM diretamente — sem passar por React state/re-render
     function fit() {
+      const el = iframeRef.current;
+      if (!el) return;
       try {
-        const doc = iframe?.contentDocument;
+        const doc = el.contentDocument;
         if (!doc?.body) return;
+        // scrollHeight reflete altura real após reflow (ResizeObserver garante isso)
         const h = Math.max(
           doc.documentElement?.scrollHeight ?? 0,
           doc.body.scrollHeight
         );
-        if (h > 100) iframe.style.height = h + "px";
-      } catch {
-        // cross-origin sem allow-same-origin — postMessage cobre
-      }
+        if (h > 0) el.style.height = h + "px";
+      } catch {}
     }
 
     function setup() {
-      fit();
+      const el = iframeRef.current;
+      if (!el) return;
       try {
-        const doc = iframe?.contentDocument;
+        const doc = el.contentDocument;
         if (!doc?.body) return;
-        observer?.disconnect();
-        // MutationObserver dispara imediatamente quando showRecipe() faz innerHTML=
-        observer = new MutationObserver(fit);
-        observer.observe(doc.body, { childList: true, subtree: true });
+        ro?.disconnect();
+        // ResizeObserver dispara após layout — captura expansão E redução do conteúdo
+        ro = new ResizeObserver(fit);
+        ro.observe(doc.body);
+        fit();
       } catch {}
     }
 
     iframe.addEventListener("load", setup);
-    setup(); // já carregado
+    setup();
 
     function onMessage(e: MessageEvent) {
+      const el = iframeRef.current;
+      if (!el) return;
       if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
-        iframe.style.height = e.data.height + "px";
+        el.style.height = e.data.height + "px";
       }
     }
     window.addEventListener("message", onMessage);
 
     return () => {
-      observer?.disconnect();
+      ro?.disconnect();
       iframe.removeEventListener("load", setup);
       window.removeEventListener("message", onMessage);
     };
