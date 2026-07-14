@@ -2,7 +2,7 @@
 
 import { isAllowedEmbedUrl } from "@/lib/sanitize";
 import { AlertCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 interface EmbedBlockProps {
   url: string;
@@ -12,49 +12,45 @@ interface EmbedBlockProps {
 
 export default function EmbedBlock({ url, title = "Conteúdo incorporado", height = 480 }: EmbedBlockProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [iframeHeight, setIframeHeight] = useState(height);
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
     let observer: MutationObserver | null = null;
 
-    function readHeight() {
+    // Manipula o DOM diretamente — sem passar por React state/re-render
+    function fit() {
       try {
         const doc = iframe?.contentDocument;
-        if (!doc) return;
+        if (!doc?.body) return;
         const h = Math.max(
           doc.documentElement?.scrollHeight ?? 0,
-          doc.body?.scrollHeight ?? 0
+          doc.body.scrollHeight
         );
-        if (h > 100) setIframeHeight(h + 24);
+        if (h > 100) iframe.style.height = h + "px";
       } catch {
-        // cross-origin — postMessage cobre
+        // cross-origin sem allow-same-origin — postMessage cobre
       }
     }
 
     function setup() {
+      fit();
       try {
         const doc = iframe?.contentDocument;
         if (!doc?.body) return;
         observer?.disconnect();
-        // MutationObserver dispara exatamente quando o SPA muda o DOM interno
-        // (ex: showRecipe seta innerHTML) — sem depender de timers
-        observer = new MutationObserver(readHeight);
+        // MutationObserver dispara imediatamente quando showRecipe() faz innerHTML=
+        observer = new MutationObserver(fit);
         observer.observe(doc.body, { childList: true, subtree: true });
-        readHeight();
-      } catch {
-        // cross-origin — postMessage cobre
-      }
+      } catch {}
     }
 
     iframe.addEventListener("load", setup);
     setup(); // já carregado
 
-    // postMessage como backup (ex: antes do observer estar pronto)
-    function onMessage(event: MessageEvent) {
-      if (event.data?.type === "handify-resize" && typeof event.data.height === "number") {
-        setIframeHeight(event.data.height + 24);
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
+        iframe.style.height = e.data.height + "px";
       }
     }
     window.addEventListener("message", onMessage);
@@ -82,7 +78,7 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
         src={url}
         title={title}
         width="100%"
-        height={iframeHeight}
+        height={height}
         className="border-0 block"
         loading="lazy"
         allow="camera; microphone; fullscreen"
