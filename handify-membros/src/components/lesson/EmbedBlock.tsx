@@ -2,7 +2,7 @@
 
 import { isAllowedEmbedUrl } from "@/lib/sanitize";
 import { AlertCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface EmbedBlockProps {
   url: string;
@@ -14,9 +14,22 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(height);
 
+  // Lê altura diretamente do DOM do iframe (funciona para iframes same-origin)
+  const readHeight = useCallback(() => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      if (!doc) return;
+      const h = doc.documentElement?.scrollHeight ?? doc.body?.scrollHeight;
+      if (h && h > 100) setIframeHeight(h + 24);
+    } catch {
+      // cross-origin — postMessage vai cobrir
+    }
+  }, []);
+
   useEffect(() => {
+    // Recebe notifyHeight() do iframe — sem verificar source para evitar
+    // falsos negativos com WindowProxy em alguns browsers
     function handler(event: MessageEvent) {
-      if (event.source !== iframeRef.current?.contentWindow) return;
       if (event.data?.type === "handify-resize" && typeof event.data.height === "number") {
         setIframeHeight(event.data.height + 24);
       }
@@ -46,6 +59,7 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
         loading="lazy"
         allow="camera; microphone; fullscreen"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+        onLoad={readHeight}
       />
     </div>
   );

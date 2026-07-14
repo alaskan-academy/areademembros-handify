@@ -375,11 +375,11 @@ function notifyHeight(){
 function showPicker(){
   document.getElementById('picker').style.display='block';
   document.getElementById('recipe').style.display='none';
-  document.getElementById('backBtn').style.display='flex';
-  document.getElementById('backBtn').textContent='← Voltar';
+  document.getElementById('backBtn').style.display='none';
   document.getElementById('printBtn').style.display='none';
   currentId=0;
   setTimeout(notifyHeight,50);
+  setTimeout(notifyHeight,300);
 }
 
 function showRecipe(id){
@@ -393,14 +393,11 @@ function showRecipe(id){
   document.getElementById('printBtn').style.display='block';
   window.scrollTo(0,0);
   setTimeout(notifyHeight,50);
+  setTimeout(notifyHeight,400);
 }
 
 function goBack(){
-  if(currentId!==0){
-    showPicker();
-  } else {
-    try{window.parent.history.back();}catch(e){window.history.back();}
-  }
+  showPicker();
 }
 
 function openPrint(){
@@ -441,8 +438,7 @@ function openPrint(){
       document.fonts.ready.then(function(){window.print();});
     }
   } else {
-    document.getElementById('backBtn').style.display='flex';
-    document.getElementById('backBtn').textContent='← Voltar';
+    // picker inicial — sem botão de voltar
   }
   setTimeout(notifyHeight,100);
 })();
