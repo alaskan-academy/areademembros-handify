@@ -66,7 +66,16 @@ function HtmlDocument({ html }: { html: string }) {
       const iframe = iframeRef.current;
       const doc = iframe?.contentDocument ?? iframe?.contentWindow?.document;
       if (!doc?.body) return;
-      const obs = new MutationObserver(() => requestAnimationFrame(measure));
+      let debounce: ReturnType<typeof setTimeout> | null = null;
+      const obs = new MutationObserver(() => {
+        // rAF imediato + delays para capturar conteúdo que expande com transição CSS
+        requestAnimationFrame(measure);
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          measure();
+          setTimeout(measure, 300);
+        }, 50);
+      });
       obs.observe(doc.body, {
         childList: true,
         subtree: true,
