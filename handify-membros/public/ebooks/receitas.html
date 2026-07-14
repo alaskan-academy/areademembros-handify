@@ -368,20 +368,28 @@ const R={
 
 let currentId=0;
 
-// Mede a altura real após o layout assentar (rAF garante que o browser terminou o reflow)
-function notifyHeight(){
-  requestAnimationFrame(function(){
-    var h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight);
-    try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){}
-  });
-}
-
-// ResizeObserver dentro do HTML: reporta qualquer mudança de tamanho automaticamente
+// Polling leve: detecta qualquer mudança de altura e reporta ao pai via postMessage
+// Usa offsetHeight (layout real) em vez de scrollHeight (que pode retornar viewport no iframe)
 (function(){
-  if(!window.ResizeObserver) return;
-  var ro=new ResizeObserver(function(){ notifyHeight(); });
-  ro.observe(document.body);
+  var last=0;
+  function report(){
+    var h=Math.max(
+      document.documentElement.offsetHeight,
+      document.body.offsetHeight,
+      document.documentElement.scrollHeight,
+      document.body.scrollHeight
+    );
+    if(h>0 && h!==last){ last=h; try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){} }
+  }
+  setInterval(report,200);
+  // Também dispara imediatamente quando algo muda no DOM
+  if(window.MutationObserver){
+    new MutationObserver(function(){ requestAnimationFrame(report); })
+      .observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style','hidden']});
+  }
 })();
+
+function notifyHeight(){ /* mantido para compatibilidade — polling cobre */ }
 
 function showPicker(){
   document.getElementById('picker').style.display='block';

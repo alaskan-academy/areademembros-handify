@@ -16,52 +16,38 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-    let ro: ResizeObserver | null = null;
 
-    function fit() {
-      const el = iframeRef.current;
-      if (!el) return;
+    function setHeight(h: number) {
+      if (iframe && h > 50) iframe.style.height = h + "px";
+    }
+
+    // Leitura inicial para HTMLs estáticos (sem postMessage)
+    function onLoad() {
       try {
-        const doc = el.contentDocument;
+        const doc = iframe?.contentDocument;
         if (!doc?.body) return;
-        // scrollHeight reflete altura real após reflow (ResizeObserver garante isso)
         const h = Math.max(
+          doc.documentElement?.offsetHeight ?? 0,
+          doc.body.offsetHeight,
           doc.documentElement?.scrollHeight ?? 0,
           doc.body.scrollHeight
         );
-        if (h > 0) el.style.height = h + "px";
-      } catch {}
+        setHeight(h);
+      } catch { /* cross-origin — postMessage cobre */ }
     }
 
-    function setup() {
-      const el = iframeRef.current;
-      if (!el) return;
-      try {
-        const doc = el.contentDocument;
-        if (!doc?.body) return;
-        ro?.disconnect();
-        // ResizeObserver dispara após layout — captura expansão E redução do conteúdo
-        ro = new ResizeObserver(fit);
-        ro.observe(doc.body);
-        fit();
-      } catch {}
-    }
-
-    iframe.addEventListener("load", setup);
-    setup();
-
+    // postMessage: HTMLs dinâmicos (receitas.html) enviam altura quando mudam
     function onMessage(e: MessageEvent) {
-      const el = iframeRef.current;
-      if (!el) return;
       if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
-        el.style.height = e.data.height + "px";
+        setHeight(e.data.height);
       }
     }
+
+    iframe.addEventListener("load", onLoad);
     window.addEventListener("message", onMessage);
 
     return () => {
-      ro?.disconnect();
-      iframe.removeEventListener("load", setup);
+      iframe.removeEventListener("load", onLoad);
       window.removeEventListener("message", onMessage);
     };
   }, []);
