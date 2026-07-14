@@ -125,7 +125,7 @@ td:not(:first-child),th:not(:first-child){text-align:right}
 <div class="app-header">
   <div class="logo">Handify<span class="tm">™</span> <span style="font-weight:400;opacity:.55;font-size:.8rem">Receitas</span></div>
   <div class="header-actions">
-    <button id="backBtn" onclick="showPicker()">← Receitas</button>
+    <button id="backBtn" onclick="goBack()">← Receitas</button>
     <button id="printBtn" class="no-print" onclick="openPrint()">⬇ Baixar PDF</button>
   </div>
 </div>
@@ -375,7 +375,8 @@ function notifyHeight(){
 function showPicker(){
   document.getElementById('picker').style.display='block';
   document.getElementById('recipe').style.display='none';
-  document.getElementById('backBtn').style.display='none';
+  document.getElementById('backBtn').style.display='flex';
+  document.getElementById('backBtn').textContent='← Voltar';
   document.getElementById('printBtn').style.display='none';
   currentId=0;
   setTimeout(notifyHeight,50);
@@ -388,27 +389,60 @@ function showRecipe(id){
   document.getElementById('picker').style.display='none';
   document.getElementById('recipe').style.display='block';
   document.getElementById('backBtn').style.display='flex';
+  document.getElementById('backBtn').textContent='← Receitas';
   document.getElementById('printBtn').style.display='block';
   window.scrollTo(0,0);
   setTimeout(notifyHeight,50);
 }
 
+function goBack(){
+  if(currentId!==0){
+    showPicker();
+  } else {
+    try{window.parent.history.back();}catch(e){window.history.back();}
+  }
+}
+
 function openPrint(){
   if(!currentId) return;
-  const url='/ebooks/receitas.html?id='+currentId+'&print=1';
-  window.open(url,'_blank');
+  const r=R[currentId]; if(!r) return;
+  const css=document.querySelector('style').innerHTML;
+  const w=window.open('','_blank');
+  if(!w) return;
+  w.document.write(
+    '<!DOCTYPE html><html lang="pt-BR"><head>'+
+    '<meta charset="UTF-8">'+
+    '<title>Handify™ — '+r.nm+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet">'+
+    '<style>'+css+'</style>'+
+    '</head><body><div id="recipe">'+build(r)+'</div>'+
+    '<script>'+
+    'function mark(el){el.classList.toggle("done")}'+
+    'function switchSz(idx){'+
+    '  document.querySelectorAll(".stab").forEach(function(t,i){t.classList.toggle("active",i===idx)});'+
+    '  document.querySelectorAll(".szp,.szc").forEach(function(p){p.hidden=parseInt(p.dataset.sz)!==idx});'+
+    '}'+
+    'document.fonts.ready.then(function(){window.print();});'+
+    '<\/script>'+
+    '</body></html>'
+  );
+  w.document.close();
 }
 
 (function(){
   const p=new URLSearchParams(window.location.search);
   const id=parseInt(p.get('id'));
+  const isPrint=p.get('print')==='1';
   if(id&&R[id]){
     showRecipe(id);
-    document.getElementById('backBtn').style.display='none';
-    document.getElementById('printBtn').style.display='none';
-    if(p.get('print')==='1'){
+    if(isPrint){
+      document.getElementById('backBtn').style.display='none';
+      document.getElementById('printBtn').style.display='none';
       document.fonts.ready.then(function(){window.print();});
     }
+  } else {
+    document.getElementById('backBtn').style.display='flex';
+    document.getElementById('backBtn').textContent='← Voltar';
   }
   setTimeout(notifyHeight,100);
 })();
