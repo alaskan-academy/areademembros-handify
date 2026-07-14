@@ -2,7 +2,7 @@
 
 import { isAllowedEmbedUrl } from "@/lib/sanitize";
 import { AlertCircle } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface EmbedBlockProps {
   url: string;
@@ -14,28 +14,56 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeHeight, setIframeHeight] = useState(height);
 
-  // Lê altura diretamente do DOM do iframe (funciona para iframes same-origin)
-  const readHeight = useCallback(() => {
-    try {
-      const doc = iframeRef.current?.contentDocument;
-      if (!doc) return;
-      const h = doc.documentElement?.scrollHeight ?? doc.body?.scrollHeight;
-      if (h && h > 100) setIframeHeight(h + 24);
-    } catch {
-      // cross-origin — postMessage vai cobrir
-    }
-  }, []);
-
   useEffect(() => {
-    // Recebe notifyHeight() do iframe — sem verificar source para evitar
-    // falsos negativos com WindowProxy em alguns browsers
-    function handler(event: MessageEvent) {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    let observer: MutationObserver | null = null;
+
+    function readHeight() {
+      try {
+        const doc = iframe?.contentDocument;
+        if (!doc) return;
+        const h = Math.max(
+          doc.documentElement?.scrollHeight ?? 0,
+          doc.body?.scrollHeight ?? 0
+        );
+        if (h > 100) setIframeHeight(h + 24);
+      } catch {
+        // cross-origin — postMessage cobre
+      }
+    }
+
+    function setup() {
+      try {
+        const doc = iframe?.contentDocument;
+        if (!doc?.body) return;
+        observer?.disconnect();
+        // MutationObserver dispara exatamente quando o SPA muda o DOM interno
+        // (ex: showRecipe seta innerHTML) — sem depender de timers
+        observer = new MutationObserver(readHeight);
+        observer.observe(doc.body, { childList: true, subtree: true });
+        readHeight();
+      } catch {
+        // cross-origin — postMessage cobre
+      }
+    }
+
+    iframe.addEventListener("load", setup);
+    setup(); // já carregado
+
+    // postMessage como backup (ex: antes do observer estar pronto)
+    function onMessage(event: MessageEvent) {
       if (event.data?.type === "handify-resize" && typeof event.data.height === "number") {
         setIframeHeight(event.data.height + 24);
       }
     }
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
+    window.addEventListener("message", onMessage);
+
+    return () => {
+      observer?.disconnect();
+      iframe.removeEventListener("load", setup);
+      window.removeEventListener("message", onMessage);
+    };
   }, []);
 
   if (!isAllowedEmbedUrl(url)) {
@@ -59,7 +87,6 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
         loading="lazy"
         allow="camera; microphone; fullscreen"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-        onLoad={readHeight}
       />
     </div>
   );
