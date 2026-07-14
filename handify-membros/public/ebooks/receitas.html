@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handify™ — Receitas de Velas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#6699F3;--green:#72CF92;--yellow:#FEC649;--dark:#0F0F0F;--text:#2D2D2D;--off:#F5F5F0;--border:#e2e2da;--r:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',Arial,sans-serif;color:var(--text);background:#fff;font-size:14px;line-height:1.55}
+
+/* STRIPE */
+.stripe{display:flex;height:4px;width:100%}
+.stripe span{flex:1}
+.stripe span:nth-child(1){background:var(--blue)}
+.stripe span:nth-child(2){background:var(--green)}
+.stripe span:nth-child(3){background:var(--yellow)}
+
+/* HEADER */
+.app-header{background:var(--dark);color:#fff;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.logo{font-weight:900;font-size:.95rem;color:var(--blue);letter-spacing:-.02em;white-space:nowrap}
+.logo span{color:#fff}
+.logo .tm{font-size:.55rem;vertical-align:super}
+.header-actions{display:flex;gap:6px;flex-shrink:0}
+#backBtn{display:none;background:none;border:1.5px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;padding:5px 10px;font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer;align-items:center;white-space:nowrap}
+#backBtn:hover{border-color:var(--blue);color:var(--blue)}
+#printBtn{display:none;background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap}
+
+/* PICKER */
+#picker{padding:14px}
+.picker-title{font-size:.95rem;font-weight:700;margin-bottom:3px}
+.picker-sub{font-size:.75rem;color:#777;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(min-width:480px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card-pick{background:var(--off);border:1.5px solid var(--border);border-radius:var(--r);padding:12px 8px;cursor:pointer;transition:border-color .15s,box-shadow .15s;text-align:center;-webkit-tap-highlight-color:transparent}
+.card-pick:hover,.card-pick:active{border-color:var(--blue);box-shadow:0 2px 8px rgba(102,153,243,.18)}
+.card-pick .num{font-size:.62rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.card-pick .emo{font-size:1.5rem;margin-bottom:5px;display:block}
+.card-pick .name{font-size:.74rem;font-weight:600;line-height:1.3}
+.card-pick .badge{display:inline-block;margin-top:5px;font-size:.58rem;font-weight:600;padding:2px 6px;border-radius:20px}
+.bp{background:#e8f0fe;color:#3367d6}
+.bm{background:#e6f4ea;color:#1e7e34}
+.bpi{background:#fce8e6;color:#c5221f}
+.be{background:#fff3cd;color:#856404}
+
+/* RECIPE */
+#recipe{display:none}
+.rec-header{background:var(--dark);color:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.rec-num{background:var(--blue);color:#fff;font-weight:700;font-size:.85rem;padding:7px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.rec-header h1{font-size:.95rem;font-weight:700;line-height:1.3}
+.rec-header .sub{font-size:.68rem;color:#aaa;margin-top:2px}
+.rec-body{padding:12px 14px 40px}
+
+/* SECTIONS */
+.sec{background:#fff;border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:visible}
+.sh{background:var(--off);padding:8px 12px;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#666;border-bottom:1px solid var(--border)}
+.sb{padding:10px 12px}
+
+/* TEMPO */
+.tempo-row{display:flex;flex-wrap:wrap;gap:8px}
+.ti{flex:1;min-width:100px;background:var(--off);border-radius:8px;padding:8px 10px}
+.ti .tl{font-size:.63rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em}
+.ti .tv{font-size:.85rem;font-weight:700;margin-top:1px}
+
+/* MATERIAIS */
+.mlist{list-style:none;display:flex;flex-direction:column;gap:4px}
+.mlist li{display:flex;gap:7px;align-items:baseline;font-size:.83rem}
+.mlist li::before{content:"•";color:var(--blue);font-weight:700;flex-shrink:0}
+
+/* STEPS */
+.slist{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:5px}
+.step{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:background .12s;-webkit-tap-highlight-color:transparent}
+.step.done{background:#f0fbf5;border-color:#a8dfc0}
+.sn{background:var(--off);border:1.5px solid var(--border);border-radius:50%;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#666;flex-shrink:0;transition:background .12s,border-color .12s}
+.step.done .sn{background:var(--green);border-color:var(--green);color:#fff}
+.stxt{font-size:.82rem;line-height:1.45}
+.step.done .stxt{color:#555}
+
+/* DAY / BLOCO LABEL */
+.dlabel{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--blue);margin:10px 0 5px}
+
+/* TABLES */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:.82rem;min-width:240px}
+th,td{padding:6px 9px;text-align:left;border-bottom:1px solid var(--border)}
+th{background:var(--off);font-weight:600;font-size:.67rem;text-transform:uppercase;letter-spacing:.05em;color:#666}
+.tg td{background:#fafaf8;font-weight:700;font-size:.65rem;color:#888;text-transform:uppercase;letter-spacing:.05em;padding-top:9px}
+td:not(:first-child),th:not(:first-child){text-align:right}
+.pmin{color:#c5221f;font-weight:600}
+.pmax{color:#1e7e34;font-weight:600}
+
+/* TIPS */
+.tlist{list-style:none;display:flex;flex-direction:column;gap:5px}
+.tlist li{display:flex;gap:7px;align-items:flex-start;font-size:.8rem}
+.tlist li::before{content:"💡";flex-shrink:0;font-size:.7rem;margin-top:1px}
+
+/* ALERTA */
+.alert{background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;padding:9px 12px;font-size:.79rem;font-weight:600;color:#856404;margin-bottom:10px}
+
+/* SIZE TABS */
+.stabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.stab{padding:4px 12px;border-radius:20px;border:1.5px solid var(--border);font-size:.75rem;font-weight:600;cursor:pointer;background:var(--off);color:#555;transition:.12s;-webkit-tap-highlight-color:transparent}
+.stab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* PRINT */
+@media print{
+  .no-print,#backBtn,#printBtn{display:none!important}
+  #picker{display:none!important}
+  #recipe{display:block!important}
+  .stripe,.app-header{display:none!important}
+  .rec-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  th,.tg td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-size:11px}
+  .sec{break-inside:avoid}
+  .rec-body{padding:8px}
+}
+</style>
+</head>
+<body>
+<div class="stripe"><span></span><span></span><span></span></div>
+<div class="app-header">
+  <div class="logo">Handify<span class="tm">™</span> <span style="font-weight:400;opacity:.55;font-size:.8rem">Receitas</span></div>
+  <div class="header-actions">
+    <button id="backBtn" onclick="showPicker()">← Receitas</button>
+    <button id="printBtn" class="no-print" onclick="openPrint()">⬇ Baixar PDF</button>
+  </div>
+</div>
+
+<!-- PICKER -->
+<div id="picker">
+  <div class="picker-title">Escolha a receita</div>
+  <div class="picker-sub">Toque em uma vela para ver o passo a passo</div>
+  <div class="grid">
+    <div class="card-pick" onclick="showRecipe(1)"><div class="num">Vela 01</div><span class="emo">🕯️</span><div class="name">Pote Patê 100ml</div><span class="badge bp">Pote</span></div>
+    <div class="card-pick" onclick="showRecipe(2)"><div class="num">Vela 02</div><span class="emo">🕯️</span><div class="name">Potinho Lembrancinha 40ml</div><span class="badge bp">Pote</span></div>
+    <div class="card-pick" onclick="showRecipe(3)"><div class="num">Vela 03</div><span class="emo">🕯️</span><div class="name">Potinho de Gesso</div><span class="badge bp">Pote</span></div>
+    <div class="card-pick" onclick="showRecipe(4)"><div class="num">Vela 04</div><span class="emo">🌼</span><div class="name">Margarida</div><span class="badge bm">Molde</span></div>
+    <div class="card-pick" onclick="showRecipe(5)"><div class="num">Vela 05</div><span class="emo">🌸</span><div class="name">Jasmim</div><span class="badge bm">Molde</span></div>
+    <div class="card-pick" onclick="showRecipe(6)"><div class="num">Vela 06</div><span class="emo">🐻</span><div class="name">Ursinho</div><span class="badge bpi">Molde+Pintura</span></div>
+    <div class="card-pick" onclick="showRecipe(7)"><div class="num">Vela 07</div><span class="emo">🐰</span><div class="name">Coelhinho</div><span class="badge bpi">Molde+Pintura</span></div>
+    <div class="card-pick" onclick="showRecipe(8)"><div class="num">Vela 08</div><span class="emo">🪷</span><div class="name">Flor de Lótus / Rosa</div><span class="badge bm">Avançado</span></div>
+    <div class="card-pick" onclick="showRecipe(9)"><div class="num">Vela 09</div><span class="emo">🫧</span><div class="name">Vela de Bolinhas</div><span class="badge bm">Avançado</span></div>
+    <div class="card-pick" onclick="showRecipe(10)"><div class="num">Vela 10</div><span class="emo">✉️</span><div class="name">Mensagem Secreta</div><span class="badge be">Especial</span></div>
+    <div class="card-pick" onclick="showRecipe(11)"><div class="num">Vela 11</div><span class="emo">🎀</span><div class="name">Revelação de Cor</div><span class="badge be">Especial</span></div>
+  </div>
+</div>
+
+<!-- RECIPE -->
+<div id="recipe"></div>
+
+<script>
+const R={
+  1:{n:'01',e:'🕯️',nm:'Pote Patê 100ml',t:'Cera de Coco · Pote',
+    tempo:[['Sem cura','70–110 min'],['Total','2h–3h30'],['Rendimento','~9 potes 100ml']],
+    mat:['Cera de coco — 900g','Essência — 90ml','Pavio 3mm (cortar com +3cm da altura do pote)','Potes de vidro 100ml','Lacre e etiqueta (opcional)'],
+    steps:[
+      'Higienizar os potes com álcool 70% usando papel-toalha e deixar secar completamente. Qualquer resíduo de gordura ou poeira prejudica a aderência da cera.',
+      'Derreter 900g de cera de coco em banho-maria ou derretedor elétrico, mantendo a temperatura entre 60–65°C. Acima disso, a essência evapora mais rápido.',
+      'Com o fogo desligado, adicionar 90ml de essência e misturar por 1 minuto em movimentos suaves. Desligar o fogo antes garante que o aroma não evapore.',
+      'Aquecer os potes com soprador por 3–5 segundos para evitar choque térmico e bolhas na lateral. Despejar a cera em fio contínuo e devagar, até 0,5cm da borda.',
+      'Centralizar o pavio com apoiador de palito ou clip. O pavio precisa ficar reto — um pavio torto cria chama irregular e queima desigual.',
+      'Curar em superfície plana e estável por 40 min–1h40 sem mover ou assoprar. Correntes de ar e vibração criam ondulações na superfície.',
+      'Cortar o pavio a 2cm. Aplicar lacre e etiqueta — a vela está pronta para venda ou presente.'
+    ],
+    custos:[['Custo de Produção',[['Simples','R$ 12,51'],['Premium','R$ 16,21']]],['Preço Mínimo',[['Direto','R$ 18,00'],['Shopee/ML','R$ 26,00']]]],
+    precos:[['Versão Simples',[['Direto','R$18','R$25'],['Shopee/ML','R$26','R$35,75']]],['Versão Premium',[['Direto','R$23','R$32,50'],['Shopee/ML','R$33','R$46,30']]]],
+    dicas:['Mesmo que o pote pareça limpo, higienize com álcool — resíduos invisíveis causam descascamento.','Aqueça os potes antes de despejar: evita bolhas na lateral e a cera adere melhor ao vidro.','Não mova a vela durante a cura — qualquer vibração cria ondas na superfície.']},
+  2:{n:'02',e:'🕯️',nm:'Potinho Lembrancinha 40ml',t:'Cera de Coco · Pote',
+    tempo:[['Sem cura','58–92 min'],['Total','1h30–3h'],['Rendimento','~8 potinhos 40ml']],
+    mat:['Cera de coco — 350g','Essência — 35ml','Pavio 1,5mm (cortar com +3cm da altura)','Potinhos de vidro 40ml','Lacre e etiqueta'],
+    steps:[
+      'Higienizar os potinhos com álcool 70% e secar com papel-toalha. Potinhos pequenos acumulam poeira mesmo novos — higienize sempre.',
+      'Derreter 350g de cera de coco a 60–65°C.',
+      'Com fogo desligado, adicionar 35ml de essência e misturar por 1 minuto.',
+      'Aquecer os potinhos com soprador por 2–3 segundos — potinhos pequenos perdem calor muito rápido, então despeje imediatamente após aquecer.',
+      'Centralizar o pavio 1,5mm com apoiador de palito. Em recipientes tão pequenos, o apoiador é essencial para manter o pavio no centro.',
+      'Curar em superfície plana e estável por 40 min–1h40 sem mover.',
+      'Cortar pavio a 2cm. Aplicar lacre e etiqueta.'
+    ],
+    custos:[['Custo de Produção',[['Simples','R$ 8,75'],['Premium','R$ 10,10']]],['Preço Mínimo',[['Direto','R$ 12,00'],['Shopee/ML','R$ 17,50']]]],
+    precos:[['Versão Simples',[['Direto','R$12','R$17,50'],['Shopee/ML','R$17,50','R$25']]],['Versão Premium',[['Direto','R$14','R$20,20'],['Shopee/ML','R$20,50','R$28,85']]]],
+    dicas:['Potinhos pequenos perdem calor muito rápido — aqueça e despeje sem demora.','Pavio 1,5mm é ideal para recipientes pequenos: evita chama alta e fumaça excessiva.','Kit lembrancinha: combine 3 potinhos com fragrâncias diferentes para aumentar o ticket.']},
+  3:{n:'03',e:'🕯️',nm:'Potinho de Gesso',t:'Cera de Coco · Pote',
+    tempo:[['Sem cura','75–110 min'],['Total','2h–3h20'],['Rendimento','~9 potinhos 100ml']],
+    mat:['Cera de coco — 900g','Essência — 90ml','Pavio 3mm','Potinhos de gesso 100ml','Sisal — 15m','Flores secas — 25 unidades','Cola quente'],
+    steps:[
+      'Limpar os potinhos de gesso com pincel seco para remover o pó de produção. Nunca use água ou álcool líquido — o gesso absorve umidade e pode trincar ou contaminar a cera.',
+      'Derreter 900g de cera de coco a 60–65°C.',
+      'Com fogo desligado, adicionar 90ml de essência e misturar por 1 minuto.',
+      'Aquecer os potinhos de gesso com soprador por apenas 3–4 segundos — o objetivo é só tirar o frio do material, não superaquecer. Despejar a cera devagar.',
+      'Centralizar o pavio com apoiador e aguardar firmar levemente antes de soltar.',
+      'Curar 40 min–1h40 em local estável e sem correntes de ar.',
+      'Acabamento: envolver a base do potinho com sisal colado com cola quente, depois fixar as flores secas no topo, lateral ou tampa conforme o design.',
+      'Cortar pavio a 2cm e finalizar com etiqueta.'
+    ],
+    custos:[['Custo de Produção',[['Simples','R$ 16,39'],['Premium','R$ 20,09']]],['Preço Mínimo',[['Direto','R$ 23,00'],['Shopee/ML','R$ 33,00']]]],
+    precos:[['Versão Simples',[['Direto','R$23','R$32,80'],['Shopee/ML','R$33','R$46,80']]],['Versão Premium',[['Direto','R$28','R$40,20'],['Shopee/ML','R$40','R$57,40']]]],
+    dicas:['Limpe o gesso apenas com pincel seco — água ou álcool danificam o material.','Aqueça o gesso levemente com soprador: só para tirar o frio, não para esquentar.','Flores secas encarecem o produto e justificam o preço premium — invista no acabamento.']},
+  4:{n:'04',e:'🌼',nm:'Margarida',t:'Cera de Soja · Molde de Silicone',
+    tempo:[['Sem cura','75–110 min'],['Total','2h15–3h50'],['Rendimento','~11 margaridas']],
+    mat:['Cera de soja — 220g','Essência — 20ml','Pavio 2,5–3mm','Molde de silicone margarida'],
+    steps:[
+      'Passar o pavio pelo furo central do molde, deixando 0,5cm extra embaixo. Vedar com fita ou rolinho de cera fria para a cera não vazar.',
+      'Aquecer o molde de silicone com soprador por 3–4 segundos. Molde frio cria linhas de resfriamento visíveis nas pétalas e dificulta o desmolde.',
+      'Derreter 220g de cera de soja — ela pode ir até 80°C sem queimar, mas adicione a essência somente quando baixar para 65–70°C para preservar o aroma.',
+      'Adicionar 20ml de essência e misturar suavemente por 1 minuto.',
+      'Despejar a cera até a borda do molde em fio contínuo e devagar. Pressa cria bolhas de ar escondidas nas pétalas.',
+      'Curar 1–2h sem mover. A superfície deve ficar completamente opaca e fria ao toque antes de desmoldar.',
+      'Para desmoldar, pressionar o fundo do silicone com os polegares e flexionar as bordas para soltar. Não puxe nem torça.',
+      'Cortar pavio a 1cm. Finalizar com embalagem.'
+    ],
+    custos:[['Custo de Produção',[['Simples','R$ 6,06'],['Premium','R$ 7,31']]],['Preço Mínimo',[['Direto','R$ 8,50'],['Shopee/ML','R$ 12,00']]]],
+    precos:[['Versão Simples',[['Direto','R$8,50','R$12,12'],['Shopee/ML','R$12','R$17,31']]],['Versão Premium',[['Direto','R$10','R$14,62'],['Shopee/ML','R$14,50','R$20,89']]]],
+    dicas:['Cera de soja encolhe ao resfriar e pode formar uma cova no centro — complete com uma segunda camada fina se necessário.','Aquecer o molde antes evita bolhas e garante que as pétalas fiquem bem definidas.','Despeje devagar e em fio contínuo para não criar vazios nas pétalas.']},
+  5:{n:'05',e:'🌸',nm:'Jasmim',t:'Cera de Soja · Molde de Silicone',
+    tempo:[['Sem cura','80–115 min'],['Total','2h20–3h55'],['Rendimento','~11 jasmins']],
+    mat:['Cera de soja — 220g','Essência — 20ml','Pavio 2,5–3mm','Molde de silicone jasmim'],
+    steps:[
+      'Passar o pavio pelo furo central do molde, deixando 0,5cm extra embaixo. Vedar com fita.',
+      'Aquecer o molde com soprador por 3–4 segundos.',
+      'Derreter 220g de cera de soja. Adicionar 20ml de essência em 65–70°C e misturar por 1 minuto.',
+      'Despejar a cera até a borda, prestando atenção especial às pétalas finas do jasmim — encha cada cavidade com cuidado antes de continuar.',
+      'Curar 1–2h completos. As pétalas do jasmim são mais finas que as da margarida e parecem firmes por fora antes de estarem prontas — não antecipe o desmolde.',
+      'Para desmoldar, flexionar o silicone suavemente pelas bordas, liberando as pétalas aos poucos. As pétalas do jasmim são mais frágeis — nunca puxe pelo centro.',
+      'Cortar pavio a 1cm e finalizar com embalagem.'
+    ],
+    custos:[['Custo de Produção',[['Simples','R$ 6,09'],['Premium','R$ 7,34']]],['Preço Mínimo',[['Direto','R$ 8,50'],['Shopee/ML','R$ 12,00']]]],
+    precos:[['Versão Simples',[['Direto','R$8,50','R$12,18'],['Shopee/ML','R$12','R$17,40']]],['Versão Premium',[['Direto','R$10','R$14,68'],['Shopee/ML','R$14,50','R$20,97']]]],
+    dicas:['Respeite o tempo de cura completo — pétalas finas parecem sólidas por fora mas ainda estão moles por dentro.','Flexione o silicone de fora para dentro, pétala por pétala, para não quebrar.','Fragrância de jasmim ou floral combina perfeitamente com este molde.']},
+  6:{n:'06',e:'🐻',nm:'Ursinho',t:'Cera de Soja · Molde + Pintura · 2 DIAS',alert:'⚠️ Produção em 2 dias — mínimo 14h (inclui 2× 6h de secagem da tinta acrílica).',
+    tempo:[['Tempo mínimo','14h — 2 dias'],['Trabalho ativo','~3h'],['Rendimento','~11 ursinhos']],
+    mat:['Cera de soja — 220g','Essência — 20ml','Pavio 1,5–2mm','Molde de silicone ursinho','Tinta acrílica preta (olhos/nariz)','Tinta acrílica marrom (detalhes)','Pincel liner fino'],
+    days:[{d:'Dia 1',s:[
+      'Preparar os moldes: passar o pavio pelo furo, deixar 1–2cm de folga embaixo e vedar o fundo com fita ou cera fria para não vazar.',
+      'Aquecer o molde com soprador por 3–4 segundos, focando especialmente nas orelhas onde a cera precisa fluir.',
+      'Derreter 220g de cera de soja. Adicionar 20ml de essência em 65–70°C e misturar por 1 minuto.',
+      'Despejar devagar, começando pelas orelhas e depois o restante. Bolhas de ar ficam muito visíveis no rosto do ursinho.',
+      'Curar 2–4h até solidificar por completo. Ursinhos são mais densos que moldes planos — respeite o tempo de cura.',
+      'Desmoldar pressionando o silicone com cuidado nas orelhas, que são a parte mais frágil. Se resistir, aguarde mais 30 minutos.',
+      '1ª camada de pintura: aplicar tinta acrílica preta nos olhos e nariz de todos os ursinhos usando pincel liner, em traços finos e controlados.',
+      'Aguardar no mínimo 6h de secagem antes de aplicar a 2ª camada — tinta ainda úmida borrará no contato.'
+    ]},{d:'Dia 2',s:[
+      'Aplicar a 2ª camada de tinta preta (olhos/nariz) para cobrir imperfeições e intensificar a cor. Adicionar detalhes em marrom (pelagem, orelhas internas) se desejar.',
+      'Aguardar 6h de secagem completa. A tinta acrílica parece seca por fora mas ainda está curando por dentro — embale somente após esse período.'
+    ]}],
+    custos:[['Custo de Produção',[['Simples','R$ 7,83'],['Premium','R$ 9,08']]],['Preço Mínimo',[['Direto','R$ 11,00'],['Shopee/ML','R$ 16,00']]]],
+    precos:[['Versão Simples',[['Direto','R$11','R$15,66'],['Shopee/ML','R$16','R$22,37']]],['Versão Premium',[['Direto','R$13','R$18,16'],['Shopee/ML','R$18,50','R$25,94']]]],
+    dicas:['Produza em lote: enquanto o lote 1 cura, prepare e despeje o lote 2.','Tinta acrílica escolar comum funciona muito bem — sem necessidade de tinta específica para velas.','Embale somente após a 2ª camada completamente seca para não manchar o produto.']},
+  7:{n:'07',e:'🐰',nm:'Coelhinho',t:'Cera de Soja · Molde + Pintura · 2 DIAS',alert:'⚠️ Produção em 2 dias — mínimo 16h (orelhas longas precisam de cura mais longa).',
+    tempo:[['Tempo mínimo','16h — 2 dias'],['Trabalho ativo','~3h'],['Rendimento','~11 coelhinhos']],
+    mat:['Cera de soja — 220g','Essência — 20ml','Pavio 2,5–3mm','Molde de silicone coelhinho','Tinta acrílica preta (olhos/nariz)','Tinta acrílica rosa (interior das orelhas)','Pincel liner + pincel chato pequeno'],
+    days:[{d:'Dia 1',s:[
+      'Preparar os moldes: passar o pavio pelo CENTRO do corpo do coelhinho. Nunca posicionar nas orelhas — risco de chama muito próxima à borda. Vedar o fundo com fita.',
+      'Aquecer os moldes por 3–4 segundos com soprador, prestando atenção ao interior das orelhas longas.',
+      'Derreter 220g de cera de soja. Adicionar 20ml de essência em 65–70°C e misturar.',
+      'Despejar até a borda do molde — as orelhas são os pontos mais difíceis de preencher. Incline levemente o molde se necessário para a cera alcançar as pontas.',
+      'Curar 3–5h. As orelhas são mais finas e curam antes do corpo, mas espere o corpo solidificar também antes de desmoldar.',
+      'Desmoldar com extrema delicadeza: as orelhas do coelhinho são ainda mais frágeis que as do ursinho. Flexione o silicone pelas laterais, nunca pelas orelhas.',
+      '1ª camada: olhos e nariz com tinta preta (pincel liner); interior das orelhas com tinta rosa (pincel chato). Aguardar 6h.'
+    ]},{d:'Dia 2',s:[
+      'Aplicar a 2ª camada de pintura em todos os detalhes — olhos, nariz e orelhas. Refinar os traços e cobrir falhas da 1ª camada.',
+      'Aguardar 6h de secagem completa. Embalar somente quando a tinta não manchar ao toque.'
+    ]}],
+    custos:[['Custo de Produção',[['Simples','R$ 8,01'],['Premium','R$ 9,46']]],['Preço Mínimo',[['Direto','R$ 11,00'],['Shopee/ML','R$ 19,00']]]],
+    precos:[['Versão Simples',[['Direto','R$11','R$16,02'],['Shopee/ML','R$16','R$22,89']]],['Versão Premium',[['Direto','R$13','R$18,92'],['Shopee/ML','R$19','R$27,03']]]],
+    dicas:['Orelha quebrada? Cole de volta com cera quente derretida — fica imperceptível após embalado.','Pavio sempre no CENTRO do corpo, nunca nas orelhas — é uma regra de segurança.','Coelhinho rosa com detalhes brancos ou azuis faz muito sucesso em páscoa e chás de bebê.']},
+  8:{n:'08',e:'🪷',nm:'Flor de Lótus / Rosa',t:'Cera de Soja · Molde Grande · 2 Tamanhos',
+    tempo:[['Meia flor','4h15–6h'],['Flor inteira','6h15–9h30']],
+    sizes:['Meia Flor (~990g)','Flor Inteira (~2kg)'],
+    smat:[['Cera de soja — ~990g','Essência — proporcional (≈10% do peso da cera)','Pavio 3mm','Molde silicone flor de lótus ou rosa'],['Cera de soja — ~2kg','Essência — proporcional (≈10% do peso da cera)','Pavio 3mm','Molde silicone flor de lótus ou rosa']],
+    ssteps:[
+      ['Preparar o molde: passar o pavio pelo centro, deixar folga embaixo e vedar com fita ou cera fria.',
+       'Aquecer o molde com soprador por 4–5 segundos. Moldes grandes precisam de mais tempo para aquecer uniformemente.',
+       'Derreter a 1ª batelada de ~500g de cera de soja. Adicionar a essência proporcional em 65–70°C e misturar.',
+       'Despejar a 1ª batelada até a metade do molde. Aguardar 20–30 minutos de cura parcial — a cera começa a firmar mas o centro ainda está mole.',
+       'Derreter a 2ª batelada de ~500g com a essência e completar o molde até a borda.',
+       'Curar 3–5h sem mover. Flores são densas e a cura vai de fora para dentro — respeite o tempo.',
+       'Desmoldar pétala por pétala, flexionando o silicone com cuidado. Nunca puxe o molde inteiro de uma vez.',
+       'Cortar pavio a 1cm e finalizar.'],
+      ['Preparar o molde: pavio pelo centro, vedar.',
+       'Aquecer o molde por 4–5 segundos com soprador.',
+       'Derreter a 1ª batelada de ~500g com a essência proporcional.',
+       'Despejar a 1ª batelada e aguardar 20–30 min de cura parcial entre cada batelada. Repetir com a 2ª, 3ª e 4ª bateladas até completar o molde.',
+       'Curar 5–8h completos — flores inteiras têm muito mais massa e precisam de mais tempo.',
+       'Desmoldar pétala por pétala com paciência. O desmolde de uma flor inteira pode levar 10–15 minutos.',
+       'Cortar pavio a 1cm e finalizar.']
+    ],
+    scustos:[[['Custo de Produção',[['Simples','R$ 11,56'],['Premium','R$ 14,76']]],['Preço Mínimo',[['Direto','R$ 16,00'],['Shopee/ML','R$ 23,00']]]],[['Custo de Produção',[['Simples','R$ 19,16'],['Premium','R$ 22,36']]],['Preço Mínimo',[['Direto','R$ 27,00'],['Shopee/ML','R$ 38,00']]]]],
+    sprecos:[[['Versão Simples',[['Direto','R$16','R$23,12'],['Shopee/ML','R$23','R$33,03']]],['Versão Premium',[['Direto','R$20','R$29'],['Shopee/ML','R$28','R$41']]]],[['Versão Simples',[['Direto','R$27','R$38,32'],['Shopee/ML','R$38','R$54,74']]],['Versão Premium',[['Direto','R$31','R$44'],['Shopee/ML','R$44','R$63']]]]],
+    dicas:['Trabalhe sempre em bateladas — despejar tudo de uma vez em moldes grandes gera rachaduras na cura.','Desmolde sempre pétala por pétala: puxar o molde inteiro de uma vez quebra as pétalas externas.','Flor inteira justifica preço bem mais alto — posicione como produto premium.']},
+  9:{n:'09',e:'🫧',nm:'Vela de Bolinhas',t:'Cera de Soja · Molde com Bolinhas · 2 Tamanhos',
+    tempo:[['Esfera pequena','9–13h'],['Esfera grande','19–25h+']],
+    sizes:['Tamanho Pequeno (~990g)','Tamanho Grande (~2kg)'],
+    smat:[['Cera de soja — ~990g','Essência — proporcional (≈10% do peso)','Pavio 3mm','Molde de silicone com bolinhas (2 metades) + elásticos para vedar a junta'],['Cera de soja — ~2kg','Essência — proporcional (≈10% do peso)','Pavio 3mm','Molde de silicone com bolinhas (2 metades) + elásticos para vedar a junta']],
+    ssteps:[
+      ['Preparar o molde: passar o pavio pelo centro de uma das metades, unir as duas partes e vedar a junta com elásticos largos para não vazar durante o despejo.',
+       'Aquecer o molde por 3–4 segundos com soprador para facilitar o preenchimento das bolinhas.',
+       'Derreter bateladas de ~500g de cera de soja. Adicionar essência em 65–70°C e misturar.',
+       'Despejar pelo orifício de enchimento até completar todas as cavidades. Se aparecer crater no topo após 2h, reaqueça levemente e complete com cera adicional.',
+       'Curar 8–12h em local sem vibração. A cera nas bolinhas cura de fora para dentro — respeite o tempo.',
+       'Para desmoldar, separar as duas metades simultaneamente, aplicando pressão uniforme nos dois lados. Se puxar um lado antes do outro, o molde resiste e pode deformar as bolinhas.',
+       'Se houver linha de emenda visível nas bolinhas, polir com os dedos levemente aquecidos ou lixa fina (400).',
+       'Cortar pavio a 1cm e finalizar.'],
+      ['Preparar o molde: pavio pelo centro, unir as metades e vedar a junta com elásticos.',
+       'Aquecer o molde por 3–4 segundos com soprador.',
+       'Derreter em bateladas de ~500g com a essência proporcional.',
+       'Despejar e completar o crater após 2h de cura parcial.',
+       'Curar 18–24h completos — essencial. Cura incompleta faz as bolinhas grudarem no molde e deformarem ao desmoldar.',
+       'Separar as duas metades do molde simultaneamente com pressão uniforme.',
+       'Lixar a emenda entre as bolinhas se necessário.',
+       'Cortar pavio e finalizar.']
+    ],
+    scustos:[[['Custo de Produção',[['Simples','R$ 12,27'],['Premium','R$ 15,77']]],['Preço Mínimo',[['Direto','R$ 17,00'],['Shopee/ML','R$ 24,00']]]],[['Custo de Produção',[['Simples','R$ 20,03'],['Premium','R$ 23,53']]],['Preço Mínimo',[['Direto','R$ 28,00'],['Shopee/ML','R$ 40,00']]]]],
+    sprecos:[[['Versão Simples',[['Direto','R$17','R$24,54'],['Shopee/ML','R$24','R$35,06']]],['Versão Premium',[['Direto','R$22','R$31'],['Shopee/ML','R$31','R$44']]]],[['Versão Simples',[['Direto','R$28','R$40'],['Shopee/ML','R$40','R$57']]],['Versão Premium',[['Direto','R$33','R$47'],['Shopee/ML','R$47','R$67']]]]],
+    dicas:['Sempre separe as duas metades do molde ao mesmo tempo — se puxar um lado antes do outro, as bolinhas deformam.','O crater no topo é normal: é a retração da cera de soja ao solidificar. Complete com cera após 2h.','Planeje a produção do tamanho grande para a noite anterior — as bolinhas precisam de 18–24h de cura.']},
+  10:{n:'10',e:'✉️',nm:'Mensagem Secreta',t:'Cera de Soja · Especial',
+    tempo:[['Trabalho ativo','~2h'],['Total','3h30–5h'],['Etapas','2 blocos']],
+    mat:['Cera de soja — BASE 660g + COBERTURA 132g','Essência — 66ml (base) + 13ml (cobertura)','Pavio 3mm','Papel vegetal (manteiga) para a mensagem','Impressora ou caneta nanquim','Molde de silicone ou forma'],
+    blocks:[
+      {b:'Bloco 1',s:[
+        'Criar ou imprimir a mensagem no papel vegetal. Use fonte pequena (8–10pt) para caber bem — o papel precisa ficar dentro da vela com margem de 1cm nas bordas.',
+        'Cortar o papel no tamanho do molde e preparar o molde com o pavio centralizado e fixo.',
+        'Derreter 660g de cera de soja. Adicionar 66ml de essência em 65–70°C e misturar bem.',
+        'Despejar até 80% da altura do molde — deixar espaço para a camada de cobertura que vem depois.',
+        'Curar 1h–1h30 até a superfície estar firme ao toque, mas o interior ainda levemente mole. Esse ponto é importante para a cobertura aderir bem.'
+      ]},
+      {b:'Bloco 2',s:[
+        'Aquecer levemente a superfície da vela com soprador por 2–3 segundos para criar uma camada de adesão. O objetivo é amolecer, não derreter.',
+        'Posicionar o papel vegetal com a mensagem voltada para CIMA, ~1cm afastado do pavio. Pressionar suavemente com o dedo e aguardar 5 minutos para aderir.',
+        'Derreter 132g de cera de soja (cobertura) e adicionar 13ml de essência.',
+        'Despejar exatamente 1cm de cobertura sobre o papel. Pouco demais revela a mensagem antes de acender; demais demora muito para revelar.',
+        'Curar 30–40 min. Desmoldar com cuidado para não separar as camadas.',
+        'Inspeção final: segurar contra a luz — a mensagem não deve ser visível. Ela só aparece quando a cera derrete ao acender.'
+      ]}
+    ],
+    custos:[['Custo de Produção',[['Simples','R$ 11,55'],['Premium','R$ 14,85']]],['Preço Mínimo',[['Direto','R$ 16,00'],['Shopee/ML','R$ 23,00']]]],
+    precos:[['Versão Simples',[['Direto','R$16','R$23,10'],['Shopee/ML','R$23','R$33']]],['Versão Premium',[['Direto','R$20','R$29,70'],['Shopee/ML','R$29','R$42,43']]]],
+    dicas:['Use papel vegetal (manteiga) — ele é translúcido e suporta o calor da cera sem dissolver.','A mensagem aparece somente ao acender: esse é o efeito surpresa que justifica o preço maior.','Personalize com nome, data de casamento ou frase especial — vende muito como presente.']},
+  11:{n:'11',e:'🎀',nm:'Revelação de Cor',t:'Cera de Soja · Especial',
+    tempo:[['Trabalho ativo','~2h30'],['Total','3h30–5h'],['Etapas','2 blocos']],
+    mat:['Cera de soja — BRANCA 500g + COLORIDA 250g + COBERTURA 132g','Essência — 50ml (branca) + 25ml (colorida) + 13ml (cobertura)','Giz de cera atóxico (na cor desejada)','Pavio 3mm','Potinho de vidro 30–40ml (para criar a cavidade)','Vaselina (para untar o potinho por fora)','Molde de silicone'],
+    blocks:[
+      {b:'Bloco 1',s:[
+        'Untar o potinho de vidro por fora com uma camada fina de vaselina. Posicioná-lo invertido (fundo para cima) no centro do molde — ele vai criar a cavidade que receberá a cor.',
+        'Derreter 500g de cera de soja branca. Adicionar 50ml de essência em 65–70°C e misturar.',
+        'Despejar ao redor do potinho, preenchendo até 50% da altura do molde. Evite que a cera entre no interior do potinho.',
+        'Curar 1h–1h30 até a cera ao redor do potinho estar completamente firme.',
+        'Remover o potinho: girar levemente para soltar a vaselina e puxar para cima com cuidado. A cavidade deve ficar com bordas limpas — se resistir, aguarde mais 15 min.'
+      ]},
+      {b:'Bloco 2',s:[
+        'Derreter 250g de cera de soja e adicionar o giz de cera ralado (quanto mais giz, mais intensa fica a cor). Misturar bem até a cor ficar uniforme. Adicionar 25ml de essência.',
+        'Despejar a cera colorida na cavidade até a borda. A cor deve preencher completamente o espaço criado pelo potinho.',
+        'Curar 40–60 min até a cera colorida firmar.',
+        'Derreter 132g de cera branca (cobertura) e adicionar 13ml de essência.',
+        'Aguardar o núcleo colorido estar parcialmente seco (firme por fora, levemente mole por dentro) e despejar 1cm de cobertura branca. Se o núcleo estiver totalmente frio, a cobertura não adere bem.',
+        'Curar 30–40 min. Desmoldar com cuidado.',
+        'Inspeção: a superfície deve ser completamente branca e opaca. A cor se revela gradualmente conforme a vela acende e a cera derrete.'
+      ]}
+    ],
+    custos:[['Custo de Produção',[['Simples','R$ 13,45'],['Premium','R$ 16,75']]],['Preço Mínimo',[['Direto','R$ 19,00'],['Shopee/ML','R$ 27,00']]]],
+    precos:[['Versão Simples',[['Direto','R$19','R$26,90'],['Shopee/ML','R$27','R$38,43']]],['Versão Premium',[['Direto','R$23','R$33,50'],['Shopee/ML','R$33','R$47,86']]]],
+    dicas:['Use vaselina em camada fina por fora do potinho — excesso pode contaminar a cera ao redor.','Giz de cera atóxico: rale com faca ou ralo — mais giz = cor mais intensa e vibrante.','A revelação da cor ao acender é o diferencial de venda — mostre isso em vídeo nas redes sociais.']}
+};
+
+let currentId=0;
+
+function notifyHeight(){
+  try{window.parent.postMessage({type:'handify-resize',height:document.body.scrollHeight},'*');}catch(e){}
+}
+
+function showPicker(){
+  document.getElementById('picker').style.display='block';
+  document.getElementById('recipe').style.display='none';
+  document.getElementById('backBtn').style.display='none';
+  document.getElementById('printBtn').style.display='none';
+  currentId=0;
+  setTimeout(notifyHeight,50);
+}
+
+function showRecipe(id){
+  const r=R[id]; if(!r) return;
+  currentId=id;
+  document.getElementById('recipe').innerHTML=build(r);
+  document.getElementById('picker').style.display='none';
+  document.getElementById('recipe').style.display='block';
+  document.getElementById('backBtn').style.display='flex';
+  document.getElementById('printBtn').style.display='block';
+  window.scrollTo(0,0);
+  setTimeout(notifyHeight,50);
+}
+
+function openPrint(){
+  if(!currentId) return;
+  const url='/ebooks/receitas.html?id='+currentId+'&print=1';
+  window.open(url,'_blank');
+}
+
+(function(){
+  const p=new URLSearchParams(window.location.search);
+  const id=parseInt(p.get('id'));
+  if(id&&R[id]){
+    showRecipe(id);
+    document.getElementById('backBtn').style.display='none';
+    document.getElementById('printBtn').style.display='none';
+    if(p.get('print')==='1'){
+      document.fonts.ready.then(function(){window.print();});
+    }
+  }
+  setTimeout(notifyHeight,100);
+})();
+
+function build(r){
+  let h='';
+  h+=`<div class="rec-header"><div class="rec-num">Vela ${r.n}</div><div><h1>${r.e} ${r.nm}</h1><div class="sub">${r.t}</div></div></div>`;
+  h+='<div class="rec-body">';
+  if(r.alert) h+=`<div class="alert">${r.alert}</div>`;
+
+  // Tempo
+  h+='<div class="sec"><div class="sh">Tempo &amp; Rendimento</div><div class="sb"><div class="tempo-row">';
+  r.tempo.forEach(([l,v])=>{h+=`<div class="ti"><div class="tl">${l}</div><div class="tv">${v}</div></div>`;});
+  h+='</div></div></div>';
+
+  // Receitas com tamanhos (8 e 9)
+  if(r.sizes){
+    h+='<div class="sec"><div class="sh">Tamanho</div><div class="sb">';
+    h+='<div class="stabs" id="stabs">';
+    r.sizes.forEach((s,i)=>{h+=`<button class="stab${i===0?' active':''}" onclick="switchSz(${i})">${s}</button>`;});
+    h+='</div>';
+    r.sizes.forEach((s,si)=>{
+      h+=`<div class="szp" data-sz="${si}"${si>0?' hidden':''}>`;
+      h+='<div class="sh" style="background:none;border:none;padding:0 0 6px;font-size:.63rem">Materiais</div>';
+      h+='<ul class="mlist">';
+      r.smat[si].forEach(m=>{h+=`<li>${m}</li>`;});
+      h+='</ul>';
+      h+='<div class="sh" style="background:none;border:none;padding:10px 0 6px;font-size:.63rem">Passo a Passo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#bbb">(toque para marcar)</span></div>';
+      h+='<ul class="slist">';
+      r.ssteps[si].forEach((s,i)=>{h+=`<li class="step" onclick="mark(this)"><div class="sn">${i+1}</div><div class="stxt">${s}</div></li>`;});
+      h+='</ul></div>';
+    });
+    h+='</div></div>';
+    r.sizes.forEach((s,si)=>{
+      h+=`<div class="szc" data-sz="${si}"${si>0?' hidden':''}>`;
+      h+=buildC(r.scustos[si])+buildP(r.sprecos[si]);
+      h+='</div>';
+    });
+  } else {
+    // Materiais
+    h+='<div class="sec"><div class="sh">Materiais</div><div class="sb"><ul class="mlist">';
+    r.mat.forEach(m=>{h+=`<li>${m}</li>`;});
+    h+='</ul></div></div>';
+
+    // Steps normais
+    if(r.steps){
+      h+='<div class="sec"><div class="sh">Passo a Passo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#bbb;font-size:.63rem">(toque para marcar)</span></div><div class="sb"><ul class="slist">';
+      r.steps.forEach((s,i)=>{h+=`<li class="step" onclick="mark(this)"><div class="sn">${i+1}</div><div class="stxt">${s}</div></li>`;});
+      h+='</ul></div></div>';
+    }
+
+    // Steps por dia (ursinho, coelhinho)
+    if(r.days){
+      h+='<div class="sec"><div class="sh">Passo a Passo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#bbb;font-size:.63rem">(toque para marcar)</span></div><div class="sb">';
+      let idx=0;
+      r.days.forEach(({d,s})=>{
+        h+=`<div class="dlabel">${d}</div><ul class="slist">`;
+        s.forEach(st=>{idx++;h+=`<li class="step" onclick="mark(this)"><div class="sn">${idx}</div><div class="stxt">${st}</div></li>`;});
+        h+='</ul>';
+      });
+      h+='</div></div>';
+    }
+
+    // Blocos (mensagem, revelação)
+    if(r.blocks){
+      h+='<div class="sec"><div class="sh">Passo a Passo <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#bbb;font-size:.63rem">(toque para marcar)</span></div><div class="sb">';
+      let idx=0;
+      r.blocks.forEach(({b,s})=>{
+        h+=`<div class="dlabel">${b}</div><ul class="slist">`;
+        s.forEach(st=>{idx++;h+=`<li class="step" onclick="mark(this)"><div class="sn">${idx}</div><div class="stxt">${st}</div></li>`;});
+        h+='</ul>';
+      });
+      h+='</div></div>';
+    }
+
+    h+=buildC(r.custos)+buildP(r.precos);
+  }
+
+  // Dicas
+  h+='<div class="sec"><div class="sh">Dicas</div><div class="sb"><ul class="tlist">';
+  r.dicas.forEach(d=>{h+=`<li>${d}</li>`;});
+  h+='</ul></div></div>';
+  h+='</div>';
+  return h;
+}
+
+function buildC(c){
+  let h='<div class="sec"><div class="sh">Custos</div><div class="sb"><div class="tbl-wrap"><table><thead><tr><th>Item</th><th>Valor</th></tr></thead><tbody>';
+  c.forEach(([g,rows])=>{
+    h+=`<tr class="tg"><td colspan="2">${g}</td></tr>`;
+    rows.forEach(([i,v])=>{h+=`<tr><td>${i}</td><td>${v}</td></tr>`;});
+  });
+  return h+'</tbody></table></div></div></div>';
+}
+
+function buildP(p){
+  let h='<div class="sec"><div class="sh">Preços Sugeridos</div><div class="sb"><div class="tbl-wrap"><table><thead><tr><th>Canal</th><th class="pmin">Mínimo</th><th class="pmax">Máximo</th></tr></thead><tbody>';
+  p.forEach(([g,rows])=>{
+    h+=`<tr class="tg"><td colspan="3">${g}</td></tr>`;
+    rows.forEach(([i,mn,mx])=>{h+=`<tr><td>${i}</td><td class="pmin">${mn}</td><td class="pmax">${mx}</td></tr>`;});
+  });
+  return h+'</tbody></table></div></div></div>';
+}
+
+function mark(el){el.classList.toggle('done');notifyHeight();}
+
+function switchSz(idx){
+  document.querySelectorAll('.stab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.szp').forEach(p=>{p.hidden=parseInt(p.dataset.sz)!==idx;});
+  document.querySelectorAll('.szc').forEach(p=>{p.hidden=parseInt(p.dataset.sz)!==idx;});
+}
+</script>
+</body>
+</html>
