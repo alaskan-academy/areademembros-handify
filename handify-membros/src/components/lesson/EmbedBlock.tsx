@@ -16,39 +16,41 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+    let lastH = 0;
 
-    function setHeight(h: number) {
-      if (iframe && h > 50) iframe.style.height = h + "px";
-    }
-
-    // Leitura inicial para HTMLs estáticos (sem postMessage)
-    function onLoad() {
-      try {
-        const doc = iframe?.contentDocument;
-        if (!doc?.body) return;
-        const h = Math.max(
-          doc.documentElement?.offsetHeight ?? 0,
-          doc.body.offsetHeight,
-          doc.documentElement?.scrollHeight ?? 0,
-          doc.body.scrollHeight
-        );
-        setHeight(h);
-      } catch { /* cross-origin — postMessage cobre */ }
-    }
-
-    // postMessage: HTMLs dinâmicos (receitas.html) enviam altura quando mudam
-    function onMessage(e: MessageEvent) {
-      if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
-        setHeight(e.data.height);
+    function applyHeight(h: number) {
+      if (!iframe || h < 50) return;
+      if (Math.abs(h - lastH) > 2) {
+        lastH = h;
+        iframe.style.height = h + "px";
       }
     }
 
-    iframe.addEventListener("load", onLoad);
+    // Camada 1: postMessage enviado pelo HTML dinâmico (receitas.html)
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
+        applyHeight(e.data.height);
+      }
+    }
     window.addEventListener("message", onMessage);
 
+    // Camada 2: polling direto no body do iframe (funciona para qualquer HTML same-origin)
+    // body.offsetHeight retorna a altura real do elemento, não do viewport
+    function poll() {
+      try {
+        const doc = iframe?.contentDocument;
+        if (!doc?.body) return;
+        applyHeight(doc.body.offsetHeight);
+      } catch { /* cross-origin */ }
+    }
+
+    iframe.addEventListener("load", poll);
+    const interval = setInterval(poll, 300);
+
     return () => {
-      iframe.removeEventListener("load", onLoad);
       window.removeEventListener("message", onMessage);
+      iframe.removeEventListener("load", poll);
+      clearInterval(interval);
     };
   }, []);
 

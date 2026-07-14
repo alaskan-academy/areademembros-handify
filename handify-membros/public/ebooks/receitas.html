@@ -121,6 +121,8 @@ td:not(:first-child),th:not(:first-child){text-align:right}
 </style>
 </head>
 <body>
+<!-- hw = height wrapper: offsetHeight sempre reflete a altura real do conteúdo, nunca o viewport do iframe -->
+<div id="hw">
 <div class="stripe"><span></span><span></span><span></span></div>
 <div class="app-header">
   <div class="logo">Handify<span class="tm">™</span> <span style="font-weight:400;opacity:.55;font-size:.8rem">Receitas</span></div>
@@ -151,6 +153,7 @@ td:not(:first-child),th:not(:first-child){text-align:right}
 
 <!-- RECIPE -->
 <div id="recipe"></div>
+</div><!-- /hw -->
 
 <script>
 const R={
@@ -368,28 +371,23 @@ const R={
 
 let currentId=0;
 
-// Polling leve: detecta qualquer mudança de altura e reporta ao pai via postMessage
-// Usa offsetHeight (layout real) em vez de scrollHeight (que pode retornar viewport no iframe)
-(function(){
-  var last=0;
-  function report(){
-    var h=Math.max(
-      document.documentElement.offsetHeight,
-      document.body.offsetHeight,
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight
-    );
-    if(h>0 && h!==last){ last=h; try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){} }
+// hw.offsetHeight = altura real do conteúdo, nunca confundida com viewport do iframe
+var _hw=document.getElementById('hw');
+var _lastH=0;
+function notifyHeight(){
+  if(!_hw) return;
+  var h=_hw.offsetHeight;
+  if(h>0 && h!==_lastH){
+    _lastH=h;
+    try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){}
   }
-  setInterval(report,200);
-  // Também dispara imediatamente quando algo muda no DOM
-  if(window.MutationObserver){
-    new MutationObserver(function(){ requestAnimationFrame(report); })
-      .observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style','hidden']});
-  }
-})();
-
-function notifyHeight(){ /* mantido para compatibilidade — polling cobre */ }
+}
+// Polling a cada 200ms (backup) + disparo imediato em mudanças de DOM
+setInterval(notifyHeight,200);
+if(window.MutationObserver){
+  new MutationObserver(function(){requestAnimationFrame(notifyHeight);})
+    .observe(_hw,{childList:true,subtree:true,attributes:true,attributeFilter:['style','hidden']});
+}
 
 function showPicker(){
   document.getElementById('picker').style.display='block';
