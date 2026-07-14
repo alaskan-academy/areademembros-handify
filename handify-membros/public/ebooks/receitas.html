@@ -371,22 +371,20 @@ const R={
 
 let currentId=0;
 
-// hw.offsetHeight = altura real do conteúdo, nunca confundida com viewport do iframe
-var _hw=document.getElementById('hw');
 var _lastH=0;
 function notifyHeight(){
-  if(!_hw) return;
-  var h=_hw.offsetHeight;
+  // scrollHeight medido de dentro do documento — nunca confundido com viewport
+  var h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight);
   if(h>0 && h!==_lastH){
     _lastH=h;
     try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){}
   }
 }
-// Polling a cada 200ms (backup) + disparo imediato em mudanças de DOM
+// Polling a cada 200ms + MutationObserver para mudanças de DOM
 setInterval(notifyHeight,200);
 if(window.MutationObserver){
   new MutationObserver(function(){requestAnimationFrame(notifyHeight);})
-    .observe(_hw,{childList:true,subtree:true,attributes:true,attributeFilter:['style','hidden']});
+    .observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['style','hidden']});
 }
 
 function showPicker(){
@@ -395,9 +393,9 @@ function showPicker(){
   document.getElementById('backBtn').style.display='none';
   document.getElementById('printBtn').style.display='none';
   currentId=0;
-  // Reseta _lastH para forçar envio mesmo que o pai já tenha recebido esse valor antes
   _lastH=0;
-  requestAnimationFrame(notifyHeight);
+  // double-rAF garante que o layout esteja estabilizado antes de medir
+  requestAnimationFrame(function(){requestAnimationFrame(notifyHeight);});
 }
 
 function showRecipe(id){
@@ -412,9 +410,8 @@ function showRecipe(id){
   document.getElementById('backBtn').textContent='← Receitas';
   document.getElementById('printBtn').style.display='block';
   window.scrollTo(0,0);
-  // Reseta _lastH para garantir envio com a altura da nova receita
   _lastH=0;
-  requestAnimationFrame(notifyHeight);
+  requestAnimationFrame(function(){requestAnimationFrame(notifyHeight);});
 }
 
 function goBack(){

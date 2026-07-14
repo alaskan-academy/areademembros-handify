@@ -17,25 +17,52 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
     const iframe = iframeRef.current;
     if (!iframe) return;
 
+    // Once a postMessage arrives we know the iframe manages its own height;
+    // stop the static-fallback poll so it can't override the iframe's values.
+    let dynamicMode = false;
+    const retryTimers: ReturnType<typeof setTimeout>[] = [];
+
     function applyHeight(h: number) {
-      if (!iframe || h < 50) return;
-      iframe.style.height = h + "px";
+      const el = iframeRef.current;
+      if (!el || h < 50) return;
+      el.style.height = h + "px";
     }
 
-    // Leitura única no load — HTMLs estáticos têm altura certa na primeira carga
-    function onLoad() {
+    function measureStatic() {
+      if (dynamicMode) return;
       try {
-        const doc = iframe?.contentDocument;
+        const doc = iframeRef.current?.contentDocument;
         if (!doc?.body) return;
-        applyHeight(doc.body.offsetHeight);
+        // scrollHeight is reliable for full-page height even in quirks mode
+        const h = Math.max(
+          doc.documentElement.scrollHeight,
+          doc.documentElement.offsetHeight,
+          doc.body.scrollHeight,
+          doc.body.offsetHeight
+        );
+        applyHeight(h);
       } catch { /* cross-origin */ }
     }
 
-    // postMessage — HTMLs dinâmicos (receitas.html) enviam altura quando mudam
-    // NÃO há polling do pai: leituras cross-frame podem ser stale e sobrescrever
-    // o valor correto enviado pelo iframe
+    function onLoad() {
+      // Immediate read + 3 retries to catch font/image layout shifts.
+      // Stops as soon as the iframe sends its own height via postMessage.
+      measureStatic();
+      [150, 600, 1500].forEach((delay) => {
+        retryTimers.push(setTimeout(measureStatic, delay));
+      });
+    }
+
+    // Dynamic HTMLs (e.g. receitas.html) send height via postMessage on each
+    // view change. As soon as the first message arrives we trust the iframe
+    // completely and cancel the static retries.
     function onMessage(e: MessageEvent) {
       if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
+        if (!dynamicMode) {
+          dynamicMode = true;
+          retryTimers.forEach(clearTimeout);
+          retryTimers.length = 0;
+        }
         applyHeight(e.data.height);
       }
     }
@@ -46,6 +73,7 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
     return () => {
       iframe.removeEventListener("load", onLoad);
       window.removeEventListener("message", onMessage);
+      retryTimers.forEach(clearTimeout);
     };
   }, []);
 
