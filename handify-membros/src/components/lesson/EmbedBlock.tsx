@@ -16,27 +16,14 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-    let lastH = 0;
 
     function applyHeight(h: number) {
       if (!iframe || h < 50) return;
-      if (Math.abs(h - lastH) > 2) {
-        lastH = h;
-        iframe.style.height = h + "px";
-      }
+      iframe.style.height = h + "px";
     }
 
-    // Camada 1: postMessage enviado pelo HTML dinâmico (receitas.html)
-    function onMessage(e: MessageEvent) {
-      if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
-        applyHeight(e.data.height);
-      }
-    }
-    window.addEventListener("message", onMessage);
-
-    // Camada 2: polling direto no body do iframe (funciona para qualquer HTML same-origin)
-    // body.offsetHeight retorna a altura real do elemento, não do viewport
-    function poll() {
+    // Leitura única no load — HTMLs estáticos têm altura certa na primeira carga
+    function onLoad() {
       try {
         const doc = iframe?.contentDocument;
         if (!doc?.body) return;
@@ -44,13 +31,21 @@ export default function EmbedBlock({ url, title = "Conteúdo incorporado", heigh
       } catch { /* cross-origin */ }
     }
 
-    iframe.addEventListener("load", poll);
-    const interval = setInterval(poll, 300);
+    // postMessage — HTMLs dinâmicos (receitas.html) enviam altura quando mudam
+    // NÃO há polling do pai: leituras cross-frame podem ser stale e sobrescrever
+    // o valor correto enviado pelo iframe
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type === "handify-resize" && typeof e.data.height === "number") {
+        applyHeight(e.data.height);
+      }
+    }
+
+    iframe.addEventListener("load", onLoad);
+    window.addEventListener("message", onMessage);
 
     return () => {
+      iframe.removeEventListener("load", onLoad);
       window.removeEventListener("message", onMessage);
-      iframe.removeEventListener("load", poll);
-      clearInterval(interval);
     };
   }, []);
 

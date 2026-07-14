@@ -395,13 +395,13 @@ function showPicker(){
   document.getElementById('backBtn').style.display='none';
   document.getElementById('printBtn').style.display='none';
   currentId=0;
-  // ResizeObserver dispara automaticamente; notifyHeight aqui é backup
-  notifyHeight();
+  // Reseta _lastH para forçar envio mesmo que o pai já tenha recebido esse valor antes
+  _lastH=0;
+  requestAnimationFrame(notifyHeight);
 }
 
 function showRecipe(id){
   const r=R[id]; if(!r) return;
-  // Botão físico de voltar do celular: push entry se vindo do picker, replace se já estava em receita
   if(currentId===0){history.pushState({recipe:id},'');}
   else{history.replaceState({recipe:id},'');}
   currentId=id;
@@ -412,8 +412,9 @@ function showRecipe(id){
   document.getElementById('backBtn').textContent='← Receitas';
   document.getElementById('printBtn').style.display='block';
   window.scrollTo(0,0);
-  // ResizeObserver dispara automaticamente; notifyHeight aqui é backup
-  notifyHeight();
+  // Reseta _lastH para garantir envio com a altura da nova receita
+  _lastH=0;
+  requestAnimationFrame(notifyHeight);
 }
 
 function goBack(){
