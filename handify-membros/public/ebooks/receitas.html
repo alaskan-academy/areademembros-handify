@@ -204,7 +204,7 @@ const R={
     tempo:[['Sem cura','75–110 min'],['Total','2h15–3h50'],['Rendimento','~11 margaridas']],
     mat:['Cera de soja — 220g','Essência — 20ml','Pavio 2,5–3mm','Molde de silicone margarida'],
     steps:[
-      'Passar o pavio pelo furo central do molde, deixando 0,5cm extra embaixo. Vedar com fita ou rolinho de cera fria para a cera não vazar.',
+      'Passar o pavio pelo furo central do molde, deixando 0,5cm extra embaixo.',
       'Aquecer o molde de silicone com soprador por 3–4 segundos. Molde frio cria linhas de resfriamento visíveis nas pétalas e dificulta o desmolde.',
       'Derreter 220g de cera de soja — ela pode ir até 80°C sem queimar, mas adicione a essência somente quando baixar para 65–70°C para preservar o aroma.',
       'Adicionar 20ml de essência e misturar suavemente por 1 minuto.',
@@ -220,7 +220,7 @@ const R={
     tempo:[['Sem cura','80–115 min'],['Total','2h20–3h55'],['Rendimento','~11 jasmins']],
     mat:['Cera de soja — 220g','Essência — 20ml','Pavio 2,5–3mm','Molde de silicone jasmim'],
     steps:[
-      'Passar o pavio pelo furo central do molde, deixando 0,5cm extra embaixo. Vedar com fita.',
+      'Passar o pavio pelo furo central do molde, deixando 0,5cm extra embaixo.',
       'Aquecer o molde com soprador por 3–4 segundos.',
       'Derreter 220g de cera de soja. Adicionar 20ml de essência em 65–70°C e misturar por 1 minuto.',
       'Despejar a cera até a borda, prestando atenção especial às pétalas finas do jasmim — encha cada cavidade com cuidado antes de continuar.',
@@ -235,7 +235,7 @@ const R={
     tempo:[['Tempo mínimo','14h — 2 dias'],['Trabalho ativo','~3h'],['Rendimento','~11 ursinhos']],
     mat:['Cera de soja — 220g','Essência — 20ml','Pavio 1,5–2mm','Molde de silicone ursinho','Tinta acrílica preta (olhos/nariz)','Tinta acrílica marrom (detalhes)','Pincel liner fino'],
     days:[{d:'Dia 1',s:[
-      'Preparar os moldes: passar o pavio pelo furo, deixar 1–2cm de folga embaixo e vedar o fundo com fita ou cera fria para não vazar.',
+      'Preparar os moldes: passar o pavio pelo furo, deixar 1–2cm de folga embaixo.',
       'Aquecer o molde com soprador por 3–4 segundos, focando especialmente nas orelhas onde a cera precisa fluir.',
       'Derreter 220g de cera de soja. Adicionar 20ml de essência em 65–70°C e misturar por 1 minuto.',
       'Despejar devagar, começando pelas orelhas e depois o restante. Bolhas de ar ficam muito visíveis no rosto do ursinho.',
@@ -254,7 +254,7 @@ const R={
     tempo:[['Tempo mínimo','16h — 2 dias'],['Trabalho ativo','~3h'],['Rendimento','~11 coelhinhos']],
     mat:['Cera de soja — 220g','Essência — 20ml','Pavio 2,5–3mm','Molde de silicone coelhinho','Tinta acrílica preta (olhos/nariz)','Tinta acrílica rosa (interior das orelhas)','Pincel liner + pincel chato pequeno'],
     days:[{d:'Dia 1',s:[
-      'Preparar os moldes: passar o pavio pelo CENTRO do corpo do coelhinho. Nunca posicionar nas orelhas — risco de chama muito próxima à borda. Vedar o fundo com fita.',
+      'Preparar os moldes: passar o pavio pelo CENTRO do corpo do coelhinho. Nunca posicionar nas orelhas — risco de chama muito próxima à borda.',
       'Aquecer os moldes por 3–4 segundos com soprador, prestando atenção ao interior das orelhas longas.',
       'Derreter 220g de cera de soja. Adicionar 20ml de essência em 65–70°C e misturar.',
       'Despejar até a borda do molde — as orelhas são os pontos mais difíceis de preencher. Incline levemente o molde se necessário para a cera alcançar as pontas.',
@@ -273,7 +273,7 @@ const R={
     sizes:['Meia Flor (~990g)','Flor Inteira (~2kg)'],
     smat:[['Cera de soja — ~990g','Essência — proporcional (≈10% do peso da cera)','Pavio 3mm','Molde silicone flor de lótus ou rosa'],['Cera de soja — ~2kg','Essência — proporcional (≈10% do peso da cera)','Pavio 3mm','Molde silicone flor de lótus ou rosa']],
     ssteps:[
-      ['Preparar o molde: passar o pavio pelo centro, deixar folga embaixo e vedar com fita ou cera fria.',
+      ['Preparar o molde: passar o pavio pelo centro, deixar folga embaixo.',
        'Aquecer o molde com soprador por 4–5 segundos. Moldes grandes precisam de mais tempo para aquecer uniformemente.',
        'Derreter a 1ª batelada de ~500g de cera de soja. Adicionar a essência proporcional em 65–70°C e misturar.',
        'Despejar a 1ª batelada até a metade do molde. Aguardar 20–30 minutos de cura parcial — a cera começa a firmar mas o centro ainda está mole.',
@@ -281,7 +281,7 @@ const R={
        'Curar 3–5h sem mover. Flores são densas e a cura vai de fora para dentro — respeite o tempo.',
        'Desmoldar pétala por pétala, flexionando o silicone com cuidado. Nunca puxe o molde inteiro de uma vez.',
        'Cortar pavio a 1cm e finalizar.'],
-      ['Preparar o molde: pavio pelo centro, vedar.',
+      ['Preparar o molde: pavio pelo centro.',
        'Aquecer o molde por 4–5 segundos com soprador.',
        'Derreter a 1ª batelada de ~500g com a essência proporcional.',
        'Despejar a 1ª batelada e aguardar 20–30 min de cura parcial entre cada batelada. Repetir com a 2ª, 3ª e 4ª bateladas até completar o molde.',
@@ -384,6 +384,9 @@ function showPicker(){
 
 function showRecipe(id){
   const r=R[id]; if(!r) return;
+  // Botão físico de voltar do celular: push entry se vindo do picker, replace se já estava em receita
+  if(currentId===0){history.pushState({recipe:id},'');}
+  else{history.replaceState({recipe:id},'');}
   currentId=id;
   document.getElementById('recipe').innerHTML=build(r);
   document.getElementById('picker').style.display='none';
@@ -399,6 +402,11 @@ function showRecipe(id){
 function goBack(){
   showPicker();
 }
+
+// Botão físico de voltar do celular (Android) — volta ao picker quando receita está aberta
+window.addEventListener('popstate',function(){
+  if(currentId!==0) showPicker();
+});
 
 function openPrint(){
   if(!currentId) return;
