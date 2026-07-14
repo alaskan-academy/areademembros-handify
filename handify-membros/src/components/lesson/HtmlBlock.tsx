@@ -36,8 +36,9 @@ function HtmlSnippet({ html }: { html: string }) {
 function HtmlDocument({ html }: { html: string }) {
   const [height, setHeight] = useState(400);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const observerRef = useRef<MutationObserver | null>(null);
 
-  // Lê a altura diretamente do DOM do iframe (funciona porque o sandbox tem allow-same-origin)
+  // srcdoc = same-origin: leitura direta do DOM é confiável
   const measure = useCallback(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -45,21 +46,40 @@ function HtmlDocument({ html }: { html: string }) {
       const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
       if (!doc?.body) return;
       const h = Math.max(
+        doc.documentElement.scrollHeight,
         doc.body.scrollHeight,
-        doc.documentElement?.scrollHeight ?? 0,
       );
       if (h > 50) setHeight(h);
-    } catch {
-      // cross-origin inesperado — ignora
-    }
+    } catch { /* sandbox inesperado */ }
   }, []);
 
   const handleLoad = useCallback(() => {
     measure();
-    // Re-mede após carregamento de fontes web (Google Fonts altera o layout)
+    // Re-mede após fontes web carregarem
     setTimeout(measure, 300);
     setTimeout(measure, 1000);
+
+    // MutationObserver no DOM do iframe para capturar qualquer mudança de conteúdo
+    // (abas de mês, accordions, tabs interativos, etc.)
+    observerRef.current?.disconnect();
+    try {
+      const iframe = iframeRef.current;
+      const doc = iframe?.contentDocument ?? iframe?.contentWindow?.document;
+      if (!doc?.body) return;
+      const obs = new MutationObserver(() => requestAnimationFrame(measure));
+      obs.observe(doc.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["style", "class", "hidden", "open"],
+      });
+      observerRef.current = obs;
+    } catch { /* ignora */ }
   }, [measure]);
+
+  useEffect(() => {
+    return () => observerRef.current?.disconnect();
+  }, []);
 
   return (
     <div className="w-full overflow-hidden rounded-xl border border-border shadow-sm">
