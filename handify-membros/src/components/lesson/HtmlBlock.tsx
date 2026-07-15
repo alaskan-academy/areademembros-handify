@@ -51,8 +51,6 @@ const RESIZE_SCRIPT = `
     (function tick(){send();n++;if(n<15)_t=setTimeout(tick,100);})();
   }
   function init(){
-    // Retries forçados: resetam _last para re-enviar mesmo que altura não mude,
-    // garantindo que o listener React (attachado via useEffect após mount) receba.
     send();
     setTimeout(function(){_last=0;send();},300);
     setTimeout(function(){_last=0;send();},1000);
