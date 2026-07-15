@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_ROUTES = ["/login", "/cadastro", "/recuperar-senha", "/nova-senha"];
+const PUBLIC_ROUTES = ["/login", "/cadastro", "/recuperar-senha", "/nova-senha", "/ativar"];
 // /api/ e /auth/ são necessidades técnicas: webhook Payt (server-to-server) e callback OAuth do Supabase.
 // /ebooks/ contém materiais estáticos de aula (HTML sem dados de usuário) — precisam abrir em novo tab sem auth.
 // Todos os outros prefixos requerem login — acesso 100% fechado sem conta.

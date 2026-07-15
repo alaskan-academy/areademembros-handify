@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { loginAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +19,21 @@ import {
 
 const initialState = { error: undefined, success: undefined };
 
+const MSG_BANNERS: Record<string, string> = {
+  "acesso-liberado": "Seu acesso foi liberado! Faça login para entrar nos seus cursos.",
+  "ja-tem-conta": "Você já tem uma conta. Faça login normalmente.",
+};
+
 export default function LoginPage({
-  searchParams,
+  searchParams: _searchParams,
 }: {
   searchParams: Promise<{ redirect?: string; msg?: string }>;
 }) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
   const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const msgParam = searchParams.get("msg");
+  const msgBanner = msgParam ? (MSG_BANNERS[msgParam] ?? null) : null;
 
   return (
     <Card>
@@ -37,6 +46,15 @@ export default function LoginPage({
 
       <form action={formAction}>
         <CardContent className="space-y-4">
+          {msgBanner && (
+            <div
+              role="status"
+              className="rounded-md bg-[#72CF92]/15 border border-[#72CF92]/30 px-4 py-3 text-sm text-[#2D2D2D]"
+            >
+              {msgBanner}
+            </div>
+          )}
+
           {state?.error && (
             <div
               role="alert"
