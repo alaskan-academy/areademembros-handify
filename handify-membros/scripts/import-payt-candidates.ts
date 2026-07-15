@@ -3,19 +3,26 @@
  *
  * Uso:
  *   npx tsx scripts/import-payt-candidates.ts \
- *     --vendas caminho/vendas.xlsx \
- *     --produtos caminho/produtos.xlsx [--dry-run]
+ *     --vendas vendas1.xlsx --vendas vendas2.xlsx --vendas vendas3.xlsx \
+ *     --produtos produtos.xlsx [--dry-run]
  *
  * O script:
  *   1. Lê o relatório de produtos → monta mapa: SKU → product_code
- *   2. Lê o relatório de vendas → filtra compras aprovadas
+ *   2. Lê TODOS os arquivos de vendas (múltiplos --vendas) → filtra compras aprovadas
  *   3. Para cada compra, resolve o product_code via SKU
  *   4. Agrupa por e-mail (uma candidata por e-mail, vários product_codes)
- *   5. Faz upsert em migration_candidates (idempotente — pode rodar de novo)
+ *   5. Filtra: só entra quem comprou pelo menos 1 dos cursos principais Handify
+ *   6. Faz upsert em migration_candidates (idempotente — pode rodar de novo)
  *
- * Segurança:
- *   - CPF armazenado em texto simples temporariamente (apagado após ativação)
- *   - Nenhum dado é enviado para fora do Supabase (service role local)
+ * Cursos qualificantes (quem comprou pelo menos 1 entra):
+ *   4MJ9YD  Fábrica das Velas de Lembrancinha
+ *   R2JAJA  Workshop Buquê de Velas
+ *   RW2MMP  Saponaria Brasil
+ *   4NYAEE  Velaroma Artesanal
+ *   LPGKQ8  Handify Artesanato Completo (bundle com todos os principais)
+ *   RKJWA8  Combo Saponaria + Velaroma
+ *   L9QEPN  Kit Completo (Fábrica + Workshop)
+ *   RDOD6J  Pacote Impulso Artesanal Plus
  */
 
 import * as path from "path";
@@ -24,7 +31,6 @@ import * as XLSX from "xlsx";
 import { createClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
 
-// Carrega .env.local
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -37,19 +43,47 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+// Códigos que qualificam uma aluna para a migração.
+// Deve ter comprado pelo menos 1 destes para entrar na área de membros.
+const QUALIFYING_CODES = new Set([
+  "4MJ9YD", // Fábrica das Velas de Lembrancinha
+  "R2JAJA", // Workshop Buquê de Velas
+  "RW2MMP", // Saponaria Brasil
+  "4NYAEE", // Velaroma Artesanal
+  "LPGKQ8", // Handify Artesanato Completo (bundle)
+  "RKJWA8", // Combo Saponaria + Velaroma
+  "L9QEPN", // Kit Completo (Fábrica + Workshop)
+  "RDOD6J", // Pacote Impulso Artesanal Plus
+]);
+
 // ─── Parsing de argumentos ────────────────────────────────────────────────────
+
+function args(name: string): string[] {
+  const result: string[] = [];
+  const argv = process.argv;
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === `--${name}` && i + 1 < argv.length) {
+      result.push(argv[i + 1]);
+    }
+  }
+  return result;
+}
 
 function arg(name: string): string | undefined {
   const idx = process.argv.indexOf(`--${name}`);
   return idx !== -1 ? process.argv[idx + 1] : undefined;
 }
 
-const vendasPath = arg("vendas");
+const vendasPaths = args("vendas");
 const produtosPath = arg("produtos");
 const dryRun = process.argv.includes("--dry-run");
 
-if (!vendasPath || !produtosPath) {
-  console.error("Uso: npx tsx scripts/import-payt-candidates.ts --vendas <arquivo.xlsx> --produtos <arquivo.xlsx> [--dry-run]");
+if (vendasPaths.length === 0 || !produtosPath) {
+  console.error(
+    "Uso: npx tsx scripts/import-payt-candidates.ts \\\n" +
+    "  --vendas vendas1.xlsx [--vendas vendas2.xlsx ...] \\\n" +
+    "  --produtos produtos.xlsx [--dry-run]"
+  );
   process.exit(1);
 }
 
@@ -68,7 +102,6 @@ function readXlsx(filePath: string): Record<string, string>[] {
 
 function normalizeName(name: string): string {
   if (!name) return "";
-  // Se vier em CAIXA ALTA, converte para Title Case
   const trimmed = name.trim();
   if (trimmed === trimmed.toUpperCase()) {
     return trimmed
@@ -86,99 +119,138 @@ function normalizeCpf(cpf: string): string {
   return cpf.replace(/\D/g, "").trim();
 }
 
-// ─── Passo 1: mapa SKU → product_code (do arquivo de produtos) ───────────────
+// ─── Passo 1: mapa SKU → product_code ────────────────────────────────────────
 
 console.log(`\n📦 Lendo arquivo de produtos: ${produtosPath}`);
 const produtosRows = readXlsx(produtosPath);
 
-// Colunas do relatório de produtos: Código (A), SKU (F)
-// SheetJS retorna por nome de header, não por letra
 const skuToCode = new Map<string, string>();
 let produtosIgnorados = 0;
 
 for (const row of produtosRows) {
   const codigo = (row["Código"] ?? "").trim();
   const sku = (row["SKU"] ?? row["Sku"] ?? "").trim();
-
-  if (!codigo || !sku) {
-    produtosIgnorados++;
-    continue;
-  }
+  if (!codigo || !sku) { produtosIgnorados++; continue; }
   skuToCode.set(sku, codigo);
 }
 
 console.log(`   ✅ ${skuToCode.size} produtos mapeados (${produtosIgnorados} ignorados por SKU/Código vazios)`);
 
-// ─── Passo 2: ler vendas e agrupar por e-mail ─────────────────────────────────
-
-console.log(`\n🛒 Lendo arquivo de vendas: ${vendasPath}`);
-const vendasRows = readXlsx(vendasPath);
-
-// Filtros de status (compra + pagamento aprovados)
-const STATUS_COMPRA_OK = "Compra Aprovada";
-const STATUS_PAGAMENTO_OK = "Pagamento Aprovado";
+// ─── Passo 2: ler todos os arquivos de vendas e agrupar por e-mail ────────────
 
 // Map: email → { full_name, cpf_raw, phone, product_codes: Set }
-const candidates = new Map<string, {
+const allCandidates = new Map<string, {
   full_name: string;
   cpf_raw: string;
   phone: string;
   product_codes: Set<string>;
 }>();
 
-let vendasOk = 0;
-let vendasFiltradas = 0;
-let vendaSemCurso = 0;
+let totalVendasOk = 0;
+let totalVendasFiltradas = 0;
+let totalVendaSemCurso = 0;
 
-for (const row of vendasRows) {
-  const statusCompra = (row["Status Compra"] ?? "").trim();
-  const statusPagamento = (row["Status Pagamento"] ?? "").trim();
+const STATUS_COMPRA_OK = "Compra Aprovada";
+const STATUS_PAGAMENTO_OK = "Pagamento Aprovado";
 
-  if (statusCompra !== STATUS_COMPRA_OK || statusPagamento !== STATUS_PAGAMENTO_OK) {
-    vendasFiltradas++;
-    continue;
+for (const vendasPath of vendasPaths) {
+  console.log(`\n🛒 Lendo arquivo de vendas: ${vendasPath}`);
+  const vendasRows = readXlsx(vendasPath);
+
+  let vendasOk = 0;
+  let vendasFiltradas = 0;
+  let vendaSemCurso = 0;
+
+  for (const row of vendasRows) {
+    const statusCompra = (row["Status Compra"] ?? "").trim();
+    const statusPagamento = (row["Status Pagamento"] ?? "").trim();
+
+    if (statusCompra !== STATUS_COMPRA_OK || statusPagamento !== STATUS_PAGAMENTO_OK) {
+      vendasFiltradas++;
+      continue;
+    }
+
+    const email = (row["Email"] ?? "").trim().toLowerCase();
+    if (!email) { vendasFiltradas++; continue; }
+
+    const sku = (row["Sku"] ?? row["SKU"] ?? "").trim();
+    const productCode = sku ? skuToCode.get(sku) : undefined;
+
+    if (!productCode) {
+      vendaSemCurso++;
+      continue;
+    }
+
+    const fullName = normalizeName(row["Cliente"] ?? "");
+    const cpf = normalizeCpf(row["Documento"] ?? "");
+    const phone = normalizePhone(row["Telefone"] ?? "");
+
+    if (!allCandidates.has(email)) {
+      allCandidates.set(email, {
+        full_name: fullName,
+        cpf_raw: cpf,
+        phone,
+        product_codes: new Set(),
+      });
+    }
+
+    const c = allCandidates.get(email)!;
+    if (!c.full_name && fullName) c.full_name = fullName;
+    if (!c.cpf_raw && cpf) c.cpf_raw = cpf;
+    if (!c.phone && phone) c.phone = phone;
+    c.product_codes.add(productCode);
+    vendasOk++;
   }
 
-  const email = (row["Email"] ?? "").trim().toLowerCase();
-  if (!email) { vendasFiltradas++; continue; }
+  console.log(`   ✅ ${vendasOk} vendas aprovadas`);
+  console.log(`   ⏭️  ${vendasFiltradas} ignoradas (status não aprovado ou sem e-mail)`);
+  console.log(`   ⚠️  ${vendaSemCurso} sem product_code correspondente (produto não mapeado)`);
 
-  const sku = (row["Sku"] ?? row["SKU"] ?? "").trim();
-  const productCode = sku ? skuToCode.get(sku) : undefined;
-
-  if (!productCode) {
-    vendaSemCurso++;
-    continue;
-  }
-
-  const fullName = normalizeName(row["Cliente"] ?? "");
-  const cpf = normalizeCpf(row["Documento"] ?? "");
-  const phone = normalizePhone(row["Telefone"] ?? "");
-
-  if (!candidates.has(email)) {
-    candidates.set(email, {
-      full_name: fullName,
-      cpf_raw: cpf,
-      phone,
-      product_codes: new Set(),
-    });
-  }
-
-  const c = candidates.get(email)!;
-  // Preenche dados ausentes sem sobrescrever já existentes
-  if (!c.full_name && fullName) c.full_name = fullName;
-  if (!c.cpf_raw && cpf) c.cpf_raw = cpf;
-  if (!c.phone && phone) c.phone = phone;
-  c.product_codes.add(productCode);
-
-  vendasOk++;
+  totalVendasOk += vendasOk;
+  totalVendasFiltradas += vendasFiltradas;
+  totalVendaSemCurso += vendaSemCurso;
 }
 
-console.log(`   ✅ ${vendasOk} vendas aprovadas processadas`);
-console.log(`   ⏭️  ${vendasFiltradas} vendas ignoradas (status não aprovado ou sem e-mail)`);
-console.log(`   ⚠️  ${vendaSemCurso} vendas sem product_code correspondente (produto não cadastrado na área de membros)`);
-console.log(`\n👥 Total de candidatas únicas: ${candidates.size}`);
+console.log(`\n📊 Totais consolidados de todos os arquivos:`);
+console.log(`   Vendas aprovadas processadas: ${totalVendasOk}`);
+console.log(`   Ignoradas (status/email): ${totalVendasFiltradas}`);
+console.log(`   Sem product_code: ${totalVendaSemCurso}`);
+console.log(`   Candidatas únicas (antes do filtro): ${allCandidates.size}`);
 
-// ─── Passo 3: verificar quais product_codes existem nos cursos ───────────────
+// ─── Passo 3: filtro de qualificação ──────────────────────────────────────────
+
+console.log(`\n🔎 Aplicando filtro: precisa ter comprado pelo menos 1 curso principal...`);
+
+const qualified = new Map<string, typeof allCandidates extends Map<string, infer V> ? V : never>();
+const excluded: Array<{ email: string; codes: string[] }> = [];
+const onlySupplementary: Array<{ email: string; codes: string[] }> = [];
+
+for (const [email, c] of allCandidates) {
+  const codes = [...c.product_codes];
+  const hasQualifying = codes.some((code) => QUALIFYING_CODES.has(code));
+
+  if (hasQualifying) {
+    qualified.set(email, c);
+  } else {
+    excluded.push({ email, codes });
+    // "Só comprou complementares" = tem codes no banco mas nenhum é principal
+    onlySupplementary.push({ email, codes });
+  }
+}
+
+console.log(`   ✅ Qualificadas (entram na migração): ${qualified.size}`);
+console.log(`   ❌ Excluídas (sem curso principal): ${excluded.length}`);
+
+if (onlySupplementary.length > 0) {
+  console.log(`\n⚠️  ATENÇÃO — ${onlySupplementary.length} e-mail(s) com compras mapeadas mas SEM curso principal:`);
+  console.log(`   (Esses NÃO entrarão na migração. Revise se necessário.)\n`);
+  for (const { email, codes } of onlySupplementary) {
+    console.log(`   📧 ${email}`);
+    console.log(`      Códigos comprados: ${codes.join(", ")}`);
+  }
+}
+
+// ─── Passo 4: verificar product_codes nos cursos do banco ────────────────────
 
 console.log("\n🔍 Verificando product_codes nos cursos...");
 const { data: courses, error: coursesError } = await supabase
@@ -190,7 +262,6 @@ if (coursesError) {
   process.exit(1);
 }
 
-// Mapa: product_code → course_id
 const codeToCoursId = new Map<string, string>();
 for (const course of courses ?? []) {
   for (const code of course.product_codes ?? []) {
@@ -198,9 +269,8 @@ for (const course of courses ?? []) {
   }
 }
 
-// Coletar product_codes sem curso correspondente (para log)
 const unmappedCodes = new Set<string>();
-for (const [, c] of candidates) {
+for (const [, c] of qualified) {
   for (const code of c.product_codes) {
     if (!codeToCoursId.has(code)) {
       unmappedCodes.add(code);
@@ -208,30 +278,30 @@ for (const [, c] of candidates) {
   }
 }
 if (unmappedCodes.size > 0) {
-  console.log(`   ⚠️  ${unmappedCodes.size} product_codes sem curso na área de membros (serão ignorados na concessão de matrícula):`);
+  console.log(`   ⚠️  ${unmappedCodes.size} product_codes sem curso no banco (serão ignorados na matrícula):`);
   for (const code of unmappedCodes) {
     console.log(`      - ${code}`);
   }
 }
 
-// ─── Passo 4: upsert em migration_candidates ─────────────────────────────────
+// ─── Passo 5: upsert em migration_candidates ──────────────────────────────────
 
 if (dryRun) {
   console.log("\n🧪 DRY-RUN ativo — nenhum dado será gravado no banco.");
-  console.log("\nPrimeiras 5 candidatas:");
+  console.log("\nPrimeiras 5 candidatas qualificadas:");
   let i = 0;
-  for (const [email, c] of candidates) {
+  for (const [email, c] of qualified) {
     if (i++ >= 5) break;
     console.log(`  ${email} | ${c.full_name} | codes: ${[...c.product_codes].join(", ")}`);
   }
-  console.log("\n✅ Simulação concluída.");
+  console.log(`\n✅ Simulação concluída. ${qualified.size} candidatas seriam importadas.`);
   process.exit(0);
 }
 
-console.log("\n📥 Inserindo candidatas no banco...");
+console.log(`\n📥 Inserindo ${qualified.size} candidatas no banco...`);
 
 const BATCH = 200;
-const rows = [...candidates.entries()].map(([email, c]) => ({
+const rows = [...qualified.entries()].map(([email, c]) => ({
   email,
   full_name: c.full_name || null,
   cpf_raw: c.cpf_raw || null,
@@ -248,7 +318,7 @@ for (let i = 0; i < rows.length; i += BATCH) {
     .from("migration_candidates")
     .upsert(batch, {
       onConflict: "email",
-      ignoreDuplicates: false, // atualiza product_codes se já existir
+      ignoreDuplicates: false,
     });
 
   if (error) {
@@ -260,9 +330,17 @@ for (let i = 0; i < rows.length; i += BATCH) {
   }
 }
 
-console.log(`\n\n✅ Importação concluída: ${inserted} candidatas inseridas/atualizadas, ${errors} erros.`);
+console.log(`\n\n✅ Importação concluída!`);
+console.log(`   Inseridas/atualizadas: ${inserted}`);
+console.log(`   Erros: ${errors}`);
+console.log(`   Excluídas por falta de curso principal: ${excluded.length}`);
+
+if (onlySupplementary.length > 0) {
+  console.log(`\n⚠️  Lembre-se: ${onlySupplementary.length} e-mail(s) tinham compras mapeadas mas ficaram de fora.`);
+  console.log(`   Revise a lista acima se quiser decidir o que fazer com eles.`);
+}
 
 if (errors > 0) {
-  console.warn("⚠️  Houve erros — verifique os logs acima.");
+  console.warn("\n⚠️  Houve erros — verifique os logs acima.");
   process.exit(1);
 }
