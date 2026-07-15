@@ -34,25 +34,27 @@ function HtmlSnippet({ html }: { html: string }) {
 
 // Script injetado no srcdoc:
 // 1. Remove min-height do html/body (evita que 100vh prenda a altura ao tamanho do iframe)
-// 2. Envia altura via postMessage sempre que o conteúdo muda (accordions, tabs, etc.)
+// 2. Após qualquer mutação de DOM, faz poll a cada 100ms por 1,5s para capturar
+//    qualquer duração de transição CSS (expansão E colapso de accordions, tabs, etc.)
 const RESIZE_SCRIPT = `
 <style>html,body{min-height:0!important;height:auto!important}</style>
 <script>
 (function(){
-  var _last=0;
+  var _last=0,_t=null;
   function send(){
     var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);
     if(h>0&&h!==_last){_last=h;try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){}}
   }
+  function poll(){
+    clearTimeout(_t);
+    var n=0;
+    (function tick(){send();n++;if(n<15)_t=setTimeout(tick,100);})();
+  }
   function init(){
     send();setTimeout(send,300);setTimeout(send,1000);
     if(!window.MutationObserver)return;
-    var deb=null;
-    new MutationObserver(function(){
-      requestAnimationFrame(send);
-      clearTimeout(deb);
-      deb=setTimeout(function(){_last=0;send();setTimeout(send,300);},50);
-    }).observe(document.body||document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden','open']});
+    new MutationObserver(function(){requestAnimationFrame(send);poll();})
+      .observe(document.body||document.documentElement,{childList:true,subtree:true,attributes:true});
   }
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
 })();
