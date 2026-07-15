@@ -22,7 +22,6 @@
  *   LPGKQ8  Handify Artesanato Completo (bundle com todos os principais)
  *   RKJWA8  Combo Saponaria + Velaroma
  *   L9QEPN  Kit Completo (Fábrica + Workshop)
- *   RDOD6J  Pacote Impulso Artesanal Plus
  */
 
 import * as path from "path";
@@ -53,7 +52,6 @@ const QUALIFYING_CODES = new Set([
   "LPGKQ8", // Handify Artesanato Completo (bundle)
   "RKJWA8", // Combo Saponaria + Velaroma
   "L9QEPN", // Kit Completo (Fábrica + Workshop)
-  "RDOD6J", // Pacote Impulso Artesanal Plus
 ]);
 
 // ─── Parsing de argumentos ────────────────────────────────────────────────────
