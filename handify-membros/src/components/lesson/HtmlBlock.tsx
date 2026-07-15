@@ -42,7 +42,7 @@ const RESIZE_SCRIPT = `
 (function(){
   var _last=0,_t=null;
   function send(){
-    var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);
+    var h=document.body?document.body.scrollHeight:document.documentElement.scrollHeight;
     if(h>0&&h!==_last){_last=h;try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){}}
   }
   function poll(){
