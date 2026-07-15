@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeHtml } from "@/lib/sanitize";
 
 function HtmlSnippet({ html }: { html: string }) {
@@ -32,74 +32,69 @@ function HtmlSnippet({ html }: { html: string }) {
   );
 }
 
+// Script injetado no srcdoc:
+// 1. Remove min-height do html/body (evita que 100vh prenda a altura ao tamanho do iframe)
+// 2. Envia altura via postMessage sempre que o conteúdo muda (accordions, tabs, etc.)
+const RESIZE_SCRIPT = `
+<style>html,body{min-height:0!important;height:auto!important}</style>
+<script>
+(function(){
+  var _last=0;
+  function send(){
+    var h=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);
+    if(h>0&&h!==_last){_last=h;try{window.parent.postMessage({type:'handify-resize',height:h},'*');}catch(e){}}
+  }
+  function init(){
+    send();setTimeout(send,300);setTimeout(send,1000);
+    if(!window.MutationObserver)return;
+    var deb=null;
+    new MutationObserver(function(){
+      requestAnimationFrame(send);
+      clearTimeout(deb);
+      deb=setTimeout(function(){_last=0;send();setTimeout(send,300);},50);
+    }).observe(document.body||document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden','open']});
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+<\/script>`;
+
 // HTML completo (<!DOCTYPE ou <html>) → iframe srcdoc que se auto-ajusta à altura do conteúdo
 function HtmlDocument({ html }: { html: string }) {
   const [height, setHeight] = useState(400);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const observerRef = useRef<MutationObserver | null>(null);
 
-  // srcdoc = same-origin: leitura direta do DOM é confiável
-  const measure = useCallback(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-    try {
-      const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
-      if (!doc?.body) return;
-      const h = Math.max(
-        doc.documentElement.scrollHeight,
-        doc.body.scrollHeight,
-      );
-      if (h > 50) setHeight(h);
-    } catch { /* sandbox inesperado */ }
-  }, []);
-
-  const handleLoad = useCallback(() => {
-    measure();
-    // Re-mede após fontes web carregarem
-    setTimeout(measure, 300);
-    setTimeout(measure, 1000);
-
-    // MutationObserver no DOM do iframe para capturar qualquer mudança de conteúdo
-    // (abas de mês, accordions, tabs interativos, etc.)
-    observerRef.current?.disconnect();
-    try {
-      const iframe = iframeRef.current;
-      const doc = iframe?.contentDocument ?? iframe?.contentWindow?.document;
-      if (!doc?.body) return;
-      let debounce: ReturnType<typeof setTimeout> | null = null;
-      const obs = new MutationObserver(() => {
-        // rAF imediato + delays para capturar conteúdo que expande com transição CSS
-        requestAnimationFrame(measure);
-        if (debounce) clearTimeout(debounce);
-        debounce = setTimeout(() => {
-          measure();
-          setTimeout(measure, 300);
-        }, 50);
-      });
-      obs.observe(doc.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["style", "class", "hidden", "open"],
-      });
-      observerRef.current = obs;
-    } catch { /* ignora */ }
-  }, [measure]);
+  // Injeta o script de resize no srcdoc antes de renderizar
+  const docWithScript = useMemo(() => {
+    if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, `${RESIZE_SCRIPT}</body>`);
+    if (/<\/html>/i.test(html)) return html.replace(/<\/html>/i, `${RESIZE_SCRIPT}</html>`);
+    return html + RESIZE_SCRIPT;
+  }, [html]);
 
   useEffect(() => {
-    return () => observerRef.current?.disconnect();
+    function onMessage(e: MessageEvent) {
+      if (
+        e.data?.type === "handify-resize" &&
+        typeof e.data.height === "number" &&
+        e.data.height > 50 &&
+        // Garante que o postMessage veio do nosso iframe específico
+        iframeRef.current?.contentWindow === e.source
+      ) {
+        setHeight(e.data.height);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
   }, []);
 
   return (
     <div className="w-full overflow-hidden rounded-xl border border-border shadow-sm">
       <iframe
         ref={iframeRef}
-        srcDoc={html}
+        srcDoc={docWithScript}
         title="Conteúdo personalizado"
         className="w-full border-0 block"
         style={{ height }}
         scrolling="no"
-        onLoad={handleLoad}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
       />
     </div>
