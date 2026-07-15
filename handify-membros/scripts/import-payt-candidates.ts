@@ -248,7 +248,9 @@ if (onlySupplementary.length > 0) {
   }
 }
 
-// ─── Passo 4: verificar product_codes nos cursos do banco ────────────────────
+// ─── Passo 4 e 5: async (supabase) ────────────────────────────────────────────
+
+void (async () => {
 
 console.log("\n🔍 Verificando product_codes nos cursos...");
 const { data: courses, error: coursesError } = await supabase
@@ -337,6 +339,8 @@ if (onlySupplementary.length > 0) {
   console.log(`\n⚠️  Lembre-se: ${onlySupplementary.length} e-mail(s) tinham compras mapeadas mas ficaram de fora.`);
   console.log(`   Revise a lista acima se quiser decidir o que fazer com eles.`);
 }
+
+})();
 
 if (errors > 0) {
   console.warn("\n⚠️  Houve erros — verifique os logs acima.");
