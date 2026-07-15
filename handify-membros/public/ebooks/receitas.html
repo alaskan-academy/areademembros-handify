@@ -400,8 +400,10 @@ function showPicker(){
 
 function showRecipe(id){
   const r=R[id]; if(!r) return;
-  if(currentId===0){history.pushState({recipe:id},'');}
-  else{history.replaceState({recipe:id},'');}
+  try{
+    if(currentId===0){history.pushState({recipe:id},'');}
+    else{history.replaceState({recipe:id},'');}
+  }catch(e){}
   currentId=id;
   document.getElementById('recipe').innerHTML=build(r);
   document.getElementById('picker').style.display='none';

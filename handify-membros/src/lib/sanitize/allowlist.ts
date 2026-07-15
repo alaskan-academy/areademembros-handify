@@ -11,6 +11,7 @@ const EMBED_ALLOWLIST = [
 ];
 
 export function isAllowedEmbedUrl(url: string): boolean {
+  if (url.startsWith("/")) return true;
   try {
     const { hostname } = new URL(url);
     return EMBED_ALLOWLIST.some(
