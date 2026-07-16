@@ -222,28 +222,49 @@ void (async () => {
     candidates = TEST_TO.map((email) => ({ id: "test", email, full_name: null }));
     console.log(`📋 Enviando e-mail de teste para ${candidates.length} endereço(s)\n`);
   } else {
-    // Busca candidatas não ativadas
-    let query = supabase
-      .from("migration_candidates")
-      .select("id, email, full_name")
-      .is("activated_at", null)
-      .order("created_at");
+    // Busca candidatas não ativadas com paginação (Supabase limita 1000 por query)
+    const PAGE = 1000;
+    let from = 0;
+    candidates = [];
 
-    if (LIMIT) query = query.limit(LIMIT);
+    while (true) {
+      let query = supabase
+        .from("migration_candidates")
+        .select("id, email, full_name")
+        .is("activated_at", null)
+        .order("created_at")
+        .range(from, from + PAGE - 1);
 
-    const { data, error: fetchError } = await query;
+      if (LIMIT) query = query.limit(Math.min(LIMIT - candidates.length, PAGE));
 
-    if (fetchError) {
-      console.error("❌ Erro ao buscar candidatas:", fetchError.message);
-      process.exit(1);
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) {
+        console.error("❌ Erro ao buscar candidatas:", fetchError.message);
+        process.exit(1);
+      }
+
+      candidates.push(...((data ?? []) as Candidate[]));
+      if (!data || data.length < PAGE || (LIMIT && candidates.length >= LIMIT)) break;
+      from += PAGE;
     }
 
-    if (!data || data.length === 0) {
+    if (candidates.length === 0) {
       console.log("✅ Nenhuma candidata pendente encontrada.");
       return;
     }
 
-    candidates = data as Candidate[];
+    if (LIMIT) candidates = candidates.slice(0, LIMIT);
+
+    // Remove e-mails com caracteres não-ASCII (rejeitados pelo Resend e quebram o batch inteiro)
+    // eslint-disable-next-line no-control-regex
+    const invalidEmails = candidates.filter((c) => /[^\x00-\x7F]/.test(c.email));
+    if (invalidEmails.length > 0) {
+      console.warn(`⚠️  ${invalidEmails.length} e-mail(s) com caracteres inválidos serão ignorados:`);
+      invalidEmails.forEach((c) => console.warn(`   • ${c.email}`));
+      candidates = candidates.filter((c) => !/[^\x00-\x7F]/.test(c.email));
+    }
+
     console.log(`📋 ${candidates.length} candidata(s) para receber e-mail\n`);
   }
 
@@ -281,41 +302,26 @@ void (async () => {
       `Lote ${batchNum}/${totalBatches} (${batch.length} e-mails)... `
     );
 
-    const promises = batch.map(async (candidate) => {
+    const batchPayload = batch.map((candidate) => {
       const firstName = candidate.full_name?.split(" ")[0]?.trim() ?? "";
       const { html, subject } = URGENTE
         ? buildUrgentMigrationEmail(firstName, candidate.email)
         : buildMigrationEmail(firstName, candidate.email);
-
-      const { error } = await resend.emails.send({
-        from: FROM,
-        replyTo: REPLY_TO,
-        to: candidate.email,
-        subject,
-        html,
-      });
-
-      if (error) {
-        return { ok: false, email: candidate.email, error: error.message };
-      }
-      return { ok: true, email: candidate.email };
+      return { from: FROM, replyTo: REPLY_TO, to: candidate.email, subject, html };
     });
 
-    const results = await Promise.all(promises);
+    const { data: batchResult, error: batchError } = await resend.batch.send(batchPayload);
 
-    const batchSent = results.filter((r) => r.ok).length;
-    const batchFailed = results.filter((r) => !r.ok).length;
-    sent += batchSent;
-    failed += batchFailed;
-
-    results
-      .filter((r) => !r.ok)
-      .forEach((r) => {
-        failedEmails.push(r.email);
-        console.warn(`\n   ⚠️  Falha: ${r.email} — ${(r as { error?: string }).error ?? "erro desconhecido"}`);
-      });
-
-    console.log(`✓ ${batchSent} enviados${batchFailed > 0 ? `, ${batchFailed} falhou` : ""}`);
+    if (batchError) {
+      const batchFailed = batch.length;
+      failed += batchFailed;
+      batch.forEach((c) => failedEmails.push(c.email));
+      console.log(`✗ ${batchFailed} falhou — ${batchError.message}`);
+    } else {
+      const batchSent = Array.isArray(batchResult) ? batchResult.length : batch.length;
+      sent += batchSent;
+      console.log(`✓ ${batchSent} enviados`);
+    }
 
     // Aguarda entre lotes (exceto no último)
     if (i + BATCH_SIZE < candidates.length) {
