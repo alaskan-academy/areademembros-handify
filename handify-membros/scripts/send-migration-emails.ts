@@ -23,7 +23,12 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://membros.handify.com.br";
+const PROD_URL = "https://membros.handify.com.br";
+const envUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+const APP_URL = envUrl.startsWith("http://localhost") ? PROD_URL : (envUrl || PROD_URL);
+if (envUrl.startsWith("http://localhost")) {
+  console.warn(`⚠️  NEXT_PUBLIC_APP_URL é localhost — usando ${PROD_URL} nos links do e-mail.\n`);
+}
 
 const FROM = "Handify <noreply@mail.handify.com.br>";
 const REPLY_TO = "contato@handify.com.br";
