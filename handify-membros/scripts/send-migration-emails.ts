@@ -8,6 +8,7 @@
  *   --dry-run              Lista candidatas mas não envia e-mails
  *   --limit N              Processa no máximo N candidatas (útil para teste)
  *   --test-to e1,e2,...    Envia APENAS para os e-mails informados (ignora o banco)
+ *   --urgente              Usa subject/texto de "último aviso" (para lembrete ~30 dias)
  *
  * Rate limit Resend: 100 e-mails/seg → enviamos 100 por lote com 1s de pausa.
  */
@@ -37,6 +38,7 @@ const LIMIT = limitArg && !isNaN(Number(limitArg)) ? Number(limitArg) : null;
 const testToArg = args.find((a) => a.startsWith("--test-to="))?.replace("--test-to=", "")
   ?? (args.includes("--test-to") ? args[args.indexOf("--test-to") + 1] : null);
 const TEST_TO: string[] | null = testToArg ? testToArg.split(",").map((e) => e.trim()).filter(Boolean) : null;
+const URGENTE = args.includes("--urgente");
 
 // ─── Template do e-mail ───────────────────────────────────────────────────────
 
@@ -157,6 +159,39 @@ function buildMigrationEmail(firstName: string, email: string) {
   return { html, subject };
 }
 
+function buildUrgentMigrationEmail(firstName: string, email: string) {
+  const html = emailWrapper(`
+    <p style="color:#cc3333;font-size:13px;font-weight:700;letter-spacing:0.08em;margin:0 0 12px;font-family:Arial,Helvetica,sans-serif;text-transform:uppercase;">
+      ⏰ Último aviso
+    </p>
+    <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+      ${firstName ? `${firstName}, seus` : "Seus"} cursos Handify ainda estão te esperando!
+    </h1>
+    <p style="color:#2D2D2D;font-size:16px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+      Você comprou um curso da Handify mas ainda não acessou sua conta na nova plataforma. Estamos encerrando em breve o período de migração — e não queremos que você fique de fora!
+    </p>
+    <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 28px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+      Clique no botão abaixo e use o e-mail <strong>${email}</strong> para ativar seu acesso agora. Leva menos de 2 minutos!
+    </p>
+    ${ctaButton(ATIVAR_URL, "Ativar minha conta — é rápido!")}
+    <div style="background-color:#fff8e1;border-left:4px solid #FEC649;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:20px;">
+      <p style="color:#555555;font-size:13px;margin:0;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+        <strong>Seus cursos estão garantidos</strong> — só precisamos que você crie uma senha para acessá-los. O acesso não expira depois de ativado.
+      </p>
+    </div>
+    <p style="color:#888888;font-size:13px;line-height:1.6;margin:0;font-family:Arial,Helvetica,sans-serif;">
+      Precisa de ajuda? Fale com a gente pelo
+      <a href="https://wa.me/message/ZVYBKLSWPO7OM1" style="color:#6699F3;text-decoration:none;">WhatsApp (suporte)</a>.
+    </p>
+  `);
+
+  const subject = firstName
+    ? `${firstName}, último aviso: ative seu acesso aos cursos Handify`
+    : "Último aviso: ative seu acesso aos cursos Handify";
+
+  return { html, subject };
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 void (async () => {
@@ -174,7 +209,7 @@ void (async () => {
   });
   const resend = new Resend(RESEND_API_KEY);
 
-  console.log(`\n📧 Script de e-mails de migração${DRY_RUN ? " [DRY-RUN]" : ""}${TEST_TO ? " [TESTE]" : ""}`);
+  console.log(`\n📧 Script de e-mails de migração${DRY_RUN ? " [DRY-RUN]" : ""}${TEST_TO ? " [TESTE]" : ""}${URGENTE ? " [URGENTE]" : ""}`);
   if (LIMIT) console.log(`   Limite: ${LIMIT} candidatas`);
   if (TEST_TO) console.log(`   Destinatários de teste: ${TEST_TO.join(", ")}`);
   console.log(`   Link de ativação: ${ATIVAR_URL}\n`);
@@ -248,7 +283,9 @@ void (async () => {
 
     const promises = batch.map(async (candidate) => {
       const firstName = candidate.full_name?.split(" ")[0]?.trim() ?? "";
-      const { html, subject } = buildMigrationEmail(firstName, candidate.email);
+      const { html, subject } = URGENTE
+        ? buildUrgentMigrationEmail(firstName, candidate.email)
+        : buildMigrationEmail(firstName, candidate.email);
 
       const { error } = await resend.emails.send({
         from: FROM,
