@@ -45,14 +45,16 @@ export async function checkAtivarEmailAction(
   }
 
   // 3. Já tem conta no Supabase Auth (cadastrou por fora)
-  const { data: authUsers } = await service.auth.admin.listUsers();
-  const existingUser = authUsers?.users?.find(
-    (u) => u.email?.toLowerCase() === email
-  );
+  // Usa profiles (service client ignora RLS) em vez de listUsers() que pagina em 50
+  const { data: existingProfile } = await service
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
 
-  if (existingUser) {
+  if (existingProfile) {
     // Concede matrículas pendentes e manda para login
-    await grantMigrationEnrollments(existingUser.id, email, service);
+    await grantMigrationEnrollments(existingProfile.id, email, service);
     await service
       .from("migration_candidates")
       .update({ activated_at: new Date().toISOString() })
