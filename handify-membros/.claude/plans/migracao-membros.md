@@ -264,24 +264,23 @@ Após 1-2 meses:
 - [x] 7. Testar fluxo completo com candidato fictício — validado em 2026-07-16 (3 matrículas criadas, source=migration)
 - [x] 8. Rodar importação real (sem `--dry-run`) → 3.657 candidatas gravadas em 2026-07-16 (0 erros)
 - [x] 9. Escrever script de e-mails (`send-migration-emails.ts`) — criado em 2026-07-15
-- [ ] 10. Deploy + enviar e-mails em lote
-- [ ] 11. Monitorar ativações; enviar lembrete após 30 dias
-- [ ] 12. Desativar rota após encerramento do período
+- [x] 10. Deploy feito (Vercel) + e-mails agendados para 16/07/2026 às 08:00 via Windows Task Scheduler
+- [x] 10a. Redirect `acesso.handify.com.br` → `membros.handify.com.br/ativar` via `next.config.ts` + DNS Hostinger + domínio Vercel — configurado em 2026-07-15
+- [ ] 11. Monitorar ativações; enviar lembrete após 30 dias (previsão: ~16/08/2026)
+- [ ] 12. Desativar rota `/ativar` após encerramento do período de migração
 
 ---
 
 ## Melhorias pendentes (identificadas durante a migração)
 
-### A. Link de suporte nas telas de acesso
-Adicionar botão/link de WhatsApp (`https://wa.me/message/ZVYBKLSWPO7OM1`) nas seguintes telas:
-- `src/app/(auth)/login/page.tsx` — tela de login padrão
-- `src/app/(auth)/cadastro/page.tsx` — tela de cadastro
-- `src/app/ativar/page.tsx` — Passo 1 da migração
-- `src/app/ativar/completar/CompletarAtivarForm.tsx` — Passo 2 da migração
+### A. Link de suporte nas telas de acesso ✅ concluído em 2026-07-15
+Link "Problemas com o acesso? Falar com suporte" (WhatsApp `https://wa.me/message/ZVYBKLSWPO7OM1`) adicionado em:
+- `src/app/(auth)/login/page.tsx`
+- `src/app/ativar/page.tsx`
+- `src/app/ativar/completar/CompletarAtivarForm.tsx`
+- Falta: `src/app/(auth)/cadastro/page.tsx`
 
-Texto sugerido: "Problemas com o acesso? Fale com o suporte" com ícone do WhatsApp.
-
-### B. Alterar senha no perfil da aluna
+### B. Alterar senha no perfil da aluna — pendente
 Adicionar seção de segurança na página de perfil (`src/app/(student)/perfil/`) para que a aluna logada possa trocar a senha sem precisar fazer logout e usar "Esqueci minha senha".
 
 Fluxo sugerido:
