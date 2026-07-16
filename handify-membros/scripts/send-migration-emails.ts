@@ -2,11 +2,12 @@
  * Envia e-mails de migração para candidatas não ativadas.
  *
  * Uso:
- *   npx tsx scripts/send-migration-emails.ts [--dry-run] [--limit N]
+ *   npx tsx scripts/send-migration-emails.ts [--dry-run] [--limit N] [--test-to email1,email2]
  *
  * Flags:
- *   --dry-run   Lista candidatas mas não envia e-mails
- *   --limit N   Processa no máximo N candidatas (útil para teste)
+ *   --dry-run              Lista candidatas mas não envia e-mails
+ *   --limit N              Processa no máximo N candidatas (útil para teste)
+ *   --test-to e1,e2,...    Envia APENAS para os e-mails informados (ignora o banco)
  *
  * Rate limit Resend: 100 e-mails/seg → enviamos 100 por lote com 1s de pausa.
  */
@@ -33,6 +34,9 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes("--dry-run");
 const limitArg = args.find((a) => a.startsWith("--limit=")) ?? args[args.indexOf("--limit") + 1];
 const LIMIT = limitArg && !isNaN(Number(limitArg)) ? Number(limitArg) : null;
+const testToArg = args.find((a) => a.startsWith("--test-to="))?.replace("--test-to=", "")
+  ?? (args.includes("--test-to") ? args[args.indexOf("--test-to") + 1] : null);
+const TEST_TO: string[] | null = testToArg ? testToArg.split(",").map((e) => e.trim()).filter(Boolean) : null;
 
 // ─── Template do e-mail ───────────────────────────────────────────────────────
 
@@ -170,32 +174,43 @@ void (async () => {
   });
   const resend = new Resend(RESEND_API_KEY);
 
-  console.log(`\n📧 Script de e-mails de migração${DRY_RUN ? " [DRY-RUN]" : ""}`);
+  console.log(`\n📧 Script de e-mails de migração${DRY_RUN ? " [DRY-RUN]" : ""}${TEST_TO ? " [TESTE]" : ""}`);
   if (LIMIT) console.log(`   Limite: ${LIMIT} candidatas`);
+  if (TEST_TO) console.log(`   Destinatários de teste: ${TEST_TO.join(", ")}`);
   console.log(`   App URL: ${APP_URL}\n`);
 
-  // Busca candidatas não ativadas
-  let query = supabase
-    .from("migration_candidates")
-    .select("id, email, full_name")
-    .is("activated_at", null)
-    .order("created_at");
+  // Modo --test-to: usa os e-mails informados diretamente, sem consultar o banco
+  type Candidate = { id: string; email: string; full_name: string | null };
+  let candidates: Candidate[];
 
-  if (LIMIT) query = query.limit(LIMIT);
+  if (TEST_TO) {
+    candidates = TEST_TO.map((email) => ({ id: "test", email, full_name: null }));
+    console.log(`📋 Enviando e-mail de teste para ${candidates.length} endereço(s)\n`);
+  } else {
+    // Busca candidatas não ativadas
+    let query = supabase
+      .from("migration_candidates")
+      .select("id, email, full_name")
+      .is("activated_at", null)
+      .order("created_at");
 
-  const { data: candidates, error: fetchError } = await query;
+    if (LIMIT) query = query.limit(LIMIT);
 
-  if (fetchError) {
-    console.error("❌ Erro ao buscar candidatas:", fetchError.message);
-    process.exit(1);
+    const { data, error: fetchError } = await query;
+
+    if (fetchError) {
+      console.error("❌ Erro ao buscar candidatas:", fetchError.message);
+      process.exit(1);
+    }
+
+    if (!data || data.length === 0) {
+      console.log("✅ Nenhuma candidata pendente encontrada.");
+      return;
+    }
+
+    candidates = data as Candidate[];
+    console.log(`📋 ${candidates.length} candidata(s) para receber e-mail\n`);
   }
-
-  if (!candidates || candidates.length === 0) {
-    console.log("✅ Nenhuma candidata pendente encontrada.");
-    return;
-  }
-
-  console.log(`📋 ${candidates.length} candidata(s) para receber e-mail\n`);
 
   if (DRY_RUN) {
     console.log("Primeiras 10 candidatas:");
@@ -209,10 +224,12 @@ void (async () => {
     return;
   }
 
-  // Confirmação antes de disparar
-  console.log(`⚠️  Prestes a enviar ${candidates.length} e-mails.`);
-  console.log("   Pressione Ctrl+C para cancelar ou aguarde 5s para continuar...\n");
-  await new Promise((r) => setTimeout(r, 5000));
+  // Confirmação antes de disparar (pulada em modo --test-to)
+  if (!TEST_TO) {
+    console.log(`⚠️  Prestes a enviar ${candidates.length} e-mails.`);
+    console.log("   Pressione Ctrl+C para cancelar ou aguarde 5s para continuar...\n");
+    await new Promise((r) => setTimeout(r, 5000));
+  }
 
   // Processa em lotes
   let sent = 0;

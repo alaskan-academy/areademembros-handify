@@ -267,3 +267,24 @@ Após 1-2 meses:
 - [ ] 10. Deploy + enviar e-mails em lote
 - [ ] 11. Monitorar ativações; enviar lembrete após 30 dias
 - [ ] 12. Desativar rota após encerramento do período
+
+---
+
+## Melhorias pendentes (identificadas durante a migração)
+
+### A. Link de suporte nas telas de acesso
+Adicionar botão/link de WhatsApp (`https://wa.me/message/ZVYBKLSWPO7OM1`) nas seguintes telas:
+- `src/app/(auth)/login/page.tsx` — tela de login padrão
+- `src/app/(auth)/cadastro/page.tsx` — tela de cadastro
+- `src/app/ativar/page.tsx` — Passo 1 da migração
+- `src/app/ativar/completar/CompletarAtivarForm.tsx` — Passo 2 da migração
+
+Texto sugerido: "Problemas com o acesso? Fale com o suporte" com ícone do WhatsApp.
+
+### B. Alterar senha no perfil da aluna
+Adicionar seção de segurança na página de perfil (`src/app/(student)/perfil/`) para que a aluna logada possa trocar a senha sem precisar fazer logout e usar "Esqueci minha senha".
+
+Fluxo sugerido:
+1. Formulário com campos "Senha atual", "Nova senha", "Confirmar nova senha"
+2. Server Action que verifica a senha atual via `supabase.auth.signInWithPassword` e depois chama `supabase.auth.updateUser({ password: novaSenha })`
+3. Feedback de sucesso/erro inline (sem reload de página)
