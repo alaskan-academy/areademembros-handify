@@ -54,6 +54,15 @@ const QUALIFYING_CODES = new Set([
   "L9QEPN", // Kit Completo (Fábrica + Workshop)
 ]);
 
+// Adições manuais: OBs comprados com e-mail diferente do cadastro principal.
+// Cruzamento por CPF confirmou que estas alunas têm o curso principal em outro e-mail.
+const MANUAL_EXTRA_CODES: Record<string, string[]> = {
+  "jeanine39lins@gmail.com":    ["4M2WW6"], // Saboaria Energética 2.0 (comprado em jeanine_peixoto@hotmail.com)
+  "rmk_30@hotmail.com":         ["4M2WW6"], // Saboaria Energética 2.0 (comprado em marciakazahaya@gmail.com)
+  "josanamil@gmail.com":        ["R36XPZ"], // Natural Dermatológica 2.0 (comprado em josanam@gmail.com)
+  "katya.lichti@uol.com.br":    ["4NGDDO"], // Embalagens que Encantam 2.0 (comprado em katya.lichti@gmail.com)
+};
+
 // ─── Parsing de argumentos ────────────────────────────────────────────────────
 
 function args(name: string): string[] {
@@ -228,6 +237,11 @@ for (const [email, c] of allCandidates) {
   const hasQualifying = codes.some((code) => QUALIFYING_CODES.has(code));
 
   if (hasQualifying) {
+    // Aplica adições manuais (OBs confirmados por cruzamento de CPF)
+    const extras = MANUAL_EXTRA_CODES[email];
+    if (extras) {
+      for (const code of extras) c.product_codes.add(code);
+    }
     qualified.set(email, c);
   } else {
     excluded.push({ email, codes });
