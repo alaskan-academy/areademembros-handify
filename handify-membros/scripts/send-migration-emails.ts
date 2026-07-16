@@ -23,12 +23,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const RESEND_API_KEY = process.env.RESEND_API_KEY!;
-const PROD_URL = "https://membros.handify.com.br";
-const envUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-const APP_URL = envUrl.startsWith("http://localhost") ? PROD_URL : (envUrl || PROD_URL);
-if (envUrl.startsWith("http://localhost")) {
-  console.warn(`⚠️  NEXT_PUBLIC_APP_URL é localhost — usando ${PROD_URL} nos links do e-mail.\n`);
-}
+const ATIVAR_URL = "https://membros.handify.com.br/ativar";
 
 const FROM = "Handify <noreply@mail.handify.com.br>";
 const REPLY_TO = "contato@handify.com.br";
@@ -125,7 +120,7 @@ function ctaButton(href: string, label: string) {
 }
 
 function buildMigrationEmail(firstName: string, email: string) {
-  const ativarUrl = `${APP_URL}/ativar`;
+  const ativarUrl = ATIVAR_URL;
 
   const html = emailWrapper(`
     <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
@@ -182,7 +177,7 @@ void (async () => {
   console.log(`\n📧 Script de e-mails de migração${DRY_RUN ? " [DRY-RUN]" : ""}${TEST_TO ? " [TESTE]" : ""}`);
   if (LIMIT) console.log(`   Limite: ${LIMIT} candidatas`);
   if (TEST_TO) console.log(`   Destinatários de teste: ${TEST_TO.join(", ")}`);
-  console.log(`   App URL: ${APP_URL}\n`);
+  console.log(`   Link de ativação: ${ATIVAR_URL}\n`);
 
   // Modo --test-to: usa os e-mails informados diretamente, sem consultar o banco
   type Candidate = { id: string; email: string; full_name: string | null };
