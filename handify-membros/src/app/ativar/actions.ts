@@ -199,7 +199,7 @@ export async function completarAtivarAction(
     password: parsed.data.password,
   });
 
-  redirect("/cursos");
+  redirect("/cursos?migrada=1");
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

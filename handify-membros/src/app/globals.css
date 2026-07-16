@@ -154,7 +154,7 @@
     -webkit-font-smoothing: antialiased;
   }
   html {
-    @apply font-sans;
+    @apply font-sans bg-background;
     scrollbar-gutter: stable; /* evita layout shift quando scrollbar aparece */
   }
   h1, h2, h3, h4, h5, h6 {
