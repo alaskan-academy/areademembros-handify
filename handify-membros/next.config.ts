@@ -13,6 +13,17 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "ozsbyscxcpijyvnjlkpw.supabase.co" },
     ],
   },
+  async redirects() {
+    return [
+      // Redireciona toda a área de membros antiga para o fluxo de ativação da nova plataforma
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "acesso.handify.com.br" }],
+        destination: "https://membros.handify.com.br/ativar",
+        permanent: false, // 302 — facilita mudar depois se necessário
+      },
+    ];
+  },
   async headers() {
     const isProd = process.env.NODE_ENV === "production";
     return [
