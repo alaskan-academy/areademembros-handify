@@ -236,9 +236,6 @@ export default function PerfilView() {
         prefs={mergeWithDefaults(profile?.email_prefs as EmailPrefs | null)}
       />
 
-      {/* Alterar senha */}
-      <ChangePasswordSection />
-
       {/* Notificações push */}
       <div className="handify-card p-6 space-y-4">
         <div>
@@ -424,6 +421,12 @@ function ProfileSection({
               Cancelar
             </button>
           </div>
+        </div>
+      )}
+
+      {!editing && (
+        <div className="border-t border-border/60 pt-5">
+          <ChangePasswordSection />
         </div>
       )}
     </section>
@@ -803,10 +806,10 @@ function ChangePasswordSection() {
   };
 
   return (
-    <section className="handify-card p-6 space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold flex items-center gap-2">
-          <KeyRound className="w-5 h-5 text-[#6699F3]" />
+        <h2 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+          <KeyRound className="w-4 h-4" />
           Segurança
         </h2>
         {!open && (
@@ -909,6 +912,6 @@ function ChangePasswordSection() {
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
