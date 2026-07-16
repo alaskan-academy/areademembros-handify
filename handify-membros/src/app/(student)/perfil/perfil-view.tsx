@@ -10,6 +10,7 @@ import {
   Check,
   Download,
   ExternalLink,
+  KeyRound,
   Loader2,
   Mail,
   PartyPopper,
@@ -25,6 +26,7 @@ import {
   updateProfile,
   uploadAvatar,
   updateEmailPrefs,
+  changePassword,
   type EmailPrefs,
 } from "./actions";
 import PushSubscribeButton from "@/components/pwa/PushSubscribeButton";
@@ -233,6 +235,9 @@ export default function PerfilView() {
       <EmailPrefsSection
         prefs={mergeWithDefaults(profile?.email_prefs as EmailPrefs | null)}
       />
+
+      {/* Alterar senha */}
+      <ChangePasswordSection />
 
       {/* Notificações push */}
       <div className="handify-card p-6 space-y-4">
@@ -750,6 +755,160 @@ function EmailPrefsSection({ prefs }: { prefs: EmailPrefs }) {
       <p className="text-xs text-muted-foreground">
         E-mails de boas-vindas e confirmação de acesso são sempre enviados e não podem ser desativados.
       </p>
+    </section>
+  );
+}
+
+// ─── Seção: Alterar Senha ─────────────────────────────────────────────────────
+
+function ChangePasswordSection() {
+  const [open, setOpen] = useState(false);
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = () => {
+    setError(null);
+    if (newPwd !== confirmPwd) {
+      setError("As senhas não coincidem.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await changePassword({ currentPassword: currentPwd, newPassword: newPwd });
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuccess(true);
+        setCurrentPwd("");
+        setNewPwd("");
+        setConfirmPwd("");
+        setTimeout(() => {
+          setSuccess(false);
+          setOpen(false);
+        }, 2500);
+      }
+    });
+  };
+
+  const handleCancel = () => {
+    setOpen(false);
+    setCurrentPwd("");
+    setNewPwd("");
+    setConfirmPwd("");
+    setError(null);
+    setSuccess(false);
+  };
+
+  return (
+    <section className="handify-card p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold flex items-center gap-2">
+          <KeyRound className="w-5 h-5 text-[#6699F3]" />
+          Segurança
+        </h2>
+        {!open && (
+          <button
+            onClick={() => setOpen(true)}
+            className="text-sm text-[#6699F3] hover:underline underline-offset-4"
+          >
+            Alterar senha
+          </button>
+        )}
+      </div>
+
+      {!open && (
+        <p className="text-sm text-muted-foreground">
+          Sua senha pode ser alterada a qualquer momento sem precisar sair da conta.
+        </p>
+      )}
+
+      {open && (
+        <div className="space-y-3">
+          {success ? (
+            <div className="rounded-md bg-[#72CF92]/15 border border-[#72CF92]/30 px-4 py-3 text-sm text-[#2D2D2D] flex items-center gap-2">
+              <Check className="w-4 h-4 text-[#72CF92] shrink-0" />
+              Senha alterada com sucesso!
+            </div>
+          ) : (
+            <>
+              {error && (
+                <p className="text-xs text-red-500">{error}</p>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Senha atual
+                </label>
+                <input
+                  type="password"
+                  value={currentPwd}
+                  onChange={(e) => setCurrentPwd(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={isPending}
+                  className="w-full text-sm bg-muted/50 border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/50 disabled:opacity-60"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Nova senha
+                </label>
+                <input
+                  type="password"
+                  value={newPwd}
+                  onChange={(e) => setNewPwd(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  autoComplete="new-password"
+                  disabled={isPending}
+                  className="w-full text-sm bg-muted/50 border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/50 disabled:opacity-60"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Confirmar nova senha
+                </label>
+                <input
+                  type="password"
+                  value={confirmPwd}
+                  onChange={(e) => setConfirmPwd(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  disabled={isPending}
+                  className="w-full text-sm bg-muted/50 border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/50 disabled:opacity-60"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleSubmit}
+                  disabled={isPending || !currentPwd || !newPwd || !confirmPwd}
+                  className="flex items-center gap-1.5 text-sm font-medium bg-[#6699F3] text-white px-4 py-2 min-h-[44px] rounded-lg hover:bg-[#5580d4] disabled:opacity-50 transition-colors"
+                >
+                  {isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
+                  Salvar nova senha
+                </button>
+                <button
+                  onClick={handleCancel}
+                  disabled={isPending}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground px-3 py-2 min-h-[44px] rounded-lg hover:bg-muted transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Cancelar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }

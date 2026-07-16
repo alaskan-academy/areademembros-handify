@@ -103,6 +103,32 @@ export async function uploadAvatar(
   return { url: urlWithBust };
 }
 
+// ─── Senha ────────────────────────────────────────────────────────────────────
+
+export async function changePassword(data: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "Não autenticado" };
+
+  if (data.newPassword.length < 8) return { error: "A nova senha deve ter pelo menos 8 caracteres." };
+
+  // Verifica senha atual via re-autenticação
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: data.currentPassword,
+  });
+  if (signInError) return { error: "Senha atual incorreta." };
+
+  const { error } = await supabase.auth.updateUser({ password: data.newPassword });
+  if (error) return { error: error.message };
+  return {};
+}
+
 // ─── Preferências de e-mail ───────────────────────────────────────────────────
 
 export type EmailPrefs = {
