@@ -209,6 +209,18 @@ export default function CompletarAtivarForm({ token, email, fullName, cpf, phone
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? "Criando conta e entrando…" : "Criar conta e acessar meus cursos"}
           </Button>
+
+          <p className="text-xs text-center text-[#aaa]">
+            Problemas com o acesso?{" "}
+            <a
+              href="https://wa.me/message/ZVYBKLSWPO7OM1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#6699F3] underline-offset-4 hover:underline"
+            >
+              Falar com suporte
+            </a>
+          </p>
         </CardFooter>
       </form>
     </Card>

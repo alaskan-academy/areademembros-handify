@@ -88,6 +88,18 @@ export default function AtivarPage() {
               Entrar
             </a>
           </p>
+
+          <p className="text-xs text-center text-[#aaa]">
+            Problemas com o acesso?{" "}
+            <a
+              href="https://wa.me/message/ZVYBKLSWPO7OM1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#6699F3] underline-offset-4 hover:underline"
+            >
+              Falar com suporte
+            </a>
+          </p>
         </CardFooter>
       </form>
     </Card>
