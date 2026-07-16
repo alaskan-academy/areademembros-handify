@@ -261,8 +261,8 @@ Após 1-2 meses:
 - [x] 6a. Adicionar `/ativar` em `PUBLIC_ROUTES` (`src/proxy.ts`)
 - [x] 6b. Adicionar banners de msg verde na página de login
 - [x] 6c. Executar dry-run → 3.657 qualificadas confirmadas, filtro validado
-- [ ] 7. Testar fluxo completo com candidato real ou fictício no banco
-- [ ] 8. Rodar importação real (sem `--dry-run`) → gravar 3.657 candidatas
+- [x] 7. Testar fluxo completo com candidato fictício — validado em 2026-07-16 (3 matrículas criadas, source=migration)
+- [x] 8. Rodar importação real (sem `--dry-run`) → 3.657 candidatas gravadas em 2026-07-16 (0 erros)
 - [ ] 9. Escrever e testar script de e-mails (`send-migration-emails.ts`)
 - [ ] 10. Deploy + enviar e-mails em lote
 - [ ] 11. Monitorar ativações; enviar lembrete após 30 dias

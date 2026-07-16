@@ -254,12 +254,13 @@ console.log(`   ✅ Qualificadas (entram na migração): ${qualified.size}`);
 console.log(`   ❌ Excluídas (sem curso principal): ${excluded.length}`);
 
 if (onlySupplementary.length > 0) {
-  console.log(`\n⚠️  ATENÇÃO — ${onlySupplementary.length} e-mail(s) com compras mapeadas mas SEM curso principal:`);
-  console.log(`   (Esses NÃO entrarão na migração. Revise se necessário.)\n`);
-  for (const { email, codes } of onlySupplementary) {
-    console.log(`   📧 ${email}`);
-    console.log(`      Códigos comprados: ${codes.join(", ")}`);
-  }
+  // Salva lista de excluídos em arquivo para não estourar o terminal
+  const excludedReport = onlySupplementary
+    .map(({ email, codes }) => `${email}\t${codes.join(", ")}`)
+    .join("\n");
+  const reportPath = path.resolve(process.cwd(), "excluded-candidates.txt");
+  fs.writeFileSync(reportPath, `email\tcodigos\n${excludedReport}`, "utf-8");
+  console.log(`\n⚠️  ${onlySupplementary.length} excluídas salvas em: ${reportPath}`);
 }
 
 // ─── Passo 4 e 5: async (supabase) ────────────────────────────────────────────
@@ -354,9 +355,9 @@ if (onlySupplementary.length > 0) {
   console.log(`   Revise a lista acima se quiser decidir o que fazer com eles.`);
 }
 
-})();
-
 if (errors > 0) {
   console.warn("\n⚠️  Houve erros — verifique os logs acima.");
   process.exit(1);
 }
+
+})();
