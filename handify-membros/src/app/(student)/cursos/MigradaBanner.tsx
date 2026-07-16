@@ -18,7 +18,7 @@ export default function MigradaBanner() {
           <span className="font-bold">Salve o link da sua nova área de membros:</span>{" "}
           <span className="underline underline-offset-2 font-mono">{URL_NOVA_AREA}</span>
           {" — "}
-          adicione aos favoritos do navegador para entrar facilmente da próxima vez.
+          adicione aos favoritos do navegador ou baixe o app para entrar facilmente da próxima vez.
         </p>
         <button
           onClick={() => setVisible(false)}
