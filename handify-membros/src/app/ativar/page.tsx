@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { checkAtivarEmailAction } from "./actions";
@@ -23,6 +24,14 @@ const ERRO_MSGS: Record<string, string> = {
 };
 
 export default function AtivarPage() {
+  return (
+    <Suspense>
+      <AtivarContent />
+    </Suspense>
+  );
+}
+
+function AtivarContent() {
   const [state, formAction, isPending] = useActionState(
     checkAtivarEmailAction,
     initialState

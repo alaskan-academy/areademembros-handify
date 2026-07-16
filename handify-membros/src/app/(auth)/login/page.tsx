@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -29,6 +30,14 @@ export default function LoginPage({
 }: {
   searchParams: Promise<{ redirect?: string; msg?: string }>;
 }) {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
   const [email, setEmail] = useState("");
   const searchParams = useSearchParams();
