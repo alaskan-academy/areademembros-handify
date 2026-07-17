@@ -237,6 +237,15 @@ CREATE TABLE product_course_links (
 - [x] `MaterialCard` — botões "Comprar agora" (buy_url) + "Visite a loja" (canal website) com nome da loja ✓
 - [x] `FornecedorCard` — exibir produtos vinculados (nome + imagem + link de compra) ✓
 - [x] Hub (`FerramentasHub`) — links `?produto=sabonetes/velas` pré-selecionam filtro de nicho ✓
+- [x] `MaterialCard` — botão de favorito (coração) + botão de comentários ✓
+- [x] `ProductReviewsModal` — modal de comentários para produtos ✓
+- [x] `FornecedoresPage` — integrar modal de produto ✓
+- [x] Migration `20260717_product_reviews_favorites.sql` — tabelas + RLS ✓
+- [x] Types — `ProductReviewRow`, `ProductReviewWithProfile`, `isFavorite`/`reviewCount` em `ProductWithDetails` ✓
+- [x] Actions — `toggleProductFavorite`, `getProductReviews`, `submitProductReview`, `adminGetProductReviews`, `adminApproveProductReview`, `adminDeleteProductReview` ✓
+- [x] Admin comentários — tabs Lojas e Marcas | Materiais; contagem de pendentes por aba ✓
+- [x] ActivityTab — novos tipos `product_favorite` e `product_review` com filtro "Materiais" ✓
+- [x] Insights da aluna — queries de `product_favorites` e `product_reviews` ✓
 - [ ] Push para produção (aguardando aprovação)
 
 ---

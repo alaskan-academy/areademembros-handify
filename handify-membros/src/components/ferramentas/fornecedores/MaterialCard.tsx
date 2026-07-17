@@ -1,6 +1,9 @@
 'use client'
 
-import { ShoppingCart, Package, ExternalLink } from 'lucide-react'
+import { useState } from 'react'
+import { ShoppingCart, Package, ExternalLink, Heart, MessageCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { toggleProductFavorite } from '@/lib/fornecedores/actions'
 import type { ProductWithDetails } from '@/lib/fornecedores/types'
 
 function getBestStoreUrl(channels: { channel: string; url: string }[]): string | null {
@@ -13,9 +16,26 @@ function getBestStoreUrl(channels: { channel: string; url: string }[]): string |
 
 interface Props {
   product: ProductWithDetails
+  userId: string
+  onOpenReviews: (product: ProductWithDetails) => void
 }
 
-export function MaterialCard({ product }: Props) {
+export function MaterialCard({ product, userId, onOpenReviews }: Props) {
+  const [fav, setFav] = useState(product.isFavorite)
+  const [loading, setLoading] = useState(false)
+
+  async function handleFav() {
+    if (loading) return
+    setLoading(true)
+    setFav(v => !v)
+    try {
+      await toggleProductFavorite(userId, product.id, fav)
+    } catch {
+      setFav(v => !v)
+    }
+    setLoading(false)
+  }
+
   return (
     <div className="bg-white rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden">
       {/* Foto */}
@@ -27,6 +47,19 @@ export function MaterialCard({ product }: Props) {
             <Package className="w-12 h-12 text-muted-foreground/30" />
           </div>
         )}
+
+        {/* Favorito */}
+        <button
+          onClick={handleFav}
+          disabled={loading}
+          className={cn(
+            'absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm transition-colors',
+            fav ? 'text-red-500 hover:bg-red-50' : 'text-foreground/30 hover:text-red-400 hover:bg-red-50'
+          )}
+          title={fav ? 'Remover dos favoritos' : 'Salvar produto'}
+        >
+          <Heart className="w-3.5 h-3.5" fill={fav ? 'currentColor' : 'none'} />
+        </button>
       </div>
 
       {/* Conteúdo */}
@@ -89,6 +122,17 @@ export function MaterialCard({ product }: Props) {
             ))}
           </div>
         )}
+
+        {/* Comentários */}
+        <button
+          onClick={() => onOpenReviews(product)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-0.5"
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+          {product.reviewCount === 0
+            ? 'Seja a primeira a comentar'
+            : `${product.reviewCount} comentário${product.reviewCount !== 1 ? 's' : ''}`}
+        </button>
       </div>
     </div>
   )

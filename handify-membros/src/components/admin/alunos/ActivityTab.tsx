@@ -1,19 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquare, MessageCircle, Store, CheckCircle2, Heart, Bookmark } from "lucide-react";
+import { MessageSquare, MessageCircle, Store, CheckCircle2, Heart, Bookmark, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ActivityItem = {
   id: string;
-  type: "forum_post" | "forum_comment" | "suggestion" | "lesson_completed" | "insp_like" | "insp_bookmark" | "insp_comment";
+  type: "forum_post" | "forum_comment" | "suggestion" | "lesson_completed" | "insp_like" | "insp_bookmark" | "insp_comment" | "product_favorite" | "product_review";
   content: string;
   context?: string;
   status?: string;
   date: string;
 };
 
-type FilterKey = "all" | "forum" | "comments" | "lessons" | "suggestions" | "inspiracoes";
+type FilterKey = "all" | "forum" | "comments" | "lessons" | "suggestions" | "inspiracoes" | "materiais";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all",         label: "Tudo" },
@@ -22,16 +22,19 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "lessons",     label: "Aulas" },
   { key: "suggestions", label: "Sugestões" },
   { key: "inspiracoes", label: "Inspirações" },
+  { key: "materiais",   label: "Materiais" },
 ];
 
 const TYPE_CONFIG = {
-  forum_post:      { icon: MessageSquare,  label: "Post no fórum",         color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "forum"       as FilterKey },
-  forum_comment:   { icon: MessageCircle,  label: "Comentário no fórum",   color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "comments"    as FilterKey },
-  suggestion:      { icon: Store,          label: "Sugestão de fornecedor", color: "#FEC649", bg: "bg-[#FEC649]/15",  filter: "suggestions" as FilterKey },
-  lesson_completed:{ icon: CheckCircle2,   label: "Aula concluída",         color: "#72CF92", bg: "bg-[#72CF92]/10",  filter: "lessons"     as FilterKey },
-  insp_like:       { icon: Heart,          label: "Curtiu inspiração",      color: "#f87171", bg: "bg-red-50",        filter: "inspiracoes" as FilterKey },
-  insp_bookmark:   { icon: Bookmark,       label: "Salvou inspiração",      color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "inspiracoes" as FilterKey },
-  insp_comment:    { icon: MessageCircle,  label: "Comentou em inspiração", color: "#a855f7", bg: "bg-purple-50",     filter: "inspiracoes" as FilterKey },
+  forum_post:       { icon: MessageSquare,  label: "Post no fórum",          color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "forum"       as FilterKey },
+  forum_comment:    { icon: MessageCircle,  label: "Comentário no fórum",    color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "comments"    as FilterKey },
+  suggestion:       { icon: Store,          label: "Sugestão de fornecedor",  color: "#FEC649", bg: "bg-[#FEC649]/15",  filter: "suggestions" as FilterKey },
+  lesson_completed: { icon: CheckCircle2,   label: "Aula concluída",          color: "#72CF92", bg: "bg-[#72CF92]/10",  filter: "lessons"     as FilterKey },
+  insp_like:        { icon: Heart,          label: "Curtiu inspiração",       color: "#f87171", bg: "bg-red-50",        filter: "inspiracoes" as FilterKey },
+  insp_bookmark:    { icon: Bookmark,       label: "Salvou inspiração",       color: "#6699F3", bg: "bg-[#6699F3]/10",  filter: "inspiracoes" as FilterKey },
+  insp_comment:     { icon: MessageCircle,  label: "Comentou em inspiração",  color: "#a855f7", bg: "bg-purple-50",     filter: "inspiracoes" as FilterKey },
+  product_favorite: { icon: Heart,          label: "Salvou produto",          color: "#f87171", bg: "bg-red-50",        filter: "materiais"   as FilterKey },
+  product_review:   { icon: Package,        label: "Comentou em produto",     color: "#72CF92", bg: "bg-[#72CF92]/10",  filter: "materiais"   as FilterKey },
 };
 
 function timeAgo(dateStr: string): string {
@@ -64,14 +67,16 @@ export default function ActivityTab({ items }: { items: ActivityItem[] }) {
     );
   }
 
-  const forumPosts      = items.filter((i) => i.type === "forum_post").length;
-  const comments        = items.filter((i) => i.type === "forum_comment").length;
-  const suggestions     = items.filter((i) => i.type === "suggestion").length;
+  const forumPosts       = items.filter((i) => i.type === "forum_post").length;
+  const comments         = items.filter((i) => i.type === "forum_comment").length;
+  const suggestions      = items.filter((i) => i.type === "suggestion").length;
   const lessonsCompleted = items.filter((i) => i.type === "lesson_completed").length;
-  const inspLikes       = items.filter((i) => i.type === "insp_like").length;
-  const inspBookmarks   = items.filter((i) => i.type === "insp_bookmark").length;
-  const inspComments    = items.filter((i) => i.type === "insp_comment").length;
-  const score = forumPosts * 3 + comments * 2 + suggestions * 3 + lessonsCompleted + inspLikes + inspBookmarks * 2 + inspComments;
+  const inspLikes        = items.filter((i) => i.type === "insp_like").length;
+  const inspBookmarks    = items.filter((i) => i.type === "insp_bookmark").length;
+  const inspComments     = items.filter((i) => i.type === "insp_comment").length;
+  const productFavorites = items.filter((i) => i.type === "product_favorite").length;
+  const productReviews   = items.filter((i) => i.type === "product_review").length;
+  const score = forumPosts * 3 + comments * 2 + suggestions * 3 + lessonsCompleted + inspLikes + inspBookmarks * 2 + inspComments + productFavorites + productReviews * 2;
 
   return (
     <div className="space-y-4">
@@ -100,6 +105,13 @@ export default function ActivityTab({ items }: { items: ActivityItem[] }) {
         {(inspLikes + inspBookmarks + inspComments) > 0 && (
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-500">
             {inspLikes} curtida{inspLikes !== 1 ? "s" : ""} · {inspBookmarks} salvo{inspBookmarks !== 1 ? "s" : ""}{inspComments > 0 ? ` · ${inspComments} comentário${inspComments !== 1 ? "s" : ""}` : ""}
+          </span>
+        )}
+        {(productFavorites + productReviews) > 0 && (
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#72CF92]/10 text-[#5bb577]">
+            {productFavorites > 0 ? `${productFavorites} material${productFavorites !== 1 ? "is" : ""} salvo${productFavorites !== 1 ? "s" : ""}` : ""}
+            {productFavorites > 0 && productReviews > 0 ? " · " : ""}
+            {productReviews > 0 ? `${productReviews} comentário${productReviews !== 1 ? "s" : ""} em produtos` : ""}
           </span>
         )}
         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
