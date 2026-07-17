@@ -444,3 +444,26 @@ export async function adminDeleteProduct(id: string): Promise<void> {
   revalidatePath('/ferramentas/fornecedores')
   revalidatePath('/admin/fornecedores/produtos')
 }
+
+export async function uploadProductImage(formData: FormData): Promise<{ url: string } | { error: string }> {
+  const supabase = createServiceClient()
+  const file = formData.get('file') as File | null
+  if (!file) return { error: 'Arquivo não enviado' }
+
+  const allowed = ['image/jpeg', 'image/png', 'image/webp']
+  if (!allowed.includes(file.type)) return { error: 'Formato inválido. Use JPG, PNG ou WebP.' }
+  if (file.size > 5 * 1024 * 1024) return { error: 'Imagem deve ter no máximo 5 MB.' }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  const path = `${crypto.randomUUID()}.${ext}`
+  const bytes = await file.arrayBuffer()
+
+  const { error } = await supabase.storage
+    .from('supplier-products')
+    .upload(path, bytes, { contentType: file.type, upsert: false })
+
+  if (error) return { error: error.message }
+
+  const { data } = supabase.storage.from('supplier-products').getPublicUrl(path)
+  return { url: data.publicUrl }
+}

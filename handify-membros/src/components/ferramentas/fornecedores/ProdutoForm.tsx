@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Package } from 'lucide-react'
-import { adminUpsertProduct } from '@/lib/fornecedores/actions'
+import { Plus, Trash2, Package, Upload, X } from 'lucide-react'
+import { adminUpsertProduct, uploadProductImage } from '@/lib/fornecedores/actions'
 import type { ProductWithDetails, SupplierRow } from '@/lib/fornecedores/types'
 
 interface SupplierLink {
@@ -29,7 +29,10 @@ export function ProdutoForm({ product, suppliers, courses }: Props) {
 
   const [name, setName] = useState(product?.name ?? '')
   const [imageUrl, setImageUrl] = useState(product?.image_url ?? '')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [active, setActive] = useState(product?.active ?? true)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedCourses, setSelectedCourses] = useState<string[]>(
     product?.course_ids ?? []
   )
@@ -42,6 +45,23 @@ export function ProdutoForm({ product, suppliers, courses }: Props) {
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadError('')
+    const fd = new FormData()
+    fd.append('file', file)
+    const result = await uploadProductImage(fd)
+    setUploading(false)
+    if ('error' in result) {
+      setUploadError(result.error)
+    } else {
+      setImageUrl(result.url)
+    }
+    e.target.value = ''
+  }
 
   function toggleCourse(id: string) {
     setSelectedCourses(prev =>
@@ -103,22 +123,61 @@ export function ProdutoForm({ product, suppliers, courses }: Props) {
       </div>
 
       {/* Foto */}
-      <div className="space-y-1.5">
-        <label className="text-sm font-semibold text-foreground">URL da foto</label>
+      <div className="space-y-2">
+        <label className="text-sm font-semibold text-foreground">Foto do produto</label>
         <input
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
-          placeholder="https://..."
-          className="w-full px-4 py-3 rounded-xl border border-border/60 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 focus:border-[#6699F3]/50 transition-colors"
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleFileChange}
+          className="hidden"
         />
+
         {imageUrl ? (
-          <div className="w-24 h-24 rounded-xl border border-border/60 overflow-hidden bg-muted mt-2">
-            <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+          <div className="flex items-start gap-4">
+            <div className="w-28 h-28 rounded-xl border border-border/60 overflow-hidden bg-muted shrink-0">
+              <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border border-[#6699F3]/40 text-[#6699F3] rounded-lg hover:bg-[#6699F3]/5 disabled:opacity-50 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {uploading ? 'Enviando…' : 'Trocar foto'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageUrl('')}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border border-border/60 text-muted-foreground rounded-lg hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Remover foto
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="w-24 h-24 rounded-xl border border-dashed border-border/60 overflow-hidden bg-muted flex items-center justify-center mt-2">
-            <Package className="w-8 h-8 text-muted-foreground/30" />
-          </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-border/60 bg-muted/30 hover:bg-[#6699F3]/5 hover:border-[#6699F3]/30 disabled:opacity-50 transition-colors"
+          >
+            {uploading ? (
+              <div className="w-6 h-6 border-2 border-[#6699F3]/30 border-t-[#6699F3] rounded-full animate-spin" />
+            ) : (
+              <Package className="w-8 h-8 text-muted-foreground/30" />
+            )}
+            <span className="text-xs text-muted-foreground">
+              {uploading ? 'Enviando…' : 'Clique para fazer upload (JPG, PNG ou WebP, máx 5 MB)'}
+            </span>
+          </button>
+        )}
+
+        {uploadError && (
+          <p className="text-xs text-red-600">{uploadError}</p>
         )}
       </div>
 
