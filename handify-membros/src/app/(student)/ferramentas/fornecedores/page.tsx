@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getSuppliers } from '@/lib/fornecedores/actions'
+import { getSuppliers, getNiches, getProducts } from '@/lib/fornecedores/actions'
 import { FornecedoresPage } from '@/components/ferramentas/fornecedores/FornecedoresPage'
 
 export const metadata = { title: 'Fornecedores | Handify' }
@@ -9,38 +9,44 @@ export const metadata = { title: 'Fornecedores | Handify' }
 export default async function FornecedoresRoute({
   searchParams,
 }: {
-  searchParams: Promise<{ produto?: string }>
+  searchParams: Promise<{ nicho?: string; curso?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const service = createServiceClient()
-  const [suppliers, { data: categoriesRaw }] = await Promise.all([
-    getSuppliers(user.id),
-    service.from('categories').select('id, name, slug').order('name'),
-  ])
-  const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
+  const { nicho, curso } = await searchParams
 
-  const { produto } = await searchParams
-  const validSlugs = categories.map(c => c.slug)
-
-  // Aliases de slugs antigos → slug atual da categoria correspondente
-  const SLUG_ALIASES: Record<string, string> = {
-    velas: categories.find(c => c.name.toLowerCase().includes('velas'))?.slug ?? '',
-    sabonetes: categories.find(c => c.name.toLowerCase().includes('saboaria'))?.slug ?? '',
+  // Resolve curso pelo slug → id
+  let courseFilter: { id: string; title: string } | null = null
+  if (curso) {
+    const service = createServiceClient()
+    const { data: course } = await service
+      .from('courses')
+      .select('id, title')
+      .eq('slug', curso)
+      .single()
+    if (course) courseFilter = { id: course.id, title: course.title }
   }
 
-  const resolved = produto ? (SLUG_ALIASES[produto] ?? produto) : ''
-  const initialProduto = resolved && validSlugs.includes(resolved) ? resolved : ''
+  const [suppliers, niches, products] = await Promise.all([
+    getSuppliers(user.id),
+    getNiches(),
+    getProducts(undefined, courseFilter?.id),
+  ])
+
+  // Valida o nicho da query string
+  const validNicheId = nicho && niches.some(n => n.id === nicho) ? nicho : ''
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
       <FornecedoresPage
         suppliers={suppliers}
+        products={products}
+        niches={niches}
         userId={user.id}
-        categories={categories}
-        initialProduto={initialProduto}
+        initialNicheId={validNicheId}
+        courseFilter={courseFilter}
       />
     </div>
   )

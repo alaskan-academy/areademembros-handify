@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import type {
   SupplierWithDetails, SupplierReviewWithProfile,
   SupplierSuggestionRow, FornecedorFiltros,
+  NicheRow, ProductWithDetails,
 } from './types'
 
 // ── Student actions ───────────────────────────────────────────────────────────
@@ -233,4 +234,223 @@ export async function adminUpdateSuggestionStatus(
   const supabase = createServiceClient()
   await supabase.from('supplier_suggestions').update({ status, admin_notes }).eq('id', id)
   revalidatePath('/admin/fornecedores/sugestoes')
+}
+
+// ── Nichos ────────────────────────────────────────────────────────────────────
+
+export async function getNiches(): Promise<NicheRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('niches')
+    .select('*')
+    .eq('active', true)
+    .order('position', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as NicheRow[]
+}
+
+export async function adminGetNiches(): Promise<NicheRow[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('niches')
+    .select('*')
+    .order('position', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as NicheRow[]
+}
+
+export async function adminUpsertNiche(niche: {
+  id?: string
+  name: string
+  slug: string
+  active: boolean
+  position: number
+}): Promise<{ id: string }> {
+  const supabase = createServiceClient()
+  const { id, ...fields } = niche
+  const { data, error } = id
+    ? await supabase.from('niches').update(fields).eq('id', id).select('id').single()
+    : await supabase.from('niches').insert(fields).select('id').single()
+  if (error) throw error
+  revalidatePath('/ferramentas/fornecedores')
+  revalidatePath('/admin/fornecedores')
+  return { id: data.id }
+}
+
+export async function adminDeleteNiche(id: string): Promise<void> {
+  const supabase = createServiceClient()
+  await supabase.from('niches').delete().eq('id', id)
+  revalidatePath('/ferramentas/fornecedores')
+  revalidatePath('/admin/fornecedores')
+}
+
+// ── Produtos ─────────────────────────────────────────────────────────────────
+
+export async function getProducts(nicheId?: string, courseId?: string): Promise<ProductWithDetails[]> {
+  const supabase = await createClient()
+
+  // Resolve product IDs por filtro de nicho e/ou curso
+  let productIds: string[] | null = null
+
+  if (courseId) {
+    const { data: links } = await supabase
+      .from('product_course_links')
+      .select('product_id')
+      .eq('course_id', courseId)
+    const ids = (links ?? []).map((l: any) => l.product_id)
+    if (ids.length === 0) return []
+    productIds = ids
+  }
+
+  if (nicheId) {
+    const { data: links } = await supabase
+      .from('product_niche_links')
+      .select('product_id')
+      .eq('niche_id', nicheId)
+    const ids = (links ?? []).map((l: any) => l.product_id)
+    if (ids.length === 0) return []
+    // Interseção: produto precisa estar em ambos (nicho E curso, se ambos ativos)
+    productIds = productIds
+      ? productIds.filter(id => ids.includes(id))
+      : ids
+    if (productIds.length === 0) return []
+  }
+
+  let query = supabase
+    .from('products')
+    .select('*')
+    .eq('active', true)
+    .order('position', { ascending: true })
+
+  if (productIds) query = query.in('id', productIds)
+
+  const { data: productsRaw, error } = await query
+  if (error) throw error
+  if (!productsRaw || productsRaw.length === 0) return []
+
+  const ids = productsRaw.map((p: any) => p.id)
+
+  const [{ data: nicheLinks }, { data: supplierLinks }, { data: courseLinks }] = await Promise.all([
+    supabase
+      .from('product_niche_links')
+      .select('product_id, niches(*)')
+      .in('product_id', ids),
+    supabase
+      .from('product_supplier_links')
+      .select('*, suppliers(id, name, logo_url, verified)')
+      .in('product_id', ids)
+      .order('position', { ascending: true }),
+    supabase
+      .from('product_course_links')
+      .select('product_id, course_id')
+      .in('product_id', ids),
+  ])
+
+  return productsRaw.map((p: any) => ({
+    ...p,
+    niches: (nicheLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.niches)
+      .filter(Boolean),
+    suppliers: (supplierLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => ({ ...l, supplier: l.suppliers })),
+    course_ids: (courseLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.course_id),
+  })) as ProductWithDetails[]
+}
+
+export async function adminGetProducts(): Promise<ProductWithDetails[]> {
+  const supabase = createServiceClient()
+
+  const { data: productsRaw, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('position', { ascending: true })
+  if (error) throw error
+  if (!productsRaw || productsRaw.length === 0) return []
+
+  const ids = productsRaw.map((p: any) => p.id)
+
+  const [{ data: nicheLinks }, { data: supplierLinks }, { data: courseLinks }] = await Promise.all([
+    supabase
+      .from('product_niche_links')
+      .select('product_id, niches(*)')
+      .in('product_id', ids),
+    supabase
+      .from('product_supplier_links')
+      .select('*, suppliers(id, name, logo_url, verified)')
+      .in('product_id', ids)
+      .order('position', { ascending: true }),
+    supabase
+      .from('product_course_links')
+      .select('product_id, course_id')
+      .in('product_id', ids),
+  ])
+
+  return productsRaw.map((p: any) => ({
+    ...p,
+    niches: (nicheLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.niches)
+      .filter(Boolean),
+    suppliers: (supplierLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => ({ ...l, supplier: l.suppliers })),
+    course_ids: (courseLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.course_id),
+  })) as ProductWithDetails[]
+}
+
+export async function adminUpsertProduct(product: {
+  id?: string
+  name: string
+  image_url: string
+  active: boolean
+  position: number
+  niche_ids: string[]
+  course_ids: string[]
+  supplier_links: { supplier_id: string; buy_url: string; position: number }[]
+}): Promise<{ id: string }> {
+  const supabase = createServiceClient()
+  const { id, niche_ids, course_ids, supplier_links, ...fields } = product
+
+  const { data, error } = id
+    ? await supabase.from('products').update(fields).eq('id', id).select('id').single()
+    : await supabase.from('products').insert(fields).select('id').single()
+  if (error) throw error
+  const productId = data.id
+
+  await supabase.from('product_niche_links').delete().eq('product_id', productId)
+  await supabase.from('product_course_links').delete().eq('product_id', productId)
+  await supabase.from('product_supplier_links').delete().eq('product_id', productId)
+
+  if (niche_ids.length > 0) {
+    await supabase.from('product_niche_links').insert(
+      niche_ids.map(niche_id => ({ product_id: productId, niche_id }))
+    )
+  }
+  if (course_ids.length > 0) {
+    await supabase.from('product_course_links').insert(
+      course_ids.map(course_id => ({ product_id: productId, course_id }))
+    )
+  }
+  if (supplier_links.length > 0) {
+    await supabase.from('product_supplier_links').insert(
+      supplier_links.filter(l => l.buy_url).map(l => ({ product_id: productId, ...l }))
+    )
+  }
+
+  revalidatePath('/ferramentas/fornecedores')
+  revalidatePath('/admin/fornecedores/produtos')
+  return { id: productId }
+}
+
+export async function adminDeleteProduct(id: string): Promise<void> {
+  const supabase = createServiceClient()
+  await supabase.from('products').delete().eq('id', id)
+  revalidatePath('/ferramentas/fornecedores')
+  revalidatePath('/admin/fornecedores/produtos')
 }

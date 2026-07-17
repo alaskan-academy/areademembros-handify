@@ -25,7 +25,13 @@ export default async function AdminFornecedoresPage() {
           <Store className="w-5 h-5 text-[#6699F3]" />
           <h1 className="text-xl font-bold">Fornecedores</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/fornecedores/produtos"
+            className="text-xs px-3 py-2 border border-border/60 rounded-lg hover:bg-muted transition-colors"
+          >
+            Produtos
+          </Link>
           <Link
             href="/admin/fornecedores/comentarios"
             className="text-xs px-3 py-2 border border-border/60 rounded-lg hover:bg-muted transition-colors"
@@ -43,7 +49,7 @@ export default async function AdminFornecedoresPage() {
             className="flex items-center gap-1.5 text-xs px-3 py-2 bg-[#6699F3] text-white rounded-lg hover:bg-[#5588e8] transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            Novo fornecedor
+            Nova loja
           </Link>
         </div>
       </div>

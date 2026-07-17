@@ -93,3 +93,48 @@ export type FornecedorFiltros = {
   canal:     Channel | ''
   busca:     string
 }
+
+// ── Nichos ────────────────────────────────────────────────────────────────────
+
+export type NicheRow = {
+  id:         string
+  name:       string
+  slug:       string
+  active:     boolean
+  position:   number
+  created_at: string
+}
+
+// ── Produtos ──────────────────────────────────────────────────────────────────
+
+export type ProductRow = {
+  id:         string
+  name:       string
+  image_url:  string | null
+  active:     boolean
+  position:   number
+  created_at: string
+}
+
+export type ProductSupplierLinkRow = {
+  id:          string
+  product_id:  string
+  supplier_id: string
+  buy_url:     string
+  position:    number
+}
+
+export type ProductSupplierLinkWithSupplier = ProductSupplierLinkRow & {
+  supplier: Pick<SupplierRow, 'id' | 'name' | 'logo_url' | 'verified'>
+}
+
+export type ProductCourseLink = {
+  product_id: string
+  course_id:  string
+}
+
+export type ProductWithDetails = ProductRow & {
+  niches:     NicheRow[]
+  suppliers:  ProductSupplierLinkWithSupplier[]
+  course_ids: string[]
+}

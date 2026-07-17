@@ -114,7 +114,7 @@ export function FornecedorCard({ supplier, userId, onOpenReviews }: Props) {
 
       <div className="flex-1" />
 
-      {/* Channels */}
+      {/* Canais — todos os links disponíveis */}
       {supplier.channels.length > 0 && (
         <div className="px-4 mt-3 flex flex-wrap gap-1.5">
           {supplier.channels.map(ch => (
