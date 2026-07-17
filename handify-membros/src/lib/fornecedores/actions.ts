@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 import type {
   SupplierWithDetails, SupplierReviewWithProfile,
   SupplierSuggestionRow, FornecedorFiltros,
-  NicheRow, ProductWithDetails, ProductReviewWithProfile,
+  NicheRow, ProductWithDetails,
 } from './types'
 
 // ── Student actions ───────────────────────────────────────────────────────────
@@ -286,7 +286,7 @@ export async function adminDeleteNiche(id: string): Promise<void> {
 
 // ── Produtos ─────────────────────────────────────────────────────────────────
 
-export async function getProducts(nicheId?: string, courseId?: string, userId?: string): Promise<ProductWithDetails[]> {
+export async function getProducts(nicheId?: string, courseId?: string): Promise<ProductWithDetails[]> {
   const supabase = await createClient()
 
   // Resolve product IDs por filtro de nicho e/ou curso
@@ -330,7 +330,7 @@ export async function getProducts(nicheId?: string, courseId?: string, userId?: 
 
   const ids = productsRaw.map((p: any) => p.id)
 
-  const [{ data: supplierLinks }, { data: courseLinks }, { data: favs }, { data: reviewCounts }] = await Promise.all([
+  const [{ data: supplierLinks }, { data: courseLinks }] = await Promise.all([
     supabase
       .from('product_supplier_links')
       .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag), supplier_channels(channel, url))')
@@ -340,21 +340,7 @@ export async function getProducts(nicheId?: string, courseId?: string, userId?: 
       .from('product_course_links')
       .select('product_id, course_id')
       .in('product_id', ids),
-    userId
-      ? supabase.from('product_favorites').select('product_id').eq('user_id', userId)
-      : Promise.resolve({ data: [] }),
-    supabase
-      .from('product_reviews')
-      .select('product_id')
-      .in('product_id', ids)
-      .eq('approved', true),
   ])
-
-  const favSet = new Set((favs ?? []).map((f: any) => f.product_id))
-  const countMap: Record<string, number> = {}
-  for (const r of reviewCounts ?? []) {
-    countMap[(r as any).product_id] = (countMap[(r as any).product_id] ?? 0) + 1
-  }
 
   return productsRaw.map((p: any) => ({
     ...p,
@@ -368,79 +354,10 @@ export async function getProducts(nicheId?: string, courseId?: string, userId?: 
           channels: (l.suppliers?.supplier_channels ?? []).map((c: any) => ({ channel: c.channel, url: c.url })),
         },
       })),
-    course_ids:  (courseLinks ?? []).filter((l: any) => l.product_id === p.id).map((l: any) => l.course_id),
-    isFavorite:  favSet.has(p.id),
-    reviewCount: countMap[p.id] ?? 0,
+    course_ids: (courseLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.course_id),
   })) as ProductWithDetails[]
-}
-
-export async function toggleProductFavorite(
-  userId: string,
-  productId: string,
-  isFavorite: boolean
-): Promise<void> {
-  const supabase = await createClient()
-  if (isFavorite) {
-    await supabase.from('product_favorites').delete()
-      .eq('user_id', userId).eq('product_id', productId)
-  } else {
-    await supabase.from('product_favorites').insert({ user_id: userId, product_id: productId })
-  }
-  revalidatePath('/ferramentas/fornecedores')
-}
-
-export async function getProductReviews(productId: string): Promise<ProductReviewWithProfile[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('product_reviews')
-    .select('*, profiles(full_name, avatar_url)')
-    .eq('product_id', productId)
-    .eq('approved', true)
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return (data ?? []) as ProductReviewWithProfile[]
-}
-
-export async function submitProductReview(
-  userId: string,
-  productId: string,
-  body: string
-): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const { error } = await supabase.from('product_reviews').upsert({
-    user_id:    userId,
-    product_id: productId,
-    body:       body.trim(),
-    approved:   false,
-  }, { onConflict: 'product_id,user_id' })
-  if (error) return { error: error.message }
-  return {}
-}
-
-export async function adminGetProductReviews(approved?: boolean) {
-  const supabase = createServiceClient()
-  let q = supabase
-    .from('product_reviews')
-    .select('*, profiles(full_name, avatar_url), products(name)')
-    .order('created_at', { ascending: false })
-  if (approved !== undefined) q = q.eq('approved', approved)
-  const { data, error } = await q
-  if (error) throw error
-  return data ?? []
-}
-
-export async function adminApproveProductReview(id: string, approved: boolean): Promise<void> {
-  const supabase = createServiceClient()
-  await supabase.from('product_reviews').update({ approved }).eq('id', id)
-  revalidatePath('/ferramentas/fornecedores')
-  revalidatePath('/admin/fornecedores/comentarios')
-}
-
-export async function adminDeleteProductReview(id: string): Promise<void> {
-  const supabase = createServiceClient()
-  await supabase.from('product_reviews').delete().eq('id', id)
-  revalidatePath('/ferramentas/fornecedores')
-  revalidatePath('/admin/fornecedores/comentarios')
 }
 
 export async function adminGetProducts(): Promise<ProductWithDetails[]> {
@@ -479,9 +396,9 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
           channels: (l.suppliers?.supplier_channels ?? []).map((c: any) => ({ channel: c.channel, url: c.url })),
         },
       })),
-    course_ids:  (courseLinks ?? []).filter((l: any) => l.product_id === p.id).map((l: any) => l.course_id),
-    isFavorite:  false,
-    reviewCount: 0,
+    course_ids: (courseLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.course_id),
   })) as ProductWithDetails[]
 }
 

@@ -7,7 +7,6 @@ import { FornecedorCard } from './FornecedorCard'
 import { MaterialCard } from './MaterialCard'
 import { SugestaoModal } from './SugestaoModal'
 import { ReviewsModal } from './ReviewsModal'
-import { ProductReviewsModal } from './ProductReviewsModal'
 import type {
   SupplierWithDetails,
   ProductWithDetails,
@@ -43,7 +42,6 @@ export function FornecedoresPage({
   const [courseDropdownOpen, setCourseDropdownOpen] = useState(false)
   const [sugestaoOpen, setSugestaoOpen] = useState(false)
   const [reviewSupplier, setReviewSupplier] = useState<SupplierWithDetails | null>(null)
-  const [reviewProduct, setReviewProduct] = useState<ProductWithDetails | null>(null)
   const nicheDropdownRef = useRef<HTMLDivElement>(null)
   const courseDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -322,7 +320,7 @@ export function FornecedoresPage({
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {filteredProducts.map(p => (
-              <MaterialCard key={p.id} product={p} userId={userId} onOpenReviews={setReviewProduct} />
+              <MaterialCard key={p.id} product={p} />
             ))}
           </div>
         )
@@ -362,13 +360,6 @@ export function FornecedoresPage({
           supplier={reviewSupplier}
           userId={userId}
           onClose={() => setReviewSupplier(null)}
-        />
-      )}
-      {reviewProduct && (
-        <ProductReviewsModal
-          product={reviewProduct}
-          userId={userId}
-          onClose={() => setReviewProduct(null)}
         />
       )}
     </div>

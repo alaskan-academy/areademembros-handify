@@ -187,8 +187,6 @@ export default async function AlunaDetailPage({
     { data: actInspLikes },
     { data: actInspBookmarks },
     { data: actInspComments },
-    { data: actProductFavorites },
-    { data: actProductReviews },
   ] = await Promise.all([
     service
       .from("forum_posts")
@@ -232,18 +230,6 @@ export default async function AlunaDetailPage({
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(100),
-    service
-      .from("product_favorites")
-      .select("product_id, created_at, product:products!product_id(name)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    service
-      .from("product_reviews")
-      .select("id, body, created_at, product:products!product_id(name)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(100),
   ]);
 
   type ForumPostRow = { id: string; title: string | null; body: string | null; created_at: string };
@@ -253,8 +239,6 @@ export default async function AlunaDetailPage({
   type InspLikeRow = { post_id: string; created_at: string; post: { title: string | null } | null };
   type InspBookmarkRow = { post_id: string; created_at: string; post: { title: string | null } | null };
   type InspCommentRow = { id: string; body: string | null; created_at: string; post: { title: string | null } | null };
-  type ProductFavoriteRow = { product_id: string; created_at: string; product: { name: string | null } | null };
-  type ProductReviewRow = { id: string; body: string | null; created_at: string; product: { name: string | null } | null };
 
   const activityItems: ActivityItem[] = [
     ...((actForumPosts ?? []) as unknown as ForumPostRow[]).map((p) => ({
@@ -301,19 +285,6 @@ export default async function AlunaDetailPage({
       content: c.body?.slice(0, 120) ?? "Comentário",
       context: c.post?.title ?? undefined,
       date: c.created_at,
-    })),
-    ...((actProductFavorites ?? []) as unknown as ProductFavoriteRow[]).map((f) => ({
-      id: `prod_fav_${f.product_id}`,
-      type: "product_favorite" as const,
-      content: f.product?.name ?? "Produto",
-      date: f.created_at,
-    })),
-    ...((actProductReviews ?? []) as unknown as ProductReviewRow[]).map((r) => ({
-      id: r.id,
-      type: "product_review" as const,
-      content: r.body?.slice(0, 120) ?? "Comentário",
-      context: r.product?.name ?? undefined,
-      date: r.created_at,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 

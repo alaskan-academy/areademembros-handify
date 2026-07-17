@@ -136,22 +136,7 @@ export type ProductCourseLink = {
   course_id:  string
 }
 
-export type ProductReviewRow = {
-  id:         string
-  product_id: string
-  user_id:    string
-  body:       string
-  approved:   boolean
-  created_at: string
-}
-
-export type ProductReviewWithProfile = ProductReviewRow & {
-  profiles: { full_name: string | null; avatar_url: string | null } | null
-}
-
 export type ProductWithDetails = ProductRow & {
-  suppliers:   ProductSupplierLinkWithSupplier[]
-  course_ids:  string[]
-  isFavorite:  boolean
-  reviewCount: number
+  suppliers:  ProductSupplierLinkWithSupplier[]
+  course_ids: string[]
 }
