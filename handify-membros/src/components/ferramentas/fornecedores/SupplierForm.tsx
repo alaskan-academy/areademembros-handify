@@ -3,18 +3,26 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Plus, X } from 'lucide-react'
+import { ArrowLeft, Plus, X, Package, Pencil } from 'lucide-react'
 import { adminUpsertSupplier, adminDeleteSupplier } from '@/lib/fornecedores/actions'
 import { CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
 
 type Channel = { channel: string; url: string }
 
+interface LinkedProduct {
+  id: string
+  name: string
+  image_url: string | null
+  active: boolean
+}
+
 interface Props {
   supplier?: any
   categories?: { id: string; name: string; slug: string }[]
+  linkedProducts?: LinkedProduct[]
 }
 
-export function SupplierForm({ supplier, categories = [] }: Props) {
+export function SupplierForm({ supplier, categories = [], linkedProducts = [] }: Props) {
   const router = useRouter()
   const isEdit = !!supplier
 
@@ -191,6 +199,53 @@ export function SupplierForm({ supplier, categories = [] }: Props) {
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {/* Produtos vinculados — só na edição */}
+      {supplier && (
+        <div className="space-y-2 pt-2 border-t border-border/40">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Package className="w-4 h-4 text-[#6699F3]" />
+              Produtos vinculados ({linkedProducts.length})
+            </h2>
+            <Link
+              href="/admin/fornecedores/produtos/novo"
+              className="text-xs px-2.5 py-1.5 border border-[#6699F3]/40 text-[#6699F3] rounded-lg hover:bg-[#6699F3]/5 transition-colors"
+            >
+              + Novo produto
+            </Link>
+          </div>
+
+          {linkedProducts.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">
+              Nenhum produto vinculado a este fornecedor ainda.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {linkedProducts.map(p => (
+                <Link
+                  key={p.id}
+                  href={`/admin/fornecedores/produtos/${p.id}`}
+                  className="flex items-center gap-3 p-2.5 rounded-xl border border-border/60 bg-white hover:border-[#6699F3]/40 hover:bg-[#6699F3]/3 transition-colors group"
+                >
+                  <div className="w-9 h-9 rounded-lg border border-border/40 bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-4 h-4 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                    {!p.active && <span className="text-[10px] text-muted-foreground">Inativo</span>}
+                  </div>
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-[#6699F3] transition-colors shrink-0" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3">
         <Link href="/admin/fornecedores"
