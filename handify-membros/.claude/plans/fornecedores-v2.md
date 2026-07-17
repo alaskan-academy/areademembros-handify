@@ -213,21 +213,31 @@ CREATE TABLE product_course_links (
 - [x] 1. Migration `20260717_supplier_products.sql` — tabelas base + RLS ✓
 - [x] 2. Atualizar `types.ts` — novos tipos ✓
 - [x] 3. Atualizar `actions.ts` — novas server actions (student + admin) ✓
-- [x] 4. `NichePills.tsx` — componente de filtro por nicho ✓
-- [x] 5. `MaterialCard.tsx` — card de produto com botões por fornecedor ✓
-- [x] 6. `FornecedoresPage.tsx` — adicionar tabs, integrar novos componentes ✓
-- [x] 7. `FornecedorCard.tsx` — simplificar para "Ver site oficial" ✓
-- [x] 8. `page.tsx` da aluna — buscar nichos e produtos ✓
+- [x] 4. `NichePills.tsx` → substituído por dropdown retrátil em `FornecedoresPage` ✓
+- [x] 5. `MaterialCard.tsx` — card com "Comprar agora" + "Visite a loja" + nome da loja ✓
+- [x] 6. `FornecedoresPage.tsx` — tabs, filtro nicho dropdown, filtro curso dropdown ✓
+- [x] 7. `FornecedorCard.tsx` — canais de canal + lista de produtos vinculados ✓
+- [x] 8. `page.tsx` da aluna — nichos, produtos, cursos; aceita `?produto=` do hub ✓
 - [x] 9. `AdminProdutosTable.tsx` + `ProdutoForm.tsx` — componentes admin ✓
 - [x] 10. Páginas admin `/produtos`, `/produtos/novo`, `/produtos/[id]` ✓
 - [x] 11. Atualizar nav admin fornecedores ✓
-- [ ] 12. Migration `20260717_supplier_products_course.sql` — tabela course links
-- [ ] 13. Atualizar `types.ts` + `actions.ts` — suporte a curso
-- [ ] 14. `FornecedoresPage.tsx` — badge de curso ativo
-- [ ] 15. `ProdutoForm.tsx` — seção de cursos
-- [ ] 16. Pages admin novo/editar — passar cursos
-- [ ] 17. `page.tsx` da aluna — aceitar `?curso=slug`
-- [ ] Commit e push ao final de tudo
+- [x] 12. Migration `20260717_supplier_products_course.sql` — tabela course links ✓
+- [x] 13. Atualizar `types.ts` + `actions.ts` — suporte a curso + channels nos produtos ✓
+- [x] 14. `FornecedoresPage.tsx` — badge de curso ativo, dropdown de curso ✓
+- [x] 15. `ProdutoForm.tsx` — seção de cursos com checkboxes ✓
+- [x] 16. Pages admin novo/editar — passar cursos para o form ✓
+- [x] 17. `page.tsx` da aluna — aceitar `?curso=slug` + `?produto=sabonetes/velas` ✓
+
+## Refinamentos pós-v2 (jul/2026)
+
+- [x] Remover campo "Posição" do ProdutoForm — ordenar sempre por nome ✓
+- [x] Remover seletor de "Nichos" do ProdutoForm — nicho derivado das tags dos fornecedores vinculados ✓
+- [x] `SupplierForm` — seção "Produtos vinculados" acima de Cancelar/Salvar ✓
+- [x] `MaterialCard` — substituir tags de nicho por links dos canais do fornecedor ✓
+- [x] `MaterialCard` — botões "Comprar agora" (buy_url) + "Visite a loja" (canal website) com nome da loja ✓
+- [x] `FornecedorCard` — exibir produtos vinculados (nome + imagem + link de compra) ✓
+- [x] Hub (`FerramentasHub`) — links `?produto=sabonetes/velas` pré-selecionam filtro de nicho ✓
+- [ ] Push para produção (aguardando aprovação)
 
 ---
 
