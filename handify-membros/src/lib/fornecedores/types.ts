@@ -139,5 +139,4 @@ export type ProductCourseLink = {
 export type ProductWithDetails = ProductRow & {
   suppliers:  ProductSupplierLinkWithSupplier[]
   course_ids: string[]
-  niche_ids:  string[]
 }

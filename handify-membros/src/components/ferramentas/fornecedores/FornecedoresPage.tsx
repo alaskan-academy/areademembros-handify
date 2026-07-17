@@ -77,10 +77,10 @@ export function FornecedoresPage({
     return map
   }, [products])
 
-  // Nichos que têm pelo menos um produto vinculado via product_niche_links
+  // Nichos derivados automaticamente das tags dos fornecedores vinculados ao produto
   const nichesWithProducts = useMemo(() => {
-    const ids = new Set(products.flatMap(p => p.niche_ids))
-    return new Set(niches.filter(n => ids.has(n.id)).map(n => n.id))
+    const tags = new Set(products.flatMap(p => p.suppliers.flatMap(l => l.supplier.tags)))
+    return new Set(niches.filter(n => tags.has(n.slug)).map(n => n.id))
   }, [products, niches])
 
   // Nichos que têm pelo menos um fornecedor vinculado (via supplier_tags, usando slug)
@@ -98,21 +98,22 @@ export function FornecedoresPage({
   const selectedNicheName = activeNiches.find(n => n.id === selectedNiche)?.name ?? ''
   const selectedCourse = courses.find(c => c.id === selectedCourseId) ?? null
 
-  // Produtos filtrados por nicho + curso + busca (tudo client-side para resposta imediata)
+  // Produtos filtrados por nicho (via tags dos fornecedores) + curso + busca
   const filteredProducts = useMemo(() => {
     let result = products
     if (selectedCourseId) {
       result = result.filter(p => p.course_ids.includes(selectedCourseId))
     }
     if (selectedNiche) {
-      result = result.filter(p => p.niche_ids.includes(selectedNiche))
+      const slug = activeNiches.find(n => n.id === selectedNiche)?.slug ?? ''
+      if (slug) result = result.filter(p => p.suppliers.some(l => l.supplier.tags.includes(slug)))
     }
     if (busca) {
       const q = busca.toLowerCase()
       result = result.filter(p => p.name.toLowerCase().includes(q))
     }
     return result
-  }, [products, selectedNiche, selectedCourseId, busca])
+  }, [products, selectedNiche, selectedCourseId, activeNiches, busca])
 
   // Fornecedores filtrados por nicho (via tag = slug) + busca
   const filteredSuppliers = useMemo(() => {
