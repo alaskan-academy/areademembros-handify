@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { adminGetNiches, adminGetSuppliers } from '@/lib/fornecedores/actions'
+import { adminGetSuppliers } from '@/lib/fornecedores/actions'
 import { ProdutoForm } from '@/components/ferramentas/fornecedores/ProdutoForm'
 import { Package } from 'lucide-react'
 
@@ -16,8 +16,7 @@ export default async function NovoProdutoPage() {
   if (profile?.role !== 'admin') redirect('/dashboard')
 
   const service = createServiceClient()
-  const [niches, suppliersRaw, { data: coursesRaw }] = await Promise.all([
-    adminGetNiches(),
+  const [suppliersRaw, { data: coursesRaw }] = await Promise.all([
     adminGetSuppliers(),
     service.from('courses').select('id, title, slug').eq('published', true).order('title'),
   ])
@@ -30,7 +29,6 @@ export default async function NovoProdutoPage() {
       </div>
 
       <ProdutoForm
-        niches={niches}
         courses={(coursesRaw ?? []) as { id: string; title: string; slug: string }[]}
         suppliers={suppliersRaw.map((s: any) => ({
           id: s.id,

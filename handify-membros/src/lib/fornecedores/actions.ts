@@ -320,7 +320,7 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
     .from('products')
     .select('*')
     .eq('active', true)
-    .order('position', { ascending: true })
+    .order('name', { ascending: true })
 
   if (productIds) query = query.in('id', productIds)
 
@@ -330,14 +330,10 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
 
   const ids = productsRaw.map((p: any) => p.id)
 
-  const [{ data: nicheLinks }, { data: supplierLinks }, { data: courseLinks }] = await Promise.all([
-    supabase
-      .from('product_niche_links')
-      .select('product_id, niches(*)')
-      .in('product_id', ids),
+  const [{ data: supplierLinks }, { data: courseLinks }] = await Promise.all([
     supabase
       .from('product_supplier_links')
-      .select('*, suppliers(id, name, logo_url, verified)')
+      .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag))')
       .in('product_id', ids)
       .order('position', { ascending: true }),
     supabase
@@ -348,13 +344,15 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
 
   return productsRaw.map((p: any) => ({
     ...p,
-    niches: (nicheLinks ?? [])
-      .filter((l: any) => l.product_id === p.id)
-      .map((l: any) => l.niches)
-      .filter(Boolean),
     suppliers: (supplierLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
-      .map((l: any) => ({ ...l, supplier: l.suppliers })),
+      .map((l: any) => ({
+        ...l,
+        supplier: {
+          ...l.suppliers,
+          tags: (l.suppliers?.supplier_tags ?? []).map((t: any) => t.tag),
+        },
+      })),
     course_ids: (courseLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
       .map((l: any) => l.course_id),
@@ -367,20 +365,16 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
   const { data: productsRaw, error } = await supabase
     .from('products')
     .select('*')
-    .order('position', { ascending: true })
+    .order('name', { ascending: true })
   if (error) throw error
   if (!productsRaw || productsRaw.length === 0) return []
 
   const ids = productsRaw.map((p: any) => p.id)
 
-  const [{ data: nicheLinks }, { data: supplierLinks }, { data: courseLinks }] = await Promise.all([
-    supabase
-      .from('product_niche_links')
-      .select('product_id, niches(*)')
-      .in('product_id', ids),
+  const [{ data: supplierLinks }, { data: courseLinks }] = await Promise.all([
     supabase
       .from('product_supplier_links')
-      .select('*, suppliers(id, name, logo_url, verified)')
+      .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag))')
       .in('product_id', ids)
       .order('position', { ascending: true }),
     supabase
@@ -391,13 +385,15 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
 
   return productsRaw.map((p: any) => ({
     ...p,
-    niches: (nicheLinks ?? [])
-      .filter((l: any) => l.product_id === p.id)
-      .map((l: any) => l.niches)
-      .filter(Boolean),
     suppliers: (supplierLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
-      .map((l: any) => ({ ...l, supplier: l.suppliers })),
+      .map((l: any) => ({
+        ...l,
+        supplier: {
+          ...l.suppliers,
+          tags: (l.suppliers?.supplier_tags ?? []).map((t: any) => t.tag),
+        },
+      })),
     course_ids: (courseLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
       .map((l: any) => l.course_id),
@@ -409,13 +405,11 @@ export async function adminUpsertProduct(product: {
   name: string
   image_url: string
   active: boolean
-  position: number
-  niche_ids: string[]
   course_ids: string[]
   supplier_links: { supplier_id: string; buy_url: string; position: number }[]
 }): Promise<{ id: string }> {
   const supabase = createServiceClient()
-  const { id, niche_ids, course_ids, supplier_links, ...fields } = product
+  const { id, course_ids, supplier_links, ...fields } = product
 
   const { data, error } = id
     ? await supabase.from('products').update(fields).eq('id', id).select('id').single()
@@ -423,15 +417,9 @@ export async function adminUpsertProduct(product: {
   if (error) throw error
   const productId = data.id
 
-  await supabase.from('product_niche_links').delete().eq('product_id', productId)
   await supabase.from('product_course_links').delete().eq('product_id', productId)
   await supabase.from('product_supplier_links').delete().eq('product_id', productId)
 
-  if (niche_ids.length > 0) {
-    await supabase.from('product_niche_links').insert(
-      niche_ids.map(niche_id => ({ product_id: productId, niche_id }))
-    )
-  }
   if (course_ids.length > 0) {
     await supabase.from('product_course_links').insert(
       course_ids.map(course_id => ({ product_id: productId, course_id }))

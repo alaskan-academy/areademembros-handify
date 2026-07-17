@@ -125,7 +125,7 @@ export type ProductSupplierLinkRow = {
 }
 
 export type ProductSupplierLinkWithSupplier = ProductSupplierLinkRow & {
-  supplier: Pick<SupplierRow, 'id' | 'name' | 'logo_url' | 'verified'>
+  supplier: Pick<SupplierRow, 'id' | 'name' | 'logo_url' | 'verified'> & { tags: string[] }
 }
 
 export type ProductCourseLink = {
@@ -134,7 +134,6 @@ export type ProductCourseLink = {
 }
 
 export type ProductWithDetails = ProductRow & {
-  niches:     NicheRow[]
   suppliers:  ProductSupplierLinkWithSupplier[]
   course_ids: string[]
 }

@@ -64,16 +64,19 @@ export function AdminProdutosTable({ products }: Props) {
                 </div>
               </td>
 
-              {/* Nichos */}
+              {/* Nichos — derivados das tags dos fornecedores */}
               <td className="px-4 py-3 hidden sm:table-cell">
                 <div className="flex flex-wrap gap-1">
-                  {p.niches.length === 0 ? (
-                    <span className="text-xs text-muted-foreground/60 italic">—</span>
-                  ) : p.niches.map(n => (
-                    <span key={n.id} className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-medium">
-                      {n.name}
-                    </span>
-                  ))}
+                  {(() => {
+                    const tags = [...new Set(p.suppliers.flatMap(l => l.supplier.tags))]
+                    return tags.length === 0
+                      ? <span className="text-xs text-muted-foreground/60 italic">—</span>
+                      : tags.map(t => (
+                          <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-medium capitalize">
+                            {t.replace(/-/g, ' ')}
+                          </span>
+                        ))
+                  })()}
                 </div>
               </td>
 

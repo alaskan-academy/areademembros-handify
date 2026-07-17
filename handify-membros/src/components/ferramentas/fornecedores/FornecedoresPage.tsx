@@ -68,11 +68,11 @@ export function FornecedoresPage({
     router.push(`/ferramentas/fornecedores?${params.toString()}`)
   }
 
-  // Nichos que têm pelo menos um produto vinculado
+  // Nichos que têm pelo menos um produto cujos fornecedores tenham a tag correspondente
   const nichesWithProducts = useMemo(() => {
-    const ids = new Set(products.flatMap(p => p.niches.map(n => n.id)))
-    return new Set(ids)
-  }, [products])
+    const tags = new Set(products.flatMap(p => p.suppliers.flatMap(l => l.supplier.tags)))
+    return new Set(niches.filter(n => tags.has(n.slug)).map(n => n.id))
+  }, [products, niches])
 
   // Nichos que têm pelo menos um fornecedor vinculado (via supplier_tags, usando slug)
   const nichesWithSuppliers = useMemo(() => {
@@ -88,16 +88,19 @@ export function FornecedoresPage({
 
   const selectedNicheName = activeNiches.find(n => n.id === selectedNiche)?.name ?? ''
 
-  // Produtos filtrados por nicho + busca
+  // Produtos filtrados por nicho (via tags dos fornecedores vinculados) + busca
   const filteredProducts = useMemo(() => {
     let result = products
-    if (selectedNiche) result = result.filter(p => p.niches.some(n => n.id === selectedNiche))
+    if (selectedNiche) {
+      const slug = activeNiches.find(n => n.id === selectedNiche)?.slug ?? ''
+      if (slug) result = result.filter(p => p.suppliers.some(l => l.supplier.tags.includes(slug)))
+    }
     if (busca) {
       const q = busca.toLowerCase()
       result = result.filter(p => p.name.toLowerCase().includes(q))
     }
     return result
-  }, [products, selectedNiche, busca])
+  }, [products, selectedNiche, activeNiches, busca])
 
   // Fornecedores filtrados por nicho (via tag = slug) + busca
   const filteredSuppliers = useMemo(() => {

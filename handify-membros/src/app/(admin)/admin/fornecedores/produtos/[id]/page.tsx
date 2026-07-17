@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { adminGetProducts, adminGetNiches, adminGetSuppliers } from '@/lib/fornecedores/actions'
+import { adminGetProducts, adminGetSuppliers } from '@/lib/fornecedores/actions'
 import { ProdutoForm } from '@/components/ferramentas/fornecedores/ProdutoForm'
 import { Package } from 'lucide-react'
 
@@ -18,9 +18,8 @@ export default async function EditarProdutoPage({ params }: { params: Promise<{ 
   const { id } = await params
 
   const service = createServiceClient()
-  const [products, niches, suppliersRaw, { data: coursesRaw }] = await Promise.all([
+  const [products, suppliersRaw, { data: coursesRaw }] = await Promise.all([
     adminGetProducts(),
-    adminGetNiches(),
     adminGetSuppliers(),
     service.from('courses').select('id, title, slug').eq('published', true).order('title'),
   ])
@@ -37,7 +36,6 @@ export default async function EditarProdutoPage({ params }: { params: Promise<{ 
 
       <ProdutoForm
         product={product}
-        niches={niches}
         courses={(coursesRaw ?? []) as { id: string; title: string; slug: string }[]}
         suppliers={suppliersRaw.map((s: any) => ({
           id: s.id,

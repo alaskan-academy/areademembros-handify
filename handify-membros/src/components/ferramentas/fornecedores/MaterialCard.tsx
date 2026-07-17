@@ -32,19 +32,19 @@ export function MaterialCard({ product }: Props) {
         {/* Nome */}
         <h3 className="font-semibold text-sm text-foreground leading-snug">{product.name}</h3>
 
-        {/* Nichos */}
-        {product.niches.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {product.niches.map(n => (
-              <span
-                key={n.id}
-                className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] capitalize"
-              >
-                {n.name}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Nichos — derivados das tags dos fornecedores */}
+        {(() => {
+          const tags = [...new Set(product.suppliers.flatMap(l => l.supplier.tags))]
+          return tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {tags.map(t => (
+                <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] capitalize">
+                  {t.replace(/-/g, ' ')}
+                </span>
+              ))}
+            </div>
+          ) : null
+        })()}
 
         <div className="flex-1" />
 
