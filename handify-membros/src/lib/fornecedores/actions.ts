@@ -334,8 +334,7 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
     supabase
       .from('product_supplier_links')
       .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag), supplier_channels(channel, url))')
-      .in('product_id', ids)
-      .order('position', { ascending: true }),
+      .in('product_id', ids),
     supabase
       .from('product_course_links')
       .select('product_id, course_id')
@@ -350,6 +349,7 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
     ...p,
     suppliers: (supplierLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
+      .sort((a: any, b: any) => (a.suppliers?.name ?? '').localeCompare(b.suppliers?.name ?? '', 'pt-BR'))
       .map((l: any) => ({
         ...l,
         supplier: {
@@ -383,8 +383,7 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
     supabase
       .from('product_supplier_links')
       .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag), supplier_channels(channel, url))')
-      .in('product_id', ids)
-      .order('position', { ascending: true }),
+      .in('product_id', ids),
     supabase
       .from('product_course_links')
       .select('product_id, course_id')
@@ -399,6 +398,7 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
     ...p,
     suppliers: (supplierLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
+      .sort((a: any, b: any) => (a.suppliers?.name ?? '').localeCompare(b.suppliers?.name ?? '', 'pt-BR'))
       .map((l: any) => ({
         ...l,
         supplier: {
