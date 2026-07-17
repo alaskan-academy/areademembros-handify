@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingCart, Package, ExternalLink, Heart, MessageCircle } from 'lucide-react'
+import { Package, ExternalLink, Heart, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toggleProductFavorite } from '@/lib/fornecedores/actions'
 import type { ProductWithDetails } from '@/lib/fornecedores/types'
@@ -92,36 +92,6 @@ export function MaterialCard({ product, userId, onOpenReviews }: Props) {
         )}
 
         <div className="flex-1" />
-
-        {/* Botão(ões) de compra */}
-        {product.suppliers.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">Link em breve</p>
-        ) : product.suppliers.length === 1 ? (
-          <a
-            href={product.suppliers[0].buy_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 w-full py-2.5 px-3 bg-[#6699F3] text-white text-xs font-semibold rounded-lg hover:bg-[#5588e8] transition-colors min-h-[40px]"
-          >
-            <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
-            Comprar agora
-          </a>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {product.suppliers.map(link => (
-              <a
-                key={link.supplier_id}
-                href={link.buy_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 w-full py-2 px-3 bg-[#6699F3] text-white text-xs font-semibold rounded-lg hover:bg-[#5588e8] transition-colors min-h-[38px]"
-              >
-                <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
-                Comprar na {link.supplier.name}
-              </a>
-            ))}
-          </div>
-        )}
 
         {/* Comentários */}
         <button
