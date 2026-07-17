@@ -30,11 +30,21 @@ export default async function FornecedoresRoute({
   }
 
   const service = createServiceClient()
+
+  // Busca apenas cursos que têm pelo menos um produto vinculado
+  const { data: linkedCourseIds } = await service
+    .from('product_course_links')
+    .select('course_id')
+
+  const uniqueCourseIds = [...new Set((linkedCourseIds ?? []).map((r: any) => r.course_id))]
+
   const [suppliers, niches, products, { data: coursesRaw }] = await Promise.all([
     getSuppliers(user.id),
     getNiches(),
     getProducts(undefined, courseFilter?.id),
-    service.from('courses').select('id, title, slug').eq('published', true).order('title'),
+    uniqueCourseIds.length > 0
+      ? service.from('courses').select('id, title, slug').in('id', uniqueCourseIds).eq('published', true).order('title')
+      : Promise.resolve({ data: [] }),
   ])
 
   const courses = (coursesRaw ?? []) as { id: string; title: string; slug: string }[]
