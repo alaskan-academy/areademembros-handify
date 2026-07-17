@@ -479,9 +479,9 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
           channels: (l.suppliers?.supplier_channels ?? []).map((c: any) => ({ channel: c.channel, url: c.url })),
         },
       })),
-    course_ids: (courseLinks ?? [])
-      .filter((l: any) => l.product_id === p.id)
-      .map((l: any) => l.course_id),
+    course_ids:  (courseLinks ?? []).filter((l: any) => l.product_id === p.id).map((l: any) => l.course_id),
+    isFavorite:  false,
+    reviewCount: 0,
   })) as ProductWithDetails[]
 }
 
