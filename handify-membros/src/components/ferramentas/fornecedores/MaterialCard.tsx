@@ -1,15 +1,7 @@
 'use client'
 
-import { ShoppingCart, Package, ExternalLink } from 'lucide-react'
+import { Package, ExternalLink } from 'lucide-react'
 import type { ProductWithDetails } from '@/lib/fornecedores/types'
-
-function getBestStoreUrl(channels: { channel: string; url: string }[]): string | null {
-  for (const ch of ['website', 'shopee', 'mercadolivre', 'instagram']) {
-    const found = channels.find(c => c.channel === ch)
-    if (found) return found.url
-  }
-  return null
-}
 
 interface Props {
   product: ProductWithDetails
@@ -30,64 +22,27 @@ export function MaterialCard({ product }: Props) {
       </div>
 
       {/* Conteúdo */}
-      <div className="p-3 flex flex-col gap-2.5 flex-1">
+      <div className="p-3 flex flex-col gap-2 flex-1">
         <h3 className="font-semibold text-sm text-foreground leading-snug">{product.name}</h3>
 
-        {/* Lojas vinculadas */}
-        {product.suppliers.length > 0 && (
+        {/* Lojas vinculadas com link de compra */}
+        {product.suppliers.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
-            {product.suppliers.map(link => {
-              const siteUrl = getBestStoreUrl(link.supplier.channels)
-              return siteUrl ? (
-                <a
-                  key={link.supplier_id}
-                  href={siteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6699F3] hover:underline"
-                >
-                  {link.supplier.name}
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              ) : (
-                <span key={link.supplier_id} className="text-[11px] font-medium text-muted-foreground">
-                  {link.supplier.name}
-                </span>
-              )
-            })}
-          </div>
-        )}
-
-        <div className="flex-1" />
-
-        {/* Botão(ões) de compra */}
-        {product.suppliers.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic">Link em breve</p>
-        ) : product.suppliers.length === 1 ? (
-          <a
-            href={product.suppliers[0].buy_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-1.5 w-full py-2.5 px-3 bg-[#6699F3] text-white text-xs font-semibold rounded-lg hover:bg-[#5588e8] transition-colors min-h-[40px]"
-          >
-            <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
-            Comprar agora
-          </a>
-        ) : (
-          <div className="flex flex-col gap-1.5">
             {product.suppliers.map(link => (
               <a
                 key={link.supplier_id}
                 href={link.buy_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-1.5 w-full py-2 px-3 bg-[#6699F3] text-white text-xs font-semibold rounded-lg hover:bg-[#5588e8] transition-colors min-h-[38px]"
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6699F3] hover:underline"
               >
-                <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
-                Comprar na {link.supplier.name}
+                {link.supplier.name}
+                <ExternalLink className="w-2.5 h-2.5" />
               </a>
             ))}
           </div>
+        ) : (
+          <p className="text-xs text-muted-foreground italic">Link em breve</p>
         )}
       </div>
     </div>
