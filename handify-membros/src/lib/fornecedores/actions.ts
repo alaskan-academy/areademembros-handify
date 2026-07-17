@@ -330,7 +330,7 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
 
   const ids = productsRaw.map((p: any) => p.id)
 
-  const [{ data: supplierLinks }, { data: courseLinks }] = await Promise.all([
+  const [{ data: supplierLinks }, { data: courseLinks }, { data: nicheLinks }] = await Promise.all([
     supabase
       .from('product_supplier_links')
       .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag), supplier_channels(channel, url))')
@@ -339,6 +339,10 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
     supabase
       .from('product_course_links')
       .select('product_id, course_id')
+      .in('product_id', ids),
+    supabase
+      .from('product_niche_links')
+      .select('product_id, niche_id')
       .in('product_id', ids),
   ])
 
@@ -357,6 +361,9 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
     course_ids: (courseLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
       .map((l: any) => l.course_id),
+    niche_ids: (nicheLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.niche_id),
   })) as ProductWithDetails[]
 }
 
@@ -372,7 +379,7 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
 
   const ids = productsRaw.map((p: any) => p.id)
 
-  const [{ data: supplierLinks }, { data: courseLinks }] = await Promise.all([
+  const [{ data: supplierLinks }, { data: courseLinks }, { data: nicheLinks }] = await Promise.all([
     supabase
       .from('product_supplier_links')
       .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag), supplier_channels(channel, url))')
@@ -381,6 +388,10 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
     supabase
       .from('product_course_links')
       .select('product_id, course_id')
+      .in('product_id', ids),
+    supabase
+      .from('product_niche_links')
+      .select('product_id, niche_id')
       .in('product_id', ids),
   ])
 
@@ -399,6 +410,9 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
     course_ids: (courseLinks ?? [])
       .filter((l: any) => l.product_id === p.id)
       .map((l: any) => l.course_id),
+    niche_ids: (nicheLinks ?? [])
+      .filter((l: any) => l.product_id === p.id)
+      .map((l: any) => l.niche_id),
   })) as ProductWithDetails[]
 }
 
