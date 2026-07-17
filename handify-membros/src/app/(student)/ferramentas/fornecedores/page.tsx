@@ -6,16 +6,21 @@ import { FornecedoresPage } from '@/components/ferramentas/fornecedores/Forneced
 
 export const metadata = { title: 'Fornecedores | Handify' }
 
+const PRODUTO_TO_NICHE_SLUG: Record<string, string> = {
+  sabonetes: 'saboaria-artesanal',
+  velas:     'velas-artesanais',
+}
+
 export default async function FornecedoresRoute({
   searchParams,
 }: {
-  searchParams: Promise<{ nicho?: string; curso?: string }>
+  searchParams: Promise<{ nicho?: string; curso?: string; produto?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { nicho, curso } = await searchParams
+  const { nicho, curso, produto } = await searchParams
 
   // Resolve curso pelo slug → id
   let courseFilter: { id: string; title: string } | null = null
@@ -49,8 +54,17 @@ export default async function FornecedoresRoute({
 
   const courses = (coursesRaw ?? []) as { id: string; title: string; slug: string }[]
 
-  // Valida o nicho da query string
-  const validNicheId = nicho && niches.some(n => n.id === nicho) ? nicho : ''
+  // Valida o nicho: prioriza ?nicho=<id>, depois tenta mapear ?produto=sabonetes/velas
+  let validNicheId = ''
+  if (nicho && niches.some(n => n.id === nicho)) {
+    validNicheId = nicho
+  } else if (produto) {
+    const slug = PRODUTO_TO_NICHE_SLUG[produto]
+    if (slug) {
+      const found = niches.find(n => n.slug === slug)
+      if (found) validNicheId = found.id
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">

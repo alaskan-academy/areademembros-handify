@@ -68,6 +68,18 @@ export function FornecedoresPage({
     router.push(`/ferramentas/fornecedores?${params.toString()}`)
   }
 
+  // Mapa supplierId → produtos vinculados (com buy_url do link desse fornecedor)
+  const productsBySupplier = useMemo(() => {
+    const map = new Map<string, { name: string; buy_url: string; image_url: string | null }[]>()
+    for (const p of products) {
+      for (const l of p.suppliers) {
+        if (!map.has(l.supplier_id)) map.set(l.supplier_id, [])
+        map.get(l.supplier_id)!.push({ name: p.name, buy_url: l.buy_url, image_url: p.image_url })
+      }
+    }
+    return map
+  }, [products])
+
   // Nichos que têm pelo menos um produto cujos fornecedores tenham a tag correspondente
   const nichesWithProducts = useMemo(() => {
     const tags = new Set(products.flatMap(p => p.suppliers.flatMap(l => l.supplier.tags)))
@@ -332,6 +344,7 @@ export function FornecedoresPage({
                 supplier={s}
                 userId={userId}
                 onOpenReviews={setReviewSupplier}
+                linkedProducts={productsBySupplier.get(s.id) ?? []}
               />
             ))}
           </div>

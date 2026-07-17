@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, ExternalLink, Camera, ShoppingBag, MessageCircle, Globe, BadgeCheck } from 'lucide-react'
+import { Heart, ExternalLink, Camera, ShoppingBag, MessageCircle, Globe, BadgeCheck, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toggleFavorite } from '@/lib/fornecedores/actions'
 import { CHANNEL_LABELS, CATEGORY_TAGS } from '@/lib/fornecedores/types'
@@ -21,13 +21,20 @@ const CHANNEL_COLORS: Record<Channel, string> = {
   mercadolivre: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
 }
 
+interface LinkedProduct {
+  name: string
+  buy_url: string
+  image_url: string | null
+}
+
 interface Props {
   supplier: SupplierWithDetails
   userId: string
   onOpenReviews: (supplier: SupplierWithDetails) => void
+  linkedProducts?: LinkedProduct[]
 }
 
-export function FornecedorCard({ supplier, userId, onOpenReviews }: Props) {
+export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts = [] }: Props) {
   const [fav, setFav] = useState(supplier.isFavorite)
   const [loading, setLoading] = useState(false)
 
@@ -133,6 +140,40 @@ export function FornecedorCard({ supplier, userId, onOpenReviews }: Props) {
               <ExternalLink className="w-2.5 h-2.5 opacity-60" />
             </a>
           ))}
+        </div>
+      )}
+
+      {/* Produtos vinculados */}
+      {linkedProducts.length > 0 && (
+        <div className="px-4 mt-3 pt-3 border-t border-border/40">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            Produtos disponíveis
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {linkedProducts.map((p, i) => (
+              <a
+                key={i}
+                href={p.buy_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 group"
+              >
+                <div className="w-8 h-8 rounded-md border border-border/40 bg-muted overflow-hidden shrink-0">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-3.5 h-3.5 text-muted-foreground/40" />
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs text-foreground group-hover:text-[#6699F3] transition-colors flex-1 leading-snug line-clamp-1">
+                  {p.name}
+                </span>
+                <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-[#6699F3] transition-colors shrink-0" />
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
