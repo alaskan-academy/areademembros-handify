@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Store, Plus, Package, X, BookOpen, ChevronDown, Check } from 'lucide-react'
 import { FornecedorCard } from './FornecedorCard'
 import { MaterialCard } from './MaterialCard'
@@ -18,6 +19,7 @@ interface Props {
   suppliers: SupplierWithDetails[]
   products: ProductWithDetails[]
   niches: NicheRow[]
+  courses: { id: string; title: string; slug: string }[]
   userId: string
   initialNicheId?: string
   courseFilter?: { id: string; title: string } | null
@@ -27,27 +29,44 @@ export function FornecedoresPage({
   suppliers,
   products,
   niches,
+  courses,
   userId,
   initialNicheId = '',
   courseFilter = null,
 }: Props) {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('materiais')
   const [selectedNiche, setSelectedNiche] = useState(initialNicheId)
   const [busca, setBusca] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [nicheDropdownOpen, setNicheDropdownOpen] = useState(false)
+  const [courseDropdownOpen, setCourseDropdownOpen] = useState(false)
   const [sugestaoOpen, setSugestaoOpen] = useState(false)
   const [reviewSupplier, setReviewSupplier] = useState<SupplierWithDetails | null>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const nicheDropdownRef = useRef<HTMLDivElement>(null)
+  const courseDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!dropdownOpen) return
+    if (!nicheDropdownOpen && !courseDropdownOpen) return
     function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node))
-        setDropdownOpen(false)
+      if (nicheDropdownRef.current && !nicheDropdownRef.current.contains(e.target as Node))
+        setNicheDropdownOpen(false)
+      if (courseDropdownRef.current && !courseDropdownRef.current.contains(e.target as Node))
+        setCourseDropdownOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [dropdownOpen])
+  }, [nicheDropdownOpen, courseDropdownOpen])
+
+  function selectCourse(slug: string) {
+    setCourseDropdownOpen(false)
+    const params = new URLSearchParams(window.location.search)
+    if (slug) {
+      params.set('curso', slug)
+    } else {
+      params.delete('curso')
+    }
+    router.push(`/ferramentas/fornecedores?${params.toString()}`)
+  }
 
   // Nichos que têm pelo menos um produto vinculado
   const nichesWithProducts = useMemo(() => {
@@ -99,7 +118,7 @@ export function FornecedoresPage({
 
   function selectNiche(id: string) {
     setSelectedNiche(id)
-    setDropdownOpen(false)
+    setNicheDropdownOpen(false)
   }
 
   return (
@@ -124,79 +143,117 @@ export function FornecedoresPage({
         </button>
       </div>
 
-      {/* Badge de filtro por curso */}
-      {courseFilter && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-[#6699F3]/8 border border-[#6699F3]/20 rounded-xl">
-          <BookOpen className="w-4 h-4 text-[#6699F3] shrink-0" />
-          <span className="text-sm text-[#6699F3] font-semibold flex-1">
-            Materiais do curso: {courseFilter.title}
-          </span>
-          <a
-            href="/ferramentas/fornecedores"
-            className="p-1 rounded-lg hover:bg-[#6699F3]/15 transition-colors"
-            title="Limpar filtro de curso"
-          >
-            <X className="w-4 h-4 text-[#6699F3]" />
-          </a>
-        </div>
-      )}
+      {/* Filtros: nicho + curso — lado a lado em telas maiores */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Dropdown de nicho */}
+        {activeNiches.length > 0 && (
+          <div className="relative flex-1" ref={nicheDropdownRef}>
+            <button
+              onClick={() => { setNicheDropdownOpen(o => !o); setCourseDropdownOpen(false) }}
+              className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white border border-border/60 rounded-xl text-sm font-medium hover:border-[#6699F3]/40 transition-colors"
+            >
+              <span className={selectedNiche ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}>
+                {selectedNiche ? selectedNicheName : 'Todos os nichos'}
+              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {selectedNiche && (
+                  <span
+                    role="button"
+                    onClick={e => { e.stopPropagation(); selectNiche('') }}
+                    className="p-0.5 rounded hover:bg-muted transition-colors"
+                    title="Limpar filtro"
+                  >
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </span>
+                )}
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${nicheDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
 
-      {/* Dropdown de nicho — retrátil, compartilhado entre abas */}
-      {activeNiches.length > 0 && (
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setDropdownOpen(o => !o)}
-            className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white border border-border/60 rounded-xl text-sm font-medium hover:border-[#6699F3]/40 transition-colors"
-          >
-            <span className={selectedNiche ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}>
-              {selectedNiche ? selectedNicheName : 'Todos os nichos'}
-            </span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {selectedNiche && (
-                <span
-                  role="button"
-                  onClick={e => { e.stopPropagation(); selectNiche('') }}
-                  className="p-0.5 rounded hover:bg-muted transition-colors"
-                  title="Limpar filtro"
-                >
-                  <X className="w-3.5 h-3.5 text-muted-foreground" />
-                </span>
-              )}
-              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
-            </div>
-          </button>
-
-          {dropdownOpen && (
-            <div className="absolute z-20 mt-1 w-full bg-white border border-border/60 rounded-xl shadow-lg overflow-hidden">
-              <button
-                onClick={() => selectNiche('')}
-                className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
-                  !selectedNiche
-                    ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold'
-                    : 'text-foreground hover:bg-gray-50'
-                }`}
-              >
-                Todos os nichos
-                {!selectedNiche && <Check className="w-4 h-4 shrink-0" />}
-              </button>
-              {activeNiches.map(n => (
+            {nicheDropdownOpen && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-border/60 rounded-xl shadow-lg overflow-hidden">
                 <button
-                  key={n.id}
-                  onClick={() => selectNiche(n.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-t border-border/30 ${
-                    selectedNiche === n.id
-                      ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold'
-                      : 'text-foreground hover:bg-gray-50'
+                  onClick={() => selectNiche('')}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
+                    !selectedNiche ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
                   }`}
                 >
-                  {n.name}
-                  {selectedNiche === n.id && <Check className="w-4 h-4 shrink-0" />}
+                  Todos os nichos
+                  {!selectedNiche && <Check className="w-4 h-4 shrink-0" />}
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                {activeNiches.map(n => (
+                  <button
+                    key={n.id}
+                    onClick={() => selectNiche(n.id)}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-t border-border/30 ${
+                      selectedNiche === n.id ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
+                    }`}
+                  >
+                    {n.name}
+                    {selectedNiche === n.id && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dropdown de curso */}
+        {courses.length > 0 && (
+          <div className="relative flex-1" ref={courseDropdownRef}>
+            <button
+              onClick={() => { setCourseDropdownOpen(o => !o); setNicheDropdownOpen(false) }}
+              className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white border border-border/60 rounded-xl text-sm font-medium hover:border-[#6699F3]/40 transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <BookOpen className="w-4 h-4 shrink-0 text-muted-foreground" />
+                <span className={`truncate ${courseFilter ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}`}>
+                  {courseFilter ? courseFilter.title : 'Todos os cursos'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {courseFilter && (
+                  <span
+                    role="button"
+                    onClick={e => { e.stopPropagation(); selectCourse('') }}
+                    className="p-0.5 rounded hover:bg-muted transition-colors"
+                    title="Limpar filtro de curso"
+                  >
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </span>
+                )}
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${courseDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {courseDropdownOpen && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-border/60 rounded-xl shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                <button
+                  onClick={() => selectCourse('')}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
+                    !courseFilter ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
+                  }`}
+                >
+                  Todos os cursos
+                  {!courseFilter && <Check className="w-4 h-4 shrink-0" />}
+                </button>
+                {courses.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => selectCourse(c.slug)}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-t border-border/30 ${
+                      courseFilter?.id === c.id ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="truncate pr-2">{c.title}</span>
+                    {courseFilter?.id === c.id && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/50 rounded-xl p-1">

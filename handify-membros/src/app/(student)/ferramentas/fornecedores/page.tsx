@@ -29,11 +29,15 @@ export default async function FornecedoresRoute({
     if (course) courseFilter = { id: course.id, title: course.title }
   }
 
-  const [suppliers, niches, products] = await Promise.all([
+  const service = createServiceClient()
+  const [suppliers, niches, products, { data: coursesRaw }] = await Promise.all([
     getSuppliers(user.id),
     getNiches(),
     getProducts(undefined, courseFilter?.id),
+    service.from('courses').select('id, title, slug').eq('published', true).order('title'),
   ])
+
+  const courses = (coursesRaw ?? []) as { id: string; title: string; slug: string }[]
 
   // Valida o nicho da query string
   const validNicheId = nicho && niches.some(n => n.id === nicho) ? nicho : ''
@@ -44,6 +48,7 @@ export default async function FornecedoresRoute({
         suppliers={suppliers}
         products={products}
         niches={niches}
+        courses={courses}
         userId={user.id}
         initialNicheId={validNicheId}
         courseFilter={courseFilter}
