@@ -333,7 +333,7 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
   const [{ data: supplierLinks }, { data: courseLinks }] = await Promise.all([
     supabase
       .from('product_supplier_links')
-      .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag))')
+      .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag), supplier_channels(channel, url))')
       .in('product_id', ids)
       .order('position', { ascending: true }),
     supabase
@@ -350,7 +350,8 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
         ...l,
         supplier: {
           ...l.suppliers,
-          tags: (l.suppliers?.supplier_tags ?? []).map((t: any) => t.tag),
+          tags:     (l.suppliers?.supplier_tags    ?? []).map((t: any) => t.tag),
+          channels: (l.suppliers?.supplier_channels ?? []).map((c: any) => ({ channel: c.channel, url: c.url })),
         },
       })),
     course_ids: (courseLinks ?? [])
@@ -374,7 +375,7 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
   const [{ data: supplierLinks }, { data: courseLinks }] = await Promise.all([
     supabase
       .from('product_supplier_links')
-      .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag))')
+      .select('*, suppliers(id, name, logo_url, verified, supplier_tags(tag), supplier_channels(channel, url))')
       .in('product_id', ids)
       .order('position', { ascending: true }),
     supabase
@@ -391,7 +392,8 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
         ...l,
         supplier: {
           ...l.suppliers,
-          tags: (l.suppliers?.supplier_tags ?? []).map((t: any) => t.tag),
+          tags:     (l.suppliers?.supplier_tags    ?? []).map((t: any) => t.tag),
+          channels: (l.suppliers?.supplier_channels ?? []).map((c: any) => ({ channel: c.channel, url: c.url })),
         },
       })),
     course_ids: (courseLinks ?? [])

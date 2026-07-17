@@ -1,7 +1,15 @@
 'use client'
 
-import { ShoppingCart, Package } from 'lucide-react'
+import { ShoppingCart, Package, ExternalLink } from 'lucide-react'
 import type { ProductWithDetails } from '@/lib/fornecedores/types'
+import { CHANNEL_LABELS } from '@/lib/fornecedores/types'
+
+const CHANNEL_ICONS: Record<string, string> = {
+  website:      '🌐',
+  instagram:    '📷',
+  shopee:       '🛍',
+  mercadolivre: '🛒',
+}
 
 interface Props {
   product: ProductWithDetails
@@ -32,19 +40,36 @@ export function MaterialCard({ product }: Props) {
         {/* Nome */}
         <h3 className="font-semibold text-sm text-foreground leading-snug">{product.name}</h3>
 
-        {/* Nichos — derivados das tags dos fornecedores */}
-        {(() => {
-          const tags = [...new Set(product.suppliers.flatMap(l => l.supplier.tags))]
-          return tags.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {tags.map(t => (
-                <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] capitalize">
-                  {t.replace(/-/g, ' ')}
-                </span>
+        {/* Links das lojas */}
+        {product.suppliers.some(l => l.supplier.channels.length > 0) && (
+          <div className="flex flex-col gap-1.5">
+            {product.suppliers
+              .filter(l => l.supplier.channels.length > 0)
+              .map(link => (
+                <div key={link.supplier_id} className="flex flex-wrap items-center gap-1">
+                  {product.suppliers.length > 1 && (
+                    <span className="text-[10px] text-muted-foreground font-medium mr-0.5">
+                      {link.supplier.name}:
+                    </span>
+                  )}
+                  {link.supplier.channels.map(ch => (
+                    <a
+                      key={ch.channel}
+                      href={ch.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-border/60 text-muted-foreground hover:border-[#6699F3]/60 hover:text-[#6699F3] transition-colors"
+                      title={`${link.supplier.name} — ${(CHANNEL_LABELS as Record<string, string>)[ch.channel] ?? ch.channel}`}
+                    >
+                      <span>{CHANNEL_ICONS[ch.channel] ?? '🔗'}</span>
+                      {(CHANNEL_LABELS as Record<string, string>)[ch.channel] ?? ch.channel}
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  ))}
+                </div>
               ))}
-            </div>
-          ) : null
-        })()}
+          </div>
+        )}
 
         <div className="flex-1" />
 

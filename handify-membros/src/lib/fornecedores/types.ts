@@ -125,7 +125,10 @@ export type ProductSupplierLinkRow = {
 }
 
 export type ProductSupplierLinkWithSupplier = ProductSupplierLinkRow & {
-  supplier: Pick<SupplierRow, 'id' | 'name' | 'logo_url' | 'verified'> & { tags: string[] }
+  supplier: Pick<SupplierRow, 'id' | 'name' | 'logo_url' | 'verified'> & {
+    tags:     string[]
+    channels: { channel: string; url: string }[]
+  }
 }
 
 export type ProductCourseLink = {
