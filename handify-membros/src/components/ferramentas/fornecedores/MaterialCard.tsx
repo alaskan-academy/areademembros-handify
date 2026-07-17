@@ -1,6 +1,6 @@
 'use client'
 
-import { ShoppingCart, Store, Package } from 'lucide-react'
+import { ShoppingCart, Package, ExternalLink } from 'lucide-react'
 import type { ProductWithDetails } from '@/lib/fornecedores/types'
 
 function getBestStoreUrl(channels: { channel: string; url: string }[]): string | null {
@@ -16,8 +16,6 @@ interface Props {
 }
 
 export function MaterialCard({ product }: Props) {
-  const hasMultiple = product.suppliers.length > 1
-
   return (
     <div className="bg-white rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow flex flex-col overflow-hidden">
       {/* Foto */}
@@ -33,49 +31,62 @@ export function MaterialCard({ product }: Props) {
 
       {/* Conteúdo */}
       <div className="p-3 flex flex-col gap-2.5 flex-1">
-        {/* Nome */}
         <h3 className="font-semibold text-sm text-foreground leading-snug">{product.name}</h3>
+
+        {/* Lojas vinculadas */}
+        {product.suppliers.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {product.suppliers.map(link => {
+              const siteUrl = getBestStoreUrl(link.supplier.channels)
+              return siteUrl ? (
+                <a
+                  key={link.supplier_id}
+                  href={siteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6699F3] hover:underline"
+                >
+                  {link.supplier.name}
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              ) : (
+                <span key={link.supplier_id} className="text-[11px] font-medium text-muted-foreground">
+                  {link.supplier.name}
+                </span>
+              )
+            })}
+          </div>
+        )}
 
         <div className="flex-1" />
 
-        {/* Botões por fornecedor */}
+        {/* Botão(ões) de compra */}
         {product.suppliers.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">Link em breve</p>
+        ) : product.suppliers.length === 1 ? (
+          <a
+            href={product.suppliers[0].buy_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 w-full py-2.5 px-3 bg-[#6699F3] text-white text-xs font-semibold rounded-lg hover:bg-[#5588e8] transition-colors min-h-[40px]"
+          >
+            <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
+            Comprar agora
+          </a>
         ) : (
-          <div className="flex flex-col gap-3">
-            {hasMultiple && (
-              <p className="text-[11px] text-muted-foreground font-medium">Disponível em:</p>
-            )}
-            {product.suppliers.map(link => {
-              const storeUrl = getBestStoreUrl(link.supplier.channels)
-              return (
-                <div key={link.supplier_id} className="flex flex-col gap-1.5">
-                  <p className="text-[11px] font-semibold text-foreground/70 truncate">
-                    {link.supplier.name}
-                  </p>
-                  <a
-                    href={link.buy_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 w-full py-2.5 px-3 bg-[#6699F3] text-white text-xs font-semibold rounded-lg hover:bg-[#5588e8] transition-colors min-h-[40px]"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
-                    Comprar agora
-                  </a>
-                  {storeUrl && (
-                    <a
-                      href={storeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 w-full py-2 px-3 border border-border/60 text-muted-foreground text-xs font-medium rounded-lg hover:border-[#6699F3]/50 hover:text-[#6699F3] transition-colors min-h-[36px]"
-                    >
-                      <Store className="w-3.5 h-3.5 shrink-0" />
-                      Visite a loja
-                    </a>
-                  )}
-                </div>
-              )
-            })}
+          <div className="flex flex-col gap-1.5">
+            {product.suppliers.map(link => (
+              <a
+                key={link.supplier_id}
+                href={link.buy_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 w-full py-2 px-3 bg-[#6699F3] text-white text-xs font-semibold rounded-lg hover:bg-[#5588e8] transition-colors min-h-[38px]"
+              >
+                <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
+                Comprar na {link.supplier.name}
+              </a>
+            ))}
           </div>
         )}
       </div>
