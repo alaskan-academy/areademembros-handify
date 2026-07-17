@@ -46,7 +46,7 @@ export default async function FornecedoresRoute({
   const [suppliers, niches, products, { data: coursesRaw }] = await Promise.all([
     getSuppliers(user.id),
     getNiches(),
-    getProducts(undefined, courseFilter?.id),
+    getProducts(),
     uniqueCourseIds.length > 0
       ? service.from('courses').select('id, title, slug').in('id', uniqueCourseIds).eq('published', true).order('title')
       : Promise.resolve({ data: [] }),

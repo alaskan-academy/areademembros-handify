@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Store, Plus, Package, X, BookOpen, ChevronDown, Check } from 'lucide-react'
 import { FornecedorCard } from './FornecedorCard'
 import { MaterialCard } from './MaterialCard'
@@ -34,9 +33,9 @@ export function FornecedoresPage({
   initialNicheId = '',
   courseFilter = null,
 }: Props) {
-  const router = useRouter()
   const [tab, setTab] = useState<Tab>('materiais')
   const [selectedNiche, setSelectedNiche] = useState(initialNicheId)
+  const [selectedCourseId, setSelectedCourseId] = useState(courseFilter?.id ?? '')
   const [busca, setBusca] = useState('')
   const [nicheDropdownOpen, setNicheDropdownOpen] = useState(false)
   const [courseDropdownOpen, setCourseDropdownOpen] = useState(false)
@@ -44,6 +43,10 @@ export function FornecedoresPage({
   const [reviewSupplier, setReviewSupplier] = useState<SupplierWithDetails | null>(null)
   const nicheDropdownRef = useRef<HTMLDivElement>(null)
   const courseDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Sincroniza quando props mudam via SPA navigation (Next.js App Router não remonta o componente)
+  useEffect(() => { setSelectedNiche(initialNicheId) }, [initialNicheId])
+  useEffect(() => { setSelectedCourseId(courseFilter?.id ?? '') }, [courseFilter?.id])
 
   useEffect(() => {
     if (!nicheDropdownOpen && !courseDropdownOpen) return
@@ -57,15 +60,9 @@ export function FornecedoresPage({
     return () => document.removeEventListener('mousedown', handleClick)
   }, [nicheDropdownOpen, courseDropdownOpen])
 
-  function selectCourse(slug: string) {
+  function selectCourse(courseId: string) {
+    setSelectedCourseId(courseId)
     setCourseDropdownOpen(false)
-    const params = new URLSearchParams(window.location.search)
-    if (slug) {
-      params.set('curso', slug)
-    } else {
-      params.delete('curso')
-    }
-    router.push(`/ferramentas/fornecedores?${params.toString()}`)
   }
 
   // Mapa supplierId → produtos vinculados (com buy_url do link desse fornecedor)
@@ -99,10 +96,14 @@ export function FornecedoresPage({
   )
 
   const selectedNicheName = activeNiches.find(n => n.id === selectedNiche)?.name ?? ''
+  const selectedCourse = courses.find(c => c.id === selectedCourseId) ?? null
 
-  // Produtos filtrados por nicho (via tags dos fornecedores vinculados) + busca
+  // Produtos filtrados por nicho + curso + busca (tudo client-side para resposta imediata)
   const filteredProducts = useMemo(() => {
     let result = products
+    if (selectedCourseId) {
+      result = result.filter(p => p.course_ids.includes(selectedCourseId))
+    }
     if (selectedNiche) {
       const slug = activeNiches.find(n => n.id === selectedNiche)?.slug ?? ''
       if (slug) result = result.filter(p => p.suppliers.some(l => l.supplier.tags.includes(slug)))
@@ -112,7 +113,7 @@ export function FornecedoresPage({
       result = result.filter(p => p.name.toLowerCase().includes(q))
     }
     return result
-  }, [products, selectedNiche, activeNiches, busca])
+  }, [products, selectedNiche, selectedCourseId, activeNiches, busca])
 
   // Fornecedores filtrados por nicho (via tag = slug) + busca
   const filteredSuppliers = useMemo(() => {
@@ -222,12 +223,12 @@ export function FornecedoresPage({
             >
               <div className="flex items-center gap-2 min-w-0">
                 <BookOpen className="w-4 h-4 shrink-0 text-muted-foreground" />
-                <span className={`truncate ${courseFilter ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}`}>
-                  {courseFilter ? courseFilter.title : 'Todos os cursos'}
+                <span className={`truncate ${selectedCourse ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}`}>
+                  {selectedCourse ? selectedCourse.title : 'Todos os cursos'}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                {courseFilter && (
+                {selectedCourse && (
                   <span
                     role="button"
                     onClick={e => { e.stopPropagation(); selectCourse('') }}
@@ -246,22 +247,22 @@ export function FornecedoresPage({
                 <button
                   onClick={() => selectCourse('')}
                   className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
-                    !courseFilter ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
+                    !selectedCourseId ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
                   }`}
                 >
                   Todos os cursos
-                  {!courseFilter && <Check className="w-4 h-4 shrink-0" />}
+                  {!selectedCourseId && <Check className="w-4 h-4 shrink-0" />}
                 </button>
                 {courses.map(c => (
                   <button
                     key={c.id}
-                    onClick={() => selectCourse(c.slug)}
+                    onClick={() => selectCourse(c.id)}
                     className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-t border-border/30 ${
-                      courseFilter?.id === c.id ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
+                      selectedCourseId === c.id ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
                     }`}
                   >
                     <span className="truncate pr-2">{c.title}</span>
-                    {courseFilter?.id === c.id && <Check className="w-4 h-4 shrink-0" />}
+                    {selectedCourseId === c.id && <Check className="w-4 h-4 shrink-0" />}
                   </button>
                 ))}
               </div>
