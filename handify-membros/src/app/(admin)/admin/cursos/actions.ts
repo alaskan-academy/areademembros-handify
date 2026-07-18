@@ -114,6 +114,7 @@ const CourseSchema = z.object({
   published: z.boolean().default(false),
   category_id: z.string().uuid().nullable().optional(),
   forum_id: z.string().uuid().nullable().optional(),
+  niche_id: z.string().uuid().nullable().optional(),
   thumbnail_url: z.string().optional().nullable(),
   checkout_url: z.string().url().nullable().optional(),
 });
@@ -137,6 +138,7 @@ export async function createCourse(
     published: false,
     category_id: (formData.get("category_id") as string) || null,
     forum_id: (formData.get("forum_id") as string) || null,
+    niche_id: (formData.get("niche_id") as string) || null,
     thumbnail_url: (formData.get("thumbnail_url") as string) || null,
     checkout_url: (formData.get("checkout_url") as string)?.trim() || null,
   };
@@ -172,6 +174,7 @@ export async function updateCourse(
     published: formData.get("published") === "true",
     category_id: (formData.get("category_id") as string) || null,
     forum_id: (formData.get("forum_id") as string) || null,
+    niche_id: (formData.get("niche_id") as string) || null,
     thumbnail_url: (formData.get("thumbnail_url") as string) || null,
     checkout_url: (formData.get("checkout_url") as string)?.trim() || null,
   };

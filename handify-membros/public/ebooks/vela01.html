@@ -1,0 +1,400 @@
+<title>Vela 01 — Pote Patê 100ml · Handify™</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#6699F3;--green:#72CF92;--yellow:#FEC649;
+  --dark:#2D2D2D;--off:#F5F5F0;--white:#fff;
+  --border:1px solid #e2e2da;--radius:12px
+}
+body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;color:var(--dark);background:var(--off);font-size:16px;line-height:1.7}
+
+.stripe{display:flex;height:6px;width:100%}
+.stripe span{flex:1}
+.stripe span:nth-child(1){background:var(--blue)}
+.stripe span:nth-child(2){background:var(--green)}
+.stripe span:nth-child(3){background:var(--yellow)}
+
+.header{background:var(--blue);padding:2.25rem 2rem 2rem;color:#fff}
+.header-tag{font-size:11px;font-weight:700;letter-spacing:.14em;opacity:.7;margin-bottom:.75rem;text-transform:uppercase}
+.header-number{font-size:5rem;font-weight:900;color:#fff;opacity:.15;line-height:.9;margin-bottom:.25rem}
+.header-title{font-size:1.85rem;font-weight:700;margin-bottom:.5rem}
+.header-sub{opacity:.9;font-size:1rem;line-height:1.6;max-width:520px}
+
+.wrap{max-width:780px;margin:0 auto;padding:1.75rem 1.25rem 5rem}
+
+.section{background:var(--white);border-radius:var(--radius);border:var(--border);margin-bottom:1.5rem;overflow:hidden}
+.sec-head{padding:1rem 1.5rem;display:flex;align-items:center;gap:.75rem;border-bottom:var(--border);background:#fafaf8}
+.sec-icon{font-size:1.3rem;line-height:1}
+.sec-title{font-weight:700;font-size:1.05rem}
+.sec-body{padding:1.5rem}
+
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th{background:#f5f5f0;font-weight:700;text-align:left;padding:.65rem 1rem;color:#666;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:var(--border)}
+td{padding:.65rem 1rem;border-bottom:var(--border);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+.tbl-group td{background:#fafaf8;font-weight:700;font-size:.78rem;color:#888;text-transform:uppercase;letter-spacing:.06em;border-bottom:var(--border);padding:.5rem 1rem}
+.td-num{text-align:right;font-weight:700;white-space:nowrap}
+.td-cost{text-align:right;font-weight:700;color:var(--dark);white-space:nowrap}
+.td-total{text-align:right;font-weight:700;font-size:1rem;white-space:nowrap}
+
+.box{border-radius:8px;padding:1rem 1.1rem;margin:.85rem 0;font-size:.92rem;line-height:1.65}
+.box-blue{background:#eef3ff;border-left:4px solid var(--blue)}
+.box-green{background:#edfaf3;border-left:4px solid var(--green)}
+.box-yellow{background:#fffbee;border-left:4px solid var(--yellow)}
+.box-red{background:#fff2f2;border-left:4px solid #e05050}
+.box strong{display:block;margin-bottom:.2rem;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:#555}
+
+.steps{list-style:none;display:flex;flex-direction:column;gap:.6rem}
+.step{display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.1rem;border-radius:10px;border:var(--border);background:var(--white);cursor:pointer;transition:background .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.step:hover{background:#f8f8f5}
+.step.done{background:#f0fbf5;border-color:#a8dfc0}
+.step-check{width:28px;height:28px;border-radius:50%;border:2.5px solid #ccc;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:.1rem;font-size:15px;font-weight:700;transition:all .2s;color:transparent}
+.step.done .step-check{background:var(--green);border-color:var(--green);color:#fff}
+.step-n{font-size:.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.2rem}
+.step-t{font-weight:700;font-size:1rem;margin-bottom:.3rem}
+.step.done .step-t,.step.done .step-body{opacity:.45;text-decoration:line-through;text-decoration-color:#99c9ab}
+.step-body{font-size:.9rem;color:#555;line-height:1.65}
+.step-note{margin-top:.5rem;background:#fafaf8;border-radius:6px;padding:.55rem .8rem;font-size:.83rem;color:#666;border-left:3px solid var(--blue)}
+.step.done .step-note{opacity:.4}
+
+.print-btn-wrap{text-align:center;padding:2rem 0 1rem}
+.print-btn{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:1rem 2.5rem;font-size:1.05rem;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:background .2s}
+.print-btn:hover{background:#4d7de0}
+.print-hint{font-size:.82rem;color:#aaa;margin-top:.5rem}
+
+.emb-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.emb-card{border-radius:10px;border:1.5px solid var(--border);padding:1.1rem}
+.emb-card.featured{border-color:var(--blue)}
+.emb-label{font-weight:700;font-size:.95rem;margin-bottom:.65rem}
+.emb-item{font-size:.88rem;color:#555;padding:.2rem 0;border-bottom:1px solid #f0f0e8;line-height:1.5}
+.emb-item:last-of-type{border-bottom:none}
+.emb-price{font-weight:700;color:var(--blue);font-size:1rem;margin-top:.75rem}
+
+.warn-badge{display:inline-block;background:#fff8e0;color:#9a7010;border:1px solid #ecc94b;border-radius:6px;padding:.3rem .9rem;font-size:.83rem;font-weight:700;margin-top:.85rem}
+
+.total-row td{background:#f5f5f0;font-weight:700;font-size:1rem}
+
+@media (max-width:520px){
+  .emb-grid{grid-template-columns:1fr}
+  .header-title{font-size:1.45rem}
+  .header-number{font-size:3.5rem}
+}
+
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff;font-size:14px}
+  .stripe{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .header{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .box{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .section{break-inside:avoid;border:1px solid #ddd;margin-bottom:1rem}
+  .step{break-inside:avoid;border:1px solid #ddd}
+  .step-check{border:2px solid #999!important;background:none!important;color:transparent!important}
+  .step.done .step-check{background:none!important;color:transparent!important}
+  .step.done .step-t,.step.done .step-body,.step.done .step-note{opacity:1!important;text-decoration:none!important}
+  .wrap{padding:.5rem}
+  .emb-grid{grid-template-columns:1fr 1fr}
+  h2.sr-only{display:none}
+  .section:nth-child(5){page-break-before:always}
+  .section:nth-child(7){page-break-before:always}
+}
+</style>
+
+<div class="stripe"><span></span><span></span><span></span></div>
+
+<div class="header">
+  <div class="header-tag">Receitas e Precificação · Handify™</div>
+  <div class="header-number">01</div>
+  <div class="header-title">🕯️ Pote Patê 100ml</div>
+  <div class="header-sub">O modelo mais versátil do catálogo. Fácil de produzir, fácil de vender, fácil de escalar. É o produto ideal para começar — o processo todo cabe em uma tarde.</div>
+</div>
+
+<div class="wrap">
+
+<!-- TEMPO -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">⏱️</span><span class="sec-title">Tempo de Produção</span></div>
+  <div class="sec-body">
+    <table>
+      <thead><tr><th>Etapa</th><th class="td-num">Tempo estimado</th></tr></thead>
+      <tbody>
+        <tr><td>Preparação — higienizar potes e fixar pavios</td><td class="td-num">20–30 min</td></tr>
+        <tr><td>Derretimento da cera</td><td class="td-num">15–25 min</td></tr>
+        <tr><td>Adição da essência e mistura</td><td class="td-num">5–10 min</td></tr>
+        <tr><td>Despejo nos 10 potes</td><td class="td-num">10–15 min</td></tr>
+        <tr><td>Cura completa</td><td class="td-num">40 min a 1h40</td></tr>
+        <tr><td>Finalização — pavio, soprador, lacre, etiqueta</td><td class="td-num">20–30 min</td></tr>
+        <tr class="total-row"><td>⏱️ Total sem a cura</td><td class="td-num">70–110 min</td></tr>
+        <tr class="total-row"><td>⏱️ Total com a cura</td><td class="td-num">2h a 3h30</td></tr>
+      </tbody>
+    </table>
+    <div class="box box-blue" style="margin-top:1rem">
+      <strong>Como o tempo entra no preço</strong>
+      Produção de 10 velas leva 2h a 3h30. Considerando R$ 20,00/hora de mão de obra → <strong>R$ 5,00 por vela</strong>. Esse valor já está incluído nos custos desta aula.
+    </div>
+  </div>
+</div>
+
+<!-- MATERIAIS -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">🧾</span><span class="sec-title">Ingredientes e Materiais — Lote de 10 Unidades</span></div>
+  <div class="sec-body">
+    <div class="box box-green">
+      <strong>Por que calcular em lote de 10?</strong>
+      Abaixo disso, o custo fixo de energia, tempo e setup não compensa. O lote de 10 é o ponto de equilíbrio perfeito para quem está começando.
+    </div>
+    <table style="margin-top:.85rem">
+      <thead><tr><th>Item</th><th class="td-num">Quantidade</th><th>Observação</th></tr></thead>
+      <tbody>
+        <tr class="tbl-group"><td colspan="3">Insumos da vela</td></tr>
+        <tr><td>Cera de coco em barra</td><td class="td-num">900g</td><td>90g por vela</td></tr>
+        <tr><td>Essência aromática</td><td class="td-num">90ml</td><td>10% do peso da cera</td></tr>
+        <tr><td>Pavio de algodão encerado 3mm</td><td class="td-num">10 unidades</td><td>1 por vela</td></tr>
+        <tr class="tbl-group"><td colspan="3">Recipientes e fixação</td></tr>
+        <tr><td>Pote de vidro patê 100ml — com tampa</td><td class="td-num">10 unidades</td><td>Compre sempre com tampa</td></tr>
+        <tr><td>Cola quente em bastão</td><td class="td-num">2 bastões</td><td>Para fixar o pavio no fundo</td></tr>
+        <tr><td>Lacre termoretrátil</td><td class="td-num">10 unidades</td><td>Preserva o aroma e dá acabamento profissional</td></tr>
+        <tr class="tbl-group"><td colspan="3">Embalagem simples</td></tr>
+        <tr><td>Etiqueta adesiva — redonda ou retangular</td><td class="td-num">10 unidades</td><td>Com nome do aroma e sua marca</td></tr>
+        <tr><td>Sacolinha de papel kraft</td><td class="td-num">10 unidades</td><td>Para presente ou entrega</td></tr>
+        <tr><td>Papel seda branco</td><td class="td-num">10 folhas</td><td>Nunca use seda colorida em contato com a vela</td></tr>
+        <tr><td>Cartão de cuidados</td><td class="td-num">10 unidades</td><td>Instrui o uso e passa profissionalismo</td></tr>
+        <tr class="tbl-group"><td colspan="3">Consumíveis de produção</td></tr>
+        <tr><td>Álcool isopropílico</td><td class="td-num">20ml</td><td>Higienização dos potes</td></tr>
+        <tr><td>Papel toalha</td><td class="td-num">1 rolo compartilhado</td><td>Limpeza geral</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PASSO A PASSO -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">📋</span><span class="sec-title">Passo a Passo — Produção em Lote</span></div>
+  <div class="sec-body">
+    <div class="box box-green">
+      <strong>Regra de ouro da produção em escala</strong>
+      Nunca faça uma vela por vez. Prepare tudo, depois produza tudo. Isso economiza tempo, mantém a temperatura controlada e garante que todas as velas saiam iguais.
+    </div>
+    <div class="no-print" style="font-size:.85rem;color:#aaa;margin:.85rem 0 .65rem">Toque em cada etapa para marcar como concluída.</div>
+
+    <ul class="steps" id="steps">
+      <li class="step" onclick="mark(this)">
+        <div class="step-check">✓</div>
+        <div>
+          <div class="step-n">Etapa 1</div>
+          <div class="step-t">Preparação dos potes</div>
+          <div class="step-body">Separe os 10 potes em fileira sobre a bancada. Pingue álcool isopropílico dentro de cada pote, gire para cobrir toda a superfície interna e seque com papel toalha. Coloque um ponto de cola quente no centro do fundo de cada pote e fixe o pavio — pressione por 10 segundos. Faça todos os 10 antes de continuar.</div>
+          <div class="step-note">Por que higienizar? O álcool remove poeira e gordura que prejudicam a adesão da cera ao vidro. Um pote limpo garante superfície uniforme, sem bolhas.</div>
+        </div>
+      </li>
+      <li class="step" onclick="mark(this)">
+        <div class="step-check">✓</div>
+        <div>
+          <div class="step-n">Etapa 2</div>
+          <div class="step-t">Derretimento da cera</div>
+          <div class="step-body">Pese 900g de cera e coloque na panelinha. Fogo na temperatura mais baixa. Posicione o termômetro sem encostar na lateral da panela. Mexa lentamente com movimentos circulares. Quando chegar a <strong>60°C–65°C, desligue o fogo</strong> e retire a panela.</div>
+          <div class="step-note">⚠️ Atenção: depois de desligar, o fogão ainda irradia calor por alguns minutos e a cera pode subir mais 3°C a 5°C. O limite máximo é 75°C — acima disso, o aroma da essência evapora e você perde o investimento.</div>
+        </div>
+      </li>
+      <li class="step" onclick="mark(this)">
+        <div class="step-check">✓</div>
+        <div>
+          <div class="step-n">Etapa 3</div>
+          <div class="step-t">Adição da essência</div>
+          <div class="step-body">Com a cera entre 60°C e 75°C e fora do fogo, aplique os 90ml de essência pela lateral da panela. Mexa lentamente por <strong>1 minuto completo</strong> — movimentos circulares, do fundo para cima.</div>
+          <div class="step-note">Por que 1 minuto? A essência precisa desse tempo para aderir completamente à cera. Menos que isso pode causar sangramento depois da cura — quando a essência aparece na superfície em gotinhas oleosas.</div>
+        </div>
+      </li>
+      <li class="step" onclick="mark(this)">
+        <div class="step-check">✓</div>
+        <div>
+          <div class="step-n">Etapa 4</div>
+          <div class="step-t">Aquecimento dos potes e despejo</div>
+          <div class="step-body">Use o soprador térmico para aquecer o exterior de cada pote por 5 segundos — faça todos os 10 em sequência rápida. Em seguida, despeje a cera em fio lento e contínuo, preenchendo até <strong>90% da capacidade</strong>. Despeje todos os 10 potes em sequência, sem parar.</div>
+          <div class="step-note">Por que aquecer o pote? Cera quente em contato com vidro frio causa choque térmico — a cera se solta da parede, criando o efeito de "casca". O aquecimento elimina esse problema.</div>
+        </div>
+      </li>
+      <li class="step" onclick="mark(this)">
+        <div class="step-check">✓</div>
+        <div>
+          <div class="step-n">Etapa 5</div>
+          <div class="step-t">Centralização do pavio</div>
+          <div class="step-body">Logo após o despejo, se o pavio estiver inclinado, apoie um palito de dente horizontalmente sobre a borda do pote e ajuste o pavio para o centro enquanto a cera ainda está líquida.</div>
+        </div>
+      </li>
+      <li class="step" onclick="mark(this)">
+        <div class="step-check">✓</div>
+        <div>
+          <div class="step-n">Etapa 6</div>
+          <div class="step-t">Cura — repouso absoluto</div>
+          <div class="step-body">Deixe os potes sem mover, sem corrente de ar:<br>
+            <strong>Clima ameno (18–25°C):</strong> 40 min a 1h<br>
+            <strong>Clima quente (acima de 30°C):</strong> 1h30 a 1h40<br>
+            <strong>Clima frio (abaixo de 15°C):</strong> 30 a 50 min<br><br>
+            A vela está curada quando a superfície estiver branca e opaca <em>e</em> a lateral do pote estiver fria ao toque.
+          </div>
+          <div class="step-note">⚠️ Erro comum: a vela parece pronta por fora mas ainda está mole por dentro. Confirme sempre que a lateral do pote está completamente fria antes de considerar a cura concluída.</div>
+        </div>
+      </li>
+      <li class="step" onclick="mark(this)">
+        <div class="step-check">✓</div>
+        <div>
+          <div class="step-n">Etapa 7</div>
+          <div class="step-t">Finalização</div>
+          <div class="step-body">Apare o pavio deixando <strong>2cm</strong> acima da superfície. Se a superfície ficou com ondulações, use o soprador a 10cm por 5–8 segundos com movimentos circulares para nivelar. Coloque a tampa, encaixe o lacre termoretrátil de baixo para cima e passe o soprador em volta por 3–5 segundos. Cole a etiqueta.</div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- EMBALAGEM -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">📦</span><span class="sec-title">Embalagem — Duas Opções</span></div>
+  <div class="sec-body">
+    <div class="emb-grid">
+      <div class="emb-card">
+        <div class="emb-label">✅ Simples e econômica</div>
+        <div class="emb-item">Etiqueta com nome do aroma + marca colada no pote</div>
+        <div class="emb-item">Papel seda branco levemente amassado envolvendo o pote</div>
+        <div class="emb-item">Sacolinha kraft</div>
+        <div class="emb-item">Fio de sisal ou fita neutra — bege, branco ou marfim</div>
+        <div class="emb-item">Cartão de cuidados dentro da sacolinha</div>
+        <div class="emb-price">R$ 1,50 a R$ 2,50 / unidade</div>
+      </div>
+      <div class="emb-card featured">
+        <div class="emb-label">🌟 Premium — presentes e datas</div>
+        <div class="emb-item">Etiqueta personalizada com logo do atelier</div>
+        <div class="emb-item">Caixinha de acetato transparente</div>
+        <div class="emb-item">Papel seda branco no fundo da caixinha</div>
+        <div class="emb-item">Uma flor seca ao lado do pote dentro da caixa</div>
+        <div class="emb-item">Fita de cetim nude ou marfim com laço</div>
+        <div class="emb-item">Cartão de cuidados + cartão de agradecimento manuscrito</div>
+        <div class="emb-price">R$ 4,00 a R$ 6,00 / unidade</div>
+      </div>
+    </div>
+    <div class="box box-blue" style="margin-top:1rem">Em datas como Dia das Mães e Natal, a embalagem premium pode justificar R$ 10,00 a R$ 15,00 a mais no preço — com custo extra de apenas R$ 3,00 a R$ 4,00.</div>
+  </div>
+</div>
+
+<!-- CUSTOS -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">💰</span><span class="sec-title">Custo de Produção — Lote de 10 Unidades</span></div>
+  <div class="sec-body">
+    <table>
+      <thead><tr><th>Item</th><th class="td-num">Custo unit.</th><th class="td-num">Qtd.</th><th class="td-num">Total no lote</th></tr></thead>
+      <tbody>
+        <tr class="tbl-group"><td colspan="4">Insumos da vela</td></tr>
+        <tr><td>Cera de coco em barra</td><td class="td-num">R$ 0,45 / 10g</td><td class="td-num">900g</td><td class="td-cost">R$ 40,50</td></tr>
+        <tr><td>Essência aromática</td><td class="td-num">R$ 0,22 / ml</td><td class="td-num">90ml</td><td class="td-cost">R$ 19,80</td></tr>
+        <tr><td>Pavio de algodão encerado 3mm</td><td class="td-num">R$ 0,18 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 1,80</td></tr>
+        <tr class="tbl-group"><td colspan="4">Recipientes e fixação</td></tr>
+        <tr><td>Pote de vidro patê 100ml</td><td class="td-num">R$ 3,75 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 37,50</td></tr>
+        <tr><td>Cola quente (rateio)</td><td class="td-num">R$ 0,10 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 1,00</td></tr>
+        <tr><td>Lacre termoretrátil</td><td class="td-num">R$ 0,19 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 1,90</td></tr>
+        <tr class="tbl-group"><td colspan="4">Embalagem simples</td></tr>
+        <tr><td>Etiqueta adesiva</td><td class="td-num">R$ 0,12 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 1,20</td></tr>
+        <tr><td>Sacolinha kraft</td><td class="td-num">R$ 0,85 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 8,50</td></tr>
+        <tr><td>Papel seda branco</td><td class="td-num">R$ 0,15 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 1,50</td></tr>
+        <tr><td>Cartão de cuidados</td><td class="td-num">R$ 0,18 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 1,80</td></tr>
+        <tr class="tbl-group"><td colspan="4">Mão de obra</td></tr>
+        <tr><td>Mão de obra</td><td class="td-num">R$ 5,00 / un.</td><td class="td-num">10</td><td class="td-cost">R$ 50,00</td></tr>
+        <tr class="total-row"><td colspan="3" style="font-size:1rem">Custo total do lote — embalagem simples</td><td class="td-total">R$ 165,50</td></tr>
+        <tr class="total-row"><td colspan="3" style="font-size:1rem">Custo por unidade</td><td class="td-total">R$ 16,55</td></tr>
+      </tbody>
+    </table>
+
+    <table style="margin-top:1.25rem">
+      <thead><tr><th colspan="4">Resumo comparativo</th></tr>
+        <tr><th></th><th class="td-num">Embalagem simples</th><th class="td-num">Embalagem premium</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Insumos + recipiente + embalagem</td><td class="td-num">R$ 75,10</td><td class="td-num">R$ 112,10</td></tr>
+        <tr><td>Mão de obra (R$ 5,00/vela)</td><td class="td-num">R$ 50,00</td><td class="td-num">R$ 50,00</td></tr>
+        <tr class="total-row"><td>Custo total do lote</td><td class="td-num">R$ 125,10</td><td class="td-num">R$ 162,10</td></tr>
+        <tr class="total-row"><td>Custo por unidade</td><td class="td-num">R$ 12,51</td><td class="td-num">R$ 16,21</td></tr>
+      </tbody>
+    </table>
+    <div class="box box-blue" style="margin-top:1rem">Use a <strong>Calculadora de Precificação</strong> da plataforma para inserir os preços dos seus fornecedores e obter os valores exatos para a sua realidade.</div>
+  </div>
+</div>
+
+<!-- PREÇOS -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">🏷️</span><span class="sec-title">Sugestão de Preço de Venda</span></div>
+  <div class="sec-body">
+    <div class="box box-blue">
+      <strong>Como os preços foram calculados</strong>
+      <strong>Venda direta:</strong> Custo ÷ 0,50 → garante 50% de margem.<br>
+      <strong>Shopee / Mercado Livre:</strong> Custo ÷ 0,35 → garante 50% de margem real após descontar ~15% de comissão da plataforma.<br><br>
+      Preços diferentes por canal não é errado — é inteligente.
+    </div>
+
+    <div style="font-weight:700;margin:1.1rem 0 .6rem;font-size:.95rem">Embalagem simples — custo R$ 12,51 / unidade</div>
+    <table>
+      <thead><tr><th>Quantidade</th><th class="td-num">Venda direta</th><th class="td-num">Margem</th><th class="td-num">Shopee / ML</th><th class="td-num">Margem após comissão</th></tr></thead>
+      <tbody>
+        <tr><td>1 a 9 unidades</td><td class="td-cost">R$ 25,00</td><td class="td-num">50%</td><td class="td-cost">R$ 35,75</td><td class="td-num">50%</td></tr>
+        <tr><td>10 a 24 unidades</td><td class="td-num">R$ 22,00</td><td class="td-num">43,1%</td><td class="td-num">R$ 32,00</td><td class="td-num">44,7%</td></tr>
+        <tr><td>25 a 49 unidades</td><td class="td-num">R$ 20,00</td><td class="td-num">37,5%</td><td class="td-num">R$ 29,00</td><td class="td-num">39,3%</td></tr>
+        <tr><td>50 ou mais</td><td class="td-num">R$ 18,00</td><td class="td-num">30,5%</td><td class="td-num">R$ 26,00</td><td class="td-num">33,8%</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-badge">⚠️ Preço mínimo seguro: R$ 18,00 na venda direta · R$ 26,00 na Shopee. Abaixo disso, a margem não cobre imprevistos.</div>
+
+    <div style="font-weight:700;margin:1.25rem 0 .6rem;font-size:.95rem">Embalagem premium — custo R$ 16,21 / unidade</div>
+    <table>
+      <thead><tr><th>Quantidade</th><th class="td-num">Venda direta</th><th class="td-num">Margem</th><th class="td-num">Shopee / ML</th><th class="td-num">Margem após comissão</th></tr></thead>
+      <tbody>
+        <tr><td>1 a 9 unidades</td><td class="td-cost">R$ 32,50</td><td class="td-num">50%</td><td class="td-cost">R$ 46,30</td><td class="td-num">50%</td></tr>
+        <tr><td>10 a 24 unidades</td><td class="td-num">R$ 29,00</td><td class="td-num">44,1%</td><td class="td-num">R$ 41,00</td><td class="td-num">45,3%</td></tr>
+        <tr><td>25 a 49 unidades</td><td class="td-num">R$ 26,00</td><td class="td-num">37,6%</td><td class="td-num">R$ 37,00</td><td class="td-num">40,2%</td></tr>
+        <tr><td>50 ou mais</td><td class="td-num">R$ 23,00</td><td class="td-num">29,5%</td><td class="td-num">R$ 33,00</td><td class="td-num">34,4%</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-badge">⚠️ Preço mínimo seguro: R$ 23,00 na venda direta · R$ 33,00 na Shopee.</div>
+
+    <div class="box box-yellow" style="margin-top:1rem">
+      <strong>Dica de comunicação para descontos</strong>
+      Nunca apresente o desconto como favor. Use: <em>"Para eventos e lembrancinhas em quantidade, trabalho com condição especial a partir de 10 unidades."</em> Isso posiciona o desconto como política do atelier, não como concessão.
+    </div>
+  </div>
+</div>
+
+<!-- DICAS -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">💡</span><span class="sec-title">Dicas Finais</span></div>
+  <div class="sec-body" style="display:flex;flex-direction:column;gap:.85rem">
+    <div class="box box-blue">
+      <strong>Sobre o aroma</strong>
+      Comece com 2 ou 3 aromas que vendem o ano todo — lavanda, bambu e baby talco são os mais pedidos para lembrancinhas. Evite aromas muito específicos no início.
+    </div>
+    <div class="box box-green">
+      <strong>Sobre o pote</strong>
+      O pote patê já tem tampa — o produto está naturalmente protegido. Você não precisa de muita embalagem extra para ele parecer profissional.
+    </div>
+    <div class="box box-green">
+      <strong>Sobre o volume</strong>
+      Use o tempo de cura para preparar as etiquetas e embalagens. Assim que as velas estiverem prontas, o lote inteiro fica pronto em minutos.
+    </div>
+    <div class="box box-yellow">
+      <strong>Sobre a Shopee</strong>
+      Os preços sugeridos para Shopee já consideram a comissão da plataforma. Não use os preços de venda direta na Shopee — você trabalhará com margem muito menor do que imagina.
+    </div>
+  </div>
+</div>
+
+<!-- BOTÃO IMPRIMIR -->
+<div class="print-btn-wrap no-print">
+  <button class="print-btn" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+  <div class="print-hint">No Chrome ou Safari: selecione "Salvar como PDF" no destino de impressão</div>
+</div>
+
+</div>
+
+<div class="stripe no-print"><span></span><span></span><span></span></div>
+
+<script>
+function mark(el){
+  el.classList.toggle('done');
+}
+</script>

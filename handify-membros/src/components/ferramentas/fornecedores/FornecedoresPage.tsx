@@ -18,7 +18,7 @@ interface Props {
   suppliers: SupplierWithDetails[]
   products: ProductWithDetails[]
   niches: NicheRow[]
-  courses: { id: string; title: string; slug: string }[]
+  courses: { id: string; title: string; slug: string; niche_id: string | null }[]
   userId: string
   initialNicheId?: string
   courseFilter?: { id: string; title: string } | null
@@ -77,11 +77,17 @@ export function FornecedoresPage({
     return map
   }, [products])
 
-  // Nichos derivados automaticamente das tags dos fornecedores vinculados ao produto
+  // Nichos derivados dos cursos linkados ao produto (via course.niche_id)
   const nichesWithProducts = useMemo(() => {
-    const tags = new Set(products.flatMap(p => p.suppliers.flatMap(l => l.supplier.tags)))
-    return new Set(niches.filter(n => tags.has(n.slug)).map(n => n.id))
-  }, [products, niches])
+    const nicheIds = new Set(
+      products.flatMap(p =>
+        p.course_ids
+          .map(cid => courses.find(c => c.id === cid)?.niche_id)
+          .filter((id): id is string => !!id)
+      )
+    )
+    return nicheIds
+  }, [products, courses])
 
   // Nichos que têm pelo menos um fornecedor vinculado (via supplier_tags, usando slug)
   const nichesWithSuppliers = useMemo(() => {
@@ -105,15 +111,16 @@ export function FornecedoresPage({
       result = result.filter(p => p.course_ids.includes(selectedCourseId))
     }
     if (selectedNiche) {
-      const slug = activeNiches.find(n => n.id === selectedNiche)?.slug ?? ''
-      if (slug) result = result.filter(p => p.suppliers.some(l => l.supplier.tags.includes(slug)))
+      result = result.filter(p =>
+        p.course_ids.some(cid => courses.find(c => c.id === cid)?.niche_id === selectedNiche)
+      )
     }
     if (busca) {
       const q = busca.toLowerCase()
       result = result.filter(p => p.name.toLowerCase().includes(q))
     }
     return result
-  }, [products, selectedNiche, selectedCourseId, activeNiches, busca])
+  }, [products, courses, selectedNiche, selectedCourseId, activeNiches, busca])
 
   // Fornecedores filtrados por nicho (via tag = slug) + busca
   const filteredSuppliers = useMemo(() => {

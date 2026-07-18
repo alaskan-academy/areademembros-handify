@@ -48,11 +48,11 @@ export default async function FornecedoresRoute({
     getNiches(),
     getProducts(),
     uniqueCourseIds.length > 0
-      ? service.from('courses').select('id, title, slug').in('id', uniqueCourseIds).eq('published', true).order('title')
+      ? service.from('courses').select('id, title, slug, niche_id').in('id', uniqueCourseIds).eq('published', true).order('title')
       : Promise.resolve({ data: [] }),
   ])
 
-  const courses = (coursesRaw ?? []) as { id: string; title: string; slug: string }[]
+  const courses = (coursesRaw ?? []) as { id: string; title: string; slug: string; niche_id: string | null }[]
 
   // Valida o nicho: prioriza ?nicho=<id>, depois tenta mapear ?produto=sabonetes/velas
   let validNicheId = ''

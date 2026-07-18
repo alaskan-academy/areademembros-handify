@@ -280,10 +280,5 @@ Link "Problemas com o acesso? Falar com suporte" (WhatsApp `https://wa.me/messag
 - `src/app/ativar/completar/CompletarAtivarForm.tsx`
 - Falta: `src/app/(auth)/cadastro/page.tsx`
 
-### B. Alterar senha no perfil da aluna — pendente
-Adicionar seção de segurança na página de perfil (`src/app/(student)/perfil/`) para que a aluna logada possa trocar a senha sem precisar fazer logout e usar "Esqueci minha senha".
-
-Fluxo sugerido:
-1. Formulário com campos "Senha atual", "Nova senha", "Confirmar nova senha"
-2. Server Action que verifica a senha atual via `supabase.auth.signInWithPassword` e depois chama `supabase.auth.updateUser({ password: novaSenha })`
-3. Feedback de sucesso/erro inline (sem reload de página)
+### B. Alterar senha no perfil da aluna ✅ concluído em 2026-07-16
+Seção "Segurança" adicionada em `/perfil` — formulário expansível com campos "Senha atual", "Nova senha", "Confirmar nova senha". Verifica senha atual via `supabase.auth.signInWithPassword` antes de atualizar. Feedback inline de sucesso/erro sem reload.

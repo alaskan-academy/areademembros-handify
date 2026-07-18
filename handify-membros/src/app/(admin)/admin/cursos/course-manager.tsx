@@ -14,13 +14,14 @@ import Image from "next/image";
 
 interface Category { id: string; name: string }
 interface Forum { id: string; title: string; slug: string }
+interface Niche { id: string; name: string }
 interface Course {
   id: string; title: string; slug: string; description: string | null;
   price: number | null; product_codes: string[]; workload_hours: number | null;
   course_type: "course" | "material"; is_subscription_only: boolean;
   has_certificate: boolean; published: boolean;
-  category_id: string | null; forum_id: string | null; thumbnail_url: string | null;
-  checkout_url: string | null; position: number;
+  category_id: string | null; forum_id: string | null; niche_id: string | null;
+  thumbnail_url: string | null; checkout_url: string | null; position: number;
   category: { name: string } | null;
   forum: { title: string; slug: string } | null;
   showcase: { sales_video_panda_id: string | null; position: number; active: boolean } | null;
@@ -383,10 +384,11 @@ function SectionDivider({ label }: { label: string }) {
 // ─── Formulário de curso ──────────────────────────────────────────────────────
 
 function CourseForm({
-  categories, forums, initial, onSave, onCancel, courseId,
+  categories, forums, niches, initial, onSave, onCancel, courseId,
 }: {
   categories: Category[];
   forums: Forum[];
+  niches: Niche[];
   initial?: Partial<Course>;
   onSave: () => void;
   onCancel: () => void;
@@ -593,6 +595,25 @@ function CourseForm({
       <CategorySelect categories={categories} defaultValue={initial?.category_id} />
       <ForumSelect forums={forums} defaultValue={initial?.forum_id} />
 
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          Nicho de materiais
+        </label>
+        <select
+          name="niche_id"
+          defaultValue={initial?.niche_id ?? ""}
+          className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+        >
+          <option value="">— Nenhum —</option>
+          {niches.map((n) => (
+            <option key={n.id} value={n.id}>{n.name}</option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Define quais produtos aparecem no filtro de nicho na página de materiais.
+        </p>
+      </div>
+
       {/* ── Opções ─── */}
       <SectionDivider label="Opções" />
 
@@ -647,10 +668,12 @@ export default function CourseManager({
   courses,
   categories,
   forums,
+  niches,
 }: {
   courses: Course[];
   categories: Category[];
   forums: Forum[];
+  niches: Niche[];
 }) {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -760,6 +783,7 @@ export default function CourseManager({
             <CourseForm
               categories={categories}
               forums={forums}
+              niches={niches}
               initial={course}
               courseId={course.id}
               onSave={() => { setEditingId(null); router.refresh(); }}
@@ -869,6 +893,7 @@ export default function CourseManager({
           <CourseForm
             categories={categories}
             forums={forums}
+            niches={niches}
             onSave={() => { setShowCreate(false); router.refresh(); }}
             onCancel={() => setShowCreate(false)}
           />
