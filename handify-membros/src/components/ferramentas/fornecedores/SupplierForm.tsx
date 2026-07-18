@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Plus, X, Package, Pencil } from 'lucide-react'
-import { adminUpsertSupplier, adminDeleteSupplier } from '@/lib/fornecedores/actions'
-import { CATEGORY_TAGS, CHANNEL_LABELS } from '@/lib/fornecedores/types'
+import { ArrowLeft, Plus, X, Package, Pencil, Settings2, Check, Loader2, Trash2 } from 'lucide-react'
+import {
+  adminUpsertSupplier, adminDeleteSupplier,
+  adminCreateTagType, adminUpdateTagType, adminDeleteTagType,
+} from '@/lib/fornecedores/actions'
+import { CHANNEL_LABELS } from '@/lib/fornecedores/types'
+import type { SupplierTagType } from '@/lib/fornecedores/types'
 
 type Channel = { channel: string; url: string }
 
@@ -18,10 +22,11 @@ interface LinkedProduct {
 
 interface Props {
   supplier?: any
+  tagTypes?: SupplierTagType[]
   linkedProducts?: LinkedProduct[]
 }
 
-export function SupplierForm({ supplier, linkedProducts = [] }: Props) {
+export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], linkedProducts = [] }: Props) {
   const router = useRouter()
   const isEdit = !!supplier
 
@@ -42,6 +47,14 @@ export function SupplierForm({ supplier, linkedProducts = [] }: Props) {
 
   const existingTags: string[] = (supplier?.supplier_tags ?? []).map((t: any) => t.tag)
   const [tags, setTags] = useState<Set<string>>(new Set(existingTags))
+
+  const [tagTypes, setTagTypes] = useState<SupplierTagType[]>(initialTagTypes)
+  const [showTagManager, setShowTagManager] = useState(false)
+  const [newTagLabel, setNewTagLabel] = useState('')
+  const [editingTagId, setEditingTagId] = useState<string | null>(null)
+  const [editingTagLabel, setEditingTagLabel] = useState('')
+  const [tagPending, startTagTransition] = useTransition()
+  const [tagError, setTagError] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -87,6 +100,38 @@ export function SupplierForm({ supplier, linkedProducts = [] }: Props) {
     setLoading(false)
   }
 
+  function handleCreateTag() {
+    if (!newTagLabel.trim()) return
+    startTagTransition(async () => {
+      const result = await adminCreateTagType(newTagLabel)
+      if (result.error) { setTagError(result.error); return }
+      setTagTypes(prev => [...prev, { id: result.id!, slug: result.slug!, label: result.label!, position: prev.length + 1 }])
+      setNewTagLabel('')
+      setTagError(null)
+    })
+  }
+
+  function handleUpdateTag(id: string) {
+    if (!editingTagLabel.trim()) return
+    startTagTransition(async () => {
+      const result = await adminUpdateTagType(id, editingTagLabel)
+      if (result.error) { setTagError(result.error); return }
+      setTagTypes(prev => prev.map(t => t.id === id ? { ...t, label: editingTagLabel.trim() } : t))
+      setEditingTagId(null)
+      setTagError(null)
+    })
+  }
+
+  function handleDeleteTag(id: string, label: string) {
+    if (!confirm(`Excluir a tag "${label}"?`)) return
+    startTagTransition(async () => {
+      const result = await adminDeleteTagType(id)
+      if (result.error) { setTagError(result.error); return }
+      setTagTypes(prev => prev.filter(t => t.id !== id))
+      setTagError(null)
+    })
+  }
+
   async function handleDelete() {
     if (!supplier?.id) return
     if (!confirm(`Excluir "${supplier.name}"? Esta ação não pode ser desfeita.`)) return
@@ -95,7 +140,7 @@ export function SupplierForm({ supplier, linkedProducts = [] }: Props) {
     router.push('/admin/fornecedores')
   }
 
-  const allTags: Record<string, string> = { ...CATEGORY_TAGS }
+  const allTags = tagTypes
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -173,24 +218,97 @@ export function SupplierForm({ supplier, linkedProducts = [] }: Props) {
 
       {/* Tags */}
       <div className="bg-white rounded-xl border border-border/60 p-5 space-y-3">
-        <h2 className="text-sm font-semibold">Tags</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Tags</h2>
+          <button
+            type="button"
+            onClick={() => setShowTagManager(v => !v)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Settings2 className="w-3 h-3" />
+            Gerenciar tags
+          </button>
+        </div>
         <p className="text-xs text-muted-foreground">Selecione os tipos de insumos que este fornecedor vende.</p>
+
         <div className="flex flex-wrap gap-2">
-          {Object.entries(allTags).map(([k, v]) => (
+          {allTags.map(t => (
             <button
-              key={k}
+              key={t.slug}
               type="button"
-              onClick={() => toggleTag(k)}
+              onClick={() => toggleTag(t.slug)}
               className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                tags.has(k)
+                tags.has(t.slug)
                   ? 'bg-[#6699F3] text-white border-[#6699F3]'
                   : 'bg-white text-muted-foreground border-border/60 hover:border-[#6699F3]/60'
               }`}
             >
-              {v}
+              {t.label}
             </button>
           ))}
         </div>
+
+        {showTagManager && (
+          <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2 mt-1">
+            {tagError && <p className="text-xs text-red-600">{tagError}</p>}
+            <div className="space-y-1">
+              {tagTypes.map(t => (
+                <div key={t.id} className="flex items-center gap-2">
+                  {editingTagId === t.id ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editingTagLabel}
+                        onChange={e => setEditingTagLabel(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { e.preventDefault(); handleUpdateTag(t.id) }
+                          if (e.key === 'Escape') setEditingTagId(null)
+                        }}
+                        autoFocus
+                        className="flex-1 text-sm border border-[#6699F3] rounded-lg px-2.5 py-1 focus:outline-none bg-background"
+                      />
+                      <button type="button" onClick={() => handleUpdateTag(t.id)} disabled={tagPending}
+                        className="p-1.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button type="button" onClick={() => setEditingTagId(null)}
+                        className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm px-2.5 py-1 rounded-lg bg-background border border-border truncate">{t.label}</span>
+                      <button type="button" onClick={() => { setEditingTagId(t.id); setEditingTagLabel(t.label) }}
+                        className="p-1.5 rounded-lg hover:bg-muted transition-colors shrink-0">
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                      <button type="button" onClick={() => handleDeleteTag(t.id, t.label)} disabled={tagPending}
+                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0">
+                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1 border-t border-border/50">
+              <input
+                type="text"
+                value={newTagLabel}
+                onChange={e => setNewTagLabel(e.target.value)}
+                placeholder="Nova tag..."
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCreateTag())}
+                className="flex-1 text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+              />
+              <button type="button" onClick={handleCreateTag} disabled={tagPending || !newTagLabel.trim()}
+                className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50 shrink-0">
+                {tagPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                Criar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}

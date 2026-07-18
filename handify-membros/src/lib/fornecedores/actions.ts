@@ -238,6 +238,57 @@ export async function adminUpdateSuggestionStatus(
   revalidatePath('/admin/fornecedores/sugestoes')
 }
 
+// ── Tag types ─────────────────────────────────────────────────────────────────
+
+export async function getTagTypes() {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('supplier_tag_types')
+    .select('id, slug, label, position')
+    .order('position', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as import('./types').SupplierTagType[]
+}
+
+export async function adminCreateTagType(label: string): Promise<{ id?: string; slug?: string; label?: string; error?: string }> {
+  if (!label.trim()) return { error: 'Nome obrigatório' }
+  const supabase = createServiceClient()
+  const slug = label.trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+  const { data: maxPos } = await supabase
+    .from('supplier_tag_types').select('position').order('position', { ascending: false }).limit(1).single()
+  const position = (maxPos?.position ?? 0) + 1
+
+  const { data, error } = await supabase
+    .from('supplier_tag_types').insert({ slug, label: label.trim(), position }).select('id, slug, label').single()
+  if (error) return { error: 'Erro ao criar: ' + error.message }
+  revalidatePath('/admin/fornecedores')
+  return { id: data.id, slug: data.slug, label: data.label }
+}
+
+export async function adminUpdateTagType(id: string, label: string): Promise<{ error?: string }> {
+  if (!label.trim()) return { error: 'Nome obrigatório' }
+  const supabase = createServiceClient()
+  const slug = label.trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+  const { error } = await supabase.from('supplier_tag_types').update({ label: label.trim(), slug }).eq('id', id)
+  if (error) return { error: 'Erro ao atualizar: ' + error.message }
+  revalidatePath('/admin/fornecedores')
+  return {}
+}
+
+export async function adminDeleteTagType(id: string): Promise<{ error?: string }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase.from('supplier_tag_types').delete().eq('id', id)
+  if (error) return { error: 'Erro ao excluir: ' + error.message }
+  revalidatePath('/admin/fornecedores')
+  return {}
+}
+
 // ── Nichos ────────────────────────────────────────────────────────────────────
 
 export async function getNiches(): Promise<NicheRow[]> {

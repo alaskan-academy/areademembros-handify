@@ -1,19 +1,5 @@
 // ── Tag constants ─────────────────────────────────────────────────────────────
 
-export const CATEGORY_TAGS = {
-  essencias:  'Essências',
-  ceras:      'Ceras / Bases',
-  pavios:     'Pavios',
-  moldes:     'Moldes',
-  corantes:   'Corantes',
-  embalagens: 'Embalagens',
-  vidros:     'Potes de Vidro',
-  etiquetas:  'Etiquetas',
-  impressao:  'Gráfica / Impressão',
-  quimicos:   'Aditivos / Químicos',
-  insumos:    'Insumos Gerais',
-} as const
-
 export const CHANNEL_LABELS = {
   website:       'Site Oficial',
   instagram:     'Instagram',
@@ -21,8 +7,8 @@ export const CHANNEL_LABELS = {
   mercadolivre:  'Mercado Livre',
 } as const
 
-export type CategoryTag = keyof typeof CATEGORY_TAGS
-export type Channel     = keyof typeof CHANNEL_LABELS
+export type SupplierTagType = { id: string; slug: string; label: string; position: number }
+export type Channel         = keyof typeof CHANNEL_LABELS
 export type SupplierTag = string
 
 // ── DB row types ──────────────────────────────────────────────────────────────
@@ -90,7 +76,7 @@ export type SupplierReviewWithProfile = SupplierReviewRow & {
 
 export type FornecedorFiltros = {
   produto:   string
-  categoria: CategoryTag | ''
+  categoria: string
   canal:     Channel | ''
   busca:     string
 }
