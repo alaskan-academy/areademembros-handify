@@ -4,32 +4,41 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronRight, ChevronDown, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { NicheRow } from '@/lib/fornecedores/types'
 
 type Tool = { name: string; desc: string; href: string; icon: string; soon?: boolean }
 type Tab = { key: string; label: string; icon: string; tools: Tool[] }
 
-const TABS: Tab[] = [
-  {
-    key: 'sabonetes',
-    label: 'Sabonetes',
-    icon: '🧼',
+const NICHE_ICONS: Record<string, string> = {
+  'velas-artesanais':  '🕯️',
+  'saboaria-artesanal': '🧼',
+  'aromaterapia':      '🌿',
+  'embalagens':        '📦',
+}
+
+function nicheToTab(niche: NicheRow): Tab {
+  const icon = NICHE_ICONS[niche.slug] ?? '🎨'
+  return {
+    key: niche.slug,
+    label: niche.name,
+    icon,
     tools: [
       {
         name: 'Calculadora de Lucro',
-        desc: 'Calcule o custo real de cada sabonete e descubra o preço ideal de venda — incluindo mão de obra, embalagem e impostos.',
-        href: '/ferramentas/calculadora-lucro/sabonetes',
+        desc: `Calcule o custo real e o preço ideal de venda para ${niche.name.toLowerCase()} — incluindo mão de obra, embalagem e impostos.`,
+        href: `/ferramentas/calculadora-lucro/${niche.slug}`,
         icon: '🧮',
       },
       {
         name: 'Calculadora de Essências',
-        desc: 'Descubra exatamente quanto de essência ou óleo essencial adicionar na sua receita — resultado em mL, gramas e gotas.',
-        href: '/ferramentas/calculadora-essencias/sabonetes',
-        icon: '🧼',
+        desc: 'Descubra exatamente quanto de essência ou óleo essencial usar na sua receita — resultado em mL, gramas e gotas.',
+        href: `/ferramentas/calculadora-essencias/${niche.slug}`,
+        icon: '💧',
       },
       {
-        name: 'Fornecedores de Sabonetes',
-        desc: 'Lista curada de bases, essências, corantes, moldes e embalagens para sabonetes artesanais.',
-        href: '/ferramentas/fornecedores?produto=sabonetes',
+        name: `Fornecedores de ${niche.name}`,
+        desc: `Lista curada de materiais e lojas para ${niche.name.toLowerCase()} artesanais.`,
+        href: `/ferramentas/fornecedores?nicho=${niche.id}`,
         icon: '🏪',
       },
       {
@@ -40,40 +49,8 @@ const TABS: Tab[] = [
         soon: true,
       },
     ],
-  },
-  {
-    key: 'velas',
-    label: 'Velas',
-    icon: '🕯️',
-    tools: [
-      {
-        name: 'Calculadora de Lucro',
-        desc: 'Calcule o custo real de cada vela e descubra o preço ideal de venda — incluindo mão de obra, embalagem e impostos.',
-        href: '/ferramentas/calculadora-lucro/velas',
-        icon: '🧮',
-      },
-      {
-        name: 'Calculadora de Essências',
-        desc: 'Descubra exatamente quanto de essência ou óleo essencial usar na sua cera — resultado em mL, gramas e gotas.',
-        href: '/ferramentas/calculadora-essencias/velas',
-        icon: '🕯️',
-      },
-      {
-        name: 'Fornecedores de Velas',
-        desc: 'Lista curada de ceras, pavios, essências, moldes e embalagens para velas artesanais.',
-        href: '/ferramentas/fornecedores?produto=velas',
-        icon: '🏪',
-      },
-      {
-        name: 'Calculadora de Receita',
-        desc: 'Escale sua receita para diferentes tamanhos de lote automaticamente.',
-        href: '#',
-        icon: '📐',
-        soon: true,
-      },
-    ],
-  },
-]
+  }
+}
 
 const COMING_SOON_TABS = [
   { label: 'Costura', icon: '✂️' },
@@ -81,11 +58,12 @@ const COMING_SOON_TABS = [
   { label: 'Pintura', icon: '🎨' },
 ]
 
-export default function FerramentasHub() {
-  const [activeTab, setActiveTab] = useState('sabonetes')
+export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
+  const TABS: Tab[] = niches.map(nicheToTab)
+  const [activeTab, setActiveTab] = useState(TABS[0]?.key ?? '')
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [busca, setBusca] = useState('')
-  const tab = TABS.find(t => t.key === activeTab) ?? TABS[0]
+  const tab = TABS.find(t => t.key === activeTab) ?? TABS[0] ?? { key: '', label: '', icon: '', tools: [] }
 
   const filteredTools = busca.trim()
     ? tab.tools.filter(t =>
