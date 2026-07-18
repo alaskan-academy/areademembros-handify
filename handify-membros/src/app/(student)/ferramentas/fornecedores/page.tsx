@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getSuppliers, getNiches, getProducts } from '@/lib/fornecedores/actions'
+import { getSuppliers, getNiches, getProducts, getTagTypes } from '@/lib/fornecedores/actions'
 import { FornecedoresPage } from '@/components/ferramentas/fornecedores/FornecedoresPage'
 
 export const metadata = { title: 'Fornecedores | Handify' }
@@ -43,10 +43,11 @@ export default async function FornecedoresRoute({
 
   const uniqueCourseIds = [...new Set((linkedCourseIds ?? []).map((r: any) => r.course_id))]
 
-  const [suppliers, niches, products, { data: coursesRaw }] = await Promise.all([
+  const [suppliers, niches, products, tagTypes, { data: coursesRaw }] = await Promise.all([
     getSuppliers(user.id),
     getNiches(),
     getProducts(),
+    getTagTypes(),
     uniqueCourseIds.length > 0
       ? service.from('courses').select('id, title, slug, niche_id').in('id', uniqueCourseIds).eq('published', true).order('title')
       : Promise.resolve({ data: [] }),
@@ -73,6 +74,7 @@ export default async function FornecedoresRoute({
         products={products}
         niches={niches}
         courses={courses}
+        tagTypes={tagTypes}
         userId={user.id}
         initialNicheId={validNicheId}
         courseFilter={courseFilter}

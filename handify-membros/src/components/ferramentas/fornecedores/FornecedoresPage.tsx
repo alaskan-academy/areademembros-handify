@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Store, Plus, Package, X, BookOpen, ChevronDown, Check } from 'lucide-react'
+import { Store, Plus, Package, X, BookOpen, Tag, ChevronDown, Check } from 'lucide-react'
 import { FornecedorCard } from './FornecedorCard'
 import { MaterialCard } from './MaterialCard'
 import { SugestaoModal } from './SugestaoModal'
@@ -10,6 +10,7 @@ import type {
   SupplierWithDetails,
   ProductWithDetails,
   NicheRow,
+  SupplierTagType,
 } from '@/lib/fornecedores/types'
 
 type Tab = 'materiais' | 'lojas'
@@ -19,6 +20,7 @@ interface Props {
   products: ProductWithDetails[]
   niches: NicheRow[]
   courses: { id: string; title: string; slug: string; niche_id: string | null }[]
+  tagTypes: SupplierTagType[]
   userId: string
   initialNicheId?: string
   courseFilter?: { id: string; title: string } | null
@@ -29,6 +31,7 @@ export function FornecedoresPage({
   products,
   niches,
   courses,
+  tagTypes,
   userId,
   initialNicheId = '',
   courseFilter = null,
@@ -36,34 +39,53 @@ export function FornecedoresPage({
   const [tab, setTab] = useState<Tab>('materiais')
   const [selectedNiche, setSelectedNiche] = useState(initialNicheId)
   const [selectedCourseId, setSelectedCourseId] = useState(courseFilter?.id ?? '')
+  const [selectedTag, setSelectedTag] = useState('')
   const [busca, setBusca] = useState('')
   const [nicheDropdownOpen, setNicheDropdownOpen] = useState(false)
   const [courseDropdownOpen, setCourseDropdownOpen] = useState(false)
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
   const [sugestaoOpen, setSugestaoOpen] = useState(false)
   const [reviewSupplier, setReviewSupplier] = useState<SupplierWithDetails | null>(null)
   const nicheDropdownRef = useRef<HTMLDivElement>(null)
   const courseDropdownRef = useRef<HTMLDivElement>(null)
+  const tagDropdownRef = useRef<HTMLDivElement>(null)
 
   // Sincroniza quando props mudam via SPA navigation (Next.js App Router não remonta o componente)
   useEffect(() => { setSelectedNiche(initialNicheId) }, [initialNicheId])
   useEffect(() => { setSelectedCourseId(courseFilter?.id ?? '') }, [courseFilter?.id])
 
   useEffect(() => {
-    if (!nicheDropdownOpen && !courseDropdownOpen) return
+    if (!nicheDropdownOpen && !courseDropdownOpen && !tagDropdownOpen) return
     function handleClick(e: MouseEvent) {
       if (nicheDropdownRef.current && !nicheDropdownRef.current.contains(e.target as Node))
         setNicheDropdownOpen(false)
       if (courseDropdownRef.current && !courseDropdownRef.current.contains(e.target as Node))
         setCourseDropdownOpen(false)
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node))
+        setTagDropdownOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [nicheDropdownOpen, courseDropdownOpen])
+  }, [nicheDropdownOpen, courseDropdownOpen, tagDropdownOpen])
 
   function selectCourse(courseId: string) {
     setSelectedCourseId(courseId)
     setCourseDropdownOpen(false)
   }
+
+  function selectTag(slug: string) {
+    setSelectedTag(slug)
+    setTagDropdownOpen(false)
+  }
+
+  // Tags que têm ao menos um fornecedor usando-as (para não mostrar opções vazias)
+  const activeTagSlugs = useMemo(() => new Set(suppliers.flatMap(s => s.tags)), [suppliers])
+  const activeTags = useMemo(
+    () => tagTypes.filter(t => activeTagSlugs.has(t.slug)),
+    [tagTypes, activeTagSlugs]
+  )
+
+  const selectedTagLabel = activeTags.find(t => t.slug === selectedTag)?.label ?? ''
 
   // Mapa supplierId → produtos vinculados (com buy_url do link desse fornecedor)
   const productsBySupplier = useMemo(() => {
@@ -121,11 +143,14 @@ export function FornecedoresPage({
     return result
   }, [products, courses, selectedNiche, selectedCourseId, activeNiches, busca])
 
-  // Fornecedores filtrados por nicho (via supplier_niche_links) + busca
+  // Fornecedores filtrados por nicho + tag + busca
   const filteredSuppliers = useMemo(() => {
     let result = suppliers
     if (selectedNiche) {
       result = result.filter(s => s.niche_ids.includes(selectedNiche))
+    }
+    if (selectedTag) {
+      result = result.filter(s => s.tags.includes(selectedTag))
     }
     if (busca) {
       const q = busca.toLowerCase()
@@ -135,7 +160,7 @@ export function FornecedoresPage({
       )
     }
     return result
-  }, [suppliers, selectedNiche, busca])
+  }, [suppliers, selectedNiche, selectedTag, busca])
 
   function selectNiche(id: string) {
     setSelectedNiche(id)
@@ -219,8 +244,8 @@ export function FornecedoresPage({
           </div>
         )}
 
-        {/* Dropdown de curso */}
-        {courses.length > 0 && (
+        {/* Dropdown de curso — só para materiais */}
+        {tab === 'materiais' && courses.length > 0 && (
           <div className="relative flex-1" ref={courseDropdownRef}>
             <button
               onClick={() => { setCourseDropdownOpen(o => !o); setNicheDropdownOpen(false) }}
@@ -268,6 +293,62 @@ export function FornecedoresPage({
                   >
                     <span className="truncate pr-2">{c.title}</span>
                     {selectedCourseId === c.id && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dropdown de tag — só para lojas */}
+        {tab === 'lojas' && activeTags.length > 0 && (
+          <div className="relative flex-1" ref={tagDropdownRef}>
+            <button
+              onClick={() => { setTagDropdownOpen(o => !o); setNicheDropdownOpen(false) }}
+              className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white border border-border/60 rounded-xl text-sm font-medium hover:border-[#6699F3]/40 transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Tag className="w-4 h-4 shrink-0 text-muted-foreground" />
+                <span className={`truncate ${selectedTag ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}`}>
+                  {selectedTag ? selectedTagLabel : 'O que vendem'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {selectedTag && (
+                  <span
+                    role="button"
+                    onClick={e => { e.stopPropagation(); selectTag('') }}
+                    className="p-0.5 rounded hover:bg-muted transition-colors"
+                    title="Limpar filtro"
+                  >
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </span>
+                )}
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${tagDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {tagDropdownOpen && (
+              <div className="absolute z-20 mt-1 w-full bg-white border border-border/60 rounded-xl shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                <button
+                  onClick={() => selectTag('')}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors ${
+                    !selectedTag ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
+                  }`}
+                >
+                  O que vendem
+                  {!selectedTag && <Check className="w-4 h-4 shrink-0" />}
+                </button>
+                {activeTags.map(t => (
+                  <button
+                    key={t.slug}
+                    onClick={() => selectTag(t.slug)}
+                    className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors border-t border-border/30 ${
+                      selectedTag === t.slug ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
+                    }`}
+                  >
+                    {t.label}
+                    {selectedTag === t.slug && <Check className="w-4 h-4 shrink-0" />}
                   </button>
                 ))}
               </div>
@@ -339,7 +420,7 @@ export function FornecedoresPage({
             <Store className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm font-medium text-muted-foreground">Nenhuma loja encontrada</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedNiche ? 'Nenhuma loja com esse nicho. Tente "Todos os artesanatos".' : 'Tente ajustar a busca'}
+              {selectedNiche || selectedTag ? 'Tente remover um dos filtros.' : 'Tente ajustar a busca'}
             </p>
           </div>
         ) : (
