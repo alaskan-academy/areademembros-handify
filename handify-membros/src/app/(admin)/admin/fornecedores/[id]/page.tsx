@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getTagTypes } from '@/lib/fornecedores/actions'
+import { getTagTypes, getNiches } from '@/lib/fornecedores/actions'
 import { SupplierForm } from '@/components/ferramentas/fornecedores/SupplierForm'
 
 export const metadata = { title: 'Admin — Editar Fornecedor | Handify' }
@@ -17,13 +17,14 @@ export default async function EditarFornecedorPage({ params }: { params: Promise
   if (profile?.role !== 'admin') redirect('/dashboard')
 
   const service = createServiceClient()
-  const [{ data: supplier }, { data: linkedRaw }, tagTypes] = await Promise.all([
-    service.from('suppliers').select('*, supplier_channels(*), supplier_tags(tag)').eq('id', id).single(),
+  const [{ data: supplier }, { data: linkedRaw }, tagTypes, niches] = await Promise.all([
+    service.from('suppliers').select('*, supplier_channels(*), supplier_tags(tag), supplier_niche_links(niche_id)').eq('id', id).single(),
     service
       .from('product_supplier_links')
       .select('product_id, buy_url, products(id, name, image_url, active)')
       .eq('supplier_id', id),
     getTagTypes(),
+    getNiches(),
   ])
 
   const linkedProducts = (linkedRaw ?? []).map((r: any) => ({
@@ -38,7 +39,7 @@ export default async function EditarFornecedorPage({ params }: { params: Promise
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <SupplierForm supplier={supplier} tagTypes={tagTypes} linkedProducts={linkedProducts} />
+      <SupplierForm supplier={supplier} tagTypes={tagTypes} niches={niches} linkedProducts={linkedProducts} />
     </div>
   )
 }

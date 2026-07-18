@@ -155,9 +155,10 @@ export async function adminUpsertSupplier(supplier: {
   position?: number
   channels: { channel: string; url: string }[]
   tags: string[]
+  niche_ids?: string[]
 }): Promise<{ id: string }> {
   const supabase = createServiceClient()
-  const { id, channels, tags, ...fields } = supplier
+  const { id, channels, tags, niche_ids, ...fields } = supplier
 
   const { data, error } = id
     ? await supabase.from('suppliers').update(fields).eq('id', id).select('id').single()
@@ -165,9 +166,10 @@ export async function adminUpsertSupplier(supplier: {
   if (error) throw error
   const supplierId = data.id
 
-  // Replace channels and tags
+  // Replace channels, tags and niche links
   await supabase.from('supplier_channels').delete().eq('supplier_id', supplierId)
   await supabase.from('supplier_tags').delete().eq('supplier_id', supplierId)
+  await supabase.from('supplier_niche_links').delete().eq('supplier_id', supplierId)
 
   if (channels.length > 0) {
     await supabase.from('supplier_channels').insert(
@@ -177,6 +179,11 @@ export async function adminUpsertSupplier(supplier: {
   if (tags.length > 0) {
     await supabase.from('supplier_tags').insert(
       tags.map(tag => ({ supplier_id: supplierId, tag }))
+    )
+  }
+  if (niche_ids && niche_ids.length > 0) {
+    await supabase.from('supplier_niche_links').insert(
+      niche_ids.map(niche_id => ({ supplier_id: supplierId, niche_id }))
     )
   }
 

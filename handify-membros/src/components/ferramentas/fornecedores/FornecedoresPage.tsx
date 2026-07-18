@@ -174,7 +174,7 @@ export function FornecedoresPage({
               className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-white border border-border/60 rounded-xl text-sm font-medium hover:border-[#6699F3]/40 transition-colors"
             >
               <span className={selectedNiche ? 'text-[#6699F3] font-semibold' : 'text-muted-foreground'}>
-                {selectedNiche ? selectedNicheName : 'Todos os nichos'}
+                {selectedNiche ? selectedNicheName : 'Todos os artesanatos'}
               </span>
               <div className="flex items-center gap-1.5 shrink-0">
                 {selectedNiche && (
@@ -199,7 +199,7 @@ export function FornecedoresPage({
                     !selectedNiche ? 'bg-[#6699F3]/8 text-[#6699F3] font-semibold' : 'text-foreground hover:bg-gray-50'
                   }`}
                 >
-                  Todos os nichos
+                  Todos os artesanatos
                   {!selectedNiche && <Check className="w-4 h-4 shrink-0" />}
                 </button>
                 {activeNiches.map(n => (
@@ -339,7 +339,7 @@ export function FornecedoresPage({
             <Store className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm font-medium text-muted-foreground">Nenhuma loja encontrada</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {selectedNiche ? 'Nenhuma loja com esse nicho. Tente "Todos os nichos".' : 'Tente ajustar a busca'}
+              {selectedNiche ? 'Nenhuma loja com esse nicho. Tente "Todos os artesanatos".' : 'Tente ajustar a busca'}
             </p>
           </div>
         ) : (

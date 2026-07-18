@@ -9,7 +9,7 @@ import {
   adminCreateTagType, adminUpdateTagType, adminDeleteTagType,
 } from '@/lib/fornecedores/actions'
 import { CHANNEL_LABELS } from '@/lib/fornecedores/types'
-import type { SupplierTagType } from '@/lib/fornecedores/types'
+import type { SupplierTagType, NicheRow } from '@/lib/fornecedores/types'
 
 type Channel = { channel: string; url: string }
 
@@ -23,10 +23,11 @@ interface LinkedProduct {
 interface Props {
   supplier?: any
   tagTypes?: SupplierTagType[]
+  niches?: NicheRow[]
   linkedProducts?: LinkedProduct[]
 }
 
-export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], linkedProducts = [] }: Props) {
+export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], niches = [], linkedProducts = [] }: Props) {
   const router = useRouter()
   const isEdit = !!supplier
 
@@ -47,6 +48,9 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], linkedP
 
   const existingTags: string[] = (supplier?.supplier_tags ?? []).map((t: any) => t.tag)
   const [tags, setTags] = useState<Set<string>>(new Set(existingTags))
+
+  const existingNicheIds: string[] = (supplier?.supplier_niche_links ?? []).map((n: any) => n.niche_id)
+  const [selectedNiches, setSelectedNiches] = useState<Set<string>>(new Set(existingNicheIds))
 
   const [tagTypes, setTagTypes] = useState<SupplierTagType[]>(initialTagTypes)
   const [showTagManager, setShowTagManager] = useState(false)
@@ -77,6 +81,14 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], linkedP
     })
   }
 
+  function toggleNiche(id: string) {
+    setSelectedNiches(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
@@ -92,6 +104,7 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], linkedP
         active,
         channels: channels.filter(c => c.url),
         tags: [...tags],
+        niche_ids: [...selectedNiches],
       })
       router.push('/admin/fornecedores')
     } catch (err: any) {
@@ -215,6 +228,30 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], linkedP
           Adicionar canal
         </button>
       </div>
+
+      {/* Nichos */}
+      {niches.length > 0 && (
+        <div className="bg-white rounded-xl border border-border/60 p-5 space-y-3">
+          <h2 className="text-sm font-semibold">Nichos de artesanato</h2>
+          <p className="text-xs text-muted-foreground">Selecione todos os nichos em que este fornecedor atua.</p>
+          <div className="flex flex-wrap gap-2">
+            {niches.map(n => (
+              <button
+                key={n.id}
+                type="button"
+                onClick={() => toggleNiche(n.id)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                  selectedNiches.has(n.id)
+                    ? 'bg-[#72CF92] text-white border-[#72CF92]'
+                    : 'bg-white text-muted-foreground border-border/60 hover:border-[#72CF92]/60'
+                }`}
+              >
+                {n.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tags */}
       <div className="bg-white rounded-xl border border-border/60 p-5 space-y-3">
