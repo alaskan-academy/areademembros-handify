@@ -24,6 +24,7 @@ import {
   X,
   NotebookPen,
   Save,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -113,9 +114,15 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
   const [profileState, profileAction, profilePending] = useActionState(updateProfileAction, {});
   useModalBackGuard(editingProfile, () => setEditingProfile(false));
 
-  const enrolledCourses = courses.filter((c) => c.enrollment !== null);
-  const unenrolledCourses = courses.filter((c) => c.enrollment === null);
-  const enrolledCount = enrolledCourses.length;
+  const [courseSearch, setCourseSearch] = useState("");
+  const searchLower = courseSearch.toLowerCase();
+  const enrolledCourses = courses.filter(
+    (c) => c.enrollment !== null && c.title.toLowerCase().includes(searchLower)
+  );
+  const unenrolledCourses = courses.filter(
+    (c) => c.enrollment === null && c.title.toLowerCase().includes(searchLower)
+  );
+  const enrolledCount = courses.filter((c) => c.enrollment !== null).length;
   const [showUnenrolled, setShowUnenrolled] = useState(false);
 
   function handleToggleBan() {
@@ -306,12 +313,32 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
         <div className="lg:col-span-2">
           <section className="handify-card overflow-hidden">
             {/* Header */}
-            <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-[#6699F3]" />
-              <h2 className="font-semibold">Cursos</h2>
-              <span className="text-xs text-muted-foreground">
-                {enrolledCount} matrícula{enrolledCount !== 1 ? "s" : ""} · {courses.length} disponíveis
-              </span>
+            <div className="px-5 py-4 border-b border-border/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#6699F3]" />
+                <h2 className="font-semibold">Cursos</h2>
+                <span className="text-xs text-muted-foreground">
+                  {enrolledCount} matrícula{enrolledCount !== 1 ? "s" : ""} · {courses.length} disponíveis
+                </span>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar curso…"
+                  value={courseSearch}
+                  onChange={(e) => setCourseSearch(e.target.value)}
+                  className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg border border-border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50 focus:bg-white"
+                />
+                {courseSearch && (
+                  <button
+                    onClick={() => setCourseSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* ── Com acesso ── */}
@@ -669,7 +696,12 @@ function BulkGrantSection({
 }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkSearch, setBulkSearch] = useState("");
   const [state, action, pending] = useActionState(grantMultipleAccessAction, {});
+
+  const visibleCourses = bulkSearch
+    ? unenrolledCourses.filter((c) => c.title.toLowerCase().includes(bulkSearch.toLowerCase()))
+    : unenrolledCourses;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -696,7 +728,7 @@ function BulkGrantSection({
         <Plus className="w-4 h-4 text-[#6699F3]" />
         <span className="font-semibold text-sm">Dar acesso em lote</span>
         <span className="ml-auto text-xs text-muted-foreground">
-          {open ? "Recolher" : `${unenrolledCourses.length} curso${unenrolledCourses.length !== 1 ? "s" : ""} disponíveis`}
+          {open ? "Recolher" : `${unenrolledCourses.length} curso${unenrolledCourses.length !== 1 ? "s" : ""} sem acesso`}
         </span>
       </button>
 
@@ -720,8 +752,30 @@ function BulkGrantSection({
                   </button>
                 </div>
               </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar curso…"
+                  value={bulkSearch}
+                  onChange={(e) => setBulkSearch(e.target.value)}
+                  className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg border border-border bg-muted/30 focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50 focus:bg-white"
+                />
+                {bulkSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setBulkSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
               <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                {unenrolledCourses.map((course) => (
+                {visibleCourses.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-3">Nenhum curso encontrado.</p>
+                )}
+                {visibleCourses.map((course) => (
                   <label
                     key={course.id}
                     className={cn(
