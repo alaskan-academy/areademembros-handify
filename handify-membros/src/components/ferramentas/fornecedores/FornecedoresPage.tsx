@@ -351,6 +351,7 @@ export function FornecedoresPage({
                 userId={userId}
                 onOpenReviews={setReviewSupplier}
                 linkedProducts={productsBySupplier.get(s.id) ?? []}
+                niches={niches}
               />
             ))}
           </div>

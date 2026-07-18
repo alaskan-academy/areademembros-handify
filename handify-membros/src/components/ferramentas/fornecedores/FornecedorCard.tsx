@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Heart, ExternalLink, Camera, ShoppingBag, MessageCircle, Globe, BadgeCheck, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toggleFavorite } from '@/lib/fornecedores/actions'
-import { CHANNEL_LABELS, CATEGORY_TAGS } from '@/lib/fornecedores/types'
-import type { SupplierWithDetails, Channel } from '@/lib/fornecedores/types'
+import { CHANNEL_LABELS } from '@/lib/fornecedores/types'
+import type { SupplierWithDetails, Channel, NicheRow } from '@/lib/fornecedores/types'
 
 const CHANNEL_ICONS: Record<Channel, React.ReactNode> = {
   website:      <Globe className="w-3.5 h-3.5" />,
@@ -32,9 +32,10 @@ interface Props {
   userId: string
   onOpenReviews: (supplier: SupplierWithDetails) => void
   linkedProducts?: LinkedProduct[]
+  niches?: NicheRow[]
 }
 
-export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts = [] }: Props) {
+export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts = [], niches = [] }: Props) {
   const [fav, setFav] = useState(supplier.isFavorite)
   const [loading, setLoading] = useState(false)
 
@@ -50,8 +51,7 @@ export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts
     setLoading(false)
   }
 
-  const categoryTags = supplier.tags.filter(t => t in CATEGORY_TAGS)
-  const nicheTags = supplier.tags.filter(t => !(t in CATEGORY_TAGS))
+  const supplierNiches = niches.filter(n => supplier.niche_ids.includes(n.id))
 
   return (
     <div className="bg-white rounded-xl border border-border/60 shadow-sm hover:shadow-md transition-shadow flex flex-col">
@@ -75,12 +75,12 @@ export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts
             )}
           </div>
 
-          {/* Niche tags (from categories) */}
-          {nicheTags.length > 0 && (
+          {/* Nichos de artesanato */}
+          {supplierNiches.length > 0 && (
             <div className="flex gap-1 flex-wrap mt-1">
-              {nicheTags.map(t => (
-                <span key={t} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#72CF92]/15 text-green-700 capitalize">
-                  {t}
+              {supplierNiches.map(n => (
+                <span key={n.id} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#72CF92]/15 text-green-700">
+                  {n.name}
                 </span>
               ))}
             </div>
@@ -108,12 +108,12 @@ export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts
         </p>
       )}
 
-      {/* Category tags */}
-      {categoryTags.length > 0 && (
+      {/* Tags de insumos */}
+      {supplier.tags.length > 0 && (
         <div className="px-4 mt-2.5 flex flex-wrap gap-1">
-          {categoryTags.map(t => (
+          {supplier.tags.map(t => (
             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/50">
-              {CATEGORY_TAGS[t as keyof typeof CATEGORY_TAGS]}
+              {t}
             </span>
           ))}
         </div>
