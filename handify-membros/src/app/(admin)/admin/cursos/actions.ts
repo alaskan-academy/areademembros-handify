@@ -99,6 +99,66 @@ export async function deleteCategory(
   return {};
 }
 
+// ─── Nichos ───────────────────────────────────────────────────────────────────
+
+export async function createNiche(
+  name: string
+): Promise<{ id?: string; name?: string; error?: string }> {
+  const supabase = await assertAdmin();
+  if (!name.trim()) return { error: "Nome obrigatorio" };
+  const slug = name.trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const service = createServiceClient();
+  const { data: maxPos } = await service
+    .from("niches").select("position").order("position", { ascending: false }).limit(1).single();
+  const position = (maxPos?.position ?? 0) + 1;
+
+  const { data, error } = await supabase
+    .from("niches")
+    .insert({ name: name.trim(), slug, active: true, position })
+    .select("id, name")
+    .single();
+
+  if (error) return { error: "Erro ao criar nicho: " + error.message };
+  revalidatePath("/admin/cursos");
+  revalidatePath("/ferramentas/fornecedores");
+  return { id: data.id, name: data.name };
+}
+
+export async function updateNiche(
+  id: string,
+  name: string
+): Promise<{ error?: string }> {
+  const supabase = await assertAdmin();
+  if (!name.trim()) return { error: "Nome obrigatorio" };
+  const slug = name.trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const { error } = await supabase
+    .from("niches")
+    .update({ name: name.trim(), slug })
+    .eq("id", id);
+
+  if (error) return { error: "Erro ao atualizar: " + error.message };
+  revalidatePath("/admin/cursos");
+  revalidatePath("/ferramentas/fornecedores");
+  return {};
+}
+
+export async function deleteNiche(
+  id: string
+): Promise<{ error?: string }> {
+  const supabase = await assertAdmin();
+  const { error } = await supabase.from("niches").delete().eq("id", id);
+  if (error) return { error: "Erro ao excluir: " + error.message };
+  revalidatePath("/admin/cursos");
+  revalidatePath("/ferramentas/fornecedores");
+  return {};
+}
+
 // ─── Cursos ───────────────────────────────────────────────────────────────────
 
 const CourseSchema = z.object({

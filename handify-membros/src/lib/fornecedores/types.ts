@@ -77,6 +77,7 @@ export type SupplierSuggestionRow = {
 export type SupplierWithDetails = SupplierRow & {
   channels:       SupplierChannelRow[]
   tags:           string[]
+  niche_ids:      string[]
   isFavorite:     boolean
   reviewCount:    number
 }

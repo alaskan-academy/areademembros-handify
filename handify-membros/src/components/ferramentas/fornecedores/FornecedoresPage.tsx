@@ -89,11 +89,10 @@ export function FornecedoresPage({
     return nicheIds
   }, [products, courses])
 
-  // Nichos que têm pelo menos um fornecedor vinculado (via supplier_tags, usando slug)
+  // Nichos que têm pelo menos um fornecedor vinculado (via supplier_niche_links)
   const nichesWithSuppliers = useMemo(() => {
-    const slugSet = new Set(suppliers.flatMap(s => s.tags))
-    return new Set(niches.filter(n => slugSet.has(n.slug)).map(n => n.id))
-  }, [suppliers, niches])
+    return new Set(suppliers.flatMap(s => s.niche_ids))
+  }, [suppliers])
 
   // Apenas nichos com conteúdo em pelo menos uma das abas
   const activeNiches = useMemo(
@@ -122,12 +121,11 @@ export function FornecedoresPage({
     return result
   }, [products, courses, selectedNiche, selectedCourseId, activeNiches, busca])
 
-  // Fornecedores filtrados por nicho (via tag = slug) + busca
+  // Fornecedores filtrados por nicho (via supplier_niche_links) + busca
   const filteredSuppliers = useMemo(() => {
     let result = suppliers
     if (selectedNiche) {
-      const slug = activeNiches.find(n => n.id === selectedNiche)?.slug ?? ''
-      if (slug) result = result.filter(s => s.tags.includes(slug))
+      result = result.filter(s => s.niche_ids.includes(selectedNiche))
     }
     if (busca) {
       const q = busca.toLowerCase()
@@ -137,7 +135,7 @@ export function FornecedoresPage({
       )
     }
     return result
-  }, [suppliers, selectedNiche, activeNiches, busca])
+  }, [suppliers, selectedNiche, busca])
 
   function selectNiche(id: string) {
     setSelectedNiche(id)

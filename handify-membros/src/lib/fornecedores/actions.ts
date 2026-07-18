@@ -23,7 +23,8 @@ export async function getSuppliers(
     .select(`
       *,
       supplier_channels (*),
-      supplier_tags (tag)
+      supplier_tags (tag),
+      supplier_niche_links (niche_id)
     `)
     .eq('active', true)
     .order('name', { ascending: true })
@@ -54,6 +55,7 @@ export async function getSuppliers(
     ...s,
     channels:    s.supplier_channels ?? [],
     tags:        (s.supplier_tags ?? []).map((t: any) => t.tag),
+    niche_ids:   (s.supplier_niche_links ?? []).map((n: any) => n.niche_id),
     isFavorite:  favSet.has(s.id),
     reviewCount: countMap[s.id] ?? 0,
   }))

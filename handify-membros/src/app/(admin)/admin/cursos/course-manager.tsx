@@ -7,6 +7,7 @@ import { upsertShowcaseCourse, removeShowcaseCourse } from "@/app/(admin)/admin/
 import {
   createCourse, updateCourse, togglePublished, deleteCourse,
   uploadCourseThumbnail, createCategory, updateCategory, deleteCategory,
+  createNiche, updateNiche, deleteNiche,
   reorderCourses,
 } from "./actions";
 import { formatPrice } from "@/lib/format";
@@ -174,6 +175,173 @@ function CategorySelect({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Nova categoria..."
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleCreate())}
+              className="flex-1 text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
+            />
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={isPending || !newName.trim()}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50 shrink-0"
+            >
+              {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+              Criar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Seletor de nicho com criação inline ─────────────────────────────────────
+
+function NicheSelect({
+  niches: initialNiches,
+  defaultValue,
+}: {
+  niches: Niche[];
+  defaultValue?: string | null;
+}) {
+  const [niches, setNiches] = useState(initialNiches);
+  const [showManager, setShowManager] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleCreate() {
+    if (!newName.trim()) return;
+    startTransition(async () => {
+      const result = await createNiche(newName);
+      if (result.error) { setError(result.error); return; }
+      setNiches((prev) => [...prev, { id: result.id!, name: result.name! }]);
+      setNewName("");
+      setError(null);
+    });
+  }
+
+  function handleUpdate(id: string) {
+    if (!editingName.trim()) return;
+    startTransition(async () => {
+      const result = await updateNiche(id, editingName);
+      if (result.error) { setError(result.error); return; }
+      setNiches((prev) => prev.map((n) => n.id === id ? { ...n, name: editingName.trim() } : n));
+      setEditingId(null);
+      setError(null);
+    });
+  }
+
+  function handleDelete(id: string, name: string) {
+    if (!confirm(`Excluir o nicho "${name}"? Cursos vinculados perderão o nicho.`)) return;
+    startTransition(async () => {
+      const result = await deleteNiche(id);
+      if (result.error) { setError(result.error); return; }
+      setNiches((prev) => prev.filter((n) => n.id !== id));
+      setError(null);
+    });
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">Nicho de materiais</label>
+        <button
+          type="button"
+          onClick={() => setShowManager((v) => !v)}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Settings2 className="w-3 h-3" />
+          Gerenciar nichos
+        </button>
+      </div>
+
+      <select
+        name="niche_id"
+        defaultValue={defaultValue ?? ""}
+        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
+      >
+        <option value="">— Nenhum —</option>
+        {niches.map((n) => (
+          <option key={n.id} value={n.id}>{n.name}</option>
+        ))}
+      </select>
+      <p className="text-xs text-muted-foreground">
+        Define quais produtos aparecem no filtro de nicho na página de fornecedores.
+      </p>
+
+      {showManager && (
+        <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-2">
+          {error && <p className="text-xs text-red-600">{error}</p>}
+
+          <div className="space-y-1">
+            {niches.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-2">Nenhum nicho.</p>
+            )}
+            {niches.map((niche) => (
+              <div key={niche.id} className="flex items-center gap-2">
+                {editingId === niche.id ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); handleUpdate(niche.id); }
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      autoFocus
+                      className="flex-1 text-sm border border-[#6699F3] rounded-lg px-2.5 py-1 focus:outline-none bg-background"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleUpdate(niche.id)}
+                      disabled={isPending}
+                      className="p-1.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm px-2.5 py-1 rounded-lg bg-background border border-border truncate">
+                      {niche.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => { setEditingId(niche.id); setEditingName(niche.name); }}
+                      className="p-1.5 rounded-lg hover:bg-muted transition-colors shrink-0"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(niche.id, niche.name)}
+                      disabled={isPending}
+                      className="p-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2 pt-1 border-t border-border/50">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Novo nicho..."
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleCreate())}
               className="flex-1 text-sm border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
             />
@@ -594,25 +762,7 @@ function CourseForm({
 
       <CategorySelect categories={categories} defaultValue={initial?.category_id} />
       <ForumSelect forums={forums} defaultValue={initial?.forum_id} />
-
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Nicho de materiais
-        </label>
-        <select
-          name="niche_id"
-          defaultValue={initial?.niche_id ?? ""}
-          className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
-        >
-          <option value="">— Nenhum —</option>
-          {niches.map((n) => (
-            <option key={n.id} value={n.id}>{n.name}</option>
-          ))}
-        </select>
-        <p className="text-xs text-muted-foreground">
-          Define quais produtos aparecem no filtro de nicho na página de materiais.
-        </p>
-      </div>
+      <NicheSelect niches={niches} defaultValue={initial?.niche_id} />
 
       {/* ── Opções ─── */}
       <SectionDivider label="Opções" />
