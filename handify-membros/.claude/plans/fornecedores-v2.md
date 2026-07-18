@@ -234,10 +234,15 @@ CREATE TABLE product_course_links (
 - [x] Remover seletor de "Nichos" do ProdutoForm — nicho derivado das tags dos fornecedores vinculados ✓
 - [x] `SupplierForm` — seção "Produtos vinculados" acima de Cancelar/Salvar ✓
 - [x] `MaterialCard` — substituir tags de nicho por links dos canais do fornecedor ✓
-- [x] `MaterialCard` — botões "Comprar agora" (buy_url) + "Visite a loja" (canal website) com nome da loja ✓
+- [x] `MaterialCard` — botões "Comprar agora" + "Visite a loja" removidos; nome da loja vira link direto com ícone ExternalLink ✓
 - [x] `FornecedorCard` — exibir produtos vinculados (nome + imagem + link de compra) ✓
 - [x] Hub (`FerramentasHub`) — links `?produto=sabonetes/velas` pré-selecionam filtro de nicho ✓
-- [ ] Push para produção (aguardando aprovação)
+- [x] `ProdutoForm` — campo URL de imagem substituído por upload de arquivo (Supabase Storage `supplier-products`, max 5 MB, jpg/png/webp) ✓
+- [x] `FornecedoresPage` — filtros de nicho e curso migrados para `useState` client-side; sem `router.push`; resposta imediata ✓
+- [x] `FornecedoresPage` — `useEffect` sincroniza `selectedNiche`/`selectedCourseId` com params de URL para funcionar via SPA navigation ✓
+- [x] Filtro de nicho usa `supplier.tags` nos `product_supplier_links`; `product_niche_links` não é utilizado para filtro ✓
+- [x] Links de fornecedores em `MaterialCard` ordenados alfabeticamente (`localeCompare('pt-BR')`) ✓
+- [x] Push para produção ✓
 
 ---
 
@@ -248,5 +253,9 @@ CREATE TABLE product_course_links (
 - **Nicho + curso são filtros independentes**: curso filtra "quais produtos são deste curso"; nicho filtra "qual categoria de material". Podem ser combinados.
 - **"Ver site oficial"**: prioridade website → shopee → ML → instagram (primeiro canal disponível)
 - **RLS**: aluna vê apenas produtos e nichos ativos; admin via service client
-- **Upload de foto**: usar Supabase Storage bucket `supplier-products` (criar via migration ou policy)
+- **Upload de foto**: Supabase Storage bucket `supplier-products`, público, 5 MB, jpg/png/webp. Server Action `uploadProductImage` valida MIME e tamanho antes do upload. Campo URL removido do `ProdutoForm`.
+- **Filtro de nicho é automático via tags dos fornecedores**: a tabela `product_niche_links` existe mas NÃO é usada para filtro. O nicho de um produto é determinado pelas tags (`supplier_tags`) dos fornecedores vinculados a ele. Para um produto aparecer no filtro "Velas", ao menos um dos seus fornecedores deve ter a tag `velas-artesanais`. Isso elimina manutenção dupla de nichos.
+- **Filtros client-side**: todos os produtos são carregados no servidor de uma vez (`getProducts()` sem filtro); os filtros de nicho, curso e busca são `useState` no cliente. Sem `router.push` — resposta imediata, sem round-trip ao servidor.
+- **SPA navigation + URL params**: `useEffect` sincroniza `selectedNiche` e `selectedCourseId` com `initialNicheId`/`courseFilter?.id` para que a navegação interna (ex: clique no hub → `?produto=velas`) reflita nos filtros mesmo sem remount do componente.
+- **Links de fornecedores em produtos**: ordenados alfabeticamente por `localeCompare('pt-BR')` no `actions.ts` (query-level sort) e como fallback visual.
 - **Link na aula**: copiar a URL `/ferramentas/fornecedores?curso=slug` e colar como bloco de link ou HTML na aula
