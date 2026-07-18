@@ -18,11 +18,10 @@ interface LinkedProduct {
 
 interface Props {
   supplier?: any
-  categories?: { id: string; name: string; slug: string }[]
   linkedProducts?: LinkedProduct[]
 }
 
-export function SupplierForm({ supplier, categories = [], linkedProducts = [] }: Props) {
+export function SupplierForm({ supplier, linkedProducts = [] }: Props) {
   const router = useRouter()
   const isEdit = !!supplier
 
@@ -96,11 +95,7 @@ export function SupplierForm({ supplier, categories = [], linkedProducts = [] }:
     router.push('/admin/fornecedores')
   }
 
-  const nicheTagEntries = categories.map(c => [c.slug, c.name] as [string, string])
-  const allTags: Record<string, string> = {
-    ...Object.fromEntries(nicheTagEntries),
-    ...CATEGORY_TAGS,
-  }
+  const allTags: Record<string, string> = { ...CATEGORY_TAGS }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -179,7 +174,7 @@ export function SupplierForm({ supplier, categories = [], linkedProducts = [] }:
       {/* Tags */}
       <div className="bg-white rounded-xl border border-border/60 p-5 space-y-3">
         <h2 className="text-sm font-semibold">Tags</h2>
-        <p className="text-xs text-muted-foreground">Selecione os produtos e categorias que este fornecedor atende.</p>
+        <p className="text-xs text-muted-foreground">Selecione os tipos de insumos que este fornecedor vende.</p>
         <div className="flex flex-wrap gap-2">
           {Object.entries(allTags).map(([k, v]) => (
             <button

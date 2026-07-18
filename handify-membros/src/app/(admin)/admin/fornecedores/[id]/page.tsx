@@ -16,16 +16,14 @@ export default async function EditarFornecedorPage({ params }: { params: Promise
   if (profile?.role !== 'admin') redirect('/dashboard')
 
   const service = createServiceClient()
-  const [{ data: supplier }, { data: categoriesRaw }, { data: linkedRaw }] = await Promise.all([
+  const [{ data: supplier }, { data: linkedRaw }] = await Promise.all([
     service.from('suppliers').select('*, supplier_channels(*), supplier_tags(tag)').eq('id', id).single(),
-    service.from('categories').select('id, name, slug').order('name'),
     service
       .from('product_supplier_links')
       .select('product_id, buy_url, products(id, name, image_url, active)')
       .eq('supplier_id', id),
   ])
 
-  const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
   const linkedProducts = (linkedRaw ?? []).map((r: any) => ({
     id: r.products?.id as string,
     name: r.products?.name as string,
@@ -38,7 +36,7 @@ export default async function EditarFornecedorPage({ params }: { params: Promise
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <SupplierForm supplier={supplier} categories={categories} linkedProducts={linkedProducts} />
+      <SupplierForm supplier={supplier} linkedProducts={linkedProducts} />
     </div>
   )
 }
