@@ -31,6 +31,7 @@ import {
   revokeAccessAction,
   toggleBanAction,
   updateProfileAction,
+  grantMultipleAccessAction,
 } from "./actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import ActivityTab, { type ActivityItem } from "@/components/admin/alunos/ActivityTab";
@@ -357,6 +358,14 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
               </>
             )}
           </section>
+
+          {/* Acesso em lote */}
+          {unenrolledCourses.length > 0 && (
+            <BulkGrantSection
+              userId={profile.id}
+              unenrolledCourses={unenrolledCourses}
+            />
+          )}
         </div>
 
         {/* Coluna lateral */}
@@ -646,6 +655,149 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Acesso em lote ───────────────────────────────────────────────────────────
+
+function BulkGrantSection({
+  userId,
+  unenrolledCourses,
+}: {
+  userId: string;
+  unenrolledCourses: CourseEntry[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [state, action, pending] = useActionState(grantMultipleAccessAction, {});
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelected(new Set(unenrolledCourses.map((c) => c.id)));
+  }
+
+  function clearAll() {
+    setSelected(new Set());
+  }
+
+  return (
+    <section className="handify-card overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-5 py-4 flex items-center gap-2 hover:bg-muted/30 transition-colors text-left"
+      >
+        <Plus className="w-4 h-4 text-[#6699F3]" />
+        <span className="font-semibold text-sm">Dar acesso em lote</span>
+        <span className="ml-auto text-xs text-muted-foreground">
+          {open ? "Recolher" : `${unenrolledCourses.length} curso${unenrolledCourses.length !== 1 ? "s" : ""} disponíveis`}
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t border-border/60">
+          <form action={action} className="p-5 space-y-4">
+            <input type="hidden" name="user_id" value={userId} />
+
+            {/* Checkboxes */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Selecionar cursos
+                </p>
+                <div className="flex gap-3 text-xs text-[#6699F3]">
+                  <button type="button" onClick={selectAll} className="hover:underline">
+                    Todos
+                  </button>
+                  <button type="button" onClick={clearAll} className="hover:underline">
+                    Nenhum
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                {unenrolledCourses.map((course) => (
+                  <label
+                    key={course.id}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors text-sm",
+                      selected.has(course.id)
+                        ? "bg-[#6699F3]/10 border border-[#6699F3]/30"
+                        : "bg-muted/30 border border-transparent hover:bg-muted/50"
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      name="course_id"
+                      value={course.id}
+                      checked={selected.has(course.id)}
+                      onChange={() => toggle(course.id)}
+                      className="accent-[#6699F3] w-4 h-4 shrink-0"
+                    />
+                    <span className="truncate">{course.title}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Motivo + Expiração */}
+            <div className="flex gap-2 flex-wrap items-end">
+              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                <label className="text-[10px] text-muted-foreground leading-none">Motivo (obrigatório)</label>
+                <input
+                  name="reason"
+                  required
+                  placeholder="Ex.: cortesia, pacote especial…"
+                  className="text-xs px-2.5 py-1.5 rounded border border-border bg-white focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50"
+                />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] text-muted-foreground leading-none">Expiração (opcional)</label>
+                <input
+                  name="expires_at"
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  className="text-xs px-2.5 py-1.5 rounded border border-border bg-white focus:outline-none focus:ring-1 focus:ring-[#6699F3]/50 w-36"
+                />
+              </div>
+            </div>
+
+            {/* Feedback */}
+            {state.error && (
+              <p className="text-xs text-red-600">{state.error}</p>
+            )}
+            {state.success && (
+              <p className="text-xs text-green-600">{state.success}</p>
+            )}
+
+            {/* Ações */}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={pending || selected.size === 0}
+                className="px-4 py-1.5 text-xs font-semibold text-white bg-[#6699F3] hover:bg-[#5580d4] rounded-md transition-colors disabled:opacity-50"
+              >
+                {pending
+                  ? "Salvando…"
+                  : `Dar acesso a ${selected.size} curso${selected.size !== 1 ? "s" : ""}`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </section>
   );
 }
 

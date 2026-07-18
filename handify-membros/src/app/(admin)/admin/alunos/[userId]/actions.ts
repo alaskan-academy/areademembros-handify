@@ -308,6 +308,109 @@ export async function updateProfileAction(
   return { success: "Perfil atualizado com sucesso." };
 }
 
+// ─── Dar acesso em lote ───────────────────────────────────────────────────────
+
+const grantMultipleSchema = z.object({
+  user_id: z.string().uuid(),
+  course_ids: z.array(z.string().uuid()).min(1, "Selecione ao menos um curso"),
+  reason: z.string().min(1, "Informe o motivo"),
+  expires_at: z.string().optional(),
+});
+
+export async function grantMultipleAccessAction(
+  _prev: { error?: string; success?: string },
+  formData: FormData
+): Promise<{ error?: string; success?: string }> {
+  let adminId: string;
+  try {
+    adminId = await getAdminId();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const parsed = grantMultipleSchema.safeParse({
+    user_id: formData.get("user_id"),
+    course_ids: formData.getAll("course_id"),
+    reason: formData.get("reason"),
+    expires_at: formData.get("expires_at") || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const { user_id, course_ids, reason, expires_at } = parsed.data;
+  const service = createServiceClient();
+  const now = new Date().toISOString();
+
+  let granted = 0;
+  let skipped = 0;
+
+  for (const course_id of course_ids) {
+    const { data: existing } = await service
+      .from("enrollments")
+      .select("id, expires_at")
+      .eq("user_id", user_id)
+      .eq("course_id", course_id)
+      .maybeSingle();
+
+    if (existing) {
+      const isActive = !existing.expires_at || new Date(existing.expires_at) > new Date();
+      if (isActive) { skipped++; continue; }
+      await service.from("enrollments").delete().eq("id", existing.id);
+    }
+
+    const { data: enrollment, error: enrollErr } = await service
+      .from("enrollments")
+      .insert({
+        user_id,
+        course_id,
+        source: "manual",
+        granted_at: now,
+        expires_at: expires_at ? new Date(expires_at).toISOString() : null,
+      })
+      .select("id")
+      .single();
+
+    if (enrollErr) {
+      console.error("[grantMultiple] insert error:", enrollErr);
+      continue;
+    }
+
+    await service.from("audit_log").insert({
+      admin_id: adminId,
+      action: "grant_access",
+      target_type: "enrollment",
+      target_id: enrollment.id,
+      meta: { user_id, course_id, reason, expires_at: expires_at ?? null },
+    });
+
+    ;(async () => {
+      const [{ data: profile }, { data: course }] = await Promise.all([
+        service.from("profiles").select("email, full_name").eq("id", user_id).single(),
+        service.from("courses").select("title, slug").eq("id", course_id).single(),
+      ]);
+      if (profile?.email && course?.title) {
+        await sendAccessConfirmedEmail({
+          to: profile.email,
+          studentName: profile.full_name ?? profile.email,
+          courseTitle: course.title,
+          courseSlug: course.slug,
+        });
+      }
+    })().catch((e) => console.error("[grantMultiple] email:", e));
+
+    granted++;
+  }
+
+  revalidatePath(`/admin/alunos/${user_id}`);
+
+  if (granted === 0) {
+    return { error: "Nenhum acesso concedido. Todos os cursos selecionados já têm matrícula ativa." };
+  }
+
+  return {
+    success: `${granted} curso${granted !== 1 ? "s" : ""} liberado${granted !== 1 ? "s" : ""} com sucesso.${skipped > 0 ? ` (${skipped} já tinham acesso)` : ""}`,
+  };
+}
+
 // ─── Atualizar e-mail ─────────────────────────────────────────────────────────
 
 const emailSchema = z.object({
