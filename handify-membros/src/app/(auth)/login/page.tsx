@@ -39,9 +39,9 @@ export default function LoginPage({
 
 function LoginContent() {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
-  const [email, setEmail] = useState("");
   const searchParams = useSearchParams();
-  const msgParam = searchParams.get("msg");
+  const [email, setEmail] = useState(searchParams.get("email") ?? "");
+  const msgParam = searchParams.get("msg") ?? (searchParams.get("email") ? "ja-tem-conta" : null);
   const msgBanner = msgParam ? (MSG_BANNERS[msgParam] ?? null) : null;
 
   return (

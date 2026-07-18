@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import CadastroEmailForm from "./CadastroEmailForm";
 
@@ -55,6 +57,20 @@ export default async function CadastroComEmailPage({
 }) {
   const { email: encodedEmail } = await params;
   const email = decodeURIComponent(encodedEmail);
+
+  // Já está logada → dashboard
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect("/dashboard");
+
+  // Conta já existe → login com e-mail pré-preenchido
+  const service = createServiceClient();
+  const { data: existing } = await service
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (existing) redirect(`/login?email=${encodeURIComponent(email)}`);
 
   const { cpf: defaultCpf, phone: defaultPhone, defaultName } = await getPaytData(email);
 
