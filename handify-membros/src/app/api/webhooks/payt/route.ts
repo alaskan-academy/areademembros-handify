@@ -118,11 +118,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, warning: msg });
   }
 
-  // 7. Buscar usuário pelo e-mail
-  const { data: usersData } = await supabase.auth.admin.listUsers();
-  const user = usersData?.users?.find(
-    (u) => u.email?.toLowerCase() === buyerEmail.toLowerCase()
-  );
+  // 7. Buscar usuário pelo e-mail — lookup direto no profiles (evita limitação de 50 users do listUsers)
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("email", buyerEmail)
+    .maybeSingle();
+  const user = profileRow ? { id: profileRow.id } : null;
 
   // 8. Sem conta ainda — cria token de ativação por curso e envia e-mail
   if (!user) {
