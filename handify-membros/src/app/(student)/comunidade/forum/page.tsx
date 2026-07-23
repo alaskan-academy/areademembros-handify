@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MessageSquare, Users, ChevronRight } from "lucide-react";
 
-export const metadata = { title: "Fórum da Comunidade — Handify" };
+export const metadata = { title: "Comunidade — Handify" };
 
 export default async function ForumLandingPage() {
   const supabase = await createClient();
@@ -67,10 +67,10 @@ export default async function ForumLandingPage() {
             Comunidade
           </p>
           <h1 className="text-3xl sm:text-4xl font-black text-[#0F0F0F]">
-            Fórum da <span className="text-[#6699F3]">Comunidade</span>
+            <span className="text-[#6699F3]">Comunidade</span>
           </h1>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Tire dúvidas, compartilhe projetos e troque ideias com outras artesãs.
+            Tire dúvidas, compartilhe projetos e troque experiências com outras artesãs.
           </p>
         </div>
       </div>
