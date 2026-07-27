@@ -1,6 +1,11 @@
 import { notFound } from 'next/navigation'
 import CalculadoraEssencias, { type EssenciasConfig } from '@/components/ferramentas/CalculadoraEssencias'
 
+const SLUG_MAP: Record<string, string> = {
+  'saboaria-artesanal': 'sabonetes',
+  'velas-artesanais': 'velas',
+}
+
 const CONFIGS: Record<string, EssenciasConfig> = {
   sabonetes: {
     produto: 'sabonetes',
@@ -39,12 +44,14 @@ const CONFIGS: Record<string, EssenciasConfig> = {
 }
 
 export function generateStaticParams() {
-  return Object.keys(CONFIGS).map(produto => ({ produto }))
+  const keys = Object.keys(CONFIGS)
+  const slugs = Object.keys(SLUG_MAP)
+  return [...keys, ...slugs].map(produto => ({ produto }))
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ produto: string }> }) {
   const { produto } = await params
-  const config = CONFIGS[produto]
+  const config = CONFIGS[SLUG_MAP[produto] ?? produto]
   if (!config) return {}
   return { title: `Calculadora de Essências — ${config.nome} | Handify` }
 }
@@ -55,7 +62,7 @@ export default async function CalculadoraEssenciasPage({
   params: Promise<{ produto: string }>
 }) {
   const { produto } = await params
-  const config = CONFIGS[produto]
+  const config = CONFIGS[SLUG_MAP[produto] ?? produto]
   if (!config) notFound()
   return <CalculadoraEssencias config={config} />
 }

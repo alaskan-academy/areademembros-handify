@@ -1,6 +1,12 @@
 import { notFound } from 'next/navigation'
 import CalculadoraLucro, { type ProdutoConfig } from '@/components/ferramentas/CalculadoraLucro'
 
+// Mapa de slugs do DB → chave do CONFIGS (permite URLs como /saboaria-artesanal)
+const SLUG_MAP: Record<string, string> = {
+  'saboaria-artesanal': 'sabonetes',
+  'velas-artesanais': 'velas',
+}
+
 const CONFIGS: Record<string, ProdutoConfig> = {
   sabonetes: {
     icon: '🧼',
@@ -43,12 +49,14 @@ const CONFIGS: Record<string, ProdutoConfig> = {
 }
 
 export function generateStaticParams() {
-  return Object.keys(CONFIGS).map(produto => ({ produto }))
+  const keys = Object.keys(CONFIGS)
+  const slugs = Object.keys(SLUG_MAP)
+  return [...keys, ...slugs].map(produto => ({ produto }))
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ produto: string }> }) {
   const { produto } = await params
-  const config = CONFIGS[produto]
+  const config = CONFIGS[SLUG_MAP[produto] ?? produto]
   if (!config) return {}
   return { title: `Calculadora de Lucro — ${config.nome} | Handify` }
 }
@@ -59,7 +67,7 @@ export default async function CalculadoraPage({
   params: Promise<{ produto: string }>
 }) {
   const { produto } = await params
-  const config = CONFIGS[produto]
+  const config = CONFIGS[SLUG_MAP[produto] ?? produto]
   if (!config) notFound()
   return <CalculadoraLucro config={config} />
 }
