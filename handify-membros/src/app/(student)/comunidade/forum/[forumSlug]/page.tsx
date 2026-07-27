@@ -48,7 +48,8 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
   const service = createServiceClient();
 
   // 1. Buscar posts do fórum — service client para que o join em profiles
-  //    não seja bloqueado pelo RLS (policies de profiles permitem só leitura própria)
+  //    não seja bloqueado pelo RLS (policies de profiles permitem só leitura própria).
+  //    Retorna apenas posts aprovados + posts da própria aluna (para ela ver o status pendente).
   const postsResult = await service
     .from("forum_posts")
     .select(`
@@ -57,6 +58,7 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
       author:profiles!user_id (full_name, avatar_url)
     `)
     .eq("forum_id", forum.id)
+    .or(`approved.eq.true,user_id.eq.${user.id}`)
     .order("pinned", { ascending: false })
     .order("created_at", { ascending: false });
 

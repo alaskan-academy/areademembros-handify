@@ -197,7 +197,7 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
         </div>
       ) : (
         <div className="space-y-5">
-          {posts.map((post) => (
+          {posts.filter(p => p.approved || p.user_id === userId).map((post) => (
             <ForumPostCard
               key={post.id}
               post={post}
