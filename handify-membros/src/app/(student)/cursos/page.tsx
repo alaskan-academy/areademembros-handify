@@ -63,10 +63,30 @@ export default async function CursosPage({
 
   // Usa service client para cursos/módulos/aulas — sem video_panda_id,
   // apenas metadados. Necessário para que não-matriculadas vejam a estrutura completa.
-  const [{ data: categoriesRaw }, { data: coursesRaw }, { data: showcaseRaw }] =
-    await Promise.all([
-      service.from("categories").select("id, name, slug").order("name"),
-      service
+  // Busca showcase, categorias e matrículas em paralelo para filtrar cursos logo após.
+  const now = new Date().toISOString();
+  const [{ data: categoriesRaw }, { data: showcaseRaw }, enrollmentResult] = await Promise.all([
+    service.from("categories").select("id, name, slug").order("name"),
+    service.from("showcase_courses").select("course_id, sales_video_panda_id").eq("active", true),
+    user
+      ? supabase.from("enrollments").select("course_id").eq("user_id", user.id).or(`expires_at.is.null,expires_at.gt.${now}`)
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const categories: CatalogCategory[] = (categoriesRaw ?? []) as CatalogCategory[];
+  const showcaseMap = Object.fromEntries(
+    ((showcaseRaw ?? []) as { course_id: string; sales_video_panda_id: string | null }[]).map(
+      (s) => [s.course_id, s.sales_video_panda_id]
+    )
+  );
+
+  // Catálogo mostra só cursos da vitrine + cursos que a aluna comprou (mesmo fora da vitrine)
+  const showcaseIds = (showcaseRaw ?? []).map((s) => (s as { course_id: string }).course_id);
+  const enrolledIdsList = ((enrollmentResult?.data ?? []) as { course_id: string }[]).map((e) => e.course_id);
+  const allRelevantIds = [...new Set([...showcaseIds, ...enrolledIdsList])];
+
+  const { data: coursesRaw } = allRelevantIds.length > 0
+    ? await service
         .from("courses")
         .select(
           `
@@ -80,19 +100,9 @@ export default async function CursosPage({
         `
         )
         .eq("published", true)
-        .order("position"),
-      service
-        .from("showcase_courses")
-        .select("course_id, sales_video_panda_id")
-        .eq("active", true),
-    ]);
-
-  const categories: CatalogCategory[] = (categoriesRaw ?? []) as CatalogCategory[];
-  const showcaseMap = Object.fromEntries(
-    ((showcaseRaw ?? []) as { course_id: string; sales_video_panda_id: string | null }[]).map(
-      (s) => [s.course_id, s.sales_video_panda_id]
-    )
-  );
+        .in("id", allRelevantIds)
+        .order("position")
+    : { data: [] };
 
   type RawLesson = {
     id: string;
@@ -170,16 +180,7 @@ export default async function CursosPage({
 
   // Dados de matrícula e progresso (somente se logada)
   if (user) {
-    const now = new Date().toISOString();
-    const { data: enrollmentData } = await supabase
-      .from("enrollments")
-      .select("course_id")
-      .eq("user_id", user.id)
-      .or(`expires_at.is.null,expires_at.gt.${now}`);
-
-    const enrolledIds = new Set(
-      ((enrollmentData ?? []) as { course_id: string }[]).map((e) => e.course_id)
-    );
+    const enrolledIds = new Set(enrolledIdsList);
 
     if (enrolledIds.size > 0) {
       const enrolledCourses = courses.filter((c) => enrolledIds.has(c.id));
