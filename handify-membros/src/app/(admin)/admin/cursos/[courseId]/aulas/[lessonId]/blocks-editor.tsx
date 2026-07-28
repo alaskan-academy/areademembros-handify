@@ -148,12 +148,12 @@ function ContentInput({
     return (
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">
-          Cole o ID do vídeo do Panda Video (UUID) ou a URL completa do player.
+          Cole o ID do Panda Video, a URL do player Panda, ou a URL do YouTube (youtube.com/watch?v=... ou youtu.be/...).
         </p>
         <input
           type="text"
           className="w-full text-sm border border-border rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
-          placeholder="abc123xyz... ou https://player.pandavideo.com.br/embed/?v=..."
+          placeholder="ID Panda, https://player.pandavideo.com.br/embed/?v=... ou https://youtu.be/..."
           value={(parsed.video_panda_id as string) ?? ""}
           onChange={(e) =>
             onChange(JSON.stringify({ video_panda_id: e.target.value }))
