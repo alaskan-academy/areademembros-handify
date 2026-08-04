@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useRef, useEffect } from "react";
 import {
   Mail,
   Phone,
@@ -247,214 +247,221 @@ function DetailModal({
   row: SemCadastroRow;
   onClose: () => void;
 }) {
-  const [pending, startTransition] = useTransition();
-  const [sent, setSent] = useState<number | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  // reenvio
+  const [resendPending, startResendTransition] = useTransition();
+  const [resendResult, setResendResult] = useState<{ sent?: number; error?: string } | null>(null);
 
-  const [showCorrect, setShowCorrect] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
+  // edição inline de e-mail
+  const [editing, setEditing] = useState(false);
+  const [emailDraft, setEmailDraft] = useState(row.email);
   const [correctPending, startCorrectTransition] = useTransition();
   const [correctResult, setCorrectResult] = useState<{ sent?: number; error?: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleResend() {
-    startTransition(async () => {
-      setSent(null);
-      setErr(null);
-      const res = await resendActivationAction(row.email);
-      if (res.error) setErr(res.error);
-      else setSent(res.sent ?? 0);
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  function startEditing() {
+    setEmailDraft(row.email);
+    setCorrectResult(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setEditing(false);
+    setEmailDraft(row.email);
+  }
+
+  function handleCorrect(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = emailDraft.trim();
+    if (!trimmed || trimmed === row.email) { cancelEditing(); return; }
+    startCorrectTransition(async () => {
+      const res = await correctEmailAction(row.email, trimmed);
+      setCorrectResult(res);
+      if (!res.error) setEditing(false);
     });
   }
 
-  function handleCorrectEmail(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newEmail.trim()) return;
-    startCorrectTransition(async () => {
-      setCorrectResult(null);
-      const res = await correctEmailAction(row.email, newEmail.trim());
-      setCorrectResult(res);
-      if (!res.error) setNewEmail("");
+  function handleResend() {
+    startResendTransition(async () => {
+      setResendResult(null);
+      const res = await resendActivationAction(row.email);
+      setResendResult(res);
     });
   }
 
   const now = new Date();
+  const initials = (row.buyer_name ?? row.email).charAt(0).toUpperCase();
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.45)" }}
+      style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)" }}
       onClick={onClose}
     >
       <div
-        className="handify-card w-full max-w-md flex flex-col overflow-hidden"
-        style={{ maxHeight: "85vh" }}
+        className="w-full max-w-sm flex flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Faixa tricolor */}
+        <div className="flex h-[3px] shrink-0">
+          <span className="flex-1" style={{ background: "#6699F3" }} />
+          <span className="flex-1" style={{ background: "#72CF92" }} />
+          <span className="flex-1" style={{ background: "#FEC649" }} />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center gap-3 p-5 border-b border-border">
+        <div className="flex items-start gap-4 px-5 pt-5 pb-4">
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 mt-0.5"
             style={{ background: "#FEC649", color: "#2D2D2D" }}
           >
-            {(row.buyer_name ?? row.email).charAt(0).toUpperCase()}
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate">
-              {row.buyer_name ?? "Sem nome"}
+            <p className="font-semibold text-[15px] leading-snug truncate">
+              {row.buyer_name ?? <span className="text-muted-foreground font-normal italic text-sm">Sem nome</span>}
             </p>
-            <p className="text-xs text-muted-foreground truncate">{row.email}</p>
+
+            {/* E-mail editável inline */}
+            {editing ? (
+              <form onSubmit={handleCorrect} className="flex items-center gap-1.5 mt-1.5">
+                <input
+                  ref={inputRef}
+                  type="email"
+                  required
+                  value={emailDraft}
+                  onChange={(e) => setEmailDraft(e.target.value)}
+                  className="flex-1 min-w-0 text-sm px-2 py-1 rounded-md border border-[#6699F3] bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/25"
+                  style={{ fontFamily: "inherit" }}
+                />
+                <button
+                  type="submit"
+                  disabled={correctPending}
+                  title="Salvar"
+                  className="w-7 h-7 rounded-md flex items-center justify-center bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50 shrink-0"
+                >
+                  {correctPending
+                    ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    : <Check className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditing}
+                  title="Cancelar"
+                  className="w-7 h-7 rounded-md flex items-center justify-center border border-border hover:bg-muted transition-colors shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={startEditing}
+                className="group flex items-center gap-1.5 mt-0.5 text-left"
+                title="Corrigir e-mail"
+              >
+                <span className="text-xs text-muted-foreground truncate max-w-[200px] group-hover:text-foreground transition-colors">
+                  {row.email}
+                </span>
+                <Pencil className="w-3 h-3 text-muted-foreground/40 group-hover:text-[#6699F3] transition-colors shrink-0" />
+              </button>
+            )}
+
+            {/* Feedback da correção */}
+            {correctResult?.sent != null && !editing && (
+              <p className="text-[11px] text-[#3d9e5a] mt-1 flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                Link reenviado para o novo endereço.
+              </p>
+            )}
+            {correctResult?.error && (
+              <p className="text-[11px] text-red-500 mt-1">{correctResult.error}</p>
+            )}
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors shrink-0"
+            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors shrink-0 mt-0.5"
             aria-label="Fechar"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Corpo */}
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
-          {/* Dados */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                <Mail className="w-3.5 h-3.5" /> E-mail
-              </p>
-              <p className="text-sm font-medium break-all">{row.email}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                <Phone className="w-3.5 h-3.5" /> WhatsApp
-              </p>
-              <p className="text-sm font-medium">{row.buyer_phone ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                <Clock className="w-3.5 h-3.5" /> Data da compra
-              </p>
-              <p className="text-sm font-medium">
-                {new Date(row.created_at).toLocaleDateString("pt-BR")}
-              </p>
-            </div>
-          </div>
+        {/* Meta info */}
+        <div className="flex items-center gap-4 px-5 pb-4 text-xs text-muted-foreground">
+          {row.buyer_phone && (
+            <span className="flex items-center gap-1">
+              <Phone className="w-3.5 h-3.5" /> {row.buyer_phone}
+            </span>
+          )}
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            {new Date(row.created_at).toLocaleDateString("pt-BR")}
+          </span>
+        </div>
 
-          {/* Cursos pendentes */}
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Cursos aguardando ativação
-            </p>
-            <div className="space-y-2">
-              {row.courses.map((c) => {
-                const expired = new Date(c.expires_at) < now;
-                return (
-                  <div
-                    key={c.token}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border/50"
-                  >
-                    <Package className="w-4 h-4 shrink-0 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {c.title ?? "Curso"}
-                      </p>
-                      <p
-                        className={`text-[11px] mt-0.5 ${expired ? "text-amber-500" : "text-muted-foreground"}`}
-                      >
-                        Link {expired ? "expirou" : "expira"}{" "}
-                        {new Date(c.expires_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    {expired && (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">
-                        Expirado
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <div className="mx-5 border-t border-border/60" />
 
-          {/* Corrigir e-mail */}
-          <div className="rounded-lg border border-border/60 overflow-hidden">
-            <button
-              onClick={() => { setShowCorrect((v) => !v); setCorrectResult(null); }}
-              className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-left hover:bg-muted/40 transition-colors"
-            >
-              <Pencil className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              Corrigir e-mail da compradora
-              <span className="ml-auto text-muted-foreground text-xs">
-                {showCorrect ? "▲" : "▼"}
-              </span>
-            </button>
-            {showCorrect && (
-              <form onSubmit={handleCorrectEmail} className="px-4 pb-4 space-y-3 border-t border-border/60 pt-3">
-                <p className="text-xs text-muted-foreground">
-                  Atualiza o e-mail nos tokens pendentes e nos registros de pagamento, e reenvia o link de ativação para o endereço correto.
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    required
-                    placeholder="E-mail correto"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
-                  />
-                  <button
-                    type="submit"
-                    disabled={correctPending || !newEmail.trim()}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {correctPending ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Check className="w-3.5 h-3.5" />
-                    )}
-                    {correctPending ? "Salvando…" : "Corrigir"}
-                  </button>
-                </div>
-                {correctResult?.sent != null && (
-                  <p className="text-xs text-[#3d9e5a]">
-                    E-mail atualizado · {correctResult.sent} link{correctResult.sent !== 1 ? "s" : ""} reenviado{correctResult.sent !== 1 ? "s" : ""} para o novo endereço.
+        {/* Cursos */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-2">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+            Aguardando ativação
+          </p>
+          {row.courses.map((c) => {
+            const expired = new Date(c.expires_at) < now;
+            return (
+              <div
+                key={c.token}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/40"
+              >
+                <Package className="w-4 h-4 shrink-0 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate leading-snug">
+                    {c.title ?? "Curso"}
                   </p>
+                  <p className={`text-[11px] mt-0.5 ${expired ? "text-amber-500" : "text-muted-foreground"}`}>
+                    {expired ? "Link expirado" : `Expira ${new Date(c.expires_at).toLocaleDateString("pt-BR")}`}
+                  </p>
+                </div>
+                {expired && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">
+                    Expirado
+                  </span>
                 )}
-                {correctResult?.error && (
-                  <p className="text-xs text-red-500">{correctResult.error}</p>
-                )}
-              </form>
-            )}
-          </div>
-
-          {/* Feedback reenvio */}
-          {sent !== null && (
-            <div className="rounded-lg bg-[#72CF92]/10 border border-[#72CF92]/30 px-4 py-3 text-sm text-[#3d9e5a]">
-              {sent > 0
-                ? `${sent} e-mail${sent !== 1 ? "s" : ""} de ativação enviado${sent !== 1 ? "s" : ""} com sucesso.`
-                : "Nenhum e-mail enviado — sem cursos com token válido."}
-            </div>
-          )}
-          {err && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-              {err}
-            </div>
-          )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Footer */}
-        <div className="p-5 border-t border-border space-y-2">
+        <div className="px-5 pb-5 pt-3 space-y-2.5">
+          {resendResult?.sent != null && (
+            <p className="text-center text-xs text-[#3d9e5a] flex items-center justify-center gap-1">
+              <Check className="w-3.5 h-3.5" />
+              {resendResult.sent > 0
+                ? `${resendResult.sent} e-mail${resendResult.sent !== 1 ? "s" : ""} enviado${resendResult.sent !== 1 ? "s" : ""}`
+                : "Sem cursos com token válido"}
+            </p>
+          )}
+          {resendResult?.error && (
+            <p className="text-center text-xs text-red-500">{resendResult.error}</p>
+          )}
           <button
             onClick={handleResend}
-            disabled={pending}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
+            disabled={resendPending}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
           >
-            <RefreshCw
-              className={`w-4 h-4 ${pending ? "animate-spin" : ""}`}
-            />
-            {pending ? "Enviando e-mails…" : "Reenviar e-mail de ativação"}
+            <RefreshCw className={`w-4 h-4 ${resendPending ? "animate-spin" : ""}`} />
+            {resendPending ? "Enviando…" : "Reenviar link de ativação"}
           </button>
-          <p className="text-center text-xs text-muted-foreground">
-            Um e-mail por curso · Links expirados são renovados automaticamente
+          <p className="text-center text-[11px] text-muted-foreground">
+            Um e-mail por curso · Links expirados são renovados
           </p>
         </div>
       </div>
