@@ -41,6 +41,14 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${montserrat.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        {/* Captura beforeinstallprompt antes de qualquer React montar */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__pwaInstallPrompt=e;});`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
       </body>

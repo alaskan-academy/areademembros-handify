@@ -39,21 +39,31 @@ export default function InstallAppButton() {
       return;
     }
 
-    // Intercepta o beforeinstallprompt (Chrome, Edge, Android)
+    // O script no <head> pode ter capturado o evento antes de React montar
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const early = (window as any).__pwaInstallPrompt as BeforeInstallPromptEvent | undefined;
+    if (early) {
+      setDeferredPrompt(early);
+      setState("installable");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).__pwaInstallPrompt;
+      window.addEventListener("appinstalled", () => setInstalled(true));
+      return;
+    }
+
+    // Ainda não disparou — continua ouvindo
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setState("installable");
     };
     window.addEventListener("beforeinstallprompt", handler);
-
-    // App foi instalada via prompt nativo
     window.addEventListener("appinstalled", () => setInstalled(true));
 
-    // Se depois de 2s não chegou o evento, o browser não suporta
+    // Se depois de 3s não chegou o evento, o browser não suporta
     const timeout = setTimeout(() => {
       setState((s) => (s === "loading" ? "unsupported" : s));
-    }, 2000);
+    }, 3000);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
