@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -41,15 +42,14 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${montserrat.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        {/* Captura beforeinstallprompt antes de qualquer React montar */}
-        <script
+      <body className="min-h-full flex flex-col">
+        <Script
+          id="pwa-install-capture"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__pwaInstallPrompt=e;});`,
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col">
         {children}
       </body>
     </html>
