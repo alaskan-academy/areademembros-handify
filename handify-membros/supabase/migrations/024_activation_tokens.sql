@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS public.activation_tokens (
   token      uuid DEFAULT gen_random_uuid() UNIQUE NOT NULL,
   course_id  uuid REFERENCES public.courses(id) ON DELETE SET NULL,
   used       boolean DEFAULT false,
-  expires_at timestamptz DEFAULT (now() + interval '7 days'),
+  expires_at timestamptz DEFAULT (now() + interval '30 days'),
   created_at timestamptz DEFAULT now()
 );
 
