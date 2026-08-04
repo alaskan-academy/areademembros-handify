@@ -10,8 +10,10 @@ import {
   X,
   Search,
   AlertCircle,
+  Pencil,
+  Check,
 } from "lucide-react";
-import { resendActivationAction } from "./resend-actions";
+import { resendActivationAction, correctEmailAction } from "./resend-actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 
 export type PendingCourse = {
@@ -249,6 +251,11 @@ function DetailModal({
   const [sent, setSent] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  const [showCorrect, setShowCorrect] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [correctPending, startCorrectTransition] = useTransition();
+  const [correctResult, setCorrectResult] = useState<{ sent?: number; error?: string } | null>(null);
+
   function handleResend() {
     startTransition(async () => {
       setSent(null);
@@ -256,6 +263,17 @@ function DetailModal({
       const res = await resendActivationAction(row.email);
       if (res.error) setErr(res.error);
       else setSent(res.sent ?? 0);
+    });
+  }
+
+  function handleCorrectEmail(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newEmail.trim()) return;
+    startCorrectTransition(async () => {
+      setCorrectResult(null);
+      const res = await correctEmailAction(row.email, newEmail.trim());
+      setCorrectResult(res);
+      if (!res.error) setNewEmail("");
     });
   }
 
@@ -357,7 +375,58 @@ function DetailModal({
             </div>
           </div>
 
-          {/* Feedback */}
+          {/* Corrigir e-mail */}
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <button
+              onClick={() => { setShowCorrect((v) => !v); setCorrectResult(null); }}
+              className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-left hover:bg-muted/40 transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              Corrigir e-mail da compradora
+              <span className="ml-auto text-muted-foreground text-xs">
+                {showCorrect ? "▲" : "▼"}
+              </span>
+            </button>
+            {showCorrect && (
+              <form onSubmit={handleCorrectEmail} className="px-4 pb-4 space-y-3 border-t border-border/60 pt-3">
+                <p className="text-xs text-muted-foreground">
+                  Atualiza o e-mail nos tokens pendentes e nos registros de pagamento, e reenvia o link de ativação para o endereço correto.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    placeholder="E-mail correto"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                  />
+                  <button
+                    type="submit"
+                    disabled={correctPending || !newEmail.trim()}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {correctPending ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                    {correctPending ? "Salvando…" : "Corrigir"}
+                  </button>
+                </div>
+                {correctResult?.sent != null && (
+                  <p className="text-xs text-[#3d9e5a]">
+                    E-mail atualizado · {correctResult.sent} link{correctResult.sent !== 1 ? "s" : ""} reenviado{correctResult.sent !== 1 ? "s" : ""} para o novo endereço.
+                  </p>
+                )}
+                {correctResult?.error && (
+                  <p className="text-xs text-red-500">{correctResult.error}</p>
+                )}
+              </form>
+            )}
+          </div>
+
+          {/* Feedback reenvio */}
           {sent !== null && (
             <div className="rounded-lg bg-[#72CF92]/10 border border-[#72CF92]/30 px-4 py-3 text-sm text-[#3d9e5a]">
               {sent > 0
