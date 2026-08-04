@@ -60,6 +60,11 @@ export default function PushSubscribeButton({ initialEndpoints }: Props) {
   async function handleEnable() {
     setError(null);
     try {
+      if (!VAPID_PUBLIC_KEY) {
+        setError("Configuração de push ausente. Contate o suporte.");
+        return;
+      }
+
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== "granted") {
@@ -67,10 +72,17 @@ export default function PushSubscribeButton({ initialEndpoints }: Props) {
         return;
       }
 
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
+      const swReg = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Service worker não registrado (timeout)")), 8000)
+        ),
+      ]);
+
+      const appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      const sub = await swReg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
+        applicationServerKey: appServerKey as unknown as ArrayBuffer,
       });
 
       const json = sub.toJSON() as {
@@ -87,8 +99,10 @@ export default function PushSubscribeButton({ initialEndpoints }: Props) {
           localStorage.setItem(LS_ACTIVATED, "true");
         }
       });
-    } catch {
-      setError("Não foi possível ativar as notificações. Tente novamente.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[push] handleEnable error:", msg, err);
+      setError(`Erro: ${msg}`);
     }
   }
 
