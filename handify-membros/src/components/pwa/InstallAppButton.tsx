@@ -7,7 +7,8 @@ type InstallState =
   | "loading"
   | "installed"
   | "installable"   // Chrome / Android / Edge — beforeinstallprompt disponível
-  | "ios"           // Safari no iOS — manual (Add to Home Screen)
+  | "ios-safari"    // Safari no iOS — manual (Add to Home Screen)
+  | "ios-other"     // Chrome/Firefox no iOS — precisa abrir no Safari
   | "unsupported";  // navegador sem suporte
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,11 +32,13 @@ export default function InstallAppButton() {
       return;
     }
 
-    // iOS Safari (não Chrome no iOS — CriOS)
+    // iOS: qualquer browser (Safari, Chrome, Firefox)
     const ua = navigator.userAgent;
-    const isIos = /iPhone|iPad|iPod/i.test(ua) && !/CriOS|FxiOS/i.test(ua);
+    const isIos = /iPhone|iPad|iPod/i.test(ua);
     if (isIos) {
-      setState("ios");
+      // Só o Safari nativo tem "Adicionar à Tela de Início" funcional
+      const isSafari = !/CriOS|FxiOS|OPiOS|mercury/i.test(ua);
+      setState(isSafari ? "ios-safari" : "ios-other");
       return;
     }
 
@@ -91,14 +94,29 @@ export default function InstallAppButton() {
     );
   }
 
-  if (state === "ios") {
+  // Chrome / Firefox no iOS — só o Safari consegue instalar
+  if (state === "ios-other") {
+    return (
+      <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+        <Smartphone className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-sm text-amber-800 leading-snug">
+          Para instalar o app, abra esta página no{" "}
+          <strong>Safari</strong> e toque em{" "}
+          <Share className="w-3.5 h-3.5 inline -mt-0.5" />{" "}
+          → "Adicionar à Tela de Início".
+        </p>
+      </div>
+    );
+  }
+
+  if (state === "ios-safari") {
     return (
       <>
         <button
           onClick={() => setShowIosModal(true)}
           className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors min-h-[44px]"
         >
-          <Smartphone className="w-4 h-4 shrink-0" />
+          <Share className="w-4 h-4 shrink-0" />
           Adicionar à tela inicial
         </button>
 
