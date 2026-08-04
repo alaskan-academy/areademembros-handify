@@ -234,7 +234,7 @@ export async function toggleBookmark(userId: string, postId: string, isBookmarke
 // ── Comentários (alunas) ──────────────────────────────────────────────────────
 
 export async function getComments(postId: string): Promise<InspiracaoComment[]> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   const { data, error } = await supabase
     .from('inspiration_comments')
