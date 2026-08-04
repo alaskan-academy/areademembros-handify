@@ -30,6 +30,7 @@ import {
   type EmailPrefs,
 } from "./actions";
 import PushSubscribeButton from "@/components/pwa/PushSubscribeButton";
+import InstallAppButton from "@/components/pwa/InstallAppButton";
 import { getUserPushEndpoints } from "@/lib/push/actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -236,15 +237,31 @@ export default function PerfilView() {
         prefs={mergeWithDefaults(profile?.email_prefs as EmailPrefs | null)}
       />
 
-      {/* Notificações push */}
-      <div className="handify-card p-6 space-y-4">
-        <div>
-          <h2 className="font-semibold">Notificações push</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Receba avisos instantâneos no seu dispositivo mesmo com o navegador fechado.
-          </p>
+      {/* App + Notificações — card único */}
+      <div className="handify-card p-6 space-y-6">
+        {/* Instalar PWA */}
+        <div className="space-y-3">
+          <div>
+            <h2 className="font-semibold">App Handify</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Instale no seu celular para acessar os cursos com um toque, mesmo offline.
+            </p>
+          </div>
+          <InstallAppButton />
         </div>
-        <PushSubscribeButton initialEndpoints={pushEndpoints} />
+
+        <div className="border-t border-border/60" />
+
+        {/* Notificações push */}
+        <div className="space-y-3">
+          <div>
+            <h2 className="font-semibold">Notificações push</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Receba avisos instantâneos no seu dispositivo mesmo com o navegador fechado.
+            </p>
+          </div>
+          <PushSubscribeButton initialEndpoints={pushEndpoints} />
+        </div>
       </div>
     </div>
   );
