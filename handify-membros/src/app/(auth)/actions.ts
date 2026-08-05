@@ -14,12 +14,13 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 async function grantPendingEnrollments(email: string, userId: string) {
   const service = createServiceClient();
+  // Sem filtro de expires_at: se a aluna comprou e criou conta com o mesmo e-mail,
+  // a compra é válida independente do prazo do link de ativação.
   const { data: tokens } = await service
     .from("activation_tokens")
     .select("token, course_id")
     .eq("email", email.toLowerCase())
     .eq("used", false)
-    .gt("expires_at", new Date().toISOString())
     .not("course_id", "is", null);
 
   if (!tokens?.length) return;
@@ -97,13 +98,13 @@ export async function cadastroAction(
   const emailLower = parsed.data.email.toLowerCase();
   const service = createServiceClient();
 
-  // Verifica se há compra pendente (token de ativação não usado)
+  // Verifica se há compra pendente (token não usado, com ou sem expiração —
+  // compra válida independente do prazo do link de ativação)
   const { data: pendingTokens } = await service
     .from("activation_tokens")
     .select("token")
     .eq("email", emailLower)
     .eq("used", false)
-    .gt("expires_at", new Date().toISOString())
     .limit(1);
 
   const hasPendingPurchase = !!pendingTokens?.length;
