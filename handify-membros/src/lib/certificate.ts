@@ -209,11 +209,6 @@ export async function generateCertificatePdf(
   page.drawText("Handify", {
     x: cx + 2, y: sigY + 38, size: 26, font: cursive, color: DARK_GRAY,
   });
-  // "™" em fonte regular ao lado do cursivo
-  page.drawText("™", {
-    x: cx + 88, y: sigY + 52, size: 9, font: bold, color: DARK_GRAY,
-  });
-
   // Linha de assinatura abaixo do texto cursivo
   page.drawRectangle({ x: cx, y: sigY + 28, width: 170, height: 1, color: DARK_GRAY });
 
