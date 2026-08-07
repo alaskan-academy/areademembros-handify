@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import QRCode from "qrcode";
 import fs from "fs";
 import path from "path";
@@ -40,6 +41,7 @@ export async function generateCertificatePdf(
   });
 
   const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
   const W = 841.89;
   const H = 595.28;
   const page = pdfDoc.addPage([W, H]);
