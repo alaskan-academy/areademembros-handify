@@ -143,13 +143,14 @@ export default function AnnualPromoClient({ promo: initial }: Props) {
             Product codes do plano completo{" "}
             <span className="text-muted-foreground">(oculta a barra para quem já assinou)</span>
           </label>
-          <input
-            value={(form.subscription_product_codes ?? []).join(", ")}
-            onChange={(e) => set("subscription_product_codes", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-            placeholder="Ex: ABC123, DEF456"
-            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+          <textarea
+            value={(form.subscription_product_codes ?? []).join("\n")}
+            onChange={(e) => set("subscription_product_codes", e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))}
+            placeholder={"ABC123\nDEF456"}
+            rows={4}
+            className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
           />
-          <p className="text-[10px] text-muted-foreground">Separe múltiplos codes por vírgula. Quem tiver matrícula com esses codes não verá a barra.</p>
+          <p className="text-[10px] text-muted-foreground">Um code por linha. Quem tiver matrícula com esses codes não verá a barra.</p>
         </div>
       </div>
 
