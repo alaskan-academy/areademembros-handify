@@ -25,6 +25,7 @@ export default async function PlanoAnualAdminPage() {
     modal_title: "Assine o Plano Anual Handify™",
     modal_desc: "",
     button_text: "Assinar agora",
+    subscription_product_codes: [],
   };
 
   return (

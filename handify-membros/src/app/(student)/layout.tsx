@@ -49,14 +49,27 @@ export default async function StudentLayout({
         .order("position", { ascending: true }),
       supabase
         .from("annual_promo")
-        .select("active, badge_text, modal_title, modal_desc, button_text, link_url")
+        .select("active, badge_text, modal_title, modal_desc, button_text, link_url, subscription_product_codes")
         .eq("active", true)
         .maybeSingle(),
     ]);
 
-  const annualPromo: AnnualPromoData | null = promoRaw
-    ? { ...promoRaw }
-    : null;
+  // Verificar se a aluna já tem o plano completo (ocultar barra para quem já assinou)
+  let annualPromo: AnnualPromoData | null = promoRaw ? { ...promoRaw } : null;
+  if (annualPromo && user && promoRaw?.subscription_product_codes?.length) {
+    const { data: matchingCourses } = await supabase
+      .from("courses")
+      .select("id")
+      .overlaps("product_codes", promoRaw.subscription_product_codes);
+    if (matchingCourses?.length) {
+      const { count } = await supabase
+        .from("enrollments")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .in("course_id", matchingCourses.map((c) => c.id));
+      if ((count ?? 0) > 0) annualPromo = null;
+    }
+  }
 
   const navItems: NavItem[] = (menuItemsRaw ?? []).map((i) => {
     let href = i.url;

@@ -20,6 +20,7 @@ export type AnnualPromo = {
   modal_title: string;
   modal_desc: string;
   button_text: string;
+  subscription_product_codes: string[];
 };
 
 export async function saveAnnualPromo(data: Omit<AnnualPromo, "id">): Promise<{ error?: string }> {
