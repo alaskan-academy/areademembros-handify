@@ -288,7 +288,7 @@ function HorizontalRow({
       const canScroll = el.scrollWidth > el.clientWidth;
       if (!canScroll) return;
       e.preventDefault();
-      el.scrollLeft += e.deltaY !== 0 ? e.deltaY : e.deltaX;
+      el.scrollLeft += (e.deltaY !== 0 ? e.deltaY : e.deltaX) * 3;
     }
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
