@@ -9,6 +9,7 @@ interface Props { promo: AnnualPromo }
 
 export default function AnnualPromoClient({ promo: initial }: Props) {
   const [form, setForm] = useState(initial);
+  const [codesText, setCodesText] = useState((initial.subscription_product_codes ?? []).join("\n"));
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -21,7 +22,8 @@ export default function AnnualPromoClient({ promo: initial }: Props) {
 
   function handleSave() {
     startTransition(async () => {
-      const { id: _, ...data } = form;
+      const codes = codesText.split("\n").map((s) => s.trim()).filter(Boolean);
+      const { id: _, ...data } = { ...form, subscription_product_codes: codes };
       const result = await saveAnnualPromo(data);
       if (result.error) { setError(result.error); return; }
       setError(null);
@@ -144,8 +146,8 @@ export default function AnnualPromoClient({ promo: initial }: Props) {
             <span className="text-muted-foreground">(oculta a barra para quem já assinou)</span>
           </label>
           <textarea
-            value={(form.subscription_product_codes ?? []).join("\n")}
-            onChange={(e) => set("subscription_product_codes", e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))}
+            value={codesText}
+            onChange={(e) => setCodesText(e.target.value)}
             placeholder={"ABC123\nDEF456"}
             rows={4}
             className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
