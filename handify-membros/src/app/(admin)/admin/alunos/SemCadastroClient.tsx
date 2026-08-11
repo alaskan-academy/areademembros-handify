@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Pencil,
   Check,
+  Link2,
 } from "lucide-react";
 import { resendActivationAction, correctEmailAction } from "./resend-actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
@@ -115,6 +116,19 @@ export default function SemCadastroClient({
 
 // ── Linha da tabela ───────────────────────────────────────────────────────────
 
+function useCopyLink(email: string) {
+  const [copied, setCopied] = useState(false);
+  function copy(e: React.MouseEvent) {
+    e.stopPropagation();
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin;
+    navigator.clipboard.writeText(`${base}/cadastro/${encodeURIComponent(email)}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return { copied, copy };
+}
+
 function TableRow({
   row,
   onSelect,
@@ -125,6 +139,7 @@ function TableRow({
   const [pending, startTransition] = useTransition();
   const [sent, setSent] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const { copied, copy } = useCopyLink(row.email);
 
   const now = new Date();
   const allExpired = row.courses.every((c) => new Date(c.expires_at) < now);
@@ -222,6 +237,14 @@ function TableRow({
             </span>
           )}
           <button
+            onClick={copy}
+            title="Copiar link de cadastro"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-border text-muted-foreground hover:border-[#6699F3]/50 hover:text-[#6699F3] transition-colors whitespace-nowrap"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-[#72CF92]" /> : <Link2 className="w-3.5 h-3.5" />}
+            {copied ? "Copiado!" : "Copiar link"}
+          </button>
+          <button
             onClick={handleResend}
             disabled={pending}
             title="Reenviar e-mail de ativação"
@@ -247,6 +270,8 @@ function DetailModal({
   row: SemCadastroRow;
   onClose: () => void;
 }) {
+  const { copied: linkCopied, copy: copyLink } = useCopyLink(row.email);
+
   // reenvio
   const [resendPending, startResendTransition] = useTransition();
   const [resendResult, setResendResult] = useState<{ sent?: number; error?: string } | null>(null);
@@ -452,14 +477,23 @@ function DetailModal({
           {resendResult?.error && (
             <p className="text-center text-xs text-red-500">{resendResult.error}</p>
           )}
-          <button
-            onClick={handleResend}
-            disabled={resendPending}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${resendPending ? "animate-spin" : ""}`} />
-            {resendPending ? "Enviando…" : "Reenviar link de ativação"}
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={copyLink}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl border border-border text-foreground hover:border-[#6699F3]/50 hover:text-[#6699F3] transition-colors"
+            >
+              {linkCopied ? <Check className="w-4 h-4 text-[#72CF92]" /> : <Link2 className="w-4 h-4" />}
+              {linkCopied ? "Copiado!" : "Copiar link"}
+            </button>
+            <button
+              onClick={handleResend}
+              disabled={resendPending}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${resendPending ? "animate-spin" : ""}`} />
+              {resendPending ? "Enviando…" : "Reenviar e-mail"}
+            </button>
+          </div>
           <p className="text-center text-[11px] text-muted-foreground">
             Um e-mail por curso · Links expirados são renovados
           </p>

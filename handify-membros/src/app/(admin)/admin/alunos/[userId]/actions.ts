@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { z } from "zod";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
-import { sendAccessConfirmedEmail } from "@/lib/email";
+import { sendAccessConfirmedEmail, sendLoginReminderEmail } from "@/lib/email";
 
 async function getAdminId(): Promise<string> {
   const supabase = await createClient();
@@ -409,6 +409,48 @@ export async function grantMultipleAccessAction(
   return {
     success: `${granted} curso${granted !== 1 ? "s" : ""} liberado${granted !== 1 ? "s" : ""} com sucesso.${skipped > 0 ? ` (${skipped} já tinham acesso)` : ""}`,
   };
+}
+
+// ─── Reenviar email de acesso (aluna com conta) ───────────────────────────────
+
+export async function resendAccessEmailAction(
+  userId: string
+): Promise<{ error?: string; success?: boolean }> {
+  let adminId: string;
+  try {
+    adminId = await getAdminId();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const service = createServiceClient();
+  const { data: profile } = await service
+    .from("profiles")
+    .select("email, full_name")
+    .eq("id", userId)
+    .single();
+
+  if (!profile?.email) return { error: "Perfil não encontrado." };
+
+  try {
+    await sendLoginReminderEmail({
+      to: profile.email,
+      studentName: profile.full_name ?? profile.email,
+    });
+  } catch (e) {
+    console.error("[resendAccess] email error:", e);
+    return { error: "Erro ao enviar e-mail. Tente novamente." };
+  }
+
+  await service.from("audit_log").insert({
+    admin_id: adminId,
+    action: "resend_access_email",
+    target_type: "user",
+    target_id: userId,
+    meta: { email: profile.email },
+  });
+
+  return { success: true };
 }
 
 // ─── Atualizar e-mail ─────────────────────────────────────────────────────────

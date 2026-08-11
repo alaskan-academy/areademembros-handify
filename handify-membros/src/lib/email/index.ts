@@ -404,6 +404,51 @@ export async function sendRefundEmail({
   }
 }
 
+// ─── Lembrete de acesso (aluna com conta que não sabe acessar) ───────────────
+
+export async function sendLoginReminderEmail({
+  to,
+  studentName,
+}: {
+  to: string;
+  studentName: string;
+}): Promise<void> {
+  const firstName = studentName.split(" ")[0];
+  const loginUrl = `${appUrl()}/login`;
+
+  const { error } = await getResend().emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to,
+    subject: "Como acessar sua conta na Handify™",
+    html: emailWrapper(`
+      <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+        Olá, ${firstName}! 👋
+      </h1>
+      <p style="color:#2D2D2D;font-size:16px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Sua conta na Handify já está ativa e seus cursos estão esperando por você!
+      </p>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 8px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Para acessar:
+      </p>
+      <ol style="color:#555555;font-size:15px;line-height:1.8;margin:0 0 28px;padding-left:20px;font-family:Arial,Helvetica,sans-serif;">
+        <li>Clique no botão abaixo</li>
+        <li>Digite seu e-mail: <strong>${to}</strong></li>
+        <li>Digite sua senha e clique em Entrar</li>
+      </ol>
+      ${ctaButton(loginUrl, "Acessar minha conta")}
+      <p style="color:#888888;font-size:13px;line-height:1.6;margin:0;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Esqueceu a senha? Use a opção "Esqueci minha senha" na tela de login.
+      </p>
+      ${supportBlock()}
+    `),
+  });
+
+  if (error) {
+    console.error("[email] login reminder error:", error);
+  }
+}
+
 // ─── Novo post no feed de notícias ────────────────────────────────────────────
 
 export async function sendNewsPostEmail({

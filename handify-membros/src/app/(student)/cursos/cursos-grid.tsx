@@ -35,7 +35,8 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
     return true;
   });
 
-  const enrolled = filtered.filter((c) => c.isEnrolled);
+  const enrolledCourses = filtered.filter((c) => c.isEnrolled && c.course_type === "course");
+  const enrolledMaterials = filtered.filter((c) => c.isEnrolled && c.course_type === "material");
   const exploreCourses = filtered.filter((c) => !c.isEnrolled && c.course_type === "course");
   const exploreMaterials = filtered.filter((c) => !c.isEnrolled && c.course_type === "material");
 
@@ -193,7 +194,15 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
       <HorizontalRow
         title="Meus cursos"
         icon={<CheckCircle className="w-4 h-4 text-[#6699F3]" />}
-        courses={enrolled}
+        courses={enrolledCourses}
+        onSelect={setSelected}
+      />
+
+      {/* Meus materiais didáticos */}
+      <HorizontalRow
+        title="Meus Materiais Didáticos"
+        icon={<BookOpen className="w-4 h-4 text-amber-600" />}
+        courses={enrolledMaterials}
         onSelect={setSelected}
       />
 

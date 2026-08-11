@@ -25,6 +25,8 @@ import {
   NotebookPen,
   Save,
   Search,
+  RefreshCw,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -33,6 +35,7 @@ import {
   toggleBanAction,
   updateProfileAction,
   grantMultipleAccessAction,
+  resendAccessEmailAction,
 } from "./actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import ActivityTab, { type ActivityItem } from "@/components/admin/alunos/ActivityTab";
@@ -114,6 +117,18 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
   const [profileState, profileAction, profilePending] = useActionState(updateProfileAction, {});
   useModalBackGuard(editingProfile, () => setEditingProfile(false));
 
+  const [resendEmailPending, startResendEmailTransition] = useTransition();
+  const [resendEmailResult, setResendEmailResult] = useState<"sent" | "error" | null>(null);
+
+  function handleResendAccessEmail() {
+    startResendEmailTransition(async () => {
+      setResendEmailResult(null);
+      const res = await resendAccessEmailAction(profile.id);
+      setResendEmailResult(res.error ? "error" : "sent");
+      setTimeout(() => setResendEmailResult(null), 4000);
+    });
+  }
+
   const [courseSearch, setCourseSearch] = useState("");
   const searchLower = courseSearch.toLowerCase();
   const enrolledCourses = courses.filter(
@@ -157,7 +172,24 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
             {profile.email ?? "—"}
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+          {resendEmailResult === "sent" && (
+            <span className="flex items-center gap-1 text-xs text-[#72CF92] font-medium">
+              <Check className="w-3.5 h-3.5" /> E-mail enviado
+            </span>
+          )}
+          {resendEmailResult === "error" && (
+            <span className="text-xs text-red-500">Erro ao enviar</span>
+          )}
+          <button
+            onClick={handleResendAccessEmail}
+            disabled={resendEmailPending}
+            title="Enviar e-mail com instruções de acesso"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-[#6699F3]/40 text-[#6699F3] hover:bg-[#6699F3]/10 disabled:opacity-50"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", resendEmailPending && "animate-spin")} />
+            {resendEmailPending ? "Enviando…" : "Reenviar acesso"}
+          </button>
           {banned && (
             <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
               Banida

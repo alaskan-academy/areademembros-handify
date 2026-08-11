@@ -293,13 +293,13 @@ async function issueCertificateIfComplete(
       .single(),
     supabase
       .from("courses")
-      .select("title, workload_hours, has_certificate")
+      .select("title, workload_hours, has_certificate, course_type")
       .eq("id", courseId)
       .single(),
   ]);
 
   if (!profile || !course) return false;
-  if (!course.has_certificate) return false;
+  if (!course.has_certificate || course.course_type !== "course") return false;
 
   // Descriptografa CPF se disponível
   let cpfFormatted: string | null = null;
@@ -357,15 +357,26 @@ async function issueCertificateIfComplete(
     return false;
   }
 
-  // Envia e-mail de parabéns
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://membros.handify.com.br";
-  await sendCertificateEmail({
-    to: profile.email,
-    studentName: profile.full_name ?? "Aluna",
-    courseTitle: course.title,
-    profileUrl: `${appUrl}/perfil`,
-  }).catch((err) => console.error("[cert] email error:", err));
+  // Cooldown: não envia email se outro certificado foi emitido nos últimos 90s
+  // (evita rafada quando a aluna conclui vários cursos em sequência)
+  const cooldownThreshold = new Date(Date.now() - 90_000).toISOString();
+  const { count: recentCerts } = await serviceClient
+    .from("certificates")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .neq("course_id", courseId)
+    .gte("issued_at", cooldownThreshold);
+
+  if ((recentCerts ?? 0) === 0) {
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ?? "https://membros.handify.com.br";
+    await sendCertificateEmail({
+      to: profile.email,
+      studentName: profile.full_name ?? "Aluna",
+      courseTitle: course.title,
+      profileUrl: `${appUrl}/perfil`,
+    }).catch((err) => console.error("[cert] email error:", err));
+  }
 
   return true;
 }
