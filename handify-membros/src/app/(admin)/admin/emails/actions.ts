@@ -54,9 +54,10 @@ export async function sendTestEmail(
         await sendReengagementEmail({
           to,
           studentName: "Ana Teste",
-          courseTitle: "Macramê do Zero",
-          courseSlug: "macrame-do-zero",
-          progressPercent: 45,
+          courses: [
+            { title: "Macramê do Zero", slug: "macrame-do-zero", progressPercent: 45 },
+            { title: "Crochê Avançado", slug: "croche-avancado", progressPercent: 72 },
+          ],
         });
         break;
       case "new_course":

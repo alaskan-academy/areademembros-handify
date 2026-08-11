@@ -265,41 +265,67 @@ export async function sendCertificateEmail({
 
 // ─── Lembrete de reengajamento (7 dias sem acesso) ────────────────────────────
 
+export type ReengagementCourse = {
+  title: string;
+  slug: string;
+  progressPercent: number;
+};
+
 export async function sendReengagementEmail({
   to,
   studentName,
-  courseTitle,
-  courseSlug,
-  progressPercent,
+  courses,
 }: {
   to: string;
   studentName: string;
-  courseTitle: string;
-  courseSlug: string;
-  progressPercent: number;
+  courses: ReengagementCourse[];
 }): Promise<void> {
+  if (!courses.length) return;
+
   const firstName = studentName.split(" ")[0];
-  const courseUrl = `${appUrl()}/cursos/${courseSlug}`;
-  const pct = Math.round(progressPercent);
+  const base = appUrl();
+  const isMultiple = courses.length > 1;
+
+  const subject = isMultiple
+    ? `${firstName}, seus cursos estão te esperando! 🌟`
+    : `${firstName}, seu curso te espera! Você já está ${Math.round(courses[0].progressPercent)}% lá 🌟`;
+
+  const coursesBlock = courses
+    .map((c) => {
+      const pct = Math.round(c.progressPercent);
+      const url = `${base}/cursos/${c.slug}`;
+      return `
+        <div style="background-color:#F5F5F0;border-radius:10px;padding:16px;margin-bottom:14px;">
+          <p style="color:#2D2D2D;font-size:15px;font-weight:700;margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;">
+            ${c.title}
+          </p>
+          ${progressBar(pct)}
+          <p style="margin:0 0 12px;font-size:13px;color:#666666;font-family:Arial,Helvetica,sans-serif;">
+            ${pct}% concluído
+          </p>
+          ${ctaButton(url, "Continuar")}
+        </div>
+      `;
+    })
+    .join("");
+
+  const intro = isMultiple
+    ? `Faz alguns dias que você não acessa seus cursos. Dá uma olhada no que está te esperando:`
+    : `Faz alguns dias que você não acessa o curso abaixo. Você já está tão perto — continue de onde parou!`;
 
   const { error } = await getResend().emails.send({
     from: FROM,
     replyTo: REPLY_TO,
     to,
-    subject: `${firstName}, seu curso te espera! Você já está ${pct}% lá 🌟`,
+    subject,
     html: emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
         Olá, ${firstName}! Sentimos sua falta 💛
       </h1>
-      <p style="color:#2D2D2D;font-size:16px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        Faz alguns dias que você não acessa o curso <strong>${courseTitle}</strong>.
-        Você já completou <strong>${pct}%</strong> — está tão perto!
-      </p>
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 20px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        Continue de onde parou e mantenha o ritmo. Cada passo da jornada conta.
+        ${intro}
       </p>
-      ${progressBar(pct)}
-      ${ctaButton(courseUrl, "Continuar curso")}
+      ${coursesBlock}
       ${supportBlock()}
     `),
   });

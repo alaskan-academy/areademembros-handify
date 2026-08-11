@@ -357,26 +357,14 @@ async function issueCertificateIfComplete(
     return false;
   }
 
-  // Cooldown: não envia email se outro certificado foi emitido nos últimos 90s
-  // (evita rafada quando a aluna conclui vários cursos em sequência)
-  const cooldownThreshold = new Date(Date.now() - 90_000).toISOString();
-  const { count: recentCerts } = await serviceClient
-    .from("certificates")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .neq("course_id", courseId)
-    .gte("issued_at", cooldownThreshold);
-
-  if ((recentCerts ?? 0) === 0) {
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ?? "https://membros.handify.com.br";
-    await sendCertificateEmail({
-      to: profile.email,
-      studentName: profile.full_name ?? "Aluna",
-      courseTitle: course.title,
-      profileUrl: `${appUrl}/perfil`,
-    }).catch((err) => console.error("[cert] email error:", err));
-  }
+  const certAppUrl =
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://membros.handify.com.br";
+  await sendCertificateEmail({
+    to: profile.email,
+    studentName: profile.full_name ?? "Aluna",
+    courseTitle: course.title,
+    profileUrl: `${certAppUrl}/perfil`,
+  }).catch((err) => console.error("[cert] email error:", err));
 
   return true;
 }
