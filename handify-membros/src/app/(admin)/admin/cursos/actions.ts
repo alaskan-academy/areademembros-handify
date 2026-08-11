@@ -317,3 +317,100 @@ export async function deleteCourse(courseId: string): Promise<void> {
   revalidatePath("/admin/cursos");
   redirect("/admin/cursos");
 }
+
+// ─── Matrícula retroativa ─────────────────────────────────────────────────────
+
+/**
+ * Concede acesso ao curso para todas as alunas que já pagaram por qualquer
+ * um dos product_codes configurados no curso mas ainda não têm matrícula.
+ * Também consome activation_tokens não utilizados para esses cursos/e-mails.
+ */
+export async function retroactiveEnroll(
+  courseId: string
+): Promise<{ count: number; error?: string }> {
+  await assertAdmin();
+  const service = createServiceClient();
+
+  // 1. Pegar product_codes e access_days do curso
+  const { data: course } = await service
+    .from("courses")
+    .select("product_codes, access_days")
+    .eq("id", courseId)
+    .single();
+
+  if (!course?.product_codes?.length) {
+    return { count: 0, error: "Curso sem product codes configurados." };
+  }
+
+  const grantStatuses = ["paid", "approved", "completed", "confirmed"];
+
+  // 2. Buscar e-mails de quem pagou por qualquer product_code do curso
+  const { data: events, error: evErr } = await service
+    .from("payment_events")
+    .select("buyer_email")
+    .in("product_code", course.product_codes as string[])
+    .in("event_type", grantStatuses)
+    .eq("processed", true);
+
+  if (evErr) return { count: 0, error: evErr.message };
+  if (!events?.length) return { count: 0 };
+
+  const emails = [...new Set(events.map((e) => e.buyer_email.toLowerCase()))];
+
+  // 3. Buscar perfis dessas alunas (só quem já criou conta)
+  const { data: profiles } = await service
+    .from("profiles")
+    .select("id")
+    .in("email", emails);
+
+  if (!profiles?.length) return { count: 0 };
+
+  const userIds = profiles.map((p) => p.id);
+
+  // 4. Checar quem já tem matrícula ativa (sem expiração ou expirada no futuro)
+  const { data: existing } = await service
+    .from("enrollments")
+    .select("user_id")
+    .eq("course_id", courseId)
+    .in("user_id", userIds);
+
+  const enrolledSet = new Set(existing?.map((e) => e.user_id) ?? []);
+  const toEnroll = userIds.filter((id) => !enrolledSet.has(id));
+
+  if (!toEnroll.length) return { count: 0 };
+
+  // 5. Calcular expiração (null = vitalício)
+  const expiresAt = course.access_days
+    ? (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + (course.access_days as number));
+        return d.toISOString();
+      })()
+    : null;
+
+  const now = new Date().toISOString();
+
+  const { error: insertErr } = await service.from("enrollments").insert(
+    toEnroll.map((userId) => ({
+      user_id: userId,
+      course_id: courseId,
+      source: "payt",
+      granted_at: now,
+      expires_at: expiresAt,
+    }))
+  );
+
+  if (insertErr) return { count: 0, error: insertErr.message };
+
+  // 6. Marcar activation_tokens pendentes desse curso/e-mails como usados
+  await service
+    .from("activation_tokens")
+    .update({ used: true })
+    .eq("course_id", courseId)
+    .in("email", emails)
+    .eq("used", false);
+
+  revalidatePath("/admin/cursos");
+
+  return { count: toEnroll.length };
+}

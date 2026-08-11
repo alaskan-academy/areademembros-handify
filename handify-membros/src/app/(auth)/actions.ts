@@ -57,7 +57,7 @@ export async function loginAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { error, data } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
     if (error.message.includes("Invalid login credentials")) {
@@ -67,6 +67,12 @@ export async function loginAction(
       return { error: "Confirme seu e-mail antes de entrar." };
     }
     return { error: "Erro ao entrar. Tente novamente." };
+  }
+
+  // Consome tokens de ativação não utilizados (ex: comprou, criou conta, mas
+  // grantPendingEnrollments não concluiu por freeze serverless no cadastro)
+  if (data.user?.id) {
+    await grantPendingEnrollments(parsed.data.email.toLowerCase(), data.user.id);
   }
 
   redirect("/cursos");
@@ -172,9 +178,9 @@ export async function cadastroAction(
     }
 
     // Concede matrículas pendentes de compras feitas antes do cadastro
-    grantPendingEnrollments(emailLower, userId).catch(
-      (e) => console.error("[cadastro] pending enrollments:", e)
-    );
+    // DEVE ser aguardado antes do redirect — no Vercel serverless a função é
+    // congelada ao retornar, matando o loop de tokens se for fire-and-forget.
+    await grantPendingEnrollments(emailLower, userId);
   }
 
   // Envia boas-vindas apenas para quem não tinha compra prévia

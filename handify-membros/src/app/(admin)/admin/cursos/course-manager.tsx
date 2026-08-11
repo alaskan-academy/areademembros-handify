@@ -8,7 +8,7 @@ import {
   createCourse, updateCourse, togglePublished, deleteCourse,
   uploadCourseThumbnail, createCategory, updateCategory, deleteCategory,
   createNiche, updateNiche, deleteNiche,
-  reorderCourses,
+  reorderCourses, retroactiveEnroll,
 } from "./actions";
 import { formatPrice } from "@/lib/format";
 import Image from "next/image";
@@ -549,6 +549,48 @@ function SectionDivider({ label }: { label: string }) {
   );
 }
 
+// ─── Botão de matrícula retroativa ───────────────────────────────────────────
+
+function RetroactiveEnrollButton({ courseId }: { courseId: string }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [count, setCount] = useState(0);
+  const [errMsg, setErrMsg] = useState("");
+
+  async function handleClick() {
+    if (!confirm("Conceder acesso retroativo a todas as alunas que já compraram este curso e ainda não têm matrícula?")) return;
+    setStatus("loading");
+    try {
+      const result = await retroactiveEnroll(courseId);
+      if (result.error) { setErrMsg(result.error); setStatus("error"); return; }
+      setCount(result.count);
+      setStatus("done");
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : "Erro desconhecido");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={status === "loading"}
+        className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border border-[#6699F3]/40 text-[#6699F3] hover:bg-[#6699F3]/8 transition-colors disabled:opacity-50"
+      >
+        {status === "loading" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+        Conceder acesso retroativo
+      </button>
+      {status === "done" && (
+        <span className="text-xs text-emerald-600">
+          {count === 0 ? "Todas já têm acesso ✓" : `${count} matrícula(s) concedida(s) ✓`}
+        </span>
+      )}
+      {status === "error" && <span className="text-xs text-red-600">{errMsg}</span>}
+    </div>
+  );
+}
+
 // ─── Formulário de curso ──────────────────────────────────────────────────────
 
 function CourseForm({
@@ -709,6 +751,8 @@ function CourseForm({
       </div>
 
       <ProductCodesInput defaultCodes={initial?.product_codes ?? []} />
+
+      {courseId && <RetroactiveEnrollButton courseId={courseId} />}
 
       {/* ── Vendas ─── */}
       <SectionDivider label="Vendas" />
