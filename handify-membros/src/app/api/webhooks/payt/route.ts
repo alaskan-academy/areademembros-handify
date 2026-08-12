@@ -126,32 +126,44 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   const user = profileRow ? { id: profileRow.id } : null;
 
-  // 8. Sem conta ainda — cria token de ativação por curso e envia e-mail
+  // 8. Sem conta ainda — cria token de ativação por curso (paralelo) e envia 1 único e-mail
   if (!user) {
     if (action === "grant") {
-      for (const course of courses) {
-        const { data: tokenRow } = await supabase
-          .from("activation_tokens")
-          .insert({
-            email: buyerEmail.toLowerCase(),
-            course_id: course.id,
-            buyer_name: buyerName ?? null,
-            buyer_phone: payload.customer.phone?.trim() ?? null,
-          })
-          .select("token")
-          .single();
+      // Cria todos os tokens em paralelo
+      const tokenResults = await Promise.all(
+        courses.map((course) =>
+          supabase
+            .from("activation_tokens")
+            .insert({
+              email: buyerEmail.toLowerCase(),
+              course_id: course.id,
+              buyer_name: buyerName ?? null,
+              buyer_phone: payload.customer.phone?.trim() ?? null,
+            })
+            .select("token")
+            .single()
+            .then(({ data }) => ({ course, token: data?.token ?? null }))
+        )
+      );
 
-        if (tokenRow?.token) {
-          await sendAccessConfirmedEmail({
-            to: buyerEmail,
-            studentName: buyerName || buyerEmail,
-            courseTitle: course.title,
-            courseSlug: course.slug,
-            activationToken: tokenRow.token,
-          });
-        }
+      // Usa o token do curso principal (ou primeiro disponível) para o e-mail de ativação
+      const mainCourse =
+        courses.find((c) => (c.product_codes as string[])?.includes(mainProductCode)) ?? courses[0];
+      const mainTokenResult = tokenResults.find((r) => r.course.id === mainCourse.id);
+      const activationToken = mainTokenResult?.token ?? tokenResults.find((r) => r.token)?.token;
+
+      if (activationToken) {
+        await sendAccessConfirmedEmail({
+          to: buyerEmail,
+          studentName: buyerName || buyerEmail,
+          courseTitle: mainCourse.title,
+          courseSlug: mainCourse.slug,
+          activationToken,
+          totalCourses: courses.length,
+        });
       }
-      console.info(`[payt-webhook] ${courses.length} token(s) de ativação criados para ${buyerEmail}`);
+
+      console.info(`[payt-webhook] ${courses.length} token(s) criados, 1 e-mail enviado para ${buyerEmail}`);
     }
 
     await logPaymentEvent(supabase, {

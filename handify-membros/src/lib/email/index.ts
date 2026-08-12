@@ -184,36 +184,51 @@ export async function sendAccessConfirmedEmail({
   courseTitle,
   courseSlug,
   activationToken,
+  totalCourses = 1,
 }: {
   to: string;
   studentName: string;
   courseTitle: string;
   courseSlug: string;
   activationToken?: string;
+  totalCourses?: number;
 }): Promise<void> {
   const firstName = studentName.split(" ")[0];
+  const isPackage = totalCourses > 1;
   const courseUrl = activationToken
     ? `${appUrl()}/ativar/${activationToken}`
     : `${appUrl()}/cursos/${courseSlug}`;
+
+  const subject = isPackage
+    ? `Seu acesso foi liberado! ${totalCourses} cursos disponíveis 🎉`
+    : `Seu acesso ao curso "${courseTitle}" foi liberado!`;
+
+  const bodyTitle = isPackage
+    ? `${totalCourses} cursos liberados para você!`
+    : `${courseTitle}`;
+
+  const bodyIntro = isPackage
+    ? `Sua compra foi confirmada e todos os <strong>${totalCourses} cursos</strong> já estão disponíveis na sua conta!`
+    : `Sua compra foi confirmada e o curso <strong>${courseTitle}</strong> já está disponível para você!`;
 
   const { error } = await getResend().emails.send({
     from: FROM,
     replyTo: REPLY_TO,
     to,
-    subject: `Seu acesso ao curso "${courseTitle}" foi liberado!`,
+    subject,
     html: emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
         Acesso liberado, ${firstName}! 🎉
       </h1>
       <p style="color:#2D2D2D;font-size:16px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        Sua compra foi confirmada e o curso <strong>${courseTitle}</strong> já está disponível para você!
+        ${bodyIntro}
       </p>
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 28px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
         ${activationToken
           ? `Clique no botão abaixo para criar sua senha e acessar a plataforma. O link é pessoal e expira em <strong>30 dias</strong>.<br><span style="color:#888888;font-size:14px;">Passado esse prazo, basta entrar em contato com nossa equipe de suporte para solicitar um novo link de acesso.</span>`
           : "Clique no botão abaixo para acessar o curso. Bons estudos!"}
       </p>
-      ${ctaButton(courseUrl, activationToken ? "Criar minha conta e acessar" : "Acessar o curso")}
+      ${ctaButton(courseUrl, activationToken ? "Criar minha conta e acessar" : `Acessar ${isPackage ? "meus cursos" : "o curso"}`)}
       ${supportBlock()}
     `),
   });
