@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MessageSquare, Users, ChevronRight } from "lucide-react";
+import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
+import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
 
 export const metadata = { title: "Comunidade — Handify" };
 
@@ -37,7 +39,7 @@ export default async function ForumLandingPage() {
     ];
   }
 
-  const [{ data: forums }, { data: postCountsRaw }] = await Promise.all([
+  const [{ data: forums }, { data: postCountsRaw }, profileResult] = await Promise.all([
     forumIds.length > 0
       ? supabase
           .from("forums")
@@ -51,7 +53,11 @@ export default async function ForumLandingPage() {
       .select("forum_id")
       .eq("approved", true)
       .not("forum_id", "is", null),
+    supabase.from("profiles").select("visited_sections").eq("id", user.id).single(),
   ]);
+
+  const visitedSections = ((profileResult as { data: { visited_sections?: Record<string, boolean> } | null })?.data?.visited_sections) ?? {};
+  const forumSection = ONBOARDING_SECTIONS.find((s) => s.id === "forum")!;
 
   const postCounts: Record<string, number> = {};
   for (const p of postCountsRaw ?? []) {
@@ -76,6 +82,7 @@ export default async function ForumLandingPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {!visitedSections["forum"] && <SectionWelcomeBanner section={forumSection} />}
       {(forums ?? []).length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />

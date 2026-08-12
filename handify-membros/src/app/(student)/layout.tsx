@@ -38,7 +38,7 @@ export default async function StudentLayout({
   const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }, { data: promoRaw }] =
     await Promise.all([
       user
-        ? supabase.from("profiles").select("full_name, avatar_url, role, terms_accepted_at").eq("id", user.id).single()
+        ? supabase.from("profiles").select("full_name, avatar_url, role, terms_accepted_at, visited_sections").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
       user ? getNotifications(user.id, 30) : Promise.resolve([]),
       user ? getUnreadCount(user.id) : Promise.resolve(0),
@@ -111,6 +111,7 @@ export default async function StudentLayout({
             navItems={navItems}
             role={(profile?.role ?? "student") as Role}
             fullName={profile?.full_name ?? ""}
+            visitedSections={(profile?.visited_sections as Record<string, boolean>) ?? {}}
           />
         )}
         <main className="flex-1 min-w-0 overflow-x-hidden pb-20 landscape:pb-0 md:pb-0">{children}</main>

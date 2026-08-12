@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
 import { InspiracaoFeed } from '@/components/inspiracoes/InspiracaoFeed'
+import SectionWelcomeBanner from '@/components/onboarding/SectionWelcomeBanner'
+import { ONBOARDING_SECTIONS } from '@/lib/onboarding/sections'
 
 export const metadata = { title: 'Inspirações — Handify' }
 
@@ -14,19 +16,15 @@ export default async function InspiracoesPage() {
   if (!user) redirect('/login')
 
   const service = createServiceClient()
-  const [page, { data: coursesRaw }, { data: categoriesRaw }] = await Promise.all([
+  const [page, { data: coursesRaw }, { data: categoriesRaw }, { data: profileData }] = await Promise.all([
     getInspiracoesFeed(user.id),
-    service
-      .from('courses')
-      .select('id, title')
-      .eq('published', true)
-      .eq('course_type', 'course')
-      .order('title'),
-    service
-      .from('categories')
-      .select('id, name, slug')
-      .order('name'),
+    service.from('courses').select('id, title').eq('published', true).eq('course_type', 'course').order('title'),
+    service.from('categories').select('id, name, slug').order('name'),
+    supabase.from('profiles').select('visited_sections').eq('id', user.id).single(),
   ])
+
+  const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {}
+  const inspiracoesSection = ONBOARDING_SECTIONS.find((s) => s.id === 'inspiracoes')!
   const courses = (coursesRaw ?? []) as { id: string; title: string }[]
   const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
 
@@ -55,6 +53,7 @@ export default async function InspiracoesPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {!visitedSections['inspiracoes'] && <SectionWelcomeBanner section={inspiracoesSection} />}
         <InspiracaoFeed
           userId={user.id}
           initialPosts={page.posts}

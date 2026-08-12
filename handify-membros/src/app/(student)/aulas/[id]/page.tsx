@@ -10,6 +10,8 @@ import NextLessonButton from "@/components/player/NextLessonButton";
 import BannerDisplay from "@/components/banner/BannerDisplay";
 import { LessonSidebarDesktop } from "@/components/lesson/LessonSidebar";
 import { LessonBottomSheet } from "@/components/lesson/LessonBottomSheet";
+import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
+import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
 
 type CourseRef = { id: string; title: string; slug: string };
 type LessonModule = { id: string; title: string; position: number; course_id: string; course: CourseRef };
@@ -45,6 +47,7 @@ export default async function LessonPage({
   let courseModules: ModuleWithLessons[] = [];
   let completedSet = new Set<string>();
 
+  let showAulasBanner = false;
   if (user && mod?.course_id) {
     const [progressResult, modulesResult] = await Promise.all([
       supabase
@@ -79,6 +82,14 @@ export default async function LessonPage({
         .in("lesson_id", allLessonIds);
       completedSet = new Set(allProgress?.map((p) => p.lesson_id) ?? []);
     }
+
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("visited_sections")
+      .eq("id", user.id)
+      .single();
+    const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {};
+    showAulasBanner = !visitedSections["aulas"];
   }
 
   // Navegação prev/next no contexto do curso
@@ -155,6 +166,9 @@ export default async function LessonPage({
 
         {/* Coluna principal */}
         <div className="space-y-4 min-w-0">
+          {showAulasBanner && (
+            <SectionWelcomeBanner section={ONBOARDING_SECTIONS.find((s) => s.id === "aulas")!} />
+          )}
           {/* Breadcrumb */}
           {mod?.course && (
             <nav className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground flex-wrap">

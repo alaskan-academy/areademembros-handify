@@ -4,6 +4,9 @@ import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { CourseProgressCard, type CourseCardData } from "@/components/student/CourseProgressCard";
 import type { CourseMenuModule } from "@/components/student/CourseMenuModal";
+import { markSectionVisited } from "@/lib/onboarding/actions";
+import DiscoveryCard from "@/components/onboarding/DiscoveryCard";
+import PwaInstallCard from "@/components/onboarding/PwaInstallCard";
 
 type EnrolledCourse = {
   id: string;
@@ -25,7 +28,7 @@ export default async function MinhaJornadaPage() {
   const now = new Date().toISOString();
 
   const [{ data: profile }, { data: enrollments }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+    supabase.from("profiles").select("full_name, visited_sections").eq("id", user.id).single(),
     supabase
       .from("enrollments")
       .select("course:courses(id, slug, title, thumbnail_url, workload_hours), granted_at")
@@ -35,6 +38,10 @@ export default async function MinhaJornadaPage() {
   ]);
 
   const firstName = profile?.full_name?.split(" ")[0] || "aluna";
+  const visitedSections = (profile?.visited_sections as Record<string, boolean>) ?? {};
+
+  // Marca dashboard como visitado
+  markSectionVisited("dashboard").catch(() => {});
 
   const courses = (enrollments ?? [])
     .map((e) => e.course as unknown as EnrolledCourse | null)
@@ -189,6 +196,10 @@ export default async function MinhaJornadaPage() {
           Olá, {firstName}! Continue de onde parou ou comece algo novo.
         </p>
       </div>
+
+      {/* Onboarding: explorar a plataforma + instalar app */}
+      <DiscoveryCard visitedSections={visitedSections} />
+      <PwaInstallCard />
 
       {cards.length === 0 ? (
         <div className="handify-card p-12 text-center space-y-4">

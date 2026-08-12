@@ -4,6 +4,8 @@ import { formatPrice, formatDuration } from "@/lib/format";
 import CursosGrid from "./cursos-grid";
 import BannerDisplay from "@/components/banner/BannerDisplay";
 import MigradaBanner from "./MigradaBanner";
+import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
+import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
 
 export const revalidate = 60;
 
@@ -65,13 +67,20 @@ export default async function CursosPage({
   // apenas metadados. Necessário para que não-matriculadas vejam a estrutura completa.
   // Busca showcase, categorias e matrículas em paralelo para filtrar cursos logo após.
   const now = new Date().toISOString();
-  const [{ data: categoriesRaw }, { data: showcaseRaw }, enrollmentResult] = await Promise.all([
+  const [{ data: categoriesRaw }, { data: showcaseRaw }, enrollmentResult, profileResult] = await Promise.all([
     service.from("categories").select("id, name, slug").order("name"),
     service.from("showcase_courses").select("course_id, sales_video_panda_id").eq("active", true),
     user
       ? supabase.from("enrollments").select("course_id").eq("user_id", user.id).or(`expires_at.is.null,expires_at.gt.${now}`)
       : Promise.resolve({ data: null }),
+    user
+      ? supabase.from("profiles").select("visited_sections").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
   ]);
+
+  const visitedSections = (profileResult?.data?.visited_sections as Record<string, boolean>) ?? {};
+  const cursosSection = ONBOARDING_SECTIONS.find((s) => s.id === "cursos")!;
+  const showCursosBanner = user && !visitedSections["cursos"];
 
   const categories: CatalogCategory[] = (categoriesRaw ?? []) as CatalogCategory[];
   const showcaseMap = Object.fromEntries(
@@ -274,6 +283,7 @@ export default async function CursosPage({
 
       {/* Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {showCursosBanner && <SectionWelcomeBanner section={cursosSection} />}
         <CursosGrid
           courses={courses}
           categories={categories}

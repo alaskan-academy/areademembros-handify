@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FeedPostCard, { type FeedPostData } from "@/components/community/FeedPostCard";
 import { Newspaper } from "lucide-react";
+import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
+import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
 
 export const metadata = { title: "Avisos — Handify" };
 
@@ -10,7 +12,7 @@ export default async function FeedPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [postsResult, allLikesResult, userLikesResult] = await Promise.all([
+  const [postsResult, allLikesResult, userLikesResult, profileResult] = await Promise.all([
     supabase
       .from("news_posts")
       .select(`
@@ -31,7 +33,11 @@ export default async function FeedPage() {
       .select("target_id")
       .eq("target_type", "news_post")
       .eq("user_id", user.id),
+    supabase.from("profiles").select("visited_sections").eq("id", user.id).single(),
   ]);
+
+  const visitedSections = (profileResult?.data?.visited_sections as Record<string, boolean>) ?? {};
+  const feedSection = ONBOARDING_SECTIONS.find((s) => s.id === "feed")!;
 
   const likeCountMap = new Map<string, number>();
   (allLikesResult.data ?? []).forEach((l) => {
@@ -68,6 +74,7 @@ export default async function FeedPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {!visitedSections["feed"] && <SectionWelcomeBanner section={feedSection} />}
         {posts.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <Newspaper className="w-12 h-12 mx-auto mb-3 opacity-30" />
