@@ -203,10 +203,6 @@ export async function sendAccessConfirmedEmail({
     ? `Seu acesso foi liberado! ${totalCourses} cursos disponíveis 🎉`
     : `Seu acesso ao curso "${courseTitle}" foi liberado!`;
 
-  const bodyTitle = isPackage
-    ? `${totalCourses} cursos liberados para você!`
-    : `${courseTitle}`;
-
   const bodyIntro = isPackage
     ? `Sua compra foi confirmada e todos os <strong>${totalCourses} cursos</strong> já estão disponíveis na sua conta!`
     : `Sua compra foi confirmada e o curso <strong>${courseTitle}</strong> já está disponível para você!`;

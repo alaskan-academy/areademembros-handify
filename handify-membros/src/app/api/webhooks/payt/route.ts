@@ -295,6 +295,7 @@ export async function POST(req: NextRequest) {
         studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
         courseTitle: mainCourse.title,
         courseSlug: mainCourse.slug,
+        totalCourses: courses.length,
       });
     })().catch((e) => console.error("[payt-webhook] access email:", e));
   }
