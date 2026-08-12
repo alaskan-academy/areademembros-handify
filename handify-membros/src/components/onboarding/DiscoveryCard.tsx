@@ -9,7 +9,9 @@ interface Props {
 }
 
 export default function DiscoveryCard({ visitedSections }: Props) {
-  const pending = ONBOARDING_SECTIONS.filter((s) => !visitedSections[s.id]);
+  const pending = ONBOARDING_SECTIONS.filter(
+    (s) => !visitedSections[s.id] && !s.prefix
+  );
 
   if (pending.length === 0) return null;
 
