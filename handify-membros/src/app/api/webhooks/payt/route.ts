@@ -166,66 +166,60 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  // 9. Usuário existe — processar matrícula/revogação para cada curso
+  // 9. Usuário existe — processar matrícula/revogação para cada curso em paralelo
   const now = new Date().toISOString();
-  let processed = 0;
 
-  for (const course of courses) {
-    if (action === "grant") {
-      const expiresAt = calcExpiresAt(course.access_days as number | null);
-      const { error } = await supabase.from("enrollments").upsert(
-        {
-          user_id: user.id,
-          course_id: course.id,
-          source: "payt",
-          granted_at: now,
-          expires_at: expiresAt,
-        },
-        { onConflict: "user_id,course_id" }
-      );
-      if (error) {
-        console.error(`[payt-webhook] Erro ao matricular em ${course.id}:`, error.message);
-      } else {
-        processed++;
+  const results = await Promise.all(
+    courses.map(async (course) => {
+      if (action === "grant") {
+        const expiresAt = calcExpiresAt(course.access_days as number | null);
+        const { error } = await supabase.from("enrollments").upsert(
+          {
+            user_id: user.id,
+            course_id: course.id,
+            source: "payt",
+            granted_at: now,
+            expires_at: expiresAt,
+          },
+          { onConflict: "user_id,course_id" }
+        );
+        if (error) {
+          console.error(`[payt-webhook] Erro ao matricular em ${course.id}:`, error.message);
+          return false;
+        }
         console.info(`[payt-webhook] Matrícula concedida: user=${user.id} curso=${course.id} expires=${expiresAt ?? "vitalício"}`);
-      }
-    } else {
-      // revoke — marca matrícula como expirada agora
-      const { data: revoked, error } = await supabase
-        .from("enrollments")
-        .update({ expires_at: now })
-        .eq("user_id", user.id)
-        .eq("course_id", course.id)
-        .select("id");
+        return true;
+      } else {
+        // revoke — marca matrícula como expirada agora
+        const { data: revoked, error } = await supabase
+          .from("enrollments")
+          .update({ expires_at: now })
+          .eq("user_id", user.id)
+          .eq("course_id", course.id)
+          .select("id");
 
-      if (error) {
-        console.error(`[payt-webhook] Erro ao revogar ${course.id}:`, error.message);
-      } else if (revoked && revoked.length > 0) {
-        // Só loga e envia email se havia matrícula ativa para revogar
+        if (error) {
+          console.error(`[payt-webhook] Erro ao revogar ${course.id}:`, error.message);
+          return false;
+        }
+        if (!revoked?.length) {
+          console.info(`[payt-webhook] Revoke ignorado (sem matrícula ativa): user=${user.id} curso=${course.id} motivo=${payload.status}`);
+          return true;
+        }
         await supabase.from("audit_log").insert({
           admin_id: null,
           action: "enrollment.revoked",
           target_type: "enrollment",
           target_id: course.id,
-          meta: {
-            user_id: user.id,
-            course_id: course.id,
-            reason: payload.status,
-            transaction_id: payload.transaction_id,
-          },
+          meta: { user_id: user.id, course_id: course.id, reason: payload.status, transaction_id: payload.transaction_id },
         });
-        processed++;
         console.info(`[payt-webhook] Matrícula revogada: user=${user.id} curso=${course.id} motivo=${payload.status}`);
 
         // Email de reembolso só para estorno real (não para PIX expirado/cancelado sem pagamento)
         const isRealRefund = ["refunded", "chargeback"].includes(payload.status);
         if (isRealRefund) {
           ;(async () => {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("id", user.id)
-              .maybeSingle();
+            const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
             await sendRefundEmail({
               to: buyerEmail,
               studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
@@ -233,11 +227,12 @@ export async function POST(req: NextRequest) {
             });
           })().catch((e) => console.error("[payt-webhook] refund email:", e));
         }
-      } else {
-        console.info(`[payt-webhook] Revoke ignorado (sem matrícula ativa): user=${user.id} curso=${course.id} motivo=${payload.status}`);
+        return true;
       }
-    }
-  }
+    })
+  );
+
+  const processed = results.filter(Boolean).length;
 
   // 10. Salva CPF, telefone e nome no perfil (apenas no grant, sem sobrescrever dados existentes)
   if (action === "grant") {
