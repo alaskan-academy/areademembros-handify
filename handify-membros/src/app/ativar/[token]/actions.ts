@@ -69,43 +69,39 @@ export async function activateAccount(
   }
 
   const email = tokenRow.email;
-
-  // Verifica se já tem conta (comparação case-insensitive)
-  const { data: existing } = await service.auth.admin.listUsers();
   const emailLower = email.toLowerCase();
-  const alreadyExists = existing?.users?.some(
-    (u) => u.email?.toLowerCase() === emailLower
-  );
 
-  if (alreadyExists) {
+  // Verifica se já tem conta via profiles (evita limitação de paginação do listUsers)
+  const { data: existingProfile } = await service
+    .from("profiles")
+    .select("id")
+    .ilike("email", emailLower)
+    .maybeSingle();
+
+  if (existingProfile) {
     // Conta já existe — concede TODAS as matrículas pendentes deste e-mail e marca os tokens como usados
-    const existingUser = existing.users.find(
-      (u) => u.email?.toLowerCase() === emailLower
-    );
-    if (existingUser) {
-      const { data: pendingTokens } = await service
-        .from("activation_tokens")
-        .select("token, course_id")
-        .eq("email", emailLower)
-        .eq("used", false)
-        .gt("expires_at", new Date().toISOString());
+    const { data: pendingTokens } = await service
+      .from("activation_tokens")
+      .select("token, course_id")
+      .eq("email", emailLower)
+      .eq("used", false)
+      .gt("expires_at", new Date().toISOString());
 
-      if (pendingTokens?.length) {
-        const now = new Date().toISOString();
-        await Promise.all(
-          pendingTokens.map((t) =>
-            service.from("enrollments").upsert(
-              { user_id: existingUser.id, course_id: t.course_id, source: "payt", granted_at: now, expires_at: null },
-              { onConflict: "user_id,course_id" }
-            )
+    if (pendingTokens?.length) {
+      const now = new Date().toISOString();
+      await Promise.all(
+        pendingTokens.map((t) =>
+          service.from("enrollments").upsert(
+            { user_id: existingProfile.id, course_id: t.course_id, source: "payt", granted_at: now, expires_at: null },
+            { onConflict: "user_id,course_id" }
           )
-        );
-        await service
-          .from("activation_tokens")
-          .update({ used: true })
-          .eq("email", emailLower)
-          .eq("used", false);
-      }
+        )
+      );
+      await service
+        .from("activation_tokens")
+        .update({ used: true })
+        .eq("email", emailLower)
+        .eq("used", false);
     }
     return { error: "Você já possui uma conta com este e-mail. Faça login para acessar seus cursos." };
   }
