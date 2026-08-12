@@ -210,7 +210,7 @@ export async function sendAccessConfirmedEmail({
       </p>
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 28px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
         ${activationToken
-          ? "Clique no botão abaixo para criar sua senha e acessar a plataforma. O link é pessoal e expira em 7 dias."
+          ? `Clique no botão abaixo para criar sua senha e acessar a plataforma. O link é pessoal e expira em <strong>30 dias</strong>.<br><span style="color:#888888;font-size:14px;">Passado esse prazo, basta entrar em contato com nossa equipe de suporte para solicitar um novo link de acesso.</span>`
           : "Clique no botão abaixo para acessar o curso. Bons estudos!"}
       </p>
       ${ctaButton(courseUrl, activationToken ? "Criar minha conta e acessar" : "Acessar o curso")}
