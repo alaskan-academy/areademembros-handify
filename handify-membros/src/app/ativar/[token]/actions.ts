@@ -78,18 +78,36 @@ export async function activateAccount(
   );
 
   if (alreadyExists) {
-    // Conta já existe — concede a matrícula pendente e marca token como usado
+    // Conta já existe — concede TODAS as matrículas pendentes deste e-mail e marca os tokens como usados
     const existingUser = existing.users.find(
       (u) => u.email?.toLowerCase() === emailLower
     );
-    if (existingUser && tokenRow.course_id) {
-      await service.from("enrollments").upsert(
-        { user_id: existingUser.id, course_id: tokenRow.course_id, source: "payt", granted_at: new Date().toISOString(), expires_at: null },
-        { onConflict: "user_id,course_id" }
-      );
+    if (existingUser) {
+      const { data: pendingTokens } = await service
+        .from("activation_tokens")
+        .select("token, course_id")
+        .eq("email", emailLower)
+        .eq("used", false)
+        .gt("expires_at", new Date().toISOString());
+
+      if (pendingTokens?.length) {
+        const now = new Date().toISOString();
+        await Promise.all(
+          pendingTokens.map((t) =>
+            service.from("enrollments").upsert(
+              { user_id: existingUser.id, course_id: t.course_id, source: "payt", granted_at: now, expires_at: null },
+              { onConflict: "user_id,course_id" }
+            )
+          )
+        );
+        await service
+          .from("activation_tokens")
+          .update({ used: true })
+          .eq("email", emailLower)
+          .eq("used", false);
+      }
     }
-    await service.from("activation_tokens").update({ used: true }).eq("token", parsed.data.token);
-    return { error: "Você já possui uma conta com este e-mail. Faça login para acessar seu curso." };
+    return { error: "Você já possui uma conta com este e-mail. Faça login para acessar seus cursos." };
   }
 
   // Cria conta no Supabase Auth (email_confirm: true — fluxo de ativação substitui verificação)
@@ -146,25 +164,30 @@ export async function activateAccount(
 
   await service.from("profiles").update(profileUpdate).eq("id", userId);
 
-  // Concede matrícula pendente
-  if (tokenRow.course_id) {
-    await service.from("enrollments").upsert(
-      {
-        user_id: userId,
-        course_id: tokenRow.course_id,
-        source: "payt",
-        granted_at: new Date().toISOString(),
-        expires_at: null,
-      },
-      { onConflict: "user_id,course_id" }
-    );
-  }
-
-  // Marca token como usado
-  await service
+  // Concede TODAS as matrículas pendentes deste e-mail e marca os tokens como usados
+  const { data: pendingTokens } = await service
     .from("activation_tokens")
-    .update({ used: true })
-    .eq("token", parsed.data.token);
+    .select("token, course_id")
+    .eq("email", emailLower)
+    .eq("used", false)
+    .gt("expires_at", new Date().toISOString());
+
+  if (pendingTokens?.length) {
+    const now = new Date().toISOString();
+    await Promise.all(
+      pendingTokens.map((t) =>
+        service.from("enrollments").upsert(
+          { user_id: userId, course_id: t.course_id, source: "payt", granted_at: now, expires_at: null },
+          { onConflict: "user_id,course_id" }
+        )
+      )
+    );
+    await service
+      .from("activation_tokens")
+      .update({ used: true })
+      .eq("email", emailLower)
+      .eq("used", false);
+  }
 
   // Boas-vindas
   sendWelcomeEmail({
