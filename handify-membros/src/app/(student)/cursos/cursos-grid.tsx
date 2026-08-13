@@ -192,6 +192,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
 
       {/* Meus cursos */}
       <HorizontalRow
+        id="tour-cursos-meus-cursos"
         title="Meus cursos"
         icon={<CheckCircle className="w-4 h-4 text-[#6699F3]" />}
         courses={enrolledCourses}
@@ -200,6 +201,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
 
       {/* Meus materiais didáticos */}
       <HorizontalRow
+        id="tour-cursos-materiais"
         title="Meus Materiais Didáticos"
         icon={<BookOpen className="w-4 h-4 text-amber-600" />}
         courses={enrolledMaterials}
@@ -211,6 +213,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
 
       {/* Outros Cursos — seção com destaque */}
       <HorizontalRow
+        id="tour-cursos-outros"
         title="Outros Cursos"
         icon={<Play className="w-4 h-4 text-[#6699F3]" />}
         courses={exploreCourses}
@@ -251,6 +254,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
 // ─── Linha horizontal com scroll ──────────────────────────────────────────────
 
 function HorizontalRow({
+  id,
   title,
   icon,
   courses,
@@ -260,6 +264,7 @@ function HorizontalRow({
   subtitle,
   verMaisHref,
 }: {
+  id?: string;
   title: string;
   icon: React.ReactNode;
   courses: CatalogCourse[];
@@ -403,7 +408,7 @@ function HorizontalRow({
 
   if (elevated) {
     return (
-      <section className="mb-12 -mx-4 sm:-mx-6 lg:-mx-8">
+      <section id={id} className="mb-12 -mx-4 sm:-mx-6 lg:-mx-8">
         <div className="bg-white border-y border-border/40 shadow-sm overflow-hidden">
           {/* Faixa tricolor */}
           <div className="flex h-[3px]">
@@ -421,7 +426,7 @@ function HorizontalRow({
   }
 
   return (
-    <section className="mb-12">
+    <section id={id} className="mb-12">
       {header}
       {scrollRow}
     </section>

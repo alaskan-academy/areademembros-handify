@@ -195,6 +195,7 @@ export default function StudentNav({ navItems, role, fullName, visitedSections }
           );
         })}
         <button
+          id="tour-nav-menu"
           onClick={() => setDrawerOpen(true)}
           className="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium text-foreground/45 hover:text-foreground/70 transition-colors min-h-[52px]"
           aria-label="Ver mais opções"

@@ -7,8 +7,40 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   // ── Cursos ───────────────────────────────────────────────────────────────────
   cursos: [
     {
-      targetId: "tour-cursos-grid",
-      text: "Seus cursos ficam aqui. Toque em qualquer um para abrir e assistir.",
+      targetId: "tour-cursos-meus-cursos",
+      text: "Meus Cursos — seus cursos matriculados. Toque para continuar de onde parou.",
+    },
+    {
+      targetId: "tour-cursos-materiais",
+      text: "Meus Materiais Didáticos — e-books e apostilas incluídos na sua compra.",
+    },
+    {
+      targetId: "tour-cursos-outros",
+      text: "Outros Cursos — conteúdos disponíveis para comprar e ampliar seu conhecimento.",
+    },
+    {
+      targetId: "tour-nav-perfil",
+      text: "Sua foto de perfil. Toque aqui para acessar seus certificados, editar dados e alterar senha.",
+    },
+    {
+      targetId: "tour-nav-cursos",
+      text: "📚 Cursos — sua biblioteca de cursos.",
+    },
+    {
+      targetId: "tour-nav-inspiracoes",
+      text: "✨ Inspirações — fotos, receitas e dicas da comunidade.",
+    },
+    {
+      targetId: "tour-nav-comunidade",
+      text: "🔔 Avisos — novidades e comunicados da Handify.",
+    },
+    {
+      targetId: "tour-nav-ferramentas",
+      text: "🔧 Ferramentas — calculadoras gratuitas para o seu artesanato.",
+    },
+    {
+      targetId: "tour-nav-menu",
+      text: "☰ Menu — acesso a todas as outras opções de navegação.",
     },
   ],
 
