@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FeedPostCard, { type FeedPostData } from "@/components/community/FeedPostCard";
 import { Newspaper } from "lucide-react";
-import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
-import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
+import PageTour from "@/components/tour/PageTour";
+import { SECTION_TOURS } from "@/lib/tour/tours";
 
 export const metadata = { title: "Avisos — Handify" };
 
@@ -37,7 +37,6 @@ export default async function FeedPage() {
   ]);
 
   const visitedSections = (profileResult?.data?.visited_sections as Record<string, boolean>) ?? {};
-  const feedSection = ONBOARDING_SECTIONS.find((s) => s.id === "feed")!;
 
   const likeCountMap = new Map<string, number>();
   (allLikesResult.data ?? []).forEach((l) => {
@@ -74,7 +73,7 @@ export default async function FeedPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {!visitedSections["feed"] && <SectionWelcomeBanner section={feedSection} />}
+        <PageTour sectionId="feed" visited={!!visitedSections["feed"]} steps={SECTION_TOURS.feed} />
         {posts.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <Newspaper className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -82,7 +81,7 @@ export default async function FeedPage() {
             <p className="text-sm mt-1">Em breve teremos novidades por aqui!</p>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div id="tour-feed-posts" className="space-y-5">
             {posts.map((post) => (
               <FeedPostCard
                 key={post.id}

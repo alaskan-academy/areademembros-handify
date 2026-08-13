@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
 import { InspiracaoFeed } from '@/components/inspiracoes/InspiracaoFeed'
-import SectionWelcomeBanner from '@/components/onboarding/SectionWelcomeBanner'
-import { ONBOARDING_SECTIONS } from '@/lib/onboarding/sections'
+import PageTour from "@/components/tour/PageTour"
+import { SECTION_TOURS } from "@/lib/tour/tours"
 
 export const metadata = { title: 'Inspirações — Handify' }
 
@@ -24,7 +24,6 @@ export default async function InspiracoesPage() {
   ])
 
   const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {}
-  const inspiracoesSection = ONBOARDING_SECTIONS.find((s) => s.id === 'inspiracoes')!
   const courses = (coursesRaw ?? []) as { id: string; title: string }[]
   const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
 
@@ -53,15 +52,17 @@ export default async function InspiracoesPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {!visitedSections['inspiracoes'] && <SectionWelcomeBanner section={inspiracoesSection} />}
-        <InspiracaoFeed
-          userId={user.id}
-          initialPosts={page.posts}
-          initialCursor={page.next_cursor}
-          initialHasMore={page.has_more}
-          courses={courses}
-          categories={categories}
-        />
+        <PageTour sectionId="inspiracoes" visited={!!visitedSections['inspiracoes']} steps={SECTION_TOURS.inspiracoes} />
+        <div id="tour-inspiracoes-feed">
+          <InspiracaoFeed
+            userId={user.id}
+            initialPosts={page.posts}
+            initialCursor={page.next_cursor}
+            initialHasMore={page.has_more}
+            courses={courses}
+            categories={categories}
+          />
+        </div>
       </div>
     </div>
   )

@@ -230,7 +230,9 @@ export default function PerfilView() {
       <CoursesSection courses={courses} />
 
       {/* Meus certificados */}
+      <div id="tour-perfil-certs">
       <CertificatesSection certificates={certificates} />
+      </div>
 
       {/* Preferências de e-mail */}
       <EmailPrefsSection
@@ -253,7 +255,7 @@ export default function PerfilView() {
         <div className="border-t border-border/60" />
 
         {/* Notificações push */}
-        <div className="space-y-3">
+        <div id="tour-perfil-notif" className="space-y-3">
           <div>
             <h2 className="font-semibold">Notificações push</h2>
             <p className="text-sm text-muted-foreground mt-1">

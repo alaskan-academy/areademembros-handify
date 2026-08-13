@@ -4,8 +4,8 @@ import { formatPrice, formatDuration } from "@/lib/format";
 import CursosGrid from "./cursos-grid";
 import BannerDisplay from "@/components/banner/BannerDisplay";
 import MigradaBanner from "./MigradaBanner";
-import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
-import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
+import PageTour from "@/components/tour/PageTour";
+import { SECTION_TOURS } from "@/lib/tour/tours";
 
 export const revalidate = 60;
 
@@ -79,8 +79,6 @@ export default async function CursosPage({
   ]);
 
   const visitedSections = (profileResult?.data?.visited_sections as Record<string, boolean>) ?? {};
-  const cursosSection = ONBOARDING_SECTIONS.find((s) => s.id === "cursos")!;
-  const showCursosBanner = user && !visitedSections["cursos"];
 
   const categories: CatalogCategory[] = (categoriesRaw ?? []) as CatalogCategory[];
   const showcaseMap = Object.fromEntries(
@@ -282,8 +280,8 @@ export default async function CursosPage({
       </div>
 
       {/* Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        {showCursosBanner && <SectionWelcomeBanner section={cursosSection} />}
+      <div id="tour-cursos-grid" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {user && <PageTour sectionId="cursos" visited={!!visitedSections["cursos"]} steps={SECTION_TOURS.cursos} />}
         <CursosGrid
           courses={courses}
           categories={categories}

@@ -10,8 +10,8 @@ import NextLessonButton from "@/components/player/NextLessonButton";
 import BannerDisplay from "@/components/banner/BannerDisplay";
 import { LessonSidebarDesktop } from "@/components/lesson/LessonSidebar";
 import { LessonBottomSheet } from "@/components/lesson/LessonBottomSheet";
-import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
-import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
+import PageTour from "@/components/tour/PageTour";
+import { SECTION_TOURS } from "@/lib/tour/tours";
 
 type CourseRef = { id: string; title: string; slug: string };
 type LessonModule = { id: string; title: string; position: number; course_id: string; course: CourseRef };
@@ -167,7 +167,7 @@ export default async function LessonPage({
         {/* Coluna principal */}
         <div className="space-y-4 min-w-0">
           {showAulasBanner && (
-            <SectionWelcomeBanner section={ONBOARDING_SECTIONS.find((s) => s.id === "aulas")!} />
+            <PageTour sectionId="aulas" visited={false} steps={SECTION_TOURS.aulas} />
           )}
           {/* Breadcrumb */}
           {mod?.course && (
@@ -193,6 +193,7 @@ export default async function LessonPage({
 
           {/* Player ou tela de bloqueio */}
           {/* Player legado (video_panda_id na lessons table) — só exibe se não há bloco de vídeo */}
+          <div id="tour-aulas-player">
           {videoId && !hasVideoBlocks ? (
             <PandaPlayer
               videoId={videoId}
@@ -226,6 +227,8 @@ export default async function LessonPage({
             </div>
           ) : null}
 
+          </div>{/* /tour-aulas-player */}
+
           {/* Blocos de conteúdo e materiais */}
           <ContentBlocks
             blocks={contentBlocks}
@@ -244,7 +247,9 @@ export default async function LessonPage({
             {(hasAccess && user || lesson.is_preview) && (
               <div className="flex flex-col gap-2">
                 {hasAccess && user && (
-                  <LessonCompleteButton lessonId={id} isCompleted={isCompleted} />
+                  <div id="tour-aulas-concluir">
+                    <LessonCompleteButton lessonId={id} isCompleted={isCompleted} />
+                  </div>
                 )}
                 {lesson.is_preview && (
                   <span className="inline-flex items-center gap-2 text-sm text-[#72CF92] font-medium bg-[#72CF92]/10 px-3 py-2 rounded-full self-start">
@@ -289,7 +294,7 @@ export default async function LessonPage({
         </div>
 
         {/* Coluna lateral: sidebar + banner sticky juntos para não sobreposer um ao outro */}
-        <div className="hidden lg:flex flex-col gap-4 self-start sticky top-20">
+        <div id="tour-aulas-sidebar" className="hidden lg:flex flex-col gap-4 self-start sticky top-20">
           <LessonSidebarDesktop {...sidebarProps} />
           <BannerDisplay slot="lateral" />
         </div>

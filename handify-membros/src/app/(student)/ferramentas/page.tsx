@@ -1,8 +1,8 @@
 import FerramentasHub from '@/components/ferramentas/FerramentasHub'
 import { getNiches } from '@/lib/fornecedores/actions'
 import { createClient } from '@/lib/supabase/server'
-import SectionWelcomeBanner from '@/components/onboarding/SectionWelcomeBanner'
-import { ONBOARDING_SECTIONS } from '@/lib/onboarding/sections'
+import PageTour from "@/components/tour/PageTour"
+import { SECTION_TOURS } from "@/lib/tour/tours"
 
 export const metadata = {
   title: 'Ferramentas | Handify',
@@ -20,16 +20,13 @@ export default async function FerramentasPage() {
   ])
 
   const visitedSections = (profileResult?.data?.visited_sections as Record<string, boolean>) ?? {}
-  const ferramentasSection = ONBOARDING_SECTIONS.find((s) => s.id === 'ferramentas')!
 
   return (
     <div>
-      {user && !visitedSections['ferramentas'] && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <SectionWelcomeBanner section={ferramentasSection} />
-        </div>
-      )}
-      <FerramentasHub niches={niches} />
+      {user && <PageTour sectionId="ferramentas" visited={!!visitedSections['ferramentas']} steps={SECTION_TOURS.ferramentas} />}
+      <div id="tour-ferramentas-hub">
+        <FerramentasHub niches={niches} />
+      </div>
     </div>
   )
 }

@@ -3,8 +3,8 @@ import { Loader2 } from "lucide-react";
 import PerfilView from "./perfil-view";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
-import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
+import PageTour from "@/components/tour/PageTour";
+import { SECTION_TOURS } from "@/lib/tour/tours";
 
 export default async function PerfilPage() {
   const supabase = await createClient();
@@ -18,11 +18,10 @@ export default async function PerfilPage() {
     .single();
 
   const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {};
-  const perfilSection = ONBOARDING_SECTIONS.find((s) => s.id === "perfil")!;
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      {!visitedSections["perfil"] && <SectionWelcomeBanner section={perfilSection} />}
+      <PageTour sectionId="perfil" visited={!!visitedSections["perfil"]} steps={SECTION_TOURS.perfil} />
       <Suspense
         fallback={
           <div className="flex justify-center py-24">

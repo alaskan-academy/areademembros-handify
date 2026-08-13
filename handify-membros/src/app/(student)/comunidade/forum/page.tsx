@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { MessageSquare, Users, ChevronRight } from "lucide-react";
-import SectionWelcomeBanner from "@/components/onboarding/SectionWelcomeBanner";
-import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
+import PageTour from "@/components/tour/PageTour";
+import { SECTION_TOURS } from "@/lib/tour/tours";
 
 export const metadata = { title: "Comunidade — Handify" };
 
@@ -57,7 +57,6 @@ export default async function ForumLandingPage() {
   ]);
 
   const visitedSections = ((profileResult as { data: { visited_sections?: Record<string, boolean> } | null })?.data?.visited_sections) ?? {};
-  const forumSection = ONBOARDING_SECTIONS.find((s) => s.id === "forum")!;
 
   const postCounts: Record<string, number> = {};
   for (const p of postCountsRaw ?? []) {
@@ -82,7 +81,7 @@ export default async function ForumLandingPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-      {!visitedSections["forum"] && <SectionWelcomeBanner section={forumSection} />}
+        <PageTour sectionId="forum" visited={!!visitedSections["forum"]} steps={SECTION_TOURS.forum} />
       {(forums ?? []).length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -93,7 +92,7 @@ export default async function ForumLandingPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div id="tour-forum-list" className="space-y-3">
           {(forums ?? []).map((forum) => (
             <Link
               key={forum.id}
