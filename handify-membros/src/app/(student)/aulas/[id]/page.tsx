@@ -154,8 +154,8 @@ export default async function LessonPage({
     );
   }
 
-  // Tour só aparece em aulas com materiais (o step de materiais precisa do elemento no DOM)
-  if (user && !visitedSections["aulas"] && materials.length > 0) {
+  // Tour aparece para qualquer aula com acesso — onNotFound pula steps ausentes (ex: materiais)
+  if (user && hasAccess && !visitedSections["aulas"]) {
     showAulasBanner = true;
   }
 

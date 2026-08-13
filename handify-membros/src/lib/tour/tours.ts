@@ -18,6 +18,14 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
       targetId: "tour-cursos-outros",
       text: "Cursos disponíveis para comprar e ampliar seu conhecimento.",
     },
+    {
+      targetId: "tour-nav-menu",
+      text: "Menu — acesse todas as seções da plataforma.",
+    },
+    {
+      targetId: "tour-nav-perfil",
+      text: "Seu perfil: dados, certificados, notificações e senha.",
+    },
   ],
 
   // ── Primeiro acesso — visão geral da plataforma ──────────────────────────────
@@ -37,10 +45,6 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
     {
       targetId: "tour-nav-ferramentas",
       text: "Ferramentas — calculadoras e recursos gratuitos para o seu artesanato.",
-    },
-    {
-      targetId: "tour-nav-perfil",
-      text: "Seu perfil: dados, certificados, notificações e senha.",
     },
   ],
 
