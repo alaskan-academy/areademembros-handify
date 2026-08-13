@@ -143,11 +143,4 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
     },
   ],
 
-  // ── Notificações ─────────────────────────────────────────────────────────────
-  notificacoes: [
-    {
-      targetId: "tour-notificacoes-list",
-      text: "Seus avisos chegam aqui — respostas, novidades e conquistas. Clique para ver.",
-    },
-  ],
 };

@@ -102,18 +102,6 @@ export const ONBOARDING_SECTIONS: OnboardingSection[] = [
     ],
   },
   {
-    id: "notificacoes",
-    label: "Notificações",
-    rota: "/notificacoes",
-    descricao: "Fique por dentro de tudo que acontece na plataforma.",
-    icone: "Bell",
-    steps: [
-      "Clique no sino no canto superior direito para ver seus alertas rapidamente",
-      "Clique em uma notificação para ir direto ao conteúdo",
-      "Marque notificações como lidas individualmente ou clique em Marcar todas como lidas",
-    ],
-  },
-  {
     id: "perfil",
     label: "Perfil",
     rota: "/perfil",
