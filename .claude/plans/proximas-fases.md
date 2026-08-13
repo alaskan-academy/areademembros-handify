@@ -19,17 +19,6 @@ Resumo: modal de boas-vindas no primeiro login + checklist de primeiros passos n
 
 ---
 
-### A2. Reportar Conteúdo (Fila de Moderação)
-Alunas não conseguem reportar posts ou comentários inapropriados. A tabela `reports` está prevista no CLAUDE.md mas não existe no banco nem no frontend.
-
-**O que implementar:**
-- Migration: tabela `reports (id, reporter_id, target_type, target_id, reason, resolved, created_at)`
-- Botão "Reportar" em: posts do fórum, comentários do fórum, posts do feed, comentários do feed
-- Fila de moderação no admin: `/admin/comunidade/moderacao` já existe parcialmente — adicionar aba "Reportados"
-- Ao resolver: deletar conteúdo + notificar autora (opcional) + registrar em `audit_log`
-
----
-
 ### A3. Export CSV nas Métricas Admin
 O dashboard de métricas tem cards e ranking mas sem botão de exportar. Existe apenas o export de alunas (`/api/admin/alunos/export`).
 
@@ -106,19 +95,6 @@ Textos em `src/app/(student)/cursos/page.tsx` (linhas ~259-268) estão fixos no 
 
 ## FASE B — Novas funcionalidades
 
-### B1. Comentários nas Aulas (Fase 18)
-A tabela `lesson_comments (id, lesson_id, user_id, body, created_at)` **já existe no banco** (criada em `002_tables.sql`). Falta toda a UI.
-
-**O que implementar:**
-- Seção de comentários abaixo do player/blocos na página de aula (`/aulas/[id]`)
-- Listar comentários com avatar, nome, data e texto
-- Campo para escrever novo comentário (só alunas matriculadas)
-- Admin: ver e deletar comentários no CRUD de aulas
-- Notificação (opcional): avisar a professora sobre novo comentário
-- RLS: verificar se a policy de `lesson_comments` existe ou precisa ser criada
-
----
-
 ### B2. Sugestões de Cursos durante/após Aula
 Estilo Hotmart — ao concluir uma aula (ou ao atingir 90% do progresso), sugerir cursos relacionados que a aluna ainda não tem matrícula.
 
@@ -179,18 +155,16 @@ App mobile com React Native / Expo. Consumiria a mesma API Supabase e player Pan
 
 | Prioridade | Item |
 |-----------|------|
-| 🔴 1 | A1 — Onboarding |
+| 🔴 1 | ~~A1 — Onboarding~~ ✅ |
 | 🔴 2 | B2 — Sugestões de cursos |
-| 🟠 3 | A2 — Reportar conteúdo |
-| 🟠 4 | B1 — Comentários nas aulas (banco pronto) |
-| 🟠 5 | A3 — Export CSV métricas |
-| 🟡 6 | A4 — Histórico matrículas |
-| 🟡 7 | A5 — Perfil público (decidir primeiro) |
-| 🟡 8 | A6/A7 — Performance notificações + queries |
-| 🟡 9 | A8 — Verificar região Vercel |
-| 🟡 10 | A9 — Vitrine hero configurável |
-| ⚪ 11 | C1 — Trilhas de aprendizado |
-| ⚪ 12 | C2 — Cupons |
-| ⚪ 13 | C3 — Bundles |
-| ⚪ 14 — | C4 — Desafios mensais |
-| ⚪ 15 | C5 — App nativo |
+| 🟠 3 | A3 — Export CSV métricas |
+| 🟡 4 | A4 — Histórico matrículas |
+| 🟡 5 | A5 — Perfil público (decidir primeiro) |
+| 🟡 6 | A6/A7 — Performance notificações + queries |
+| 🟡 7 | A8 — Verificar região Vercel |
+| 🟡 8 | A9 — Vitrine hero configurável |
+| ⚪ 9 | C1 — Trilhas de aprendizado |
+| ⚪ 10 | C2 — Cupons |
+| ⚪ 11 | C3 — Bundles |
+| ⚪ 12 | C4 — Desafios mensais |
+| ⚪ 13 | C5 — App nativo |
