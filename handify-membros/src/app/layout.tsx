@@ -42,10 +42,9 @@ export default function RootLayout({
       className={`${montserrat.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        {/* Captura beforeinstallprompt antes da hidratação do React */}
-        <script dangerouslySetInnerHTML={{
-          __html: `window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__pwaInstallPrompt=e;});`,
-        }} />
+        {/* Captura beforeinstallprompt via arquivo estático — evita warning do React */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/pwa-capture.js" />
       </head>
       <body className="min-h-full flex flex-col">
         {children}

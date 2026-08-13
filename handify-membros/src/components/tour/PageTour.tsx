@@ -88,6 +88,17 @@ export default function PageTour({
     attempt();
   }, [applyElement]);
 
+  // finish e next definidos antes dos useEffects que os referenciam
+  const finish = useCallback(async () => {
+    setActive(false);
+    await markSectionVisited(sectionId);
+  }, [sectionId]);
+
+  const next = useCallback(() => {
+    if (stepIdx < steps.length - 1) setStepIdx((i) => i + 1);
+    else finish();
+  }, [stepIdx, steps.length, finish]);
+
   // Auto-start after delay
   useEffect(() => {
     if (visited || steps.length === 0) return;
@@ -130,16 +141,6 @@ export default function PageTour({
       window.removeEventListener("scroll", update);
     };
   }, [active, stepIdx, steps, applyElement]);
-
-  const finish = useCallback(async () => {
-    setActive(false);
-    await markSectionVisited(sectionId);
-  }, [sectionId]);
-
-  const next = useCallback(() => {
-    if (stepIdx < steps.length - 1) setStepIdx((i) => i + 1);
-    else finish();
-  }, [stepIdx, steps.length, finish]);
 
   if (!active || !steps[stepIdx]) return null;
 
