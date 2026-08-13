@@ -224,53 +224,37 @@ export async function toggleArchivedLesson(
 
 // ─── Materiais ────────────────────────────────────────────────────────────────
 
-async function uploadLessonFile(lessonId: string, file: File): Promise<void> {
-  if (file.size > 52_428_800) return;
-  const ext = file.name.split(".").pop() ?? "bin";
-  const filePath = `${lessonId}/${Date.now()}.${ext}`;
-  const buffer = new Uint8Array(await file.arrayBuffer());
-  const service = createServiceClient();
-
-  const { error: uploadError } = await service.storage
-    .from("lesson-materials")
-    .upload(filePath, buffer, { contentType: file.type, upsert: false });
-
-  if (uploadError) return;
-
-  const supabase = await createClient();
-  await supabase.from("lesson_materials").insert({
-    lesson_id: lessonId,
-    name: file.name,
-    file_path: filePath,
-  });
+export async function createUploadUrlForLesson(
+  lessonId: string,
+  filename: string,
+): Promise<{ signedUrl: string; filePath: string } | { error: string }> {
+  try {
+    await assertAdmin();
+    const ext = filename.split(".").pop()?.toLowerCase() ?? "bin";
+    const filePath = `${lessonId}/${Date.now()}.${ext}`;
+    const service = createServiceClient();
+    const { data, error } = await service.storage
+      .from("lesson-materials")
+      .createSignedUploadUrl(filePath);
+    if (error) return { error: "Erro ao gerar URL de upload: " + error.message };
+    return { signedUrl: data.signedUrl, filePath };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Erro" };
+  }
 }
 
-export async function uploadMaterialForLesson(
+export async function saveMaterialMetadataForLesson(
   lessonId: string,
-  formData: FormData
+  name: string,
+  filePath: string,
 ): Promise<{ error?: string; material?: LessonMaterial }> {
   const supabase = await assertAdmin();
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return { error: "Arquivo obrigatorio" };
-  if (file.size > 52_428_800) return { error: "Arquivo muito grande (max 50MB)" };
-
-  const ext = file.name.split(".").pop() ?? "bin";
-  const filePath = `${lessonId}/${Date.now()}.${ext}`;
-  const buffer = new Uint8Array(await file.arrayBuffer());
-  const service = createServiceClient();
-
-  const { error: uploadError } = await service.storage
-    .from("lesson-materials")
-    .upload(filePath, buffer, { contentType: file.type, upsert: false });
-  if (uploadError) return { error: "Erro no upload: " + uploadError.message };
-
-  const { data, error: dbError } = await supabase
+  const { data, error } = await supabase
     .from("lesson_materials")
-    .insert({ lesson_id: lessonId, name: file.name, file_path: filePath })
+    .insert({ lesson_id: lessonId, name, file_path: filePath })
     .select("id, name, file_path")
     .single();
-  if (dbError) return { error: "Erro ao salvar material: " + dbError.message };
-
+  if (error) return { error: "Erro ao salvar material: " + error.message };
   return { material: data as LessonMaterial };
 }
 

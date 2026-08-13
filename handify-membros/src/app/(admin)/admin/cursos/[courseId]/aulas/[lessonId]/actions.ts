@@ -86,51 +86,45 @@ export async function reorderBlocks(
 
 // ─── Materiais ─────────────────────────────────────────────────────────────────
 
-const MaterialSchema = z.object({
-  name: z.string().min(1).max(200),
-  lessonId: z.string().uuid(),
-});
-
-export async function uploadMaterial(formData: FormData): Promise<void> {
+export async function createUploadUrl(
+  lessonId: string,
+  filename: string,
+): Promise<{ signedUrl: string; filePath: string }> {
   await assertAdmin();
+  z.string().uuid().parse(lessonId);
 
-  const nameRaw = (formData.get("name") as string)?.trim();
-  const lessonId = formData.get("lessonId") as string;
-  const file = formData.get("file") as File | null;
-
-  if (!file || file.size === 0) throw new Error("Arquivo obrigatório");
-
-  const name = nameRaw || file.name;
-  MaterialSchema.parse({ name, lessonId });
-
-  if (file.size > 52_428_800) throw new Error("Arquivo muito grande (máx 50 MB)");
-
-  const ext = file.name.split(".").pop() ?? "bin";
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "bin";
   const filePath = `${lessonId}/${Date.now()}.${ext}`;
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = new Uint8Array(arrayBuffer);
-
-  const serviceClient = createServiceClient();
-  const { error: uploadError } = await serviceClient.storage
+  const service = createServiceClient();
+  const { data, error } = await service.storage
     .from("lesson-materials")
-    .upload(filePath, buffer, { contentType: file.type, upsert: false });
+    .createSignedUploadUrl(filePath);
 
-  if (uploadError) throw new Error("Erro no upload: " + uploadError.message);
+  if (error) throw new Error("Erro ao gerar URL de upload: " + error.message);
+  return { signedUrl: data.signedUrl, filePath };
+}
+
+export async function saveMaterialMetadata(
+  lessonId: string,
+  name: string,
+  filePath: string,
+): Promise<void> {
+  await assertAdmin();
+  z.object({
+    lessonId: z.string().uuid(),
+    name: z.string().min(1).max(200),
+    filePath: z.string().min(1),
+  }).parse({ lessonId, name, filePath });
 
   const supabase = await createClient();
-  const { error: insertError } = await supabase.from("lesson_materials").insert({
+  const { error } = await supabase.from("lesson_materials").insert({
     lesson_id: lessonId,
     name,
     file_path: filePath,
   });
 
-  if (insertError) {
-    // Remove arquivo órfão se o insert falhar
-    await serviceClient.storage.from("lesson-materials").remove([filePath]);
-    throw new Error("Erro ao salvar material: " + insertError.message);
-  }
-
+  if (error) throw new Error("Erro ao salvar material: " + error.message);
   revalidatePath(`/aulas/${lessonId}`);
 }
 

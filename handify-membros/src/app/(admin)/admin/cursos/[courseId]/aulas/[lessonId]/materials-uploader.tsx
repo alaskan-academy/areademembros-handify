@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react";
 import { Upload, Trash2, Copy, Check, Link2, ChevronDown, ChevronUp, Search } from "lucide-react";
-import { uploadMaterial, deleteMaterial, linkMaterial } from "./actions";
+import { createUploadUrl, saveMaterialMetadata, deleteMaterial, linkMaterial } from "./actions";
 
 interface Material {
   id: string;
@@ -41,15 +41,21 @@ export default function AdminMaterialsUploader({
   function handleUpload(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    const data = new FormData(form);
-    data.set("lessonId", lessonId);
-    if (!data.get("name") && fileRef.current?.files?.[0]) {
-      data.set("name", fileRef.current.files[0].name);
-    }
+    const file = fileRef.current?.files?.[0];
+    if (!file) { setError("Selecione um arquivo"); return; }
+    const nameRaw = (nameRef.current?.value ?? "").trim();
+    const name = nameRaw || file.name;
 
     startTransition(async () => {
       try {
-        await uploadMaterial(data);
+        const { signedUrl, filePath } = await createUploadUrl(lessonId, file.name);
+        const res = await fetch(signedUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+        });
+        if (!res.ok) throw new Error("Erro ao enviar arquivo");
+        await saveMaterialMetadata(lessonId, name, filePath);
         form.reset();
         setError(null);
         window.location.reload();

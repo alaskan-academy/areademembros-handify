@@ -16,7 +16,7 @@ import {
 import {
   createModule, updateModule, deleteModule, toggleArchivedModule,
   createLesson, updateLesson, deleteLesson, toggleArchivedLesson,
-  reorderModules, reorderLessons, uploadMaterialForLesson, deleteLessonMaterial,
+  reorderModules, reorderLessons, createUploadUrlForLesson, saveMaterialMetadataForLesson, deleteLessonMaterial,
   refreshLessonWithMaterials,
 } from "./actions";
 import type { LessonData, LessonMaterial } from "./actions";
@@ -123,11 +123,16 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
         const uploadErrors: string[] = [];
         await Promise.allSettled(
           newMaterials.map(async (m) => {
-            const mfd = new FormData();
-            mfd.set("file", m.file);
-            mfd.set("name", m.name);
-            const res = await uploadMaterialForLesson(id, mfd);
-            if (res.error) uploadErrors.push(`${m.name}: ${res.error}`);
+            const urlResult = await createUploadUrlForLesson(id, m.file.name);
+            if ("error" in urlResult) { uploadErrors.push(`${m.name}: ${urlResult.error}`); return; }
+            const uploadRes = await fetch(urlResult.signedUrl, {
+              method: "PUT",
+              body: m.file,
+              headers: { "Content-Type": m.file.type || "application/octet-stream" },
+            });
+            if (!uploadRes.ok) { uploadErrors.push(`${m.name}: erro ao enviar arquivo`); return; }
+            const saveResult = await saveMaterialMetadataForLesson(id, m.name, urlResult.filePath);
+            if (saveResult.error) uploadErrors.push(`${m.name}: ${saveResult.error}`);
           })
         );
         if (uploadErrors.length > 0) {
@@ -230,6 +235,7 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
           className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-border hover:border-[#6699F3] text-muted-foreground hover:text-[#6699F3] transition-colors">
           <Upload className="w-3.5 h-3.5" /> Adicionar arquivo
         </button>
+        <p className="text-[11px] text-muted-foreground">Formatos aceitos: PDF, ZIP, PNG, JPG, MP4, MP3, DOC, PPT · Máx 50MB</p>
         {newMaterials.length > 0 && (
           <div className="space-y-1">
             <p className="text-[11px] text-muted-foreground">Para upload:</p>
