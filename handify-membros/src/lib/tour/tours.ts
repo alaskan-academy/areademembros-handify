@@ -36,7 +36,7 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
     },
     {
       targetId: "tour-nav-ferramentas",
-      text: "Calculadoras gratuitas para o seu artesanato.",
+      text: "Calculadoras e lista de fornecedores para o seu artesanato.",
     },
     {
       targetId: "tour-nav-menu",
