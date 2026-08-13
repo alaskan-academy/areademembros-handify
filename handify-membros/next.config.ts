@@ -4,8 +4,9 @@ import withPWA from "@ducanh2912/next-pwa";
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "50mb",
     },
+    proxyClientMaxBodySize: "50mb",
   },
   turbopack: {},
   images: {

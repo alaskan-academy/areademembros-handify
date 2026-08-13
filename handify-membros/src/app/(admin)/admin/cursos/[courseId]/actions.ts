@@ -145,7 +145,7 @@ export async function createLesson(
   const supabase = await assertAdmin();
   const raw = {
     title: formData.get("title") as string,
-    duration_seconds: Number(formData.get("duration_seconds") ?? 0),
+    duration_seconds: Number(formData.get("duration_seconds") ?? 0) * 60,
     is_preview: formData.get("is_preview") === "true",
     position: Number(formData.get("position") ?? 0),
   };
@@ -184,7 +184,7 @@ export async function updateLesson(
   const supabase = await assertAdmin();
   const raw = {
     title: formData.get("title") as string,
-    duration_seconds: Number(formData.get("duration_seconds") ?? 0),
+    duration_seconds: Number(formData.get("duration_seconds") ?? 0) * 60,
     is_preview: formData.get("is_preview") === "true",
     position: Number(formData.get("position") ?? 0),
   };

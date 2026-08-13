@@ -94,13 +94,15 @@ const MaterialSchema = z.object({
 export async function uploadMaterial(formData: FormData): Promise<void> {
   await assertAdmin();
 
-  const name = formData.get("name") as string;
+  const nameRaw = (formData.get("name") as string)?.trim();
   const lessonId = formData.get("lessonId") as string;
   const file = formData.get("file") as File | null;
 
+  if (!file || file.size === 0) throw new Error("Arquivo obrigatório");
+
+  const name = nameRaw || file.name;
   MaterialSchema.parse({ name, lessonId });
 
-  if (!file || file.size === 0) throw new Error("Arquivo obrigatório");
   if (file.size > 52_428_800) throw new Error("Arquivo muito grande (máx 50 MB)");
 
   const ext = file.name.split(".").pop() ?? "bin";

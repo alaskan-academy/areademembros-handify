@@ -43,6 +43,9 @@ export default function AdminMaterialsUploader({
     const form = e.currentTarget;
     const data = new FormData(form);
     data.set("lessonId", lessonId);
+    if (!data.get("name") && fileRef.current?.files?.[0]) {
+      data.set("name", fileRef.current.files[0].name);
+    }
 
     startTransition(async () => {
       try {
@@ -113,8 +116,7 @@ export default function AdminMaterialsUploader({
           ref={nameRef}
           name="name"
           type="text"
-          required
-          placeholder="Nome do material (ex: Apostila aula 01)"
+          placeholder="Nome do material (ex: Apostila aula 01) — opcional"
           className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
         />
         <input

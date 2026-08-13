@@ -157,9 +157,9 @@ function LessonForm({ moduleId, courseId, initial, onSave, onCancel, lessonId, n
             className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Duração (segundos)</label>
+          <label className="text-xs font-medium text-muted-foreground">Duração (minutos)</label>
           <input name="duration_seconds" type="number" min="0"
-            defaultValue={initial?.duration_seconds ?? 0}
+            defaultValue={initial?.duration_seconds ? Math.round(initial.duration_seconds / 60) : 0}
             className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background" />
         </div>
       </div>
