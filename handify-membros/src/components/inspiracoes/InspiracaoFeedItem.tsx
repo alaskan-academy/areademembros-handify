@@ -242,7 +242,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                 <img
                   src={post.media[0].url}
                   alt={post.title}
-                  className="w-full rounded-xl object-cover max-h-64"
+                  className="w-full rounded-xl object-contain max-h-[400px] bg-muted/30"
                 />
               )}
 

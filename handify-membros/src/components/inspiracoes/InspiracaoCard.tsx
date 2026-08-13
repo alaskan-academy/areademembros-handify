@@ -44,11 +44,11 @@ function CardThumbnail({ post }: { post: InspiracaoPost }) {
   const firstMedia = post.media[0]
   if (firstMedia?.url) {
     return (
-      <div className="aspect-square overflow-hidden bg-muted">
+      <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center">
         <img
           src={firstMedia.url}
           alt={firstMedia.alt ?? post.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
         />
       </div>
     )

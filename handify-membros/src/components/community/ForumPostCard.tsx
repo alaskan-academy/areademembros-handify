@@ -136,10 +136,15 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
         </div>
       </div>
 
-      {/* Imagem — acima do texto */}
+      {/* Imagem — acima do texto, proporcional sem corte */}
       {post.image_url && (
-        <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
-          <Image src={post.image_url} alt={post.title} fill className="object-cover" unoptimized />
+        <div className="w-full bg-muted/30 flex items-center justify-center">
+          <img
+            src={post.image_url}
+            alt={post.title}
+            className="w-full object-contain"
+            style={{ maxHeight: 480 }}
+          />
         </div>
       )}
 

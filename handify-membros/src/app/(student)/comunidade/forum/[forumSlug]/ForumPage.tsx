@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { MessageSquare, Plus, X, ArrowLeft, Loader2, ImageIcon, Paperclip } from "lucide-react";
-import Image from "next/image";
 import ForumPostCard, { type ForumPostData } from "@/components/community/ForumPostCard";
 import { createForumPost, deleteForumPost, uploadForumFile } from "@/app/(student)/comunidade/forum/actions";
 
@@ -138,8 +137,8 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
             <label className="block text-xs font-medium text-foreground/70 mb-1">Imagem (opcional)</label>
             <input ref={imageInputRef} type="file" accept="image/*" onChange={(e) => handleUpload(e, "image")} className="hidden" />
             {imageUrl ? (
-              <div className="relative rounded-lg overflow-hidden border border-border" style={{ height: 140 }}>
-                <Image src={imageUrl} alt="Preview" fill className="object-cover" unoptimized />
+              <div className="rounded-lg overflow-hidden border border-border bg-muted/30 flex items-center justify-center">
+                <img src={imageUrl} alt="Preview" className="w-full object-contain" style={{ maxHeight: 200 }} />
                 <button type="button" onClick={() => setImageUrl("")}
                   className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70">
                   <X className="w-3 h-3" />
