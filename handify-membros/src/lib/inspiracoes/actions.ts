@@ -422,7 +422,7 @@ export async function adminApproveComment(id: string, approved: boolean): Promis
       const preview = comment.body.slice(0, 80)
       await supabase.from('notifications').insert({
         user_id: parent.user_id,
-        type: 'inspiration_reply',
+        type: 'comment_reply',
         title: 'Alguém respondeu ao seu comentário',
         body: preview.length < comment.body.length ? `${preview}...` : preview,
         link: '/inspiracoes',

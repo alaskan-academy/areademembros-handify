@@ -26,15 +26,15 @@ function ReplyForm({
   parentName,
   userId,
   postId,
-  onSuccess,
-  onCancel,
+  onRefresh,
+  onClose,
 }: {
   parentId: string
   parentName: string | null
   userId: string
   postId: string
-  onSuccess: () => void
-  onCancel: () => void
+  onRefresh: () => void
+  onClose: () => void
 }) {
   const [body, setBody] = useState('')
   const [sent, setSent] = useState(false)
@@ -52,7 +52,8 @@ function ReplyForm({
         setError(result.error)
       } else {
         setSent(true)
-        onSuccess()
+        onRefresh()
+        setTimeout(onClose, 2500)
       }
     })
   }
@@ -78,7 +79,7 @@ function ReplyForm({
         />
         <button
           type="button"
-          onClick={onCancel}
+          onClick={onClose}
           className="shrink-0 px-2.5 h-10 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           Cancelar
@@ -164,8 +165,8 @@ function CommentItem({
             parentName={c.profiles?.full_name ?? null}
             userId={userId}
             postId={postId}
-            onSuccess={() => { setReplyingTo(null); onRefresh() }}
-            onCancel={() => setReplyingTo(null)}
+            onRefresh={onRefresh}
+            onClose={() => setReplyingTo(null)}
           />
         </div>
       )}
