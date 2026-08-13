@@ -48,3 +48,8 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# scripts de dev local (preview de certificado, fontes de teste, PDFs gerados)
+scripts/*.pdf
+scripts/*.ttf
+scripts/preview-cert.mjs
