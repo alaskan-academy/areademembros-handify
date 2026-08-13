@@ -13,8 +13,11 @@ import {
   Pencil,
   Check,
   Link2,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { resendActivationAction, correctEmailAction } from "./resend-actions";
+import { resendActivationAction, correctEmailAction, createAccountAndSetPasswordAction } from "./resend-actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 
 export type PendingCourse = {
@@ -276,6 +279,32 @@ function DetailModal({
   const [resendPending, startResendTransition] = useTransition();
   const [resendResult, setResendResult] = useState<{ sent?: number; error?: string } | null>(null);
 
+  // criar conta e definir senha
+  const [showPwForm, setShowPwForm] = useState(false);
+  const [pwPassword, setPwPassword] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwShowPass, setPwShowPass] = useState(false);
+  const [pwShowConfirm, setPwShowConfirm] = useState(false);
+  const [pwPending, startPwTransition] = useTransition();
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSuccess, setPwSuccess] = useState(false);
+
+  function handleCreateAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (pwPassword.length < 8) { setPwError("A senha deve ter no mínimo 8 caracteres."); return; }
+    if (pwPassword !== pwConfirm) { setPwError("As senhas não coincidem."); return; }
+    setPwError(null);
+    startPwTransition(async () => {
+      const res = await createAccountAndSetPasswordAction(row.email, pwPassword);
+      if (res.error) {
+        setPwError(res.error);
+      } else {
+        setPwSuccess(true);
+        setTimeout(onClose, 2500);
+      }
+    });
+  }
+
   // edição inline de e-mail
   const [editing, setEditing] = useState(false);
   const [emailDraft, setEmailDraft] = useState(row.email);
@@ -497,6 +526,84 @@ function DetailModal({
           <p className="text-center text-[11px] text-muted-foreground">
             Um e-mail por curso · Links expirados são renovados
           </p>
+
+          {/* Criar conta e definir senha */}
+          {!pwSuccess ? (
+            !showPwForm ? (
+              <button
+                onClick={() => setShowPwForm(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl border border-border text-foreground hover:border-[#6699F3]/50 hover:text-[#6699F3] transition-colors"
+              >
+                <KeyRound className="w-4 h-4" />
+                Criar conta e definir senha
+              </button>
+            ) : (
+              <form onSubmit={handleCreateAccount} className="space-y-2.5 pt-1">
+                <p className="text-xs font-semibold text-foreground/70">Criar conta para {row.buyer_name ?? row.email}</p>
+                <div className="relative">
+                  <input
+                    type={pwShowPass ? "text" : "password"}
+                    value={pwPassword}
+                    onChange={(e) => { setPwPassword(e.target.value); setPwError(null); }}
+                    placeholder="Senha (mín. 8 caracteres)"
+                    minLength={8}
+                    required
+                    autoFocus
+                    className="w-full text-sm px-3 py-2 pr-10 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPwShowPass(v => !v)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {pwShowPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={pwShowConfirm ? "text" : "password"}
+                    value={pwConfirm}
+                    onChange={(e) => { setPwConfirm(e.target.value); setPwError(null); }}
+                    placeholder="Confirmar senha"
+                    required
+                    className="w-full text-sm px-3 py-2 pr-10 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPwShowConfirm(v => !v)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {pwShowConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {pwError && <p className="text-xs text-red-500">{pwError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowPwForm(false); setPwPassword(""); setPwConfirm(""); setPwError(null); }}
+                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={pwPending || !pwPassword || !pwConfirm}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
+                  >
+                    {pwPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <KeyRound className="w-3.5 h-3.5" />}
+                    {pwPending ? "Criando…" : "Criar conta"}
+                  </button>
+                </div>
+              </form>
+            )
+          ) : (
+            <div className="flex items-center justify-center gap-2 py-2 text-sm text-[#3d9e5a] font-medium">
+              <Check className="w-4 h-4" />
+              Conta criada com acesso liberado!
+            </div>
+          )}
         </div>
       </div>
     </div>

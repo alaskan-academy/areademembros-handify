@@ -98,6 +98,113 @@ export async function resendActivationAction(
   return { sent };
 }
 
+export async function createAccountAndSetPasswordAction(
+  email: string,
+  password: string
+): Promise<{ error?: string; userId?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const service = createServiceClient();
+
+  const { data: me } = await service
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .single();
+  if (me?.role !== "admin") return { error: "Sem permissão." };
+
+  if (password.length < 8) return { error: "A senha deve ter no mínimo 8 caracteres." };
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Verifica se já existe conta
+  const { data: existingProfile } = await service
+    .from("profiles")
+    .select("id")
+    .eq("email", normalizedEmail)
+    .maybeSingle();
+  if (existingProfile) return { error: "Esta aluna já possui uma conta." };
+
+  // Busca tokens pendentes com dados da compradora
+  const { data: tokens } = await service
+    .from("activation_tokens")
+    .select("token, course_id, buyer_name, buyer_phone")
+    .eq("email", normalizedEmail)
+    .eq("used", false)
+    .not("course_id", "is", null);
+
+  const buyerName = tokens?.[0]?.buyer_name ?? null;
+  const buyerPhone = tokens?.[0]?.buyer_phone ?? null;
+
+  // Cria conta Auth com e-mail já confirmado
+  const { data: created, error: createError } = await service.auth.admin.createUser({
+    email: normalizedEmail,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: buyerName },
+  });
+
+  if (createError) {
+    const msg = createError.message.toLowerCase();
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already exists") ||
+      msg.includes("already been registered")
+    ) {
+      return { error: "Já existe uma conta com este e-mail." };
+    }
+    return { error: `Erro ao criar conta: ${createError.message}` };
+  }
+
+  const userId = created.user.id;
+
+  // Atualiza perfil com nome e telefone da compra
+  const profileUpdate: Record<string, string> = {};
+  if (buyerName) profileUpdate.full_name = buyerName;
+  if (buyerPhone) profileUpdate.phone = buyerPhone;
+  if (Object.keys(profileUpdate).length > 0) {
+    await service.from("profiles").update(profileUpdate).eq("id", userId);
+  }
+
+  // Concede matrículas e marca tokens como usados
+  let enrollmentsGranted = 0;
+  if (tokens?.length) {
+    for (const t of tokens) {
+      if (!t.course_id) continue;
+      await service.from("enrollments").upsert(
+        {
+          user_id: userId,
+          course_id: t.course_id,
+          source: "payt",
+          granted_at: new Date().toISOString(),
+          expires_at: null,
+        },
+        { onConflict: "user_id,course_id" }
+      );
+      await service.from("activation_tokens").update({ used: true }).eq("token", t.token);
+      enrollmentsGranted++;
+    }
+  }
+
+  await service.from("audit_log").insert({
+    admin_id: user.id,
+    action: "create_account_with_password",
+    target_type: "user",
+    target_id: userId,
+    meta: {
+      email: normalizedEmail,
+      enrollments_granted: enrollmentsGranted,
+      admin_name: me?.full_name ?? null,
+    },
+  });
+
+  return { userId };
+}
+
 export async function correctEmailAction(
   oldEmail: string,
   newEmail: string
