@@ -20,7 +20,7 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
     },
     {
       targetId: "tour-nav-menu",
-      text: "Menu — acesse todas as seções da plataforma.",
+      text: "Acesse todas as seções da plataforma.",
     },
     {
       targetId: "tour-nav-perfil",
@@ -32,19 +32,19 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   dashboard: [
     {
       targetId: "tour-nav-cursos",
-      text: "Cursos — sua biblioteca e novos para comprar.",
+      text: "Sua biblioteca de cursos e novos para comprar.",
     },
     {
       targetId: "tour-nav-inspiracoes",
-      text: "Inspirações — fotos, receitas e dicas da comunidade.",
+      text: "Fotos, receitas e dicas da comunidade.",
     },
     {
       targetId: "tour-nav-comunidade",
-      text: "Avisos — novidades e lançamentos da Handify.",
+      text: "Novidades e lançamentos da Handify.",
     },
     {
       targetId: "tour-nav-ferramentas",
-      text: "Ferramentas — calculadoras e recursos gratuitos para o seu artesanato.",
+      text: "Calculadoras, fornecedores e recursos gratuitos para o seu artesanato.",
     },
   ],
 
