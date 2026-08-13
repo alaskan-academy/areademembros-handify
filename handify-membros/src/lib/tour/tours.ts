@@ -7,6 +7,22 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   // ── Cursos ───────────────────────────────────────────────────────────────────
   cursos: [
     {
+      targetId: "tour-nav-cursos",
+      text: "Sua biblioteca de cursos e novos para comprar.",
+    },
+    {
+      targetId: "tour-nav-inspiracoes",
+      text: "Fotos, receitas e dicas da comunidade.",
+    },
+    {
+      targetId: "tour-nav-comunidade",
+      text: "Novidades e lançamentos da Handify.",
+    },
+    {
+      targetId: "tour-nav-ferramentas",
+      text: "Calculadoras, fornecedores e recursos gratuitos para o seu artesanato.",
+    },
+    {
       targetId: "tour-cursos-meus-cursos",
       text: "Seus cursos matriculados. Toque para continuar de onde parou.",
     },
@@ -28,25 +44,8 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
     },
   ],
 
-  // ── Primeiro acesso — visão geral da plataforma ──────────────────────────────
-  dashboard: [
-    {
-      targetId: "tour-nav-cursos",
-      text: "Sua biblioteca de cursos e novos para comprar.",
-    },
-    {
-      targetId: "tour-nav-inspiracoes",
-      text: "Fotos, receitas e dicas da comunidade.",
-    },
-    {
-      targetId: "tour-nav-comunidade",
-      text: "Novidades e lançamentos da Handify.",
-    },
-    {
-      targetId: "tour-nav-ferramentas",
-      text: "Calculadoras, fornecedores e recursos gratuitos para o seu artesanato.",
-    },
-  ],
+  // ── Dashboard — sem tour (DiscoveryCard cobre a descoberta) ──────────────────
+  dashboard: [],
 
   // ── Aulas ────────────────────────────────────────────────────────────────────
   aulas: [
