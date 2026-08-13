@@ -16,8 +16,6 @@ import { logoutAction } from "@/app/(auth)/actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import type { NavItem } from "@/components/layout/StudentHeader";
 import type { Role } from "@/types";
-import NavSectionDot from "@/components/onboarding/NavSectionDot";
-import { ONBOARDING_SECTIONS } from "@/lib/onboarding/sections";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, BookOpen, User, Bell, Users, Home,
@@ -38,14 +36,9 @@ interface StudentNavProps {
   navItems: NavItem[];
   role: Role;
   fullName: string;
-  visitedSections: Record<string, boolean>;
 }
 
-export default function StudentNav({ navItems, role, fullName, visitedSections }: StudentNavProps) {
-  // Mapeia rota → id da seção de onboarding para lookup rápido
-  const routeToSectionId = Object.fromEntries(
-    ONBOARDING_SECTIONS.map((s) => [s.rota.replace(/\/$/, ""), s.id])
-  );
+export default function StudentNav({ navItems, role, fullName }: StudentNavProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -97,8 +90,6 @@ export default function StudentNav({ navItems, role, fullName, visitedSections }
             const Icon = item.icon ? ICON_MAP[item.icon] : null;
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             const isAdmin = item.visible_to === "admin";
-            const sectionId = routeToSectionId[item.href];
-            const isNew = sectionId ? !visitedSections[sectionId] : false;
 
             const navTourId =
                 item.href === "/cursos" ? "tour-nav-cursos" :
@@ -130,7 +121,6 @@ export default function StudentNav({ navItems, role, fullName, visitedSections }
                 {!collapsed && (
                   <>
                     <span className="flex-1 truncate">{item.label}</span>
-                    {isNew && <NavSectionDot />}
                     {item.target === "_blank" && (
                       <ExternalLink className="w-3 h-3 opacity-40 shrink-0" />
                     )}
@@ -232,8 +222,6 @@ export default function StudentNav({ navItems, role, fullName, visitedSections }
                 const Icon = item.icon ? ICON_MAP[item.icon] : null;
                 const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
                 const isAdmin = item.visible_to === "admin";
-                const sectionId = routeToSectionId[item.href];
-                const isNew = sectionId ? !visitedSections[sectionId] : false;
 
                 return (
                   <Link
@@ -256,7 +244,6 @@ export default function StudentNav({ navItems, role, fullName, visitedSections }
                       : <span className="w-4 h-4 shrink-0" />
                     }
                     <span className="flex-1">{item.label}</span>
-                    {isNew && <NavSectionDot />}
                     {item.target === "_blank" && (
                       <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-40" />
                     )}

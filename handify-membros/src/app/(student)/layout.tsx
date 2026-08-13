@@ -111,7 +111,6 @@ export default async function StudentLayout({
             navItems={navItems}
             role={(profile?.role ?? "student") as Role}
             fullName={profile?.full_name ?? ""}
-            visitedSections={(profile?.visited_sections as Record<string, boolean>) ?? {}}
           />
         )}
         <main className="flex-1 min-w-0 overflow-x-hidden pb-20 landscape:pb-0 md:pb-0">{children}</main>

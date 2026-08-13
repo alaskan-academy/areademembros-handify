@@ -164,7 +164,7 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
       </div>
 
       {/* Ações — desabilitadas se pendente */}
-      <div className="px-5 py-3 flex items-center gap-4 border-t border-border/40">
+      <div id="tour-forum-acoes" className="px-5 py-3 flex items-center gap-4 border-t border-border/40">
         <button onClick={handleLike} disabled={isPending}
           className={cn("flex items-center gap-1.5 text-sm font-medium transition-colors",
             isPending ? "opacity-40 cursor-not-allowed" :

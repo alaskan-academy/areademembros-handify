@@ -18,38 +18,10 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
       targetId: "tour-cursos-outros",
       text: "Cursos disponíveis para comprar e ampliar seu conhecimento.",
     },
-    {
-      targetId: "tour-nav-perfil",
-      text: "Acesse aqui seus certificados, edite seus dados e altere sua senha.",
-    },
-    {
-      targetId: "tour-nav-cursos",
-      text: "Sua biblioteca de cursos.",
-    },
-    {
-      targetId: "tour-nav-inspiracoes",
-      text: "Fotos, receitas e dicas da comunidade artesanal.",
-    },
-    {
-      targetId: "tour-nav-comunidade",
-      text: "Novidades e comunicados da Handify.",
-    },
-    {
-      targetId: "tour-nav-ferramentas",
-      text: "Calculadoras e lista de fornecedores para o seu artesanato.",
-    },
-    {
-      targetId: "tour-nav-menu",
-      text: "Mais opções de navegação e configurações.",
-    },
   ],
 
   // ── Primeiro acesso — visão geral da plataforma ──────────────────────────────
   dashboard: [
-    {
-      targetId: "tour-dash-cursos",
-      text: "Sua jornada — cursos em andamento. Toque para retomar de onde parou.",
-    },
     {
       targetId: "tour-nav-cursos",
       text: "Cursos — sua biblioteca e novos para comprar.",
@@ -131,15 +103,11 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   // ── Fórum interno ────────────────────────────────────────────────────────────
   "forum-interno": [
     {
-      targetId: "tour-forum-posts",
-      text: "Posts do fórum — dúvidas, projetos e ideias. Clique para ver os comentários.",
-    },
-    {
       targetId: "tour-forum-novo-post",
       text: "Clique em 'Novo post' para compartilhar. Passa por aprovação antes de aparecer.",
     },
     {
-      targetId: "",
+      targetId: "tour-forum-acoes",
       text: "Em cada post: ♡ curtir e 💬 comentar.",
     },
   ],

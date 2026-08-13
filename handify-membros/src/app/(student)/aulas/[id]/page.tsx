@@ -48,6 +48,7 @@ export default async function LessonPage({
   let completedSet = new Set<string>();
 
   let showAulasBanner = false;
+  let visitedSections: Record<string, boolean> = {};
   if (user && mod?.course_id) {
     const [progressResult, modulesResult] = await Promise.all([
       supabase
@@ -88,8 +89,7 @@ export default async function LessonPage({
       .select("visited_sections")
       .eq("id", user.id)
       .single();
-    const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {};
-    showAulasBanner = !visitedSections["aulas"];
+    visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {};
   }
 
   // Navegação prev/next no contexto do curso
@@ -152,6 +152,11 @@ export default async function LessonPage({
         signed_url: await getMaterialSignedUrl(m.id),
       }))
     );
+  }
+
+  // Tour só aparece em aulas com materiais (o step de materiais precisa do elemento no DOM)
+  if (user && !visitedSections["aulas"] && materials.length > 0) {
+    showAulasBanner = true;
   }
 
   const sidebarProps = {
