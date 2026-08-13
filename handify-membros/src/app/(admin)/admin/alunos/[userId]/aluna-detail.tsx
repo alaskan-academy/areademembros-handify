@@ -27,6 +27,9 @@ import {
   Search,
   RefreshCw,
   Check,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -36,6 +39,7 @@ import {
   updateProfileAction,
   grantMultipleAccessAction,
   resendAccessEmailAction,
+  setStudentPasswordAction,
 } from "./actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import ActivityTab, { type ActivityItem } from "@/components/admin/alunos/ActivityTab";
@@ -117,6 +121,42 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
   const [profileState, profileAction, profilePending] = useActionState(updateProfileAction, {});
   useModalBackGuard(editingProfile, () => setEditingProfile(false));
 
+  const [setPasswordOpen, setSetPasswordOpen] = useState(false);
+  const [passwordValue, setPasswordValue] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordResult, setPasswordResult] = useState<"success" | "error" | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordPending, startPasswordTransition] = useTransition();
+  useModalBackGuard(setPasswordOpen, () => setSetPasswordOpen(false));
+
+  function handleSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (passwordValue.length < 8) {
+      setPasswordError("A senha deve ter no mínimo 8 caracteres.");
+      return;
+    }
+    if (passwordValue !== passwordConfirm) {
+      setPasswordError("As senhas não coincidem.");
+      return;
+    }
+    setPasswordError(null);
+    startPasswordTransition(async () => {
+      const res = await setStudentPasswordAction(profile.id, passwordValue);
+      if (res.error) {
+        setPasswordError(res.error);
+      } else {
+        setPasswordResult("success");
+        setTimeout(() => {
+          setSetPasswordOpen(false);
+          setPasswordResult(null);
+          setPasswordValue("");
+          setPasswordConfirm("");
+        }, 2000);
+      }
+    });
+  }
+
   const [resendEmailPending, startResendEmailTransition] = useTransition();
   const [resendEmailResult, setResendEmailResult] = useState<"sent" | "error" | null>(null);
 
@@ -189,6 +229,14 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
           >
             <RefreshCw className={cn("w-3.5 h-3.5", resendEmailPending && "animate-spin")} />
             {resendEmailPending ? "Enviando…" : "Reenviar acesso"}
+          </button>
+          <button
+            onClick={() => { setSetPasswordOpen(true); setPasswordResult(null); setPasswordError(null); setPasswordValue(""); setPasswordConfirm(""); }}
+            title="Definir senha para esta aluna"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-border text-muted-foreground hover:text-foreground hover:border-[#6699F3]/40"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            Definir senha
           </button>
           {banned && (
             <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
@@ -555,6 +603,108 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
         </div>
       </div>
       </>}
+
+      {/* Modal de definir senha */}
+      {setPasswordOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.45)" }}
+          onClick={() => setSetPasswordOpen(false)}
+        >
+          <div
+            className="handify-card w-full max-w-sm flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+              <KeyRound className="w-5 h-5 text-[#6699F3]" />
+              <h2 className="font-semibold flex-1">Definir senha</h2>
+              <button
+                onClick={() => setSetPasswordOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSetPassword} className="px-5 py-5 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Define uma nova senha para <span className="font-medium text-foreground">{profile.full_name ?? profile.email}</span>. A aluna poderá fazer login imediatamente.
+              </p>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Nova senha
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordValue}
+                    onChange={(e) => setPasswordValue(e.target.value)}
+                    required
+                    minLength={8}
+                    autoFocus
+                    placeholder="Mínimo 8 caracteres"
+                    className="w-full px-3 py-2 pr-10 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Confirmar senha
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  required
+                  placeholder="Repita a senha"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+                  {passwordError}
+                </div>
+              )}
+              {passwordResult === "success" && (
+                <div className="rounded-lg bg-[#72CF92]/10 border border-[#72CF92]/30 px-4 py-3 text-sm text-[#3d9e5a] flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0" />
+                  Senha definida com sucesso!
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSetPasswordOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordPending || passwordResult === "success"}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  {passwordPending ? "Salvando…" : "Definir senha"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal de edição de perfil */}
       {editingProfile && (

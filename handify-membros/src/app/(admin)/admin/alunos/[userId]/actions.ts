@@ -453,6 +453,38 @@ export async function resendAccessEmailAction(
   return { success: true };
 }
 
+// ─── Definir senha ───────────────────────────────────────────────────────────
+
+export async function setStudentPasswordAction(
+  userId: string,
+  password: string
+): Promise<{ error?: string }> {
+  let adminId: string;
+  try {
+    adminId = await getAdminId();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  if (password.length < 8) {
+    return { error: "A senha deve ter no mínimo 8 caracteres." };
+  }
+
+  const service = createServiceClient();
+  const { error } = await service.auth.admin.updateUserById(userId, { password });
+  if (error) return { error: `Erro ao definir senha: ${error.message}` };
+
+  await service.from("audit_log").insert({
+    admin_id: adminId,
+    action: "set_password",
+    target_type: "user",
+    target_id: userId,
+    meta: {},
+  });
+
+  return {};
+}
+
 // ─── Atualizar e-mail ─────────────────────────────────────────────────────────
 
 const emailSchema = z.object({
