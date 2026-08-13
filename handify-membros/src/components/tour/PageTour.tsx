@@ -65,13 +65,19 @@ export default function PageTour({
   const seekTarget = useCallback((targetId: string) => {
     let retries = 0;
     const attempt = () => {
-      const el = document.getElementById(targetId);
+      // querySelectorAll garante que pegamos o elemento VISÍVEL quando há IDs duplicados
+      // (ex: mesmo id no sidebar desktop hidden + bottom nav mobile visible)
+      const candidates = Array.from(document.querySelectorAll(`#${CSS.escape(targetId)}`)) as HTMLElement[];
+      const el = candidates.find((e) => {
+        const r = e.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+
       if (!el) {
         if (++retries < 15) setTimeout(attempt, 200);
         else { setSpotRect(null); setTooltipPos(null); }
         return;
       }
-      // Scroll into view first, then compute rect after animation settles
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => {
         if (applyElement(el)) return;
@@ -93,11 +99,10 @@ export default function PageTour({
   useEffect(() => {
     if (!active) return;
     const targetId = steps[stepIdx]?.targetId ?? "";
-    if (!targetId) {
-      setSpotRect(null);
-      setTooltipPos(null);
-      return;
-    }
+    // Limpa spotlight imediatamente para não vazar o rect do passo anterior
+    setSpotRect(null);
+    setTooltipPos(null);
+    if (!targetId) return;
     seekTarget(targetId);
   }, [active, stepIdx, steps, seekTarget]);
 
