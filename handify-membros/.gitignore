@@ -53,3 +53,5 @@ next-env.d.ts
 scripts/*.pdf
 scripts/*.ttf
 scripts/preview-cert.mjs
+
+playwright-report/
