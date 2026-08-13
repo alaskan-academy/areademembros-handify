@@ -62,7 +62,7 @@ export default function PageTour({
     return true;
   }, []);
 
-  const seekTarget = useCallback((targetId: string) => {
+  const seekTarget = useCallback((targetId: string, onNotFound?: () => void) => {
     let retries = 0;
     const attempt = () => {
       // querySelectorAll garante que pegamos o elemento VISÍVEL quando há IDs duplicados
@@ -75,14 +75,14 @@ export default function PageTour({
 
       if (!el) {
         if (++retries < 15) setTimeout(attempt, 200);
-        else { setSpotRect(null); setTooltipPos(null); }
+        else onNotFound?.();
         return;
       }
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => {
         if (applyElement(el)) return;
         if (++retries < 15) setTimeout(attempt, 200);
-        else { setSpotRect(null); setTooltipPos(null); }
+        else onNotFound?.();
       }, 380);
     };
     attempt();
@@ -103,8 +103,16 @@ export default function PageTour({
     setSpotRect(null);
     setTooltipPos(null);
     if (!targetId) return;
-    seekTarget(targetId);
-  }, [active, stepIdx, steps, seekTarget]);
+    // Se o elemento não aparecer após retries, pula automaticamente este step
+    let alive = true;
+    const onNotFound = () => {
+      if (!alive) return;
+      if (stepIdx < steps.length - 1) setStepIdx((i) => i + 1);
+      else finish();
+    };
+    seekTarget(targetId, onNotFound);
+    return () => { alive = false; };
+  }, [active, stepIdx, steps, seekTarget, finish]);
 
   // Track element on scroll / resize
   useEffect(() => {

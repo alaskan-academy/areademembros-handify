@@ -193,7 +193,6 @@ export default async function LessonPage({
 
           {/* Player ou tela de bloqueio */}
           {/* Player legado (video_panda_id na lessons table) — só exibe se não há bloco de vídeo */}
-          <div id="tour-aulas-player">
           {videoId && !hasVideoBlocks ? (
             <PandaPlayer
               videoId={videoId}
@@ -227,10 +226,7 @@ export default async function LessonPage({
             </div>
           ) : null}
 
-          </div>{/* /tour-aulas-player */}
-
           {/* Blocos de conteúdo e materiais */}
-          <div id="tour-aulas-materiais">
           <ContentBlocks
             blocks={contentBlocks}
             materials={materials}
@@ -241,7 +237,6 @@ export default async function LessonPage({
               isCompleted,
             } as VideoPlayerProps : undefined}
           />
-          </div>
 
           {/* Ações da aula */}
           <div className="flex flex-col gap-3 pt-2">
@@ -286,19 +281,17 @@ export default async function LessonPage({
           </div>
 
           {/* Bottom sheet — só mobile: Materiais + Menu do curso */}
-          <div id="tour-aulas-menu">
           <LessonBottomSheet
             materials={materials}
             {...sidebarProps}
           />
-          </div>
 
           {/* Banner pós-aula */}
           <BannerDisplay slot="pos-aula" />
         </div>
 
         {/* Coluna lateral: sidebar + banner sticky juntos para não sobreposer um ao outro */}
-        <div id="tour-aulas-sidebar" className="hidden lg:flex flex-col gap-4 self-start sticky top-20">
+        <div className="hidden lg:flex flex-col gap-4 self-start sticky top-20">
           <LessonSidebarDesktop {...sidebarProps} />
           <BannerDisplay slot="lateral" />
         </div>

@@ -81,7 +81,7 @@ export default async function FeedPage() {
             <p className="text-sm mt-1">Em breve teremos novidades por aqui!</p>
           </div>
         ) : (
-          <div id="tour-feed-posts" className="space-y-5">
+          <div className="space-y-5">
             {posts.map((post) => (
               <FeedPostCard
                 key={post.id}

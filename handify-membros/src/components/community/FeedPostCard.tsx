@@ -98,6 +98,7 @@ export default function FeedPostCard({ post, userId: _userId, initialLiked }: Pr
       {/* Ações */}
       <div className="px-5 py-3 flex items-center gap-4 border-t border-border/40">
         <button
+          id="tour-feed-curtir"
           onClick={handleLike}
           className={cn(
             "flex items-center gap-1.5 text-sm font-medium transition-colors",

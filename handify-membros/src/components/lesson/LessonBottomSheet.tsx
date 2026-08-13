@@ -38,6 +38,7 @@ export function LessonBottomSheet({ materials, courseModules, lessonId, complete
       <div className="flex gap-2">
         {hasMaterials && (
           <button
+            id="tour-aulas-materiais"
             onClick={() => openSheet("materiais")}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-border bg-white text-sm font-medium hover:border-[#6699F3] hover:text-[#6699F3] transition-colors min-h-[44px]"
           >
@@ -50,6 +51,7 @@ export function LessonBottomSheet({ materials, courseModules, lessonId, complete
         )}
         {hasModules && (
           <button
+            id="tour-aulas-menu"
             onClick={() => openSheet("menu")}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-border bg-white text-sm font-medium hover:border-[#6699F3] hover:text-[#6699F3] transition-colors min-h-[44px]"
           >

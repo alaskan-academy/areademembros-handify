@@ -75,10 +75,6 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   // ── Aulas ────────────────────────────────────────────────────────────────────
   aulas: [
     {
-      targetId: "tour-aulas-player",
-      text: "Player de vídeo. Pause, volte e avance à vontade — o progresso é salvo automaticamente.",
-    },
-    {
       targetId: "tour-aulas-concluir",
       text: "Concluiu? Marque aqui para salvar o progresso e chegar mais perto do certificado.",
     },
@@ -93,10 +89,6 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
     {
       targetId: "tour-aulas-menu",
       text: "Menu do curso — veja todos os módulos e pule para qualquer aula.",
-    },
-    {
-      targetId: "tour-aulas-sidebar",
-      text: "Lista completa de aulas por módulo. Aulas concluídas ficam marcadas.",
     },
   ],
 
@@ -123,11 +115,7 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   // ── Feed de avisos ───────────────────────────────────────────────────────────
   feed: [
     {
-      targetId: "tour-feed-posts",
-      text: "Novidades, avisos e lançamentos da Handify. Confira sempre para não perder nada!",
-    },
-    {
-      targetId: "",
+      targetId: "tour-feed-curtir",
       text: "Curta com ♡ para demonstrar que viu. Fique de olho para saber de novos cursos em primeira mão.",
     },
   ],
@@ -159,25 +147,21 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   // ── Inspirações ──────────────────────────────────────────────────────────────
   inspiracoes: [
     {
-      targetId: "tour-inspiracoes-feed",
-      text: "Role para explorar fotos, receitas e dicas de artesanato.",
-    },
-    {
       targetId: "tour-inspiracoes-filtros",
       text: "Filtre por tipo de conteúdo ou categoria de artesanato.",
     },
     {
-      targetId: "",
-      text: "♡ curtir, 🔖 salvar para depois, e 'Ver salvos' no topo para ver sua lista.",
+      targetId: "tour-inspiracoes-acoes",
+      text: "♡ curtir, 💬 comentar e 🔖 salvar para depois.",
+    },
+    {
+      targetId: "tour-inspiracoes-salvos",
+      text: "Tudo que você salvou fica aqui — acesse quando quiser.",
     },
   ],
 
   // ── Ferramentas ──────────────────────────────────────────────────────────────
   ferramentas: [
-    {
-      targetId: "tour-ferramentas-hub",
-      text: "Ferramentas gratuitas para precificar, calcular e planejar seu artesanato.",
-    },
     {
       targetId: "tour-ferramentas-nicho",
       text: "Selecione seu tipo de artesanato para ver as ferramentas disponíveis.",

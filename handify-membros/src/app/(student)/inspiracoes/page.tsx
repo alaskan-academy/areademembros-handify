@@ -42,6 +42,7 @@ export default async function InspiracoesPage() {
             Receitas, fotos, dicas e destaques do universo do artesanato.
           </p>
           <Link
+            id="tour-inspiracoes-salvos"
             href="/inspiracoes/salvos"
             className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#6699F3] border border-[#6699F3]/30 rounded-xl hover:bg-[#6699F3]/5 transition-colors"
           >
@@ -53,16 +54,14 @@ export default async function InspiracoesPage() {
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <PageTour sectionId="inspiracoes" visited={!!visitedSections['inspiracoes']} steps={SECTION_TOURS.inspiracoes} />
-        <div id="tour-inspiracoes-feed">
-          <InspiracaoFeed
-            userId={user.id}
-            initialPosts={page.posts}
-            initialCursor={page.next_cursor}
-            initialHasMore={page.has_more}
-            courses={courses}
-            categories={categories}
-          />
-        </div>
+        <InspiracaoFeed
+          userId={user.id}
+          initialPosts={page.posts}
+          initialCursor={page.next_cursor}
+          initialHasMore={page.has_more}
+          courses={courses}
+          categories={categories}
+        />
       </div>
     </div>
   )
