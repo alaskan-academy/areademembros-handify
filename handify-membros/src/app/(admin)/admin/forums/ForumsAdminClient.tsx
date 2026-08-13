@@ -131,7 +131,7 @@ export default function ForumsAdminClient({ forums: initial }: Props) {
           </div>
           <div className="flex gap-1 shrink-0">
             {!forum.archived && (
-              <button onClick={() => startEdit(forum)} aria-label="Editar"
+              <button onClick={() => startEdit(forum)} aria-label="Editar" title="Editar"
                 className="p-2 rounded-lg hover:bg-muted transition-colors">
                 <Pencil className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -139,6 +139,7 @@ export default function ForumsAdminClient({ forums: initial }: Props) {
             <button
               onClick={() => handleArchive(forum.id, forum.archived)}
               aria-label={forum.archived ? "Restaurar fórum" : "Arquivar fórum"}
+              title={forum.archived ? "Restaurar fórum" : "Arquivar fórum"}
               className="p-2 rounded-lg hover:bg-muted transition-colors"
             >
               {forum.archived
@@ -146,7 +147,7 @@ export default function ForumsAdminClient({ forums: initial }: Props) {
                 : <Archive className="w-4 h-4 text-muted-foreground" />
               }
             </button>
-            <button onClick={() => handleDelete(forum.id, forum.title)} aria-label="Excluir permanentemente"
+            <button onClick={() => handleDelete(forum.id, forum.title)} aria-label="Excluir permanentemente" title="Excluir permanentemente"
               className="p-2 rounded-lg hover:bg-red-50 transition-colors">
               <Trash2 className="w-4 h-4 text-red-500" />
             </button>

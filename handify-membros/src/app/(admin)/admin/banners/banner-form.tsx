@@ -112,6 +112,7 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
               type="button"
               onClick={clearImage}
               aria-label="Remover imagem"
+              title="Remover imagem"
               className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
             >
               <X className="w-4 h-4" />

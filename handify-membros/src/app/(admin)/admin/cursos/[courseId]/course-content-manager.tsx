@@ -333,13 +333,14 @@ function SortableLesson({ lesson: initialLesson, courseId, moduleId, editingLess
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button onClick={() => setEditingLessonId(lesson.id)}
-              aria-label="Editar"
+              aria-label="Editar" title="Editar"
               className="p-1.5 rounded hover:bg-muted transition-colors">
               <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
             <button onClick={handleToggleArchive} disabled={archivePending || isPending}
               className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-              aria-label={lesson.archived ? "Desarquivar" : "Arquivar"}>
+              aria-label={lesson.archived ? "Desarquivar" : "Arquivar"}
+              title={lesson.archived ? "Desarquivar" : "Arquivar"}>
               {lesson.archived
                 ? <ArchiveRestore className="w-3.5 h-3.5 text-orange-500" />
                 : <Archive className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -349,7 +350,7 @@ function SortableLesson({ lesson: initialLesson, courseId, moduleId, editingLess
               Blocos →
             </a>
             <button onClick={() => onDelete(lesson.id, lesson.title)} disabled={isPending}
-              aria-label="Excluir"
+              aria-label="Excluir" title="Excluir"
               className="p-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50">
               <Trash2 className="w-3.5 h-3.5 text-red-500" />
             </button>
@@ -452,19 +453,20 @@ function SortableModule({ mod, courseId, editingModuleId, setEditingModuleId,
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => setEditingModuleId(mod.id)}
-                aria-label="Editar"
+                aria-label="Editar" title="Editar"
                 className="p-1.5 rounded hover:bg-muted transition-colors">
                 <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
               <button onClick={handleToggleArchive} disabled={archivePending || isPending}
                 className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-                aria-label={archived ? "Desarquivar" : "Arquivar"}>
+                aria-label={archived ? "Desarquivar" : "Arquivar"}
+                title={archived ? "Desarquivar" : "Arquivar"}>
                 {archived
                   ? <ArchiveRestore className="w-3.5 h-3.5 text-orange-500" />
                   : <Archive className="w-3.5 h-3.5 text-muted-foreground" />}
               </button>
               <button onClick={() => onDeleteModule(mod.id, mod.title)} disabled={isPending}
-                aria-label="Excluir"
+                aria-label="Excluir" title="Excluir"
                 className="p-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50">
                 <Trash2 className="w-3.5 h-3.5 text-red-500" />
               </button>
