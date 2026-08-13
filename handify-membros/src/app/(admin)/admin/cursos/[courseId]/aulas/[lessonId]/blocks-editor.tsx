@@ -413,6 +413,7 @@ export default function AdminBlocksEditor({
                   <select
                     value={editType}
                     onChange={(e) => setEditType(e.target.value as BlockType)}
+                    aria-label="Tipo de bloco"
                     className="text-sm border border-border rounded-lg px-2 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
                   >
                     {(["video", "text", "html", "embed", "download"] as BlockType[]).map(

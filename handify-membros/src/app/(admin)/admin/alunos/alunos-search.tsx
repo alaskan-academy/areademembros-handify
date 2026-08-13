@@ -13,6 +13,7 @@ export default function AlunosSearch({ defaultValue }: { defaultValue: string })
         name="q"
         defaultValue={defaultValue}
         placeholder="Buscar por nome, e-mail ou CPF…"
+        aria-label="Buscar alunas"
         className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 focus:border-[#6699F3]"
         onChange={(e) => {
           if (e.target.value === "") formRef.current?.submit();

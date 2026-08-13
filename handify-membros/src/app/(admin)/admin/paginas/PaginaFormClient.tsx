@@ -88,10 +88,11 @@ export default function PaginaFormClient({
 
         {/* Título */}
         <div className="px-5 py-4 space-y-1.5">
-          <label className="block text-xs font-semibold text-foreground/60 uppercase tracking-wide">
+          <label htmlFor="pagina-title" className="block text-xs font-semibold text-foreground/60 uppercase tracking-wide">
             Título da página
           </label>
           <input
+            id="pagina-title"
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Ex: Termos de Uso"
@@ -102,12 +103,13 @@ export default function PaginaFormClient({
 
         {/* Slug */}
         <div className="px-5 py-4 space-y-1.5">
-          <label className="block text-xs font-semibold text-foreground/60 uppercase tracking-wide">
+          <label htmlFor="pagina-slug" className="block text-xs font-semibold text-foreground/60 uppercase tracking-wide">
             Slug (URL)
           </label>
           <div className="flex items-center gap-2">
             <span className="text-xs text-foreground/40 whitespace-nowrap shrink-0">/p/</span>
             <input
+              id="pagina-slug"
               value={slug}
               onChange={(e) => { setSlug(slugify(e.target.value)); setSlugManual(true); }}
               placeholder="termos-de-uso"

@@ -15,10 +15,11 @@ export default function NovaAlunaForm() {
       )}
 
       <div>
-        <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+        <label htmlFor="nova-aluna-nome" className="text-sm font-medium text-foreground/70 mb-1.5 block">
           Nome completo *
         </label>
         <input
+          id="nova-aluna-nome"
           name="full_name"
           type="text"
           required
@@ -29,10 +30,11 @@ export default function NovaAlunaForm() {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+        <label htmlFor="nova-aluna-email" className="text-sm font-medium text-foreground/70 mb-1.5 block">
           E-mail *
         </label>
         <input
+          id="nova-aluna-email"
           name="email"
           type="email"
           required
@@ -43,10 +45,11 @@ export default function NovaAlunaForm() {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+          <label htmlFor="nova-aluna-phone" className="text-sm font-medium text-foreground/70 mb-1.5 block">
             Telefone / WhatsApp
           </label>
           <input
+            id="nova-aluna-phone"
             name="phone"
             type="tel"
             placeholder="(11) 99999-9999"
@@ -55,10 +58,11 @@ export default function NovaAlunaForm() {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+          <label htmlFor="nova-aluna-nascimento" className="text-sm font-medium text-foreground/70 mb-1.5 block">
             Data de nascimento
           </label>
           <input
+            id="nova-aluna-nascimento"
             name="date_of_birth"
             type="date"
             className="w-full text-sm px-3 py-2.5 rounded-lg border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40"
@@ -67,10 +71,11 @@ export default function NovaAlunaForm() {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+        <label htmlFor="nova-aluna-cpf" className="text-sm font-medium text-foreground/70 mb-1.5 block">
           CPF
         </label>
         <input
+          id="nova-aluna-cpf"
           name="cpf"
           type="text"
           inputMode="numeric"
@@ -84,10 +89,11 @@ export default function NovaAlunaForm() {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-foreground/70 mb-1.5 block">
+        <label htmlFor="nova-aluna-senha" className="text-sm font-medium text-foreground/70 mb-1.5 block">
           Senha temporária
         </label>
         <input
+          id="nova-aluna-senha"
           name="password"
           type="password"
           minLength={8}

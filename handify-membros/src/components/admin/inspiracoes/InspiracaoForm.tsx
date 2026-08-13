@@ -476,6 +476,7 @@ export function InspiracaoForm({ post, adminId, courses, categories = [] }: Prop
                   />
                   {ingredientes.length > 1 && (
                     <button type="button" onClick={() => removeIngrediente(i)}
+                      aria-label="Remover ingrediente"
                       className="p-2 text-muted-foreground hover:text-red-500 transition-colors shrink-0">
                       <X className="w-4 h-4" />
                     </button>
@@ -510,6 +511,7 @@ export function InspiracaoForm({ post, adminId, courses, categories = [] }: Prop
                   </div>
                   {passos.length > 1 && (
                     <button type="button" onClick={() => removePasso(i)}
+                      aria-label="Remover passo"
                       className="p-2 text-muted-foreground hover:text-red-500 transition-colors shrink-0 mt-1">
                       <X className="w-4 h-4" />
                     </button>

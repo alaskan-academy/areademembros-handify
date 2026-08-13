@@ -214,7 +214,7 @@ export default function PageTour({
       )}
 
       {/* Fechar ao tocar fora do tooltip */}
-      <div className="fixed inset-0 z-[9991]" onClick={finish} />
+      <div className="fixed inset-0 z-[9991]" onClick={finish} aria-hidden="true" />
 
       {/* Tooltip */}
       <div

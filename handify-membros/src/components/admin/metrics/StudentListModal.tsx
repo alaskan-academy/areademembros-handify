@@ -44,6 +44,7 @@ export function StudentListModal({
             style={{ maxHeight: "min(72vh, 560px)" }}
             role="dialog"
             aria-modal="true"
+            aria-labelledby="student-list-modal-title"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -52,7 +53,7 @@ export function StudentListModal({
                 <Users className="w-4 h-4 text-[#6699F3]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">{title}</p>
+                <p id="student-list-modal-title" className="font-semibold text-sm">{title}</p>
                 {subtitle && (
                   <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
                 )}

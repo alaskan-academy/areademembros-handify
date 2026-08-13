@@ -73,6 +73,7 @@ export function LessonBottomSheet({ materials, courseModules, lessonId, complete
             style={{ maxHeight: "80vh" }}
             role="dialog"
             aria-modal="true"
+            aria-label={tab === "materiais" ? "Materiais da aula" : "Menu do curso"}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">

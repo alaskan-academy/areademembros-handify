@@ -122,6 +122,7 @@ export default function AdminMaterialsUploader({
           ref={nameRef}
           name="name"
           type="text"
+          aria-label="Nome do material"
           placeholder="Nome do material (ex: Apostila aula 01) — opcional"
           className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"
         />
@@ -130,6 +131,7 @@ export default function AdminMaterialsUploader({
           name="file"
           type="file"
           required
+          aria-label="Arquivo para upload"
           accept=".pdf,.zip,.png,.jpg,.jpeg,.webp,.mp4,.mp3,.doc,.docx,.ppt,.pptx"
           className="w-full text-sm text-muted-foreground file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#6699F3]/10 file:text-[#6699F3] hover:file:bg-[#6699F3]/20 cursor-pointer"
         />
@@ -167,6 +169,7 @@ export default function AdminMaterialsUploader({
                 <input
                   type="text"
                   placeholder="Buscar por nome, aula ou curso..."
+                  aria-label="Buscar material"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full text-sm pl-8 pr-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 bg-background"

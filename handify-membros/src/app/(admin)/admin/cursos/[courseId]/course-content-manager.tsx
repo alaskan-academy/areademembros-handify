@@ -312,6 +312,7 @@ function SortableLesson({ lesson: initialLesson, courseId, moduleId, editingLess
         <div className={`flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 transition-colors gap-2 border-b border-border/40 last:border-0 ${lesson.archived ? "opacity-50" : ""}`}>
           <div className="flex items-center gap-2 min-w-0">
             <button {...attributes} {...listeners}
+              aria-label="Arrastar para reordenar"
               className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted transition-colors shrink-0 touch-none">
               <GripVertical className="w-3.5 h-3.5 text-muted-foreground/40" />
             </button>
@@ -332,12 +333,13 @@ function SortableLesson({ lesson: initialLesson, courseId, moduleId, editingLess
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <button onClick={() => setEditingLessonId(lesson.id)}
-              className="p-1.5 rounded hover:bg-muted transition-colors" title="Editar">
+              aria-label="Editar"
+              className="p-1.5 rounded hover:bg-muted transition-colors">
               <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
             <button onClick={handleToggleArchive} disabled={archivePending || isPending}
               className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-              title={lesson.archived ? "Desarquivar" : "Arquivar"}>
+              aria-label={lesson.archived ? "Desarquivar" : "Arquivar"}>
               {lesson.archived
                 ? <ArchiveRestore className="w-3.5 h-3.5 text-orange-500" />
                 : <Archive className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -347,7 +349,8 @@ function SortableLesson({ lesson: initialLesson, courseId, moduleId, editingLess
               Blocos →
             </a>
             <button onClick={() => onDelete(lesson.id, lesson.title)} disabled={isPending}
-              className="p-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50" title="Excluir">
+              aria-label="Excluir"
+              className="p-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50">
               <Trash2 className="w-3.5 h-3.5 text-red-500" />
             </button>
           </div>
@@ -427,6 +430,7 @@ function SortableModule({ mod, courseId, editingModuleId, setEditingModuleId,
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <button {...attributes} {...listeners}
+                aria-label="Arrastar para reordenar"
                 className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted transition-colors touch-none shrink-0">
                 <GripVertical className="w-4 h-4 text-muted-foreground/40" />
               </button>
@@ -448,18 +452,20 @@ function SortableModule({ mod, courseId, editingModuleId, setEditingModuleId,
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button onClick={() => setEditingModuleId(mod.id)}
-                className="p-1.5 rounded hover:bg-muted transition-colors" title="Editar">
+                aria-label="Editar"
+                className="p-1.5 rounded hover:bg-muted transition-colors">
                 <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
               </button>
               <button onClick={handleToggleArchive} disabled={archivePending || isPending}
                 className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-                title={archived ? "Desarquivar" : "Arquivar"}>
+                aria-label={archived ? "Desarquivar" : "Arquivar"}>
                 {archived
                   ? <ArchiveRestore className="w-3.5 h-3.5 text-orange-500" />
                   : <Archive className="w-3.5 h-3.5 text-muted-foreground" />}
               </button>
               <button onClick={() => onDeleteModule(mod.id, mod.title)} disabled={isPending}
-                className="p-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50" title="Excluir">
+                aria-label="Excluir"
+                className="p-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50">
                 <Trash2 className="w-3.5 h-3.5 text-red-500" />
               </button>
             </div>

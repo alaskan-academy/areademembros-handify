@@ -217,6 +217,7 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], niches 
             <input type="url" value={ch.url} onChange={e => updateChannel(i, 'url', e.target.value)}
               className={`${INPUT_CLS} flex-1`} placeholder="https://..." />
             <button type="button" onClick={() => removeChannel(i)}
+              aria-label="Remover canal"
               className="p-2 text-muted-foreground hover:text-red-500 transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -305,10 +306,12 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], niches 
                         className="flex-1 text-sm border border-[#6699F3] rounded-lg px-2.5 py-1 focus:outline-none bg-background"
                       />
                       <button type="button" onClick={() => handleUpdateTag(t.id)} disabled={tagPending}
+                        aria-label="Salvar tag"
                         className="p-1.5 rounded-lg bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors disabled:opacity-50">
                         <Check className="w-3.5 h-3.5" />
                       </button>
                       <button type="button" onClick={() => setEditingTagId(null)}
+                        aria-label="Cancelar edição"
                         className="p-1.5 rounded-lg border border-border hover:bg-muted transition-colors">
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -317,10 +320,12 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], niches 
                     <>
                       <span className="flex-1 text-sm px-2.5 py-1 rounded-lg bg-background border border-border truncate">{t.label}</span>
                       <button type="button" onClick={() => { setEditingTagId(t.id); setEditingTagLabel(t.label) }}
+                        aria-label="Editar tag"
                         className="p-1.5 rounded-lg hover:bg-muted transition-colors shrink-0">
                         <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                       </button>
                       <button type="button" onClick={() => handleDeleteTag(t.id, t.label)} disabled={tagPending}
+                        aria-label="Excluir tag"
                         className="p-1.5 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 shrink-0">
                         <Trash2 className="w-3.5 h-3.5 text-red-500" />
                       </button>

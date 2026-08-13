@@ -970,7 +970,7 @@ export default function CourseManager({
           <div className="p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold">Editando: {course.title}</h2>
-              <button onClick={() => setEditingId(null)} className="p-1 rounded hover:bg-muted transition-colors">
+              <button onClick={() => setEditingId(null)} aria-label="Cancelar edição" className="p-1 rounded hover:bg-muted transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1080,7 +1080,7 @@ export default function CourseManager({
         <div className="handify-card p-5 border-[#6699F3]/30">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Novo curso</h2>
-            <button onClick={() => setShowCreate(false)} className="p-1 rounded hover:bg-muted transition-colors">
+            <button onClick={() => setShowCreate(false)} aria-label="Cancelar" className="p-1 rounded hover:bg-muted transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>

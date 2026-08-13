@@ -185,8 +185,12 @@ export default function NotificationBell({
                 const color = typeColor(n.type);
                 const content = (
                   <div
+                    role="button"
+                    tabIndex={0}
                     className={`flex gap-3 px-4 py-3 border-b border-border/40 transition-colors cursor-pointer hover:bg-muted/50 ${!n.read ? "bg-[#6699F3]/5" : ""}`}
                     onClick={() => { if (!n.read) handleRead(n.id); }}
+                    onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !n.read) handleRead(n.id); }}
+                    aria-label={n.read ? n.title : `${n.title} (não lida)`}
                   >
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
                       style={{ background: color + "20" }}>

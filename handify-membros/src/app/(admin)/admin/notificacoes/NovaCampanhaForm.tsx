@@ -45,15 +45,23 @@ export default function NovaCampanhaForm({ courses }: { courses: Course[] }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.45)" }}
-      onClick={() => setOpen(false)}>
-      <div className="handify-card w-full max-w-lg flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}>
+      onClick={() => setOpen(false)}
+      aria-hidden="true"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="campanha-title"
+        className="handify-card w-full max-w-lg flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="font-semibold">Nova notificação</h2>
-          <button onClick={() => setOpen(false)}
+          <h2 id="campanha-title" className="font-semibold">Nova notificação</h2>
+          <button onClick={() => setOpen(false)} aria-label="Fechar"
             className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
@@ -63,39 +71,39 @@ export default function NovaCampanhaForm({ courses }: { courses: Course[] }) {
         <form ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Título */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">
+            <label htmlFor="campanha-titulo" className="text-xs font-medium text-muted-foreground block mb-1">
               Título <span className="text-red-500">*</span>
             </label>
-            <input name="title" required maxLength={120}
+            <input id="campanha-titulo" name="title" required maxLength={120}
               placeholder="Ex: Novo curso disponível!"
               className="w-full px-3 py-2 rounded-lg border border-border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40" />
           </div>
 
           {/* Mensagem */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">
+            <label htmlFor="campanha-body" className="text-xs font-medium text-muted-foreground block mb-1">
               Mensagem <span className="text-red-500">*</span>
             </label>
-            <textarea name="body" required maxLength={500} rows={3}
+            <textarea id="campanha-body" name="body" required maxLength={500} rows={3}
               placeholder="Texto da notificação que a aluna verá…"
               className="w-full px-3 py-2 rounded-lg border border-border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 resize-none" />
           </div>
 
           {/* Link opcional */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">
+            <label htmlFor="campanha-link" className="text-xs font-medium text-muted-foreground block mb-1">
               Link ao clicar (opcional)
             </label>
-            <input name="link" type="url" placeholder="https://… ou /cursos/slug"
+            <input id="campanha-link" name="link" type="url" placeholder="https://… ou /cursos/slug"
               className="w-full px-3 py-2 rounded-lg border border-border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40" />
           </div>
 
           {/* Público-alvo */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">
+            <label htmlFor="campanha-target" className="text-xs font-medium text-muted-foreground block mb-1">
               Para quem enviar <span className="text-red-500">*</span>
             </label>
-            <select name="target" defaultValue="all"
+            <select id="campanha-target" name="target" defaultValue="all"
               className="w-full px-3 py-2 rounded-lg border border-border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40">
               <option value="all">
                 Todas as alunas
@@ -118,6 +126,7 @@ export default function NovaCampanhaForm({ courses }: { courses: Course[] }) {
             </button>
             {agendado && (
               <input name="scheduled_at" type="datetime-local" required={agendado}
+                aria-label="Data e hora de envio agendado"
                 min={new Date().toISOString().slice(0, 16)}
                 className="flex-1 px-3 py-1.5 rounded-lg border border-border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40" />
             )}

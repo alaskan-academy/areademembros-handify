@@ -145,7 +145,7 @@ export default function DeferredTourStep({ sectionId }: { sectionId: string }) {
       )}
 
       {/* Dismiss ao tocar fora */}
-      <div className="fixed inset-0 z-[9991]" onClick={dismiss} />
+      <div className="fixed inset-0 z-[9991]" onClick={dismiss} aria-hidden="true" />
 
       {/* Tooltip */}
       <div

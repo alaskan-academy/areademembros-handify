@@ -82,15 +82,15 @@ export default function ForumsAdminClient({ forums: initial }: Props) {
       {editingId === forum.id ? (
         <div className="p-4 space-y-3">
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Título *</label>
-            <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+            <label htmlFor={`edit-forum-title-${forum.id}`} className="text-xs font-medium text-muted-foreground mb-1 block">Título *</label>
+            <input id={`edit-forum-title-${forum.id}`} value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleUpdate(forum.id)}
               autoFocus
               className="w-full text-sm border border-[#6699F3] rounded-lg px-3 py-2 focus:outline-none" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição</label>
-            <input value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
+            <label htmlFor={`edit-forum-desc-${forum.id}`} className="text-xs font-medium text-muted-foreground mb-1 block">Descrição</label>
+            <input id={`edit-forum-desc-${forum.id}`} value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
               className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30" />
           </div>
           <div className="flex gap-2">
@@ -131,14 +131,14 @@ export default function ForumsAdminClient({ forums: initial }: Props) {
           </div>
           <div className="flex gap-1 shrink-0">
             {!forum.archived && (
-              <button onClick={() => startEdit(forum)} title="Editar"
+              <button onClick={() => startEdit(forum)} aria-label="Editar"
                 className="p-2 rounded-lg hover:bg-muted transition-colors">
                 <Pencil className="w-4 h-4 text-muted-foreground" />
               </button>
             )}
             <button
               onClick={() => handleArchive(forum.id, forum.archived)}
-              title={forum.archived ? "Restaurar fórum" : "Arquivar fórum"}
+              aria-label={forum.archived ? "Restaurar fórum" : "Arquivar fórum"}
               className="p-2 rounded-lg hover:bg-muted transition-colors"
             >
               {forum.archived
@@ -146,7 +146,7 @@ export default function ForumsAdminClient({ forums: initial }: Props) {
                 : <Archive className="w-4 h-4 text-muted-foreground" />
               }
             </button>
-            <button onClick={() => handleDelete(forum.id, forum.title)} title="Excluir permanentemente"
+            <button onClick={() => handleDelete(forum.id, forum.title)} aria-label="Excluir permanentemente"
               className="p-2 rounded-lg hover:bg-red-50 transition-colors">
               <Trash2 className="w-4 h-4 text-red-500" />
             </button>
@@ -188,21 +188,22 @@ export default function ForumsAdminClient({ forums: initial }: Props) {
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-sm">Novo fórum</h2>
             <button onClick={() => { setShowCreate(false); setNewTitle(""); setNewDesc(""); setError(null); }}
+              aria-label="Cancelar"
               className="p-1 rounded hover:bg-muted transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Título *</label>
-            <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
+            <label htmlFor="new-forum-title" className="text-xs font-medium text-muted-foreground mb-1 block">Título *</label>
+            <input id="new-forum-title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Ex: Fórum de Crochê"
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               autoFocus
               className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição (opcional)</label>
-            <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
+            <label htmlFor="new-forum-desc" className="text-xs font-medium text-muted-foreground mb-1 block">Descrição (opcional)</label>
+            <input id="new-forum-desc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
               placeholder="Sobre o que é este fórum..."
               className="w-full text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30" />
           </div>

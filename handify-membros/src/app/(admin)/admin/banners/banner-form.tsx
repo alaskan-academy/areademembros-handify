@@ -80,8 +80,9 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
 
       {/* Título */}
       <div>
-        <label className="block text-sm font-medium mb-1.5">Título (interno) *</label>
+        <label htmlFor="banner-title" className="block text-sm font-medium mb-1.5">Título (interno) *</label>
         <input
+          id="banner-title"
           name="title"
           required
           defaultValue={banner?.title}
@@ -110,8 +111,8 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
             <button
               type="button"
               onClick={clearImage}
+              aria-label="Remover imagem"
               className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
-              title="Remover imagem"
             >
               <X className="w-4 h-4" />
             </button>
@@ -159,8 +160,9 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
 
       {/* URL de destino */}
       <div>
-        <label className="block text-sm font-medium mb-1.5">URL de destino *</label>
+        <label htmlFor="banner-link-url" className="block text-sm font-medium mb-1.5">URL de destino *</label>
         <input
+          id="banner-link-url"
           name="link_url"
           type="url"
           required
@@ -172,8 +174,9 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
 
       {/* Slot */}
       <div>
-        <label className="block text-sm font-medium mb-1.5">Posição *</label>
+        <label htmlFor="banner-slot" className="block text-sm font-medium mb-1.5">Posição *</label>
         <select
+          id="banner-slot"
           name="position_slot"
           required
           defaultValue={banner?.position_slot ?? "header"}
@@ -222,8 +225,9 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
       {/* Vigência */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1.5">Início (opcional)</label>
+          <label htmlFor="banner-starts-at" className="block text-sm font-medium mb-1.5">Início (opcional)</label>
           <input
+            id="banner-starts-at"
             name="starts_at"
             type="date"
             defaultValue={toDateInput(banner?.starts_at)}
@@ -231,8 +235,9 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Fim (opcional)</label>
+          <label htmlFor="banner-ends-at" className="block text-sm font-medium mb-1.5">Fim (opcional)</label>
           <input
+            id="banner-ends-at"
             name="ends_at"
             type="date"
             defaultValue={toDateInput(banner?.ends_at)}

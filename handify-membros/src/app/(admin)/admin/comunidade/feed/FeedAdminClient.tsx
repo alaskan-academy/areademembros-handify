@@ -171,7 +171,7 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
         <div className="bg-white rounded-xl border border-[#6699F3]/30 shadow-sm p-6 space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-base">{editingId ? "Editar post" : "Criar novo post"}</h2>
-            <button onClick={closeForm} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={closeForm} aria-label="Fechar formulário" className="text-muted-foreground hover:text-foreground transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -180,8 +180,9 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">Título *</label>
+              <label htmlFor="feed-post-title" className="block text-xs font-medium text-foreground/70 mb-1">Título *</label>
               <input
+                id="feed-post-title"
                 type="text"
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
@@ -193,8 +194,9 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">Conteúdo</label>
+              <label htmlFor="feed-post-body" className="block text-xs font-medium text-foreground/70 mb-1">Conteúdo</label>
               <textarea
+                id="feed-post-body"
                 value={form.body}
                 onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
                 placeholder="Escreva o conteúdo do post…"
@@ -206,9 +208,10 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
 
             {/* Imagem */}
             <div>
-              <label className="block text-xs font-medium text-foreground/70 mb-1">Imagem (opcional)</label>
+              <label htmlFor="feed-post-image-url" className="block text-xs font-medium text-foreground/70 mb-1">Imagem (opcional)</label>
               <div className="flex gap-2">
                 <input
+                  id="feed-post-image-url"
                   type="url"
                   value={form.image_url}
                   onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
@@ -237,6 +240,7 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
                   <Image src={form.image_url} alt="Preview" fill className="object-cover" unoptimized />
                   <button
                     type="button"
+                    aria-label="Remover imagem"
                     onClick={() => setForm((f) => ({ ...f, image_url: "" }))}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
                   >

@@ -233,21 +233,6 @@
 - [x] **Variáveis de ambiente na Vercel:** todas confirmadas — `CERTIFICATE_ENCRYPTION_KEY`, VAPID keys, Supabase, Resend, Payt (confirmado pela Jessica jun/2026)
 - [ ] **Backup e retenção:** verificar backup automático do Supabase — **requer painel Supabase**
 
-## Fase 18 — Comentários nas Aulas
-
-- [ ] **Tabela `lesson_comments`:** `id`, `lesson_id`, `user_id`, `body`, `parent_id` (1 nível de resposta), `created_at`, `deleted_at` (soft delete)
-- [ ] **RLS:** aluna lê comentários de aulas do curso matriculado; admin lê tudo; criação apenas para alunas matriculadas
-- [ ] **Componente de comentários na página de aula:** lista paginada (mais antigos → mais novos), formulário de texto ao final
-- [ ] **Responder comentário:** campo inline abaixo do comentário original (1 nível)
-- [ ] **Curtir comentário:** tabela `post_likes` polimórfica (target_type = 'lesson_comment')
-- [ ] **Moderação admin:**
-  - Fila de comentários reportados (`reports` com `target_type = 'lesson_comment'`)
-  - Admin pode deletar comentário (soft delete) + notificar autora (opcional)
-  - Painel `/admin/comunidade/forum` já existente — adicionar aba "Comentários de Aulas"
-- [ ] **Notificação:** resposta ao comentário da aluna → notificação in-app + e-mail (opt-out)
-- [ ] **Sanitização:** Zod para validar body (max 2000 chars) + DOMPurify para render
-- [ ] **Exibição:** mostrar avatar/inicial + nome + data + corpo; comentários deletados mostram "[comentário removido]"
-
 ## Fase 19 — App Nativo (Apple App Store + Google Play)
 
 > **Pré-requisito:** PWA já configurado (`next-pwa`). Avaliar se PWA é suficiente antes de partir para app nativo.

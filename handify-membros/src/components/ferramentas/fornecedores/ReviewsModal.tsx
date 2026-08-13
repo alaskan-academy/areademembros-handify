@@ -44,8 +44,13 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reviews-modal-title"
+        className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 max-w-lg mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+      >
         <div className="brand-stripe"><span /><span /><span /></div>
 
         {/* Header */}
@@ -53,11 +58,11 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
           <div className="flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-[#6699F3]" />
             <div>
-              <p className="font-semibold text-sm">{supplier.name}</p>
+              <p id="reviews-modal-title" className="font-semibold text-sm">{supplier.name}</p>
               <p className="text-xs text-muted-foreground">Comentários das alunas</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted">
+          <button onClick={onClose} aria-label="Fechar" className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -100,7 +105,9 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
             <p className="text-xs text-center text-muted-foreground py-2">{submitMsg}</p>
           ) : (
             <form onSubmit={handleSubmit} className="flex gap-2">
+              <label htmlFor="review-body" className="sr-only">Seu comentário</label>
               <textarea
+                id="review-body"
                 rows={2}
                 value={body}
                 onChange={e => setBody(e.target.value)}
@@ -109,6 +116,7 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
               />
               <button
                 type="submit"
+                aria-label="Enviar comentário"
                 disabled={submitting || body.trim().length < 10}
                 className="self-end px-3 py-2 bg-[#6699F3] text-white rounded-lg hover:bg-[#5588e8] disabled:opacity-40 transition-colors shrink-0"
               >
