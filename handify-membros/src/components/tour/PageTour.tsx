@@ -1,20 +1,34 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { markSectionVisited } from "@/lib/onboarding/actions";
 import type { TourStep } from "@/lib/tour/tours";
 
 type Rect = { top: number; left: number; width: number; height: number };
-type Pos = { top: number; left: number; width: number };
+type Pos = { top?: number; bottom?: number; left: number; width: number };
 
-function computeTooltipPos(sr: Rect): Pos {
+function computeTooltipPos(sr: Rect, tooltipH: number): Pos {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const w = Math.min(300, vw - 24);
-  const belowTop = sr.top + sr.height + 14;
-  const top = belowTop + 170 < vh ? belowTop : Math.max(12, sr.top - 170 - 14);
+  const w = Math.min(320, vw - 24);
+  const gap = 12;
+  const spaceBelow = vh - (sr.top + sr.height);
+  const spaceAbove = sr.top;
+
+  let top: number | undefined;
+  let bottom: number | undefined;
+
+  if (spaceBelow >= tooltipH + gap) {
+    top = sr.top + sr.height + gap;
+  } else if (spaceAbove >= tooltipH + gap) {
+    top = sr.top - tooltipH - gap;
+  } else {
+    // Not enough room above or below — anchor to bottom of screen
+    bottom = 16;
+  }
+
   const left = Math.max(12, Math.min(sr.left, vw - w - 12));
-  return { top, left, width: w };
+  return bottom !== undefined ? { bottom, left, width: w } : { top, left, width: w };
 }
 
 export default function PageTour({
@@ -30,8 +44,9 @@ export default function PageTour({
   const [active, setActive] = useState(false);
   const [spotRect, setSpotRect] = useState<Rect | null>(null);
   const [tooltipPos, setTooltipPos] = useState<Pos | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
-  const applyElement = (el: HTMLElement): boolean => {
+  const applyElement = useCallback((el: HTMLElement): boolean => {
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) return false;
     const pad = 8;
@@ -42,23 +57,30 @@ export default function PageTour({
       height: r.height + pad * 2,
     };
     setSpotRect(sr);
-    setTooltipPos(computeTooltipPos(sr));
+    const tooltipH = tooltipRef.current?.offsetHeight ?? 130;
+    setTooltipPos(computeTooltipPos(sr, tooltipH));
     return true;
-  };
+  }, []);
 
   const seekTarget = useCallback((targetId: string) => {
     let retries = 0;
     const attempt = () => {
       const el = document.getElementById(targetId);
-      if (el && applyElement(el)) {
-        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (!el) {
+        if (++retries < 15) setTimeout(attempt, 200);
+        else { setSpotRect(null); setTooltipPos(null); }
         return;
       }
-      if (++retries < 15) setTimeout(attempt, 200);
-      else { setSpotRect(null); setTooltipPos(null); }
+      // Scroll into view first, then compute rect after animation settles
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => {
+        if (applyElement(el)) return;
+        if (++retries < 15) setTimeout(attempt, 200);
+        else { setSpotRect(null); setTooltipPos(null); }
+      }, 380);
     };
     attempt();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [applyElement]);
 
   // Auto-start after delay
   useEffect(() => {
@@ -94,7 +116,7 @@ export default function PageTour({
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update);
     };
-  }, [active, stepIdx, steps]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [active, stepIdx, steps, applyElement]);
 
   const finish = useCallback(async () => {
     setActive(false);
@@ -108,9 +130,11 @@ export default function PageTour({
 
   if (!active || !steps[stepIdx]) return null;
 
+  const isLast = stepIdx === steps.length - 1;
+
   return (
     <>
-      {/* Spotlight — creates the dark overlay via box-shadow */}
+      {/* Spotlight overlay */}
       {spotRect ? (
         <div
           className="fixed z-[9990] rounded-xl pointer-events-none"
@@ -119,38 +143,41 @@ export default function PageTour({
             left: spotRect.left,
             width: spotRect.width,
             height: spotRect.height,
-            boxShadow: "0 0 0 9999px rgba(15,15,15,0.65)",
+            boxShadow: "0 0 0 9999px rgba(15,15,15,0.7)",
           }}
         />
       ) : (
         <div
           className="fixed inset-0 z-[9990] pointer-events-none"
-          style={{ background: "rgba(15,15,15,0.65)" }}
+          style={{ background: "rgba(15,15,15,0.7)" }}
         />
       )}
 
-      {/* Click-anywhere-to-dismiss layer */}
+      {/* Dismiss on tap outside tooltip */}
       <div className="fixed inset-0 z-[9991]" onClick={finish} />
 
       {/* Tooltip */}
       <div
-        className="fixed z-[9992] bg-white rounded-2xl p-5"
+        ref={tooltipRef}
+        className="fixed z-[9992] bg-white rounded-2xl shadow-xl"
         style={{
-          ...(tooltipPos ?? { bottom: 24, left: 12, right: 12 }),
-          boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+          ...(tooltipPos
+            ? tooltipPos
+            : { bottom: 20, left: 12, right: 12 }),
           maxWidth: "calc(100vw - 24px)",
+          padding: "16px",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Progress dots */}
         {steps.length > 1 && (
-          <div className="flex gap-1.5 mb-3">
+          <div className="flex gap-1.5 mb-2.5">
             {steps.map((_, i) => (
               <div
                 key={i}
                 className="h-1.5 rounded-full transition-all duration-300"
                 style={{
-                  width: i === stepIdx ? 20 : 6,
+                  width: i === stepIdx ? 18 : 5,
                   background: i === stepIdx ? "#6699F3" : "#E5E5E0",
                 }}
               />
@@ -158,26 +185,22 @@ export default function PageTour({
           </div>
         )}
 
-        <p className="text-[11px] font-semibold text-[#6699F3] uppercase tracking-wide mb-1.5">
-          Passo {stepIdx + 1} de {steps.length}
-        </p>
-
-        <p className="text-sm text-[#2D2D2D] leading-relaxed mb-4">
+        <p className="text-[13px] text-[#2D2D2D] leading-snug mb-3">
           {steps[stepIdx].text}
         </p>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between">
           <button
             onClick={finish}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Pular
           </button>
           <button
             onClick={next}
-            className="text-sm font-semibold bg-[#6699F3] text-white px-4 py-2 rounded-lg hover:bg-[#5580d4] transition-colors"
+            className="text-xs font-semibold bg-[#6699F3] text-white px-3.5 py-1.5 rounded-lg hover:bg-[#5580d4] transition-colors"
           >
-            {stepIdx < steps.length - 1 ? "Próximo →" : "Entendi!"}
+            {isLast ? "Entendi!" : "Próximo →"}
           </button>
         </div>
       </div>
