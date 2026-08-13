@@ -82,6 +82,7 @@ export interface InspiracaoComment {
   id: string
   post_id: string
   user_id: string
+  parent_id?: string | null
   body: string
   approved: boolean
   created_at: string
@@ -89,6 +90,7 @@ export interface InspiracaoComment {
     full_name: string | null
     avatar_url: string | null
   } | null
+  replies?: InspiracaoComment[]
 }
 
 // ── Filtros do feed ───────────────────────────────────────────────────────────

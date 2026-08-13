@@ -244,13 +244,24 @@ export async function getComments(postId: string): Promise<InspiracaoComment[]> 
     .order('created_at', { ascending: true })
 
   if (error) throw error
-  return (data ?? []) as InspiracaoComment[]
+
+  const all = (data ?? []) as InspiracaoComment[]
+  const topLevel = all.filter(c => !c.parent_id)
+  const repliesMap: Record<string, InspiracaoComment[]> = {}
+  for (const c of all) {
+    if (c.parent_id) {
+      if (!repliesMap[c.parent_id]) repliesMap[c.parent_id] = []
+      repliesMap[c.parent_id].push(c)
+    }
+  }
+  return topLevel.map(c => ({ ...c, replies: repliesMap[c.id] ?? [] }))
 }
 
 export async function submitComment(
   userId: string,
   postId: string,
-  body: string
+  body: string,
+  parentId?: string
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
 
@@ -258,12 +269,15 @@ export async function submitComment(
   if (trimmed.length < 2) return { error: 'Comentário muito curto.' }
   if (trimmed.length > 2000) return { error: 'Comentário muito longo.' }
 
-  const { error } = await supabase.from('inspiration_comments').insert({
+  const record: Record<string, unknown> = {
     post_id: postId,
     user_id: userId,
     body: trimmed,
     approved: false,
-  })
+  }
+  if (parentId) record.parent_id = parentId
+
+  const { error } = await supabase.from('inspiration_comments').insert(record)
 
   if (error) return { error: error.message }
   return {}
@@ -388,7 +402,35 @@ export async function adminGetPendingCommentsCount(): Promise<number> {
 
 export async function adminApproveComment(id: string, approved: boolean): Promise<void> {
   const supabase = createServiceClient()
+
+  const { data: comment } = await supabase
+    .from('inspiration_comments')
+    .select('parent_id, user_id, body')
+    .eq('id', id)
+    .single()
+
   await supabase.from('inspiration_comments').update({ approved }).eq('id', id)
+
+  if (approved && comment?.parent_id) {
+    const { data: parent } = await supabase
+      .from('inspiration_comments')
+      .select('user_id')
+      .eq('id', comment.parent_id)
+      .single()
+
+    if (parent && parent.user_id !== comment.user_id) {
+      const preview = comment.body.slice(0, 80)
+      await supabase.from('notifications').insert({
+        user_id: parent.user_id,
+        type: 'inspiration_reply',
+        title: 'Alguém respondeu ao seu comentário',
+        body: preview.length < comment.body.length ? `${preview}...` : preview,
+        link: '/inspiracoes',
+        read: false,
+      })
+    }
+  }
+
   revalidatePath('/inspiracoes')
   revalidatePath('/admin/inspiracoes/comentarios')
 }
