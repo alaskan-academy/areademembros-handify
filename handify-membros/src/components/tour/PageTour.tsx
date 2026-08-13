@@ -158,6 +158,11 @@ export default function PageTour({
 
   if (!active || !steps[stepIdx]) return null;
 
+  const targetId = steps[stepIdx].targetId;
+  // Só renderiza quando o elemento foi encontrado (spotRect definido).
+  // Steps sem targetId (informativos) aparecem imediatamente.
+  if (targetId && !spotRect) return null;
+
   const isLast = stepIdx === steps.length - 1;
 
   return (
