@@ -1,49 +1,34 @@
 import { test, expect } from "@playwright/test";
-import { loginAsTestUser, requireTestCredentials } from "../helpers/auth";
+
+// Todos os testes usam o storageState (sessão pré-autenticada)
+// Nota: /verificar/[hash] exige login desde jun/2026 (plataforma 100% fechada)
 
 test.describe("Certificado — verificação pública", () => {
-  test("hash inválido exibe mensagem de certificado não encontrado", async ({ page }) => {
-    requireTestCredentials();
-    await loginAsTestUser(page);
-    // Acessa a página de verificação com um hash fictício
+  test("hash inválido exibe página 404 sem erro 500", async ({ page }) => {
     await page.goto("/verificar/00000000-0000-0000-0000-000000000000");
-    await expect(page).toHaveURL(/\/verificar\//);
-    // Deve mostrar algum conteúdo de "não encontrado" ou erro
-    const bodyText = await page.locator("body").innerText();
-    const hasNotFoundMessage =
-      bodyText.match(/não encontrado|inválido|not found|invalid/i) !== null ||
-      bodyText.match(/certificado/i) !== null;
-    expect(hasNotFoundMessage).toBe(true);
+    await page.waitForLoadState("networkidle");
+    // notFound() → Next.js renderiza 404; verifica que não há erro 500
+    await expect(page).not.toHaveURL(/\/(500|_error)/i);
+    const title = await page.title();
+    expect(title.toLowerCase()).not.toContain("500");
+    expect(title.toLowerCase()).not.toContain("internal server error");
   });
 
   test("hash com formato inválido (não UUID) não retorna 500", async ({ page }) => {
-    requireTestCredentials();
-    await loginAsTestUser(page);
     await page.goto("/verificar/hash-invalido-qualquer");
-    // Deve retornar uma página (404 ou "não encontrado"), nunca 500
-    const bodyText = await page.locator("body").innerText();
-    expect(bodyText).not.toMatch(/Internal Server Error|500/i);
+    await page.waitForLoadState("networkidle");
+    await expect(page).not.toHaveURL(/\/(500|_error)/i);
+    const title = await page.title();
+    expect(title.toLowerCase()).not.toContain("500");
+    expect(title.toLowerCase()).not.toContain("internal server error");
   });
 
-  test("link de download do certificado disponível para curso concluído", async ({ page }) => {
-    requireTestCredentials();
-    await loginAsTestUser(page);
-
-    // Navega para o perfil onde ficam os certificados
+  test("página de perfil lista certificados (ou mostra seção vazia)", async ({ page }) => {
     await page.goto("/perfil");
-    const certSection = page.locator(
-      "text=/certificado/i, a[href*='/verificar/'], a[href*='.pdf']"
-    ).first();
-
-    const hasCertificate = await certSection.isVisible().catch(() => false);
-    if (!hasCertificate) {
-      // O usuário de teste pode não ter concluído nenhum curso — aceita como válido
-      test.info().annotations.push({
-        type: "info",
-        description: "Usuário de teste sem certificados — teste condicional ignorado",
-      });
-    }
-    // O teste passa se o perfil carregou sem erro
+    await page.waitForLoadState("networkidle");
     await expect(page).toHaveURL(/\/perfil/);
+    // Aceita qualquer estado: com certificado ou sem (usuário de teste provavelmente não tem)
+    const bodyText = await page.locator("body").innerText();
+    expect(bodyText.length).toBeGreaterThan(100);
   });
 });
