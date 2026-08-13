@@ -7,6 +7,8 @@ import type { CourseMenuModule } from "@/components/student/CourseMenuModal";
 import { markSectionVisited } from "@/lib/onboarding/actions";
 import DiscoveryCard from "@/components/onboarding/DiscoveryCard";
 import PwaInstallCard from "@/components/onboarding/PwaInstallCard";
+import PageTour from "@/components/tour/PageTour";
+import { SECTION_TOURS } from "@/lib/tour/tours";
 
 type EnrolledCourse = {
   id: string;
@@ -40,6 +42,7 @@ export default async function MinhaJornadaPage() {
   const firstName = profile?.full_name?.split(" ")[0] || "aluna";
   const visitedSections = (profile?.visited_sections as Record<string, boolean>) ?? {};
 
+  const showDashboardTour = !visitedSections["dashboard"];
   // Marca dashboard como visitado
   markSectionVisited("dashboard").catch(() => {});
 
@@ -187,6 +190,10 @@ export default async function MinhaJornadaPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-10">
+      {showDashboardTour && (
+        <PageTour sectionId="dashboard" visited={false} steps={SECTION_TOURS.dashboard} />
+      )}
+
       {/* Saudação */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-black">
@@ -218,7 +225,7 @@ export default async function MinhaJornadaPage() {
           </Link>
         </div>
       ) : (
-        <>
+        <div id="tour-dash-cursos">
           {continuar.length > 0 && (
             <JornadaSection title="Continuar assistindo" badge={continuar.length}>
               {continuar.map((c) => (
@@ -242,7 +249,7 @@ export default async function MinhaJornadaPage() {
               ))}
             </JornadaSection>
           )}
-        </>
+        </div>
       )}
 
       {/* Link para explorar mais */}

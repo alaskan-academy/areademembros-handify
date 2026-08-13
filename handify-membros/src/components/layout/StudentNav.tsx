@@ -100,10 +100,16 @@ export default function StudentNav({ navItems, role, fullName, visitedSections }
             const sectionId = routeToSectionId[item.href];
             const isNew = sectionId ? !visitedSections[sectionId] : false;
 
-            return (
+            const navTourId =
+                item.href === "/cursos" ? "tour-nav-cursos" :
+                item.href === "/inspiracoes" ? "tour-nav-inspiracoes" :
+                item.href === "/comunidade/feed" ? "tour-nav-comunidade" :
+                item.href === "/ferramentas" ? "tour-nav-ferramentas" : undefined;
+          return (
               <Link
                 key={item.href}
                 href={item.href}
+                id={navTourId}
                 target={item.target}
                 rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
                 title={collapsed ? item.label : undefined}
@@ -165,10 +171,16 @@ export default function StudentNav({ navItems, role, fullName, visitedSections }
       >
         {BOTTOM_TABS.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
+          const tourId =
+            href === "/cursos" ? "tour-nav-cursos" :
+            href === "/inspiracoes" ? "tour-nav-inspiracoes" :
+            href === "/comunidade/feed" ? "tour-nav-comunidade" :
+            href === "/ferramentas" ? "tour-nav-ferramentas" : undefined;
           return (
             <Link
               key={href}
               href={href}
+              id={tourId}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors min-h-[52px]",
                 isActive ? "text-[#6699F3]" : "text-foreground/45 hover:text-foreground/70"

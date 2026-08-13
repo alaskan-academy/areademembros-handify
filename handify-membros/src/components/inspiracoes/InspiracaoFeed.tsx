@@ -89,7 +89,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
   return (
     <>
       {/* Filtros */}
-      <div className="mb-5 space-y-2">
+      <div id="tour-inspiracoes-filtros" className="mb-5 space-y-2">
         {/* Linha: busca + botão filtros */}
         <div className="flex gap-2">
           <div className="relative flex-1">

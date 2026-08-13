@@ -224,7 +224,9 @@ export default function PerfilView() {
       )}
 
       {/* Perfil */}
-      <ProfileSection profile={profile} onUpdate={refreshProfile} />
+      <div id="tour-perfil-edit">
+        <ProfileSection profile={profile} onUpdate={refreshProfile} />
+      </div>
 
       {/* Meus cursos */}
       <CoursesSection courses={courses} />
@@ -444,7 +446,7 @@ function ProfileSection({
       )}
 
       {!editing && (
-        <div className="border-t border-border/60 pt-5">
+        <div id="tour-perfil-senha" className="border-t border-border/60 pt-5">
           <ChangePasswordSection />
         </div>
       )}

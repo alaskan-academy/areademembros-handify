@@ -67,10 +67,16 @@ export default function PageTour({
     return () => clearTimeout(t);
   }, [visited, steps.length]);
 
-  // Seek element when step changes
+  // Seek element when step changes (empty targetId = informational step, no spotlight)
   useEffect(() => {
     if (!active) return;
-    seekTarget(steps[stepIdx]?.targetId ?? "");
+    const targetId = steps[stepIdx]?.targetId ?? "";
+    if (!targetId) {
+      setSpotRect(null);
+      setTooltipPos(null);
+      return;
+    }
+    seekTarget(targetId);
   }, [active, stepIdx, steps, seekTarget]);
 
   // Track element on scroll / resize

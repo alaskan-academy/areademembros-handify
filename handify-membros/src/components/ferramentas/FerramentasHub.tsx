@@ -92,7 +92,7 @@ export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Seletor de artesanato — retrátil */}
-        <div className="mb-5 space-y-2">
+        <div id="tour-ferramentas-nicho" className="mb-5 space-y-2">
           {/* Botão que mostra a seleção atual */}
           <button
             onClick={() => setSelectorOpen(v => !v)}
@@ -161,7 +161,7 @@ export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
           )}
 
           {/* Busca dentro da categoria */}
-          <div className="relative">
+          <div id="tour-ferramentas-busca" className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               value={busca}

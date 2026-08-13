@@ -114,6 +114,7 @@ export default function StudentHeader({
               {/* Avatar */}
               <div className="relative" ref={avatarRef}>
                 <button
+                  id="tour-nav-perfil"
                   onClick={() => setAvatarOpen((v) => !v)}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity ml-1"
                   style={{ background: "#6699F3" }}

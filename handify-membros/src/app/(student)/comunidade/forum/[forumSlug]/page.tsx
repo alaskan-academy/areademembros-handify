@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect, notFound } from "next/navigation";
 import ForumPage from "./ForumPage";
+import PageTour from "@/components/tour/PageTour";
+import { SECTION_TOURS } from "@/lib/tour/tours";
 
 export async function generateMetadata({ params }: { params: Promise<{ forumSlug: string }> }) {
   const { forumSlug } = await params;
@@ -46,6 +48,13 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
   }
 
   const service = createServiceClient();
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("visited_sections")
+    .eq("id", user.id)
+    .single();
+  const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {};
 
   // 1. Buscar posts do fórum — service client para que o join em profiles
   //    não seja bloqueado pelo RLS (policies de profiles permitem só leitura própria).
@@ -118,11 +127,18 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
   }));
 
   return (
-    <ForumPage
-      forum={{ id: forum.id, slug: forum.slug, title: forum.title, description: forum.description }}
-      posts={posts}
-      userId={user.id}
-      likedIds={[...likedIds]}
-    />
+    <>
+      <PageTour
+        sectionId="forum-interno"
+        visited={!!visitedSections["forum-interno"]}
+        steps={SECTION_TOURS["forum-interno"]}
+      />
+      <ForumPage
+        forum={{ id: forum.id, slug: forum.slug, title: forum.title, description: forum.description }}
+        posts={posts}
+        userId={user.id}
+        likedIds={[...likedIds]}
+      />
+    </>
   );
 }

@@ -230,6 +230,7 @@ export default async function LessonPage({
           </div>{/* /tour-aulas-player */}
 
           {/* Blocos de conteúdo e materiais */}
+          <div id="tour-aulas-materiais">
           <ContentBlocks
             blocks={contentBlocks}
             materials={materials}
@@ -240,6 +241,7 @@ export default async function LessonPage({
               isCompleted,
             } as VideoPlayerProps : undefined}
           />
+          </div>
 
           {/* Ações da aula */}
           <div className="flex flex-col gap-3 pt-2">
@@ -262,7 +264,7 @@ export default async function LessonPage({
 
             {/* Anterior / Próxima — grid simétrico, centralizado no mobile */}
             {user && (prevLesson || nextLesson) && (
-              <div className="grid grid-cols-2 gap-2 w-full">
+              <div id="tour-aulas-nav" className="grid grid-cols-2 gap-2 w-full">
                 {prevLesson ? (
                   <Link
                     href={`/aulas/${prevLesson.id}`}
@@ -284,10 +286,12 @@ export default async function LessonPage({
           </div>
 
           {/* Bottom sheet — só mobile: Materiais + Menu do curso */}
+          <div id="tour-aulas-menu">
           <LessonBottomSheet
             materials={materials}
             {...sidebarProps}
           />
+          </div>
 
           {/* Banner pós-aula */}
           <BannerDisplay slot="pos-aula" />

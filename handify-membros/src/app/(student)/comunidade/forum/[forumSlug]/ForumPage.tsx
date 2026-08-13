@@ -106,6 +106,7 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
           </div>
         </div>
         <button
+          id="tour-forum-novo-post"
           onClick={() => setShowForm((v) => !v)}
           className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-lg bg-[#6699F3] text-white text-sm font-semibold hover:opacity-90 transition-opacity shrink-0"
         >
@@ -196,7 +197,7 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
           <p className="text-sm mt-1">Seja a primeira a postar neste fórum!</p>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div id="tour-forum-posts" className="space-y-5">
           {posts.filter(p => p.approved || p.user_id === userId).map((post) => (
             <ForumPostCard
               key={post.id}
