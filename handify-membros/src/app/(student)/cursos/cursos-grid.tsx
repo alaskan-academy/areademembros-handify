@@ -284,16 +284,18 @@ function HorizontalRow({
     el.scrollBy({ left: dir === "right" ? amount : -amount, behavior: "smooth" });
   }
 
-  // Roda do mouse → scroll horizontal (non-passive para poder chamar preventDefault)
+  // Trackpad swipe horizontal → scroll do carrossel
+  // Scroll vertical (roda do mouse ou trackpad) → passa para a página normalmente
   useEffect(() => {
     const el = rowRef.current;
     if (!el) return;
     function onWheel(e: WheelEvent) {
       if (!el) return;
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
       const canScroll = el.scrollWidth > el.clientWidth;
       if (!canScroll) return;
       e.preventDefault();
-      el.scrollLeft += (e.deltaY !== 0 ? e.deltaY : e.deltaX) * 5;
+      el.scrollLeft += e.deltaX;
     }
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -390,7 +392,7 @@ function HorizontalRow({
     <div
       ref={rowRef}
       className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth cursor-grab active:cursor-grabbing"
-      style={{ touchAction: "pan-x" }}
+      style={{ touchAction: "pan-x pan-y" }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
