@@ -4,6 +4,14 @@ export interface TourStep {
 }
 
 export const SECTION_TOURS: Record<string, TourStep[]> = {
+  // ── Cursos ───────────────────────────────────────────────────────────────────
+  cursos: [
+    {
+      targetId: "tour-cursos-grid",
+      text: "Aqui ficam todos os seus cursos. Toque em qualquer um para abrir e começar a aprender!",
+    },
+  ],
+
   // ── Primeiro acesso — visão geral da plataforma ──────────────────────────────
   dashboard: [
     {
