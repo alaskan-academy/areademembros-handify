@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { markSectionVisited } from "@/lib/onboarding/actions";
 import type { TourStep } from "@/lib/tour/tours";
+import { DEFERRED_TOUR_EVENT } from "@/components/tour/DeferredTourStep";
 
 type Rect = { top: number; left: number; width: number; height: number };
 type Pos = { top?: number; bottom?: number; left: number; width: number };
@@ -114,10 +115,23 @@ export default function PageTour({
     setSpotRect(null);
     setTooltipPos(null);
     if (!targetId) return;
-    // Se o elemento não aparecer após retries, pula automaticamente este step
+    // Se o elemento não aparecer após retries: adia para DeferredTourStep e continua
     let alive = true;
     const onNotFound = () => {
       if (!alive) return;
+      const step = steps[stepIdx];
+      if (step?.targetId) {
+        const key = `handify_deferred_${sectionId}`;
+        try {
+          const existing: { targetId: string; text: string }[] = JSON.parse(
+            localStorage.getItem(key) ?? "[]"
+          );
+          if (!existing.some((s) => s.targetId === step.targetId)) {
+            localStorage.setItem(key, JSON.stringify([...existing, { targetId: step.targetId, text: step.text }]));
+            window.dispatchEvent(new Event(DEFERRED_TOUR_EVENT));
+          }
+        } catch { /* ignore */ }
+      }
       if (stepIdx < steps.length - 1) setStepIdx((i) => i + 1);
       else finish();
     };

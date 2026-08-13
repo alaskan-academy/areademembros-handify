@@ -11,6 +11,7 @@ import BannerDisplay from "@/components/banner/BannerDisplay";
 import { LessonSidebarDesktop } from "@/components/lesson/LessonSidebar";
 import { LessonBottomSheet } from "@/components/lesson/LessonBottomSheet";
 import PageTour from "@/components/tour/PageTour";
+import DeferredTourStep from "@/components/tour/DeferredTourStep";
 import { SECTION_TOURS } from "@/lib/tour/tours";
 
 type CourseRef = { id: string; title: string; slug: string };
@@ -174,6 +175,8 @@ export default async function LessonPage({
           {showAulasBanner && (
             <PageTour sectionId="aulas" visited={false} steps={SECTION_TOURS.aulas} />
           )}
+          {/* Mostra steps adiados (ex: materiais) assim que o elemento aparecer na tela */}
+          {user && hasAccess && <DeferredTourStep sectionId="aulas" />}
           {/* Breadcrumb */}
           {mod?.course && (
             <nav className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground flex-wrap">
