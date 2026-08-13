@@ -6,22 +6,7 @@ export interface TourStep {
 export const SECTION_TOURS: Record<string, TourStep[]> = {
   // ── Cursos ───────────────────────────────────────────────────────────────────
   cursos: [
-    {
-      targetId: "tour-nav-cursos",
-      text: "Sua biblioteca de cursos e novos para comprar.",
-    },
-    {
-      targetId: "tour-nav-inspiracoes",
-      text: "Fotos, receitas e dicas da comunidade.",
-    },
-    {
-      targetId: "tour-nav-comunidade",
-      text: "Novidades e lançamentos da Handify.",
-    },
-    {
-      targetId: "tour-nav-ferramentas",
-      text: "Calculadoras, fornecedores e recursos gratuitos para o seu artesanato.",
-    },
+    // 1–3: conteúdo da página (onde a aluna está)
     {
       targetId: "tour-cursos-meus-cursos",
       text: "Seus cursos matriculados. Toque para continuar de onde parou.",
@@ -34,6 +19,20 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
       targetId: "tour-cursos-outros",
       text: "Cursos disponíveis para comprar e ampliar seu conhecimento.",
     },
+    // 4–6: outras seções da plataforma
+    {
+      targetId: "tour-nav-inspiracoes",
+      text: "Fotos, receitas e dicas da comunidade.",
+    },
+    {
+      targetId: "tour-nav-comunidade",
+      text: "Novidades e lançamentos da Handify.",
+    },
+    {
+      targetId: "tour-nav-ferramentas",
+      text: "Calculadoras, fornecedores e recursos gratuitos para o seu artesanato.",
+    },
+    // 7–8: navegação e perfil
     {
       targetId: "tour-nav-menu",
       text: "Acesse todas as seções da plataforma.",
