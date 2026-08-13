@@ -81,12 +81,14 @@ export default function DeferredTourStep({ sectionId }: { sectionId: string }) {
         setTimeout(attempt, 500);
         return;
       }
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // instant evita timing issues: smooth leva até 600ms e getBoundingClientRect
+      // leria o elemento ainda em movimento, pondo o spotlight no lugar errado
+      el.scrollIntoView({ behavior: "instant", block: "center" });
       setTimeout(() => {
         if (!alive) return;
         if (applyElement(el)) setActive(step);
         else setTimeout(attempt, 500);
-      }, 380);
+      }, 80);
     };
 
     attempt();

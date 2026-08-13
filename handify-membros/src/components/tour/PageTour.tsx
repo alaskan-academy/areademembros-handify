@@ -8,6 +8,11 @@ import { DEFERRED_TOUR_EVENT } from "@/components/tour/DeferredTourStep";
 type Rect = { top: number; left: number; width: number; height: number };
 type Pos = { top?: number; bottom?: number; left: number; width: number };
 
+// Spot agrupa rect + posição do tooltip com o step a que pertencem.
+// Isso evita que o spotRect de um step vaze para o próximo durante a janela
+// entre o render (stepIdx novo) e o efeito (que limpa o spot).
+type Spot = { forStep: number; rect: Rect; pos: Pos };
+
 function computeTooltipPos(sr: Rect, tooltipH: number): Pos {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -24,7 +29,6 @@ function computeTooltipPos(sr: Rect, tooltipH: number): Pos {
   } else if (spaceAbove >= tooltipH + gap) {
     top = sr.top - tooltipH - gap;
   } else {
-    // Not enough room above or below — anchor to bottom of screen
     bottom = 16;
   }
 
@@ -43,11 +47,12 @@ export default function PageTour({
 }) {
   const [stepIdx, setStepIdx] = useState(0);
   const [active, setActive] = useState(false);
-  const [spotRect, setSpotRect] = useState<Rect | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<Pos | null>(null);
+  // spot é inválido quando forStep !== stepIdx — previne flash do rect do passo anterior
+  const [spot, setSpot] = useState<Spot | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  const applyElement = useCallback((el: HTMLElement): boolean => {
+  // Lê a posição atual do elemento e armazena junto ao step a que pertence
+  const applyElement = useCallback((el: HTMLElement, forStep: number): boolean => {
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) return false;
     const pad = 8;
@@ -57,18 +62,22 @@ export default function PageTour({
       width: r.width + pad * 2,
       height: r.height + pad * 2,
     };
-    setSpotRect(sr);
     const tooltipH = tooltipRef.current?.offsetHeight ?? 130;
-    setTooltipPos(computeTooltipPos(sr, tooltipH));
+    setSpot({ forStep, rect: sr, pos: computeTooltipPos(sr, tooltipH) });
     return true;
   }, []);
 
-  const seekTarget = useCallback((targetId: string, onNotFound?: () => void) => {
+  // Busca o elemento visível com retries; chama onFound ou onNotFound
+  const seekTarget = useCallback((
+    targetId: string,
+    onFound: (el: HTMLElement) => boolean,
+    onNotFound?: () => void,
+  ) => {
     let retries = 0;
     const attempt = () => {
-      // querySelectorAll garante que pegamos o elemento VISÍVEL quando há IDs duplicados
-      // (ex: mesmo id no sidebar desktop hidden + bottom nav mobile visible)
-      const candidates = Array.from(document.querySelectorAll(`#${CSS.escape(targetId)}`)) as HTMLElement[];
+      const candidates = Array.from(
+        document.querySelectorAll(`#${CSS.escape(targetId)}`)
+      ) as HTMLElement[];
       const el = candidates.find((e) => {
         const r = e.getBoundingClientRect();
         return r.width > 0 && r.height > 0;
@@ -81,15 +90,14 @@ export default function PageTour({
       }
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => {
-        if (applyElement(el)) return;
+        if (onFound(el)) return;
         if (++retries < 15) setTimeout(attempt, 200);
         else onNotFound?.();
       }, 380);
     };
     attempt();
-  }, [applyElement]);
+  }, []);
 
-  // finish e next definidos antes dos useEffects que os referenciam
   const finish = useCallback(async () => {
     setActive(false);
     await markSectionVisited(sectionId);
@@ -100,26 +108,29 @@ export default function PageTour({
     else finish();
   }, [stepIdx, steps.length, finish]);
 
-  // Auto-start after delay
+  // Auto-start após delay
   useEffect(() => {
     if (visited || steps.length === 0) return;
     const t = setTimeout(() => setActive(true), 700);
     return () => clearTimeout(t);
   }, [visited, steps.length]);
 
-  // Seek element when step changes (empty targetId = informational step, no spotlight)
+  // Busca elemento quando o step muda
   useEffect(() => {
     if (!active) return;
-    const targetId = steps[stepIdx]?.targetId ?? "";
-    // Limpa spotlight imediatamente para não vazar o rect do passo anterior
-    setSpotRect(null);
-    setTooltipPos(null);
+    const currentStep = stepIdx;
+    const targetId = steps[currentStep]?.targetId ?? "";
+
+    // Limpa spot imediatamente — spot.forStep !== currentStep vai retornar null no render
+    setSpot(null);
     if (!targetId) return;
-    // Se o elemento não aparecer após retries: adia para DeferredTourStep e continua
+
     let alive = true;
+
     const onNotFound = () => {
       if (!alive) return;
-      const step = steps[stepIdx];
+      // Adia o step para quando o elemento aparecer na tela (outra aula, etc.)
+      const step = steps[currentStep];
       if (step?.targetId) {
         const key = `handify_deferred_${sectionId}`;
         try {
@@ -127,26 +138,39 @@ export default function PageTour({
             localStorage.getItem(key) ?? "[]"
           );
           if (!existing.some((s) => s.targetId === step.targetId)) {
-            localStorage.setItem(key, JSON.stringify([...existing, { targetId: step.targetId, text: step.text }]));
+            localStorage.setItem(
+              key,
+              JSON.stringify([...existing, { targetId: step.targetId, text: step.text }])
+            );
             window.dispatchEvent(new Event(DEFERRED_TOUR_EVENT));
           }
         } catch { /* ignore */ }
       }
-      if (stepIdx < steps.length - 1) setStepIdx((i) => i + 1);
+      if (currentStep < steps.length - 1) setStepIdx((i) => i + 1);
       else finish();
     };
-    seekTarget(targetId, onNotFound);
-    return () => { alive = false; };
-  }, [active, stepIdx, steps, seekTarget, finish]);
 
-  // Track element on scroll / resize
+    seekTarget(
+      targetId,
+      (el) => {
+        if (!alive) return false;
+        return applyElement(el, currentStep);
+      },
+      onNotFound,
+    );
+
+    return () => { alive = false; };
+  }, [active, stepIdx, steps, seekTarget, applyElement, finish, sectionId]);
+
+  // Atualiza posição do spotlight no scroll/resize
   useEffect(() => {
     if (!active) return;
-    const targetId = steps[stepIdx]?.targetId;
+    const currentStep = stepIdx;
+    const targetId = steps[currentStep]?.targetId;
     if (!targetId) return;
     const update = () => {
       const el = document.getElementById(targetId);
-      if (el) applyElement(el);
+      if (el) applyElement(el, currentStep);
     };
     window.addEventListener("resize", update, { passive: true });
     window.addEventListener("scroll", update, { passive: true });
@@ -159,8 +183,11 @@ export default function PageTour({
   if (!active || !steps[stepIdx]) return null;
 
   const targetId = steps[stepIdx].targetId;
-  // Só renderiza quando o elemento foi encontrado (spotRect definido).
-  // Steps sem targetId (informativos) aparecem imediatamente.
+  // spotRect só é válido quando forStep bate com o stepIdx atual
+  const spotRect = spot?.forStep === stepIdx ? spot.rect : null;
+  const tooltipPos = spot?.forStep === stepIdx ? spot.pos : null;
+
+  // Aguarda o elemento ser encontrado antes de renderizar qualquer coisa
   if (targetId && !spotRect) return null;
 
   const isLast = stepIdx === steps.length - 1;
@@ -186,7 +213,7 @@ export default function PageTour({
         />
       )}
 
-      {/* Dismiss on tap outside tooltip */}
+      {/* Fechar ao tocar fora do tooltip */}
       <div className="fixed inset-0 z-[9991]" onClick={finish} />
 
       {/* Tooltip */}
@@ -202,7 +229,7 @@ export default function PageTour({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Progress dots */}
+        {/* Dots de progresso */}
         {steps.length > 1 && (
           <div className="flex gap-1.5 mb-2.5">
             {steps.map((_, i) => (
