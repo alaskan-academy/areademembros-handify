@@ -108,6 +108,7 @@ const ACTION_LABELS: Record<string, string> = {
   ban: "Aluna banida",
   unban: "Ban removido",
   update_email: "E-mail atualizado",
+  set_password: "Senha definida pelo admin",
   reject_forum_post: "Post do fórum rejeitado",
   delete_forum_post: "Post do fórum deletado",
 };

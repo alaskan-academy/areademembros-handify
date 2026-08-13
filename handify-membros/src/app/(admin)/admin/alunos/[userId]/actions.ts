@@ -471,7 +471,8 @@ export async function setStudentPasswordAction(
   }
 
   const service = createServiceClient();
-  const { error } = await service.auth.admin.updateUserById(userId, { password });
+  // email_confirm: true garante que conta inativa/não confirmada seja ativada junto
+  const { error } = await service.auth.admin.updateUserById(userId, { password, email_confirm: true });
   if (error) return { error: `Erro ao definir senha: ${error.message}` };
 
   await service.from("audit_log").insert({
