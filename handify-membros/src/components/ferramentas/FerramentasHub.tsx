@@ -18,38 +18,44 @@ const NICHE_ICONS: Record<string, string> = {
 
 function nicheToTab(niche: NicheRow): Tab {
   const icon = NICHE_ICONS[niche.slug] ?? '🎨'
-  return {
-    key: niche.slug,
-    label: niche.name,
-    icon,
-    tools: [
-      {
-        name: 'Calculadora de Lucro',
-        desc: `Calcule o custo real e o preço ideal de venda para ${niche.name.toLowerCase()} — incluindo mão de obra, embalagem e impostos.`,
-        href: `/ferramentas/calculadora-lucro/${niche.slug}`,
-        icon: '🧮',
-      },
-      {
-        name: 'Calculadora de Essências',
-        desc: 'Descubra exatamente quanto de essência ou óleo essencial usar na sua receita — resultado em mL, gramas e gotas.',
-        href: `/ferramentas/calculadora-essencias/${niche.slug}`,
-        icon: '💧',
-      },
-      {
-        name: `Fornecedores de ${niche.name}`,
-        desc: `Lista curada de materiais e lojas para ${niche.name.toLowerCase()} artesanais.`,
-        href: `/ferramentas/fornecedores?nicho=${niche.id}`,
-        icon: '🏪',
-      },
-      {
-        name: 'Calculadora de Receita',
-        desc: 'Escale sua receita para diferentes tamanhos de lote automaticamente.',
-        href: '#',
-        icon: '📐',
-        soon: true,
-      },
-    ],
+  const tools: Tool[] = [
+    {
+      name: 'Calculadora de Lucro',
+      desc: `Calcule o custo real e o preço ideal de venda para ${niche.name.toLowerCase()} — incluindo mão de obra, embalagem e impostos.`,
+      href: `/ferramentas/calculadora-lucro/${niche.slug}`,
+      icon: '🧮',
+    },
+    {
+      name: 'Calculadora de Essências',
+      desc: 'Descubra exatamente quanto de essência ou óleo essencial usar na sua receita — resultado em mL, gramas e gotas.',
+      href: `/ferramentas/calculadora-essencias/${niche.slug}`,
+      icon: '💧',
+    },
+    {
+      name: `Fornecedores de ${niche.name}`,
+      desc: `Lista curada de materiais e lojas para ${niche.name.toLowerCase()} artesanais.`,
+      href: `/ferramentas/fornecedores?nicho=${niche.id}`,
+      icon: '🏪',
+    },
+    {
+      name: 'Calculadora de Receita',
+      desc: 'Escale sua receita para diferentes tamanhos de lote automaticamente.',
+      href: '#',
+      icon: '📐',
+      soon: true,
+    },
+  ]
+
+  if (niche.slug === 'velas-artesanais') {
+    tools.splice(2, 0, {
+      name: 'Calculadora de Pavio',
+      desc: 'Responda 5 perguntas e descubra qual pavio usar na sua vela — com alternativas, notas de queima e dicas de teste.',
+      href: '/ferramentas/calculadora-pavio',
+      icon: '🕯️',
+    })
   }
+
+  return { key: niche.slug, label: niche.name, icon, tools }
 }
 
 const COMING_SOON_TABS = [
