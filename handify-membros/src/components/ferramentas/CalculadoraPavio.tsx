@@ -99,6 +99,20 @@ const FRAGRANCE_LABELS: Record<number, string> = {
   14: '12%+',
 };
 
+// Espessura aproximada por nome de pavio — valores de referência do mercado
+// No Brasil os fornecedores anunciam como "pavio de Xmm" ou códigos B20XX / A20XX
+const WICK_SIZE_MM: Record<string, string> = {
+  'LX 6': '1,5',  'LX 8': '2',   'LX 10': '2,5',
+  'LX 12': '3',   'LX 14': '3,5', 'LX 16': '4',
+  'LX 18': '4,5', 'LX 20': '5',  'LX 22': '6',
+  'CD 6': '1,5',  'CD 8': '2',   'CD 10': '2,5',
+  'CD 12': '3',   'CD 14': '3,5', 'CD 16': '4',
+  'CD 18': '4,5', 'CD 20': '5',
+  'ECO 2': '1,5', 'ECO 3': '2',  'ECO 4': '2,5',
+  'ECO 6': '3',   'ECO 8': '3,5', 'ECO 10': '4', 'ECO 12': '4,5',
+  'Pavio quadrado #2': '2', 'Pavio quadrado #3': '3', 'Pavio quadrado #4': '4',
+};
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Answers = {
@@ -461,7 +475,10 @@ export default function CalculadoraPavio({
     const fragLabel = FRAGRANCE_LABELS[answers.fragranceMid ?? 0] ?? `${answers.fragranceMid}%`;
     const type = answers.candleType === 'container' ? 'Recipiente' : 'Molde';
     const dye = answers.candleType === 'container' ? (answers.hasDye ? '· com corante' : '· sem corante') : '';
-    const text = `🕯️ Pavio: ${rec.wick_primary} | ${waxLabel} · ${type} ${diamLabel} · ${fragLabel} frag ${dye}\nAlternativas: ${rec.wick_alternatives.join(', ')}\nVia Handify — Área de Membros`;
+    const mm = WICK_SIZE_MM[rec.wick_primary];
+    const wickLine = mm ? `${rec.wick_primary} (~${mm}mm)` : rec.wick_primary;
+    const altsLine = rec.wick_alternatives.map(a => WICK_SIZE_MM[a] ? `${a} (~${WICK_SIZE_MM[a]}mm)` : a).join(', ');
+    const text = `🕯️ Pavio: ${wickLine} | ${waxLabel} · ${type} ${diamLabel} · ${fragLabel} frag ${dye}\nAlternativas: ${altsLine}\nVia Handify — Área de Membros`;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
@@ -674,6 +691,16 @@ export default function CalculadoraPavio({
           <div className="text-center py-2">
             <p className="text-[10px] font-black text-[#6699F3] uppercase tracking-widest mb-1">Pavio principal</p>
             <p className="text-3xl font-black text-foreground">{rec.wick_primary}</p>
+            {WICK_SIZE_MM[rec.wick_primary] && (
+              <div className="mt-2 space-y-1">
+                <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
+                  ≈ {WICK_SIZE_MM[rec.wick_primary]}mm de espessura
+                </span>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  No fornecedor: "pavio de {WICK_SIZE_MM[rec.wick_primary]}mm" · B20XX ou A20XX
+                </p>
+              </div>
+            )}
           </div>
 
           {rec.wick_alternatives.length > 0 && (
@@ -681,8 +708,11 @@ export default function CalculadoraPavio({
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-2">Alternativas para teste</p>
               <div className="flex flex-wrap gap-2">
                 {rec.wick_alternatives.map(alt => (
-                  <span key={alt} className="bg-white dark:bg-background border border-border/60 text-sm font-semibold px-3 py-1 rounded-full">
+                  <span key={alt} className="inline-flex items-center gap-1.5 bg-white dark:bg-background border border-border/60 text-sm font-semibold px-3 py-1 rounded-full">
                     {alt}
+                    {WICK_SIZE_MM[alt] && (
+                      <span className="text-[10px] text-muted-foreground font-normal">~{WICK_SIZE_MM[alt]}mm</span>
+                    )}
                   </span>
                 ))}
               </div>
