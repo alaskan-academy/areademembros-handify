@@ -12,38 +12,39 @@ import type { WickRecommendation, SavedWickFormula, CandleType } from '@/lib/pav
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CONTAINER_WAXES = [
-  { value: 'soy',      label: 'Cera de Soja',    desc: 'EcoSoya, Golden Wax, NatureCera...', icon: '🌱' },
-  { value: 'paraffin', label: 'Parafina',         desc: 'Parafina container ou vela',         icon: '🕯️' },
-  { value: 'coconut',  label: 'Cera de Coco',     desc: 'Coconut Wax, Coco 83...',            icon: '🥥' },
-  { value: 'blend',    label: 'Blend (mista)',    desc: 'Mistura de ceras',                   icon: '🧪' },
-  { value: 'beeswax',  label: 'Cera de Abelha',  desc: 'Cera de abelha pura',                icon: '🐝' },
+  { value: 'soy',      label: 'Cera de Soja',      desc: 'EcoSoya, Golden Wax, NatureCera...', icon: '🌱' },
+  { value: 'paraffin', label: 'Parafina',           desc: 'Parafina container ou vela',         icon: '🕯️' },
+  { value: 'ecomix',   label: 'Ecomix',             desc: 'Blend brasileiro de soja + parafina, muito popular', icon: '🌿' },
+  { value: 'coconut',  label: 'Cera de Coco',       desc: 'Coconut Wax, Coco 83...',            icon: '🥥' },
+  { value: 'blend',    label: 'Outro blend',        desc: 'Mistura de ceras (não ecomix)',       icon: '🧪' },
+  { value: 'beeswax',  label: 'Cera de Abelha',    desc: 'Cera de abelha pura',                icon: '🐝' },
 ];
 
 const MOLD_WAXES = [
-  { value: 'pillar_paraffin', label: 'Parafina para Pilar', desc: 'Parafina dura, específica para moldes',        icon: '🕯️' },
-  { value: 'soy',             label: 'Cera de Soja Pilar', desc: 'Soja formulada para pilar (não container)',     icon: '🌱' },
-  { value: 'blend',           label: 'Blend para Pilar',   desc: 'Mistura com alto ponto de fusão',              icon: '🧪' },
+  { value: 'pillar_paraffin', label: 'Parafina de Alta Fusão', desc: 'Parafina dura específica para moldes (também chamada parafina pilar)', icon: '🕯️' },
+  { value: 'soy',             label: 'Cera de Soja para Moldes', desc: 'Fórmula especial para velas sólidas — não é a mesma do pote',       icon: '🌱' },
+  { value: 'blend',           label: 'Blend para Moldes',        desc: 'Mistura com alto ponto de fusão — vela fica sólida sem recipiente', icon: '🧪' },
 ];
 
 const MOLD_SHAPES = [
-  { value: 'cylindrical', label: 'Cilíndrico',        desc: 'Forma redonda, tubo, pilar tradicional', icon: '⚫' },
-  { value: 'conical',     label: 'Cônico',            desc: 'Afunila para cima ou para baixo',        icon: '🔺' },
-  { value: 'shaped',      label: 'Formato especial',  desc: 'Flor, coração, animais, etc.',           icon: '⭐' },
+  { value: 'cylindrical', label: 'Redondo / cilíndrico', desc: 'Forma de tubo, pilar redondo', icon: '⚫' },
+  { value: 'conical',     label: 'Cônico',               desc: 'Afunila para cima ou para baixo', icon: '🔺' },
+  { value: 'shaped',      label: 'Formato especial',     desc: 'Flor, coração, animais, etc.', icon: '⭐' },
 ];
 
 const CONTAINER_DIAMETERS = [
-  { label: '4 – 6 cm', desc: 'Pote shot ou mini', value: 5 },
-  { label: '6 – 8 cm', desc: 'Pote 150–250ml',    value: 7.5 },
-  { label: '8 – 10 cm', desc: 'Pote 250–400ml',   value: 9.5 },
-  { label: '10 – 12 cm', desc: 'Pote 400–600ml',  value: 11.5 },
+  { label: '4 – 6 cm', desc: 'Pote shot ou mini',    value: 5 },
+  { label: '6 – 8 cm', desc: 'Pote 150–250ml',       value: 7.5 },
+  { label: '8 – 10 cm', desc: 'Pote 250–400ml',      value: 9.5 },
+  { label: '10 – 12 cm', desc: 'Pote 400–600ml',     value: 11.5 },
   { label: '12 cm ou mais', desc: 'Pote grande / tigela', value: 14 },
 ];
 
 const MOLD_DIAMETERS = [
-  { label: '4 – 6 cm', desc: 'Pilar fino',        value: 5 },
-  { label: '6 – 8 cm', desc: 'Pilar médio',       value: 7.5 },
-  { label: '8 – 10 cm', desc: 'Pilar largo',      value: 9.5 },
-  { label: '10 cm ou mais', desc: 'Pilar muito largo', value: 12 },
+  { label: '4 – 6 cm',      desc: 'Vela fina / pequena', value: 5 },
+  { label: '6 – 8 cm',      desc: 'Vela média',           value: 7.5 },
+  { label: '8 – 10 cm',     desc: 'Vela grande',          value: 9.5 },
+  { label: '10 cm ou mais', desc: 'Vela muito grande',    value: 12 },
 ];
 
 const FRAGRANCE_RANGES = [
@@ -56,10 +57,30 @@ const FRAGRANCE_RANGES = [
 const WAX_LABELS: Record<string, string> = {
   soy: 'Cera de Soja',
   paraffin: 'Parafina',
+  ecomix: 'Ecomix',
   coconut: 'Cera de Coco',
   blend: 'Blend',
   beeswax: 'Cera de Abelha',
-  pillar_paraffin: 'Parafina Pilar',
+  pillar_paraffin: 'Parafina Alta Fusão',
+};
+
+const WICK_SERIES_INFO: Record<string, { name: string; info: string }> = {
+  LX: {
+    name: 'Série LX',
+    info: 'Pavio de algodão trançado, um dos mais usados no Brasil para velas de soja e coco. O número indica espessura — LX 10 é mais fino, LX 22 é mais grosso. Encontre em lojas de insumos para velas.',
+  },
+  CD: {
+    name: 'Série CD',
+    info: 'Pavio de algodão trançado com núcleo de papel, queima estável. Amplamente disponível no Brasil. CD 10 é fino, CD 20 é mais grosso.',
+  },
+  ECO: {
+    name: 'Série ECO',
+    info: 'Pavio de algodão natural sem núcleo metálico, indicado para ceras vegetais e fragrâncias naturais. ECO 2 é fino, ECO 14 é mais grosso.',
+  },
+  'Pavio quadrado': {
+    name: 'Pavio quadrado trançado',
+    info: 'Pavio trançado em formato quadrado, tradicional para velas de molde (pilar). Os números indicam espessura: nº 2 = fino, nº 4 = grosso. Vendido em metros nas lojas de insumos.',
+  },
 };
 
 const DIAMETER_LABELS: Record<number, string> = {
@@ -156,6 +177,70 @@ function OptionCard({
         </div>
       )}
     </button>
+  );
+}
+
+function DiameterGuide({ type }: { type: 'container' | 'mold' }) {
+  return (
+    <div className="bg-[#6699F3]/5 border border-[#6699F3]/20 rounded-2xl p-4 flex flex-col items-center gap-3">
+      {type === 'container' ? (
+        <svg viewBox="0 0 220 100" className="w-full max-w-[220px]" aria-hidden="true">
+          {/* Outer rim of container */}
+          <ellipse cx="110" cy="52" rx="88" ry="36" fill="#E8EFFE" stroke="#6699F3" strokeWidth="2.5"/>
+          {/* Inner opening */}
+          <ellipse cx="110" cy="52" rx="72" ry="26" fill="white" stroke="#6699F3" strokeWidth="1.5" strokeDasharray="4,3"/>
+          {/* Diameter arrow */}
+          <line x1="38" y1="52" x2="182" y2="52" stroke="#6699F3" strokeWidth="1.5"/>
+          <polygon points="38,48 38,56 28,52" fill="#6699F3"/>
+          <polygon points="182,48 182,56 192,52" fill="#6699F3"/>
+          {/* Label */}
+          <text x="110" y="22" textAnchor="middle" fontSize="11" fontWeight="600" fill="#6699F3" fontFamily="sans-serif">diâmetro interno</text>
+          <line x1="110" y1="25" x2="110" y2="45" stroke="#6699F3" strokeWidth="1" strokeDasharray="2,2"/>
+        </svg>
+      ) : (
+        <svg viewBox="0 0 220 100" className="w-full max-w-[220px]" aria-hidden="true">
+          {/* Cylinder side view */}
+          <rect x="35" y="22" width="150" height="58" rx="3" fill="#E8EFFE" stroke="#6699F3" strokeWidth="2"/>
+          {/* Top ellipse */}
+          <ellipse cx="110" cy="22" rx="75" ry="12" fill="#D0DDFB" stroke="#6699F3" strokeWidth="2"/>
+          {/* Width arrow above */}
+          <line x1="35" y1="10" x2="185" y2="10" stroke="#6699F3" strokeWidth="1.5"/>
+          <polygon points="35,7 35,13 25,10" fill="#6699F3"/>
+          <polygon points="185,7 185,13 195,10" fill="#6699F3"/>
+          {/* Label */}
+          <text x="110" y="90" textAnchor="middle" fontSize="11" fontWeight="600" fill="#6699F3" fontFamily="sans-serif">diâmetro mais largo</text>
+        </svg>
+      )}
+      <p className="text-xs text-muted-foreground text-center leading-relaxed">
+        {type === 'container'
+          ? 'Meça a abertura interna do pote (de borda a borda por dentro), com uma régua ou fita métrica.'
+          : 'Meça o ponto mais largo do molde. Se o molde afunila, use o diâmetro maior.'}
+      </p>
+    </div>
+  );
+}
+
+function WickInfoAccordion({ wickName }: { wickName: string }) {
+  const [open, setOpen] = useState(false);
+  const key = Object.keys(WICK_SERIES_INFO).find(k => wickName.startsWith(k));
+  const info = key ? WICK_SERIES_INFO[key] : null;
+  if (!info) return null;
+
+  return (
+    <div className="border border-border/60 rounded-2xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-semibold hover:bg-muted/50 transition-colors text-left"
+      >
+        <span className="flex items-center gap-2">❓ O que é {info.name}?</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform text-muted-foreground ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pt-2 bg-muted/30 border-t border-border/40 text-sm text-muted-foreground leading-relaxed">
+          {info.info}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -430,6 +515,7 @@ export default function CalculadoraPavio({
       if (answers.candleType === 'container') {
         return (
           <div className="space-y-3">
+            <DiameterGuide type="container" />
             {CONTAINER_DIAMETERS.map(d => (
               <OptionCard
                 key={d.value}
@@ -480,6 +566,7 @@ export default function CalculadoraPavio({
       }
       return (
         <div className="space-y-3">
+          <DiameterGuide type="mold" />
           {MOLD_DIAMETERS.map(d => (
             <OptionCard
               key={d.value}
@@ -623,6 +710,9 @@ export default function CalculadoraPavio({
             <p className="text-sm text-amber-900 leading-relaxed">{rec.notes}</p>
           </div>
         )}
+
+        {/* Wick info */}
+        <WickInfoAccordion wickName={rec.wick_primary} />
 
         {/* How to test */}
         <HowToTestAccordion />
