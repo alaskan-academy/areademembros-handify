@@ -99,8 +99,37 @@ const FRAGRANCE_LABELS: Record<number, string> = {
   14: '12%+',
 };
 
+// Códigos equivalentes de fornecedores brasileiros (base: Catarina Velas)
+// A = queima suave (soja/coco/ecomix) · B = queima forte (parafina/blends duros)
+// Número = tamanho: maior número = diâmetro de queima maior = pote maior
+const WICK_BR_CODES: Record<string, string[]> = {
+  'LX 6':  ['A2010'],
+  'LX 8':  ['B2015', 'A2020'],
+  'LX 10': ['A2020', 'B2020'],
+  'LX 12': ['B2020', 'B2025'],
+  'LX 14': ['B2025', 'A2030'],
+  'LX 16': ['B2030', 'A2040'],
+  'LX 18': ['B2030', 'A2040'],
+  'LX 20': ['B2035', 'A2040'],
+  'LX 22': ['B2035', 'B2040'],
+  'CD 6':  ['A2010'],
+  'CD 8':  ['B2015', 'A2020'],
+  'CD 10': ['A2020', 'B2020'],
+  'CD 12': ['B2020', 'B2025'],
+  'CD 14': ['B2025', 'A2030'],
+  'CD 16': ['B2030', 'A2040'],
+  'CD 18': ['B2030', 'A2040'],
+  'CD 20': ['B2035', 'B2040'],
+  'ECO 2': ['A2010'],
+  'ECO 3': ['A2020', 'B2015'],
+  'ECO 4': ['B2020'],
+  'ECO 6': ['B2025', 'A2030'],
+  'ECO 8': ['B2030'],
+  'ECO 10': ['B2035'],
+  'ECO 12': ['B2040'],
+};
+
 // Espessura aproximada por nome de pavio — valores de referência do mercado
-// No Brasil os fornecedores anunciam como "pavio de Xmm" ou códigos B20XX / A20XX
 const WICK_SIZE_MM: Record<string, string> = {
   'LX 6': '1,5',  'LX 8': '2',   'LX 10': '2,5',
   'LX 12': '3',   'LX 14': '3,5', 'LX 16': '4',
@@ -691,14 +720,19 @@ export default function CalculadoraPavio({
           <div className="text-center py-2">
             <p className="text-[10px] font-black text-[#6699F3] uppercase tracking-widest mb-1">Pavio principal</p>
             <p className="text-3xl font-black text-foreground">{rec.wick_primary}</p>
-            {WICK_SIZE_MM[rec.wick_primary] && (
-              <div className="mt-2 space-y-1">
-                <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
-                  ≈ {WICK_SIZE_MM[rec.wick_primary]}mm de espessura
-                </span>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  No fornecedor: procure por "pavio de {WICK_SIZE_MM[rec.wick_primary]}mm"
-                </p>
+            {(WICK_SIZE_MM[rec.wick_primary] || WICK_BR_CODES[rec.wick_primary]) && (
+              <div className="mt-2 space-y-1.5">
+                {WICK_SIZE_MM[rec.wick_primary] && (
+                  <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
+                    ≈ {WICK_SIZE_MM[rec.wick_primary]}mm de espessura
+                  </span>
+                )}
+                {WICK_BR_CODES[rec.wick_primary] && (
+                  <p className="text-[11px] text-muted-foreground">
+                    No fornecedor: <span className="font-semibold text-foreground">{WICK_BR_CODES[rec.wick_primary].join(' ou ')}</span>
+                    <span className="text-muted-foreground/60"> · A = ceras suaves · B = parafina</span>
+                  </p>
+                )}
               </div>
             )}
           </div>
