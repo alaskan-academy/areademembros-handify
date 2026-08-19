@@ -116,11 +116,11 @@ const WICK_BR_CODES: Record<string, string[]> = {
   'CD 6':  ['A2010'],
   'CD 8':  ['B2015', 'A2020'],
   'CD 10': ['A2020', 'B2020'],
-  'CD 12': ['B2020', 'B2025'],
+  'CD 12': ['B2020', 'B2025', 'A2025'],
   'CD 14': ['B2025', 'A2030'],
   'CD 16': ['B2030', 'A2040'],
   'CD 18': ['B2030', 'A2040'],
-  'CD 20': ['B2035', 'B2040'],
+  'CD 20': ['B2035', 'B2040', 'A2045'],
   'ECO 2': ['A2010'],
   'ECO 3': ['A2020', 'B2015'],
   'ECO 4': ['B2020'],
@@ -128,6 +128,9 @@ const WICK_BR_CODES: Record<string, string[]> = {
   'ECO 8': ['B2030'],
   'ECO 10': ['B2035'],
   'ECO 12': ['B2040'],
+  'ECO 14': ['B2040', 'A2045'],
+  'ECO 16': ['B2040', 'A2045'],
+  'ECO 18': ['B2040', 'A2045'],
 };
 
 // Espessura aproximada por nome de pavio — valores de referência do mercado
@@ -145,8 +148,13 @@ const WICK_SIZE_MM: Record<string, string> = {
 };
 
 // Remove prefixes like "2× " and suffixes like " (2 pavios)" before lookup
+// Also normalize "nº"/"n°" → "#" so "Pavio quadrado nº 4" matches key "Pavio quadrado #4"
 function normalizeWickName(name: string): string {
-  return name.replace(/^\d+[×x]\s*/i, '').replace(/\s*\([^)]+\)$/, '').trim();
+  return name
+    .replace(/^\d+[×x]\s*/i, '')
+    .replace(/\s*\([^)]+\)$/, '')
+    .replace(/\bn[º°]\s*/g, '#')
+    .trim();
 }
 
 // Filter supplier codes by wax type: soft waxes → A codes, hard waxes → B codes
@@ -756,16 +764,23 @@ export default function CalculadoraPavio({
           {rec.wick_alternatives.length > 0 && (
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-2">Alternativas para teste</p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-1.5">
                 {rec.wick_alternatives.map(alt => {
                   const altBase = normalizeWickName(alt);
+                  const mm = WICK_SIZE_MM[altBase];
+                  const br = WICK_BR_CODES[altBase];
+                  const brFiltered = br ? filterBrCodes(br, answers.waxType ?? '') : null;
                   return (
-                    <span key={alt} className="inline-flex items-center gap-1.5 bg-white dark:bg-background border border-border/60 text-sm font-semibold px-3 py-1 rounded-full">
-                      {alt}
-                      {WICK_SIZE_MM[altBase] && (
-                        <span className="text-[10px] text-muted-foreground font-normal">~{WICK_SIZE_MM[altBase]}mm</span>
-                      )}
-                    </span>
+                    <div key={alt} className="flex items-baseline gap-2 flex-wrap">
+                      <span className="bg-white dark:bg-background border border-border/60 text-sm font-semibold px-3 py-1 rounded-full">
+                        {alt}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {mm && <span>~{mm}mm</span>}
+                        {mm && brFiltered && <span className="mx-1 opacity-40">·</span>}
+                        {brFiltered && <span>código <span className="font-semibold text-foreground">{brFiltered.join(' ou ')}</span></span>}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
