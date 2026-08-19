@@ -144,6 +144,11 @@ const WICK_SIZE_MM: Record<string, string> = {
   'Pavio quadrado #2': '2', 'Pavio quadrado #3': '3', 'Pavio quadrado #4': '4',
 };
 
+// Remove prefixes like "2× " and suffixes like " (2 pavios)" before lookup
+function normalizeWickName(name: string): string {
+  return name.replace(/^\d+[×x]\s*/i, '').replace(/\s*\([^)]+\)$/, '').trim();
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Answers = {
@@ -506,9 +511,9 @@ export default function CalculadoraPavio({
     const fragLabel = FRAGRANCE_LABELS[answers.fragranceMid ?? 0] ?? `${answers.fragranceMid}%`;
     const type = answers.candleType === 'container' ? 'Recipiente' : 'Molde';
     const dye = answers.candleType === 'container' ? (answers.hasDye ? '· com corante' : '· sem corante') : '';
-    const mm = WICK_SIZE_MM[rec.wick_primary];
+    const mm = WICK_SIZE_MM[normalizeWickName(rec.wick_primary)];
     const wickLine = mm ? `${rec.wick_primary} (~${mm}mm)` : rec.wick_primary;
-    const altsLine = rec.wick_alternatives.map(a => WICK_SIZE_MM[a] ? `${a} (~${WICK_SIZE_MM[a]}mm)` : a).join(', ');
+    const altsLine = rec.wick_alternatives.map(a => { const m = WICK_SIZE_MM[normalizeWickName(a)]; return m ? `${a} (~${m}mm)` : a; }).join(', ');
     const text = `🕯️ Pavio: ${wickLine} | ${waxLabel} · ${type} ${diamLabel} · ${fragLabel} frag ${dye}\nAlternativas: ${altsLine}\nVia Handify — Área de Membros`;
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
@@ -722,35 +727,44 @@ export default function CalculadoraPavio({
           <div className="text-center py-2">
             <p className="text-[10px] font-black text-[#6699F3] uppercase tracking-widest mb-1">Pavio principal</p>
             <p className="text-3xl font-black text-foreground">{rec.wick_primary}</p>
-            {(WICK_SIZE_MM[rec.wick_primary] || WICK_BR_CODES[rec.wick_primary]) && (
-              <div className="mt-2 space-y-1.5">
-                {WICK_SIZE_MM[rec.wick_primary] && (
-                  <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
-                    ≈ {WICK_SIZE_MM[rec.wick_primary]}mm de espessura
-                  </span>
-                )}
-                {WICK_BR_CODES[rec.wick_primary] && (
-                  <p className="text-[11px] text-muted-foreground">
-                    No fornecedor: <span className="font-semibold text-foreground">{WICK_BR_CODES[rec.wick_primary].join(' ou ')}</span>
-                    <span className="text-muted-foreground/60"> · A = ceras suaves · B = parafina</span>
-                  </p>
-                )}
-              </div>
-            )}
+            {(() => {
+              const base = normalizeWickName(rec.wick_primary);
+              const mm = WICK_SIZE_MM[base];
+              const br = WICK_BR_CODES[base];
+              if (!mm && !br) return null;
+              return (
+                <div className="mt-2 space-y-1.5">
+                  {mm && (
+                    <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
+                      ≈ {mm}mm de espessura
+                    </span>
+                  )}
+                  {br && (
+                    <p className="text-[11px] text-muted-foreground">
+                      No fornecedor: <span className="font-semibold text-foreground">{br.join(' ou ')}</span>
+                      <span className="text-muted-foreground/60"> · A = ceras suaves · B = parafina</span>
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {rec.wick_alternatives.length > 0 && (
             <div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-2">Alternativas para teste</p>
               <div className="flex flex-wrap gap-2">
-                {rec.wick_alternatives.map(alt => (
-                  <span key={alt} className="inline-flex items-center gap-1.5 bg-white dark:bg-background border border-border/60 text-sm font-semibold px-3 py-1 rounded-full">
-                    {alt}
-                    {WICK_SIZE_MM[alt] && (
-                      <span className="text-[10px] text-muted-foreground font-normal">~{WICK_SIZE_MM[alt]}mm</span>
-                    )}
-                  </span>
-                ))}
+                {rec.wick_alternatives.map(alt => {
+                  const altBase = normalizeWickName(alt);
+                  return (
+                    <span key={alt} className="inline-flex items-center gap-1.5 bg-white dark:bg-background border border-border/60 text-sm font-semibold px-3 py-1 rounded-full">
+                      {alt}
+                      {WICK_SIZE_MM[altBase] && (
+                        <span className="text-[10px] text-muted-foreground font-normal">~{WICK_SIZE_MM[altBase]}mm</span>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}
