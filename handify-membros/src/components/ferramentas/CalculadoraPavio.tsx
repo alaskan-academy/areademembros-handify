@@ -23,6 +23,7 @@ const CONTAINER_WAXES = [
 const MOLD_WAXES = [
   { value: 'pillar_paraffin', label: 'Parafina de Alta Fusão', desc: 'Parafina dura específica para moldes (também chamada parafina pilar)', icon: '🕯️' },
   { value: 'soy',             label: 'Cera de Soja para Moldes', desc: 'Fórmula especial para velas sólidas — não é a mesma do pote',       icon: '🌱' },
+  { value: 'ecomix',          label: 'Ecomix',                  desc: 'Blend soja + parafina — também usado em moldes, ponto de fusão intermediário', icon: '🌿' },
   { value: 'blend',           label: 'Blend para Moldes',        desc: 'Mistura com alto ponto de fusão — vela fica sólida sem recipiente', icon: '🧪' },
 ];
 
@@ -137,8 +138,9 @@ const WICK_SIZE_MM: Record<string, string> = {
   'CD 6': '1,5',  'CD 8': '2',   'CD 10': '2,5',
   'CD 12': '3',   'CD 14': '3,5', 'CD 16': '4',
   'CD 18': '4,5', 'CD 20': '5',
-  'ECO 2': '1,5', 'ECO 3': '2',  'ECO 4': '2,5',
+  'ECO 2': '1,5', 'ECO 3': '2',   'ECO 4': '2,5',
   'ECO 6': '3',   'ECO 8': '3,5', 'ECO 10': '4', 'ECO 12': '4,5',
+  'ECO 14': '5',  'ECO 16': '5,5', 'ECO 18': '6',
   'Pavio quadrado #2': '2', 'Pavio quadrado #3': '3', 'Pavio quadrado #4': '4',
 };
 
