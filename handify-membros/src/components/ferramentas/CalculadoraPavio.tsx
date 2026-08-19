@@ -805,17 +805,35 @@ export default function CalculadoraPavio({
               <p className="text-xs font-black text-amber-700 uppercase tracking-wide">💡 Dica de queima</p>
               <p className="text-sm text-amber-900 leading-relaxed">{rec.notes}</p>
               {wicksInNote.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="pt-1 space-y-2">
                   {wicksInNote.map(w => {
                     const mm = WICK_SIZE_MM[w];
                     const br = WICK_BR_CODES[w];
                     const brFiltered = br ? filterBrCodes(br, answers.waxType ?? '') : null;
                     return (
-                      <span key={w} className="inline-flex items-center gap-1.5 bg-amber-100 border border-amber-300 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full">
-                        {w}
-                        {mm && <span className="font-normal opacity-70">· {mm}mm</span>}
-                        {brFiltered && <span className="font-normal opacity-70">· {brFiltered.join('/')}</span>}
-                      </span>
+                      <div key={w} className="bg-amber-100/70 border border-amber-300/60 rounded-xl px-3 py-2.5">
+                        <p className="text-[10px] font-black text-amber-700 uppercase tracking-wide mb-2">
+                          Como encontrar o {w}:
+                        </p>
+                        <div className="flex items-start gap-4 flex-wrap">
+                          <div>
+                            <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-wider mb-0.5">Nome</p>
+                            <p className="text-sm font-bold text-amber-900">{w}</p>
+                          </div>
+                          {mm && (
+                            <div>
+                              <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-wider mb-0.5">Espessura</p>
+                              <p className="text-sm font-bold text-amber-900">~{mm}mm</p>
+                            </div>
+                          )}
+                          {brFiltered && (
+                            <div>
+                              <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-wider mb-0.5">Código no fornecedor</p>
+                              <p className="text-sm font-bold text-amber-900">{brFiltered.join(' ou ')}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
