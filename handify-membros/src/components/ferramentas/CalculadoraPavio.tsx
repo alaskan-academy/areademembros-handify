@@ -149,6 +149,16 @@ function normalizeWickName(name: string): string {
   return name.replace(/^\d+[×x]\s*/i, '').replace(/\s*\([^)]+\)$/, '').trim();
 }
 
+// Filter supplier codes by wax type: soft waxes → A codes, hard waxes → B codes
+function filterBrCodes(codes: string[], waxType: string): string[] {
+  const softWaxes = ['soy', 'coconut', 'ecomix', 'beeswax'];
+  const hardWaxes = ['paraffin', 'pillar_paraffin'];
+  const prefix = softWaxes.includes(waxType) ? 'A' : hardWaxes.includes(waxType) ? 'B' : null;
+  if (!prefix) return codes;
+  const filtered = codes.filter(c => c.startsWith(prefix));
+  return filtered.length > 0 ? filtered : codes;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Answers = {
@@ -741,8 +751,10 @@ export default function CalculadoraPavio({
                   )}
                   {br && (
                     <p className="text-[11px] text-muted-foreground">
-                      No fornecedor: <span className="font-semibold text-foreground">{br.join(' ou ')}</span>
-                      <span className="text-muted-foreground/60"> · A = ceras suaves · B = parafina</span>
+                      No fornecedor:{' '}
+                      <span className="font-semibold text-foreground">
+                        {filterBrCodes(br, answers.waxType ?? '').join(' ou ')}
+                      </span>
                     </p>
                   )}
                 </div>
@@ -784,12 +796,33 @@ export default function CalculadoraPavio({
         </div>
 
         {/* Notes */}
-        {rec.notes && (
-          <div className="bg-[#FEC649]/10 border border-[#FEC649]/30 rounded-2xl p-4">
-            <p className="text-xs font-black text-amber-700 uppercase tracking-wide mb-1.5">💡 Dica de queima</p>
-            <p className="text-sm text-amber-900 leading-relaxed">{rec.notes}</p>
-          </div>
-        )}
+        {rec.notes && (() => {
+          const wicksInNote = [...new Set(
+            [...rec.notes.matchAll(/\b(LX|CD|ECO)\s+\d+\b/g)].map(m => m[0])
+          )].filter(w => WICK_SIZE_MM[w] || WICK_BR_CODES[w]);
+          return (
+            <div className="bg-[#FEC649]/10 border border-[#FEC649]/30 rounded-2xl p-4 space-y-2">
+              <p className="text-xs font-black text-amber-700 uppercase tracking-wide">💡 Dica de queima</p>
+              <p className="text-sm text-amber-900 leading-relaxed">{rec.notes}</p>
+              {wicksInNote.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {wicksInNote.map(w => {
+                    const mm = WICK_SIZE_MM[w];
+                    const br = WICK_BR_CODES[w];
+                    const brFiltered = br ? filterBrCodes(br, answers.waxType ?? '') : null;
+                    return (
+                      <span key={w} className="inline-flex items-center gap-1.5 bg-amber-100 border border-amber-300 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full">
+                        {w}
+                        {mm && <span className="font-normal opacity-70">· {mm}mm</span>}
+                        {brFiltered && <span className="font-normal opacity-70">· {brFiltered.join('/')}</span>}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Wick info */}
         <WickInfoAccordion wickName={rec.wick_primary} />
