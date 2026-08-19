@@ -697,7 +697,7 @@ export default function CalculadoraPavio({
                   ≈ {WICK_SIZE_MM[rec.wick_primary]}mm de espessura
                 </span>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  No fornecedor: "pavio de {WICK_SIZE_MM[rec.wick_primary]}mm" · B20XX ou A20XX
+                  No fornecedor: procure por "pavio de {WICK_SIZE_MM[rec.wick_primary]}mm"
                 </p>
               </div>
             )}
