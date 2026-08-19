@@ -741,23 +741,14 @@ export default function CalculadoraPavio({
               const base = normalizeWickName(rec.wick_primary);
               const mm = WICK_SIZE_MM[base];
               const br = WICK_BR_CODES[base];
-              if (!mm && !br) return null;
+              const brFiltered = br ? filterBrCodes(br, answers.waxType ?? '') : null;
+              if (!mm && !brFiltered) return null;
               return (
-                <div className="mt-2 space-y-1.5">
-                  {mm && (
-                    <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold px-3 py-1 rounded-full">
-                      ≈ {mm}mm de espessura
-                    </span>
-                  )}
-                  {br && (
-                    <p className="text-[11px] text-muted-foreground">
-                      No fornecedor:{' '}
-                      <span className="font-semibold text-foreground">
-                        {filterBrCodes(br, answers.waxType ?? '').join(' ou ')}
-                      </span>
-                    </p>
-                  )}
-                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {mm && <span>~{mm}mm</span>}
+                  {mm && brFiltered && <span className="mx-1.5 opacity-40">·</span>}
+                  {brFiltered && <span>código <span className="font-semibold text-foreground">{brFiltered.join(' ou ')}</span> no fornecedor</span>}
+                </p>
               );
             })()}
           </div>
@@ -805,35 +796,17 @@ export default function CalculadoraPavio({
               <p className="text-xs font-black text-amber-700 uppercase tracking-wide">💡 Dica de queima</p>
               <p className="text-sm text-amber-900 leading-relaxed">{rec.notes}</p>
               {wicksInNote.length > 0 && (
-                <div className="pt-1 space-y-2">
+                <div className="border-t border-amber-200/50 pt-2 mt-1 space-y-1">
                   {wicksInNote.map(w => {
                     const mm = WICK_SIZE_MM[w];
                     const br = WICK_BR_CODES[w];
                     const brFiltered = br ? filterBrCodes(br, answers.waxType ?? '') : null;
                     return (
-                      <div key={w} className="bg-amber-100/70 border border-amber-300/60 rounded-xl px-3 py-2.5">
-                        <p className="text-[10px] font-black text-amber-700 uppercase tracking-wide mb-2">
-                          Como encontrar o {w}:
-                        </p>
-                        <div className="flex items-start gap-4 flex-wrap">
-                          <div>
-                            <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-wider mb-0.5">Nome</p>
-                            <p className="text-sm font-bold text-amber-900">{w}</p>
-                          </div>
-                          {mm && (
-                            <div>
-                              <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-wider mb-0.5">Espessura</p>
-                              <p className="text-sm font-bold text-amber-900">~{mm}mm</p>
-                            </div>
-                          )}
-                          {brFiltered && (
-                            <div>
-                              <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-wider mb-0.5">Código no fornecedor</p>
-                              <p className="text-sm font-bold text-amber-900">{brFiltered.join(' ou ')}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <p key={w} className="text-xs text-amber-800/80 leading-relaxed">
+                        <span className="font-bold text-amber-900">{w}</span>
+                        {mm && <span> · ~{mm}mm</span>}
+                        {brFiltered && <span> · código <span className="font-semibold">{brFiltered.join(' ou ')}</span> no fornecedor</span>}
+                      </p>
                     );
                   })}
                 </div>
