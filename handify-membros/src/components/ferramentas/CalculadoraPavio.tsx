@@ -78,9 +78,9 @@ const WICK_SERIES_INFO: Record<string, { name: string; info: string }> = {
     name: 'Série ECO',
     info: 'Pavio de algodão natural sem núcleo metálico, indicado para ceras vegetais e fragrâncias naturais. ECO 2 é fino, ECO 14 é mais grosso.',
   },
-  'Pavio quadrado': {
-    name: 'Pavio quadrado trançado',
-    info: 'Pavio trançado em formato quadrado, tradicional para velas de molde (pilar). Os números indicam espessura: nº 2 = fino, nº 4 = grosso. Vendido em metros nas lojas de insumos.',
+  'fio de cobre': {
+    name: 'Pavio com fio de cobre',
+    info: 'Pavio de algodão com núcleo de fio de cobre, o mais indicado para velas de molde e pilar no Brasil. O fio mantém o pavio rígido e centralizado na cera dura. Vem em três tamanhos — fino, médio e grosso — vendidos por metro nas lojas de insumos para velas.',
   },
 };
 
@@ -144,7 +144,6 @@ const WICK_SIZE_MM: Record<string, string> = {
   'ECO 2': '1,5', 'ECO 3': '2',   'ECO 4': '2,5',
   'ECO 6': '3',   'ECO 8': '3,5', 'ECO 10': '4', 'ECO 12': '4,5',
   'ECO 14': '5',  'ECO 16': '5,5', 'ECO 18': '6',
-  'Pavio quadrado #2': '2', 'Pavio quadrado #3': '3', 'Pavio quadrado #4': '4',
 };
 
 // Remove prefixes like "2× " and suffixes like " (2 pavios)" before lookup
@@ -290,7 +289,7 @@ function DiameterGuide({ type }: { type: 'container' | 'mold' }) {
 
 function WickInfoAccordion({ wickName }: { wickName: string }) {
   const [open, setOpen] = useState(false);
-  const key = Object.keys(WICK_SERIES_INFO).find(k => wickName.startsWith(k));
+  const key = Object.keys(WICK_SERIES_INFO).find(k => wickName.startsWith(k) || wickName.includes(k));
   const info = key ? WICK_SERIES_INFO[key] : null;
   if (!info) return null;
 
