@@ -167,6 +167,102 @@ Implementado em `src/proxy.ts` — `ALWAYS_PUBLIC_PREFIXES` contém apenas `/api
 
 - Ao final de cada alteração, sempre fazer `commit` e `push` para o remote.
 
+## Webhooks de pagamento — arquitetura (ago/2026)
+
+A plataforma recebe compras de **duas** plataformas. Cada uma tem seu endpoint e sua
+forma de autenticação, mas **o processamento é o mesmo** — matrícula, token de ativação,
+e-mail, CPF/telefone, revogação.
+
+| Plataforma | Endpoint | Autenticação |
+|-----------|----------|--------------|
+| Payt | `/api/webhooks/payt` | `integration_key` dentro do corpo, comparada com `PAYT_WEBHOOK_SECRET` |
+| Kiwify | `/api/webhooks/kiwify` | HMAC do corpo bruto em `?signature=`, validado com `KIWIFY_WEBHOOK_SECRET` |
+
+```
+src/app/api/webhooks/payt/route.ts    ─┐  valida auth, traduz payload
+src/app/api/webhooks/kiwify/route.ts  ─┤  para PurchaseEvent
+                                       └→ src/lib/payments/process-purchase.ts
+                                          (toda a lógica de negócio, uma vez só)
+```
+
+**Regra:** mudanças na regra de matrícula/revogação vão em `process-purchase.ts`,
+nunca dentro de uma rota — senão as duas plataformas divergem.
+
+Cada rota é um adaptador fino: valida a autenticação da sua plataforma, traduz o
+payload para `PurchaseEvent` e chama `processPurchaseEvent()`.
+
+### Como cadastrar um curso vendido nas duas
+
+`courses.product_codes` é um **array**. Basta colocar o código da Payt e o
+`product_id` da Kiwify no mesmo curso — a busca usa `overlaps`, então qualquer um
+dos dois libera o acesso. Comprar nas duas plataformas não duplica matrícula
+(o `upsert` usa `onConflict: user_id,course_id`).
+
+### `enrollments.source`
+
+Enum `enrollment_source`: `payt | manual | subscription | migration | kiwify`.
+O valor `kiwify` foi adicionado em ago/2026 — para uma plataforma nova, **adicionar
+o valor ao enum antes** de gravar matrícula, senão o insert falha.
+
+---
+
+## Webhook Kiwify — Formato do Payload Real
+
+**Arquivos:** `src/lib/payments/kiwify.ts` + `src/app/api/webhooks/kiwify/route.ts`
+
+### Autenticação — diferente da Payt
+
+A Kiwify assina o **corpo bruto** da requisição com HMAC (hex) e manda o resultado
+na query string: `POST /api/webhooks/kiwify?signature=<hmac>`.
+
+Por isso a rota lê `req.text()` **antes** de qualquer parse — se o corpo for
+reserializado, a assinatura não bate. O código aceita SHA-1 (documentado) e SHA-256,
+porque a Kiwify já trocou o algoritmo em versões anteriores.
+
+O token vem em: **Kiwify → Apps → Webhooks → criar webhook → copiar o token exibido**.
+
+### Campos importantes
+
+| Campo no payload | O que é |
+|-----------------|---------|
+| `webhook_event_type` | Evento: `order_approved`, `order_refunded`, `chargeback`, `subscription_canceled`, `subscription_late`, `subscription_renewed`, `pix_created`, `billet_created`, `order_rejected` |
+| `order_status` | Fallback quando não vem `webhook_event_type`: `paid`, `refunded`, `chargedback` |
+| `order_id` | ID da transação |
+| `Customer.email` | E-mail do comprador |
+| `Customer.full_name` | Nome completo (`first_name` é o fallback) |
+| `Customer.CPF` | CPF — maiúsculas no payload da Kiwify |
+| `Customer.mobile` | Telefone/WhatsApp |
+| `Product.product_id` | **Este é o código que vai no `product_codes` do curso** |
+| `Commissions.charge_amount` | Valor cobrado em centavos, **como string** (`"9700"`) |
+| `Subscription.plan.id` | Em assinaturas, também é aceito como código de curso |
+
+### Mapeamento de eventos
+
+| Evento Kiwify | Ação |
+|---------------|------|
+| `order_approved`, `subscription_renewed` | libera acesso |
+| `order_refunded`, `chargeback` | revoga + e-mail de reembolso |
+| `subscription_canceled`, `subscription_late` | revoga, **sem** e-mail de reembolso |
+| `pix_created`, `billet_created`, `order_rejected` | só registra em `payment_events` |
+
+### Diferenças em relação à Payt
+
+- **Order bumps não vêm no mesmo payload** — a Kiwify dispara um webhook por produto.
+  Não existe equivalente ao `order_bumps[]` da Payt.
+- **Valores são string de centavos**, não número.
+- **Não existe produto agrupado** com `items[]`.
+
+### Testes
+
+`e2e/tests/webhook-kiwify.spec.ts` — assinatura inválida, corpo adulterado,
+JSON inválido, payload sem `product_id` e os principais eventos.
+
+> Ao postar corpo bruto no Playwright, use `data: Buffer.from(raw, "utf8")`.
+> Passar uma string com `Content-Type: application/json` faz o Playwright
+> reserializar o corpo e a assinatura deixa de bater.
+
+---
+
 ## Webhook Payt — Formato do Payload Real
 
 **Arquivos:** `src/lib/payments/payt.ts` + `src/app/api/webhooks/payt/route.ts`

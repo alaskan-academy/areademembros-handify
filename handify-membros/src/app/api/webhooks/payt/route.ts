@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/service";
 import {
   verifyPaytIntegrationKey,
   PaytPayloadSchema,
@@ -7,45 +6,7 @@ import {
   extractProductCodes,
   type PaytPayload,
 } from "@/lib/payments/payt";
-import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
-import { sendAccessConfirmedEmail, sendRefundEmail } from "@/lib/email";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function logPaymentEvent(
-  supabase: ReturnType<typeof createServiceClient>,
-  data: {
-    product_code: string;
-    event_type: string;
-    buyer_email: string;
-    buyer_name?: string;
-    payload: Record<string, unknown>;
-    amount_paid?: number | null;
-    processed: boolean;
-    error?: string;
-  }
-) {
-  await supabase.from("payment_events").insert({
-    platform: "payt",
-    product_code: data.product_code,
-    event_type: data.event_type,
-    buyer_email: data.buyer_email,
-    buyer_name: data.buyer_name ?? null,
-    payload: data.payload,
-    amount_paid: data.amount_paid ?? null,
-    processed: data.processed,
-    error: data.error ?? null,
-  });
-}
-
-function calcExpiresAt(accessDays: number | null): string | null {
-  if (!accessDays) return null;
-  const d = new Date();
-  d.setDate(d.getDate() + accessDays);
-  return d.toISOString();
-}
-
-// ── Handler principal ─────────────────────────────────────────────────────────
+import { processPurchaseEvent } from "@/lib/payments/process-purchase";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.PAYT_WEBHOOK_SECRET;
@@ -71,250 +32,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid key" }, { status: 401 });
   }
 
-  const supabase = createServiceClient();
-  const action = classifyEvent(payload.status);
-  const buyerEmail = payload.customer.email;
-  const buyerName = payload.customer.name?.trim() || undefined;
-  const mainProductCode = payload.product.code;
-  // Só registra valor pago em eventos de pagamento confirmado
-  const amountPaid = action === "grant" ? (payload.transaction?.total_price ?? null) : null;
-
-  // 4. Status desconhecido — ack sem processar (não é erro, só aguarda)
-  if (action === "ignore") {
-    await logPaymentEvent(supabase, {
-      product_code: mainProductCode,
-      event_type: payload.status,
-      buyer_email: buyerEmail,
-      buyer_name: buyerName,
-      payload: rawJson,
-      amount_paid: amountPaid,
-      processed: false,
-    });
-    return NextResponse.json({ received: true });
-  }
-
-  // 5. Extrai todos os product codes (produto principal/itens + order bumps)
-  const productCodes = extractProductCodes(payload);
-
-  // 6. Busca todos os cursos correspondentes de uma vez (overlap: qualquer code do curso bate com qualquer code do payload)
-  const { data: courses } = await supabase
-    .from("courses")
-    .select("id, title, slug, access_days, product_codes")
-    .overlaps("product_codes", productCodes);
-
-  if (!courses?.length) {
-    const msg = `Nenhum curso encontrado para product_codes: ${productCodes.join(", ")}`;
-    console.warn("[payt-webhook]", msg);
-    await logPaymentEvent(supabase, {
-      product_code: mainProductCode,
-      event_type: payload.status,
-      buyer_email: buyerEmail,
-      buyer_name: buyerName,
-      payload: rawJson,
-      amount_paid: amountPaid,
-      processed: false,
-      error: msg,
-    });
-    return NextResponse.json({ received: true, warning: msg });
-  }
-
-  // 7. Buscar usuário pelo e-mail — lookup direto no profiles (evita limitação de 50 users do listUsers)
-  const { data: profileRow } = await supabase
-    .from("profiles")
-    .select("id")
-    .ilike("email", buyerEmail)
-    .maybeSingle();
-  const user = profileRow ? { id: profileRow.id } : null;
-
-  // 8. Sem conta ainda — cria token de ativação por curso (paralelo) e envia 1 único e-mail
-  if (!user) {
-    if (action === "grant") {
-      // Cria todos os tokens em paralelo
-      const tokenResults = await Promise.all(
-        courses.map((course) =>
-          supabase
-            .from("activation_tokens")
-            .insert({
-              email: buyerEmail.toLowerCase(),
-              course_id: course.id,
-              buyer_name: buyerName ?? null,
-              buyer_phone: payload.customer.phone?.trim() ?? null,
-            })
-            .select("token")
-            .single()
-            .then(({ data }) => ({ course, token: data?.token ?? null }))
-        )
-      );
-
-      // Usa o token do curso principal (ou primeiro disponível) para o e-mail de ativação
-      const mainCourse =
-        courses.find((c) => (c.product_codes as string[])?.includes(mainProductCode)) ?? courses[0];
-      const mainTokenResult = tokenResults.find((r) => r.course.id === mainCourse.id);
-      const activationToken = mainTokenResult?.token ?? tokenResults.find((r) => r.token)?.token;
-
-      if (activationToken) {
-        await sendAccessConfirmedEmail({
-          to: buyerEmail,
-          studentName: buyerName || buyerEmail,
-          courseTitle: mainCourse.title,
-          courseSlug: mainCourse.slug,
-          activationToken,
-          totalCourses: courses.length,
-        });
-      }
-
-      console.info(`[payt-webhook] ${courses.length} token(s) criados, 1 e-mail enviado para ${buyerEmail}`);
-    }
-
-    await logPaymentEvent(supabase, {
-      product_code: mainProductCode,
-      event_type: payload.status,
-      buyer_email: buyerEmail,
-      buyer_name: buyerName,
-      payload: rawJson,
-      amount_paid: amountPaid,
-      processed: true, // token criado e e-mail enviado — tratado com sucesso
-    });
-    return NextResponse.json({ received: true });
-  }
-
-  // 9. Usuário existe — processar matrícula/revogação para cada curso em paralelo
-  const now = new Date().toISOString();
-
-  const results = await Promise.all(
-    courses.map(async (course) => {
-      if (action === "grant") {
-        const expiresAt = calcExpiresAt(course.access_days as number | null);
-        const { error } = await supabase.from("enrollments").upsert(
-          {
-            user_id: user.id,
-            course_id: course.id,
-            source: "payt",
-            granted_at: now,
-            expires_at: expiresAt,
-          },
-          { onConflict: "user_id,course_id" }
-        );
-        if (error) {
-          console.error(`[payt-webhook] Erro ao matricular em ${course.id}:`, error.message);
-          return false;
-        }
-        console.info(`[payt-webhook] Matrícula concedida: user=${user.id} curso=${course.id} expires=${expiresAt ?? "vitalício"}`);
-        return true;
-      } else {
-        // revoke — marca matrícula como expirada agora
-        const { data: revoked, error } = await supabase
-          .from("enrollments")
-          .update({ expires_at: now })
-          .eq("user_id", user.id)
-          .eq("course_id", course.id)
-          .select("id");
-
-        if (error) {
-          console.error(`[payt-webhook] Erro ao revogar ${course.id}:`, error.message);
-          return false;
-        }
-        if (!revoked?.length) {
-          console.info(`[payt-webhook] Revoke ignorado (sem matrícula ativa): user=${user.id} curso=${course.id} motivo=${payload.status}`);
-          return true;
-        }
-        await supabase.from("audit_log").insert({
-          admin_id: null,
-          action: "enrollment.revoked",
-          target_type: "enrollment",
-          target_id: course.id,
-          meta: { user_id: user.id, course_id: course.id, reason: payload.status, transaction_id: payload.transaction_id },
-        });
-        console.info(`[payt-webhook] Matrícula revogada: user=${user.id} curso=${course.id} motivo=${payload.status}`);
-
-        // Email de reembolso só para estorno real (não para PIX expirado/cancelado sem pagamento)
-        const isRealRefund = ["refunded", "chargeback"].includes(payload.status);
-        if (isRealRefund) {
-          ;(async () => {
-            const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-            await sendRefundEmail({
-              to: buyerEmail,
-              studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
-              courseTitle: course.title,
-            });
-          })().catch((e) => console.error("[payt-webhook] refund email:", e));
-        }
-        return true;
-      }
-    })
-  );
-
-  const processed = results.filter(Boolean).length;
-
-  // 10. Salva CPF, telefone e nome no perfil (apenas no grant, sem sobrescrever dados existentes)
-  if (action === "grant") {
-    const rawCpf = payload.customer.doc?.replace(/\D/g, "");
-    if (rawCpf && rawCpf.length === 11) {
-      try {
-        const encrypted = encryptCpf(rawCpf);
-        const hash = hashCpf(rawCpf);
-        await supabase
-          .from("profiles")
-          .update({ cpf_encrypted: encrypted, cpf_hash: hash })
-          .eq("id", user.id);
-      } catch (err) {
-        console.warn("[payt-webhook] CPF não salvo:", err instanceof Error ? err.message : err);
-      }
-    }
-
-    // Salva telefone se o perfil ainda não tiver (nunca sobrescreve dado editado pela aluna)
-    const rawPhone = payload.customer.phone?.trim();
-    if (rawPhone) {
-      await supabase
-        .from("profiles")
-        .update({ phone: rawPhone })
-        .eq("id", user.id)
-        .is("phone", null);
-    }
-
-    // Salva nome se o perfil estiver sem nome (vazio ou null)
-    if (buyerName) {
-      await supabase
-        .from("profiles")
-        .update({ full_name: buyerName })
-        .eq("id", user.id)
-        .eq("full_name", "");
-    }
-
-    // E-mail de acesso confirmado (envia referenciando o produto principal)
-    const mainCourse =
-      courses.find((c) => (c.product_codes as string[])?.includes(mainProductCode)) ?? courses[0];
-    ;(async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      await sendAccessConfirmedEmail({
-        to: buyerEmail,
-        studentName: profile?.full_name ?? payload.customer.name ?? buyerEmail,
-        courseTitle: mainCourse.title,
-        courseSlug: mainCourse.slug,
-        totalCourses: courses.length,
-      });
-    })().catch((e) => console.error("[payt-webhook] access email:", e));
-  }
-
-  // 11. Registrar evento
-  await logPaymentEvent(supabase, {
-    product_code: mainProductCode,
-    event_type: payload.status,
-    buyer_email: buyerEmail,
-    buyer_name: buyerName,
-    payload,
-    processed: processed === courses.length,
-    error:
-      processed < courses.length
-        ? `${courses.length - processed} curso(s) falharam`
-        : undefined,
+  // 3. Normalizar e processar (mesma lógica usada pela Kiwify)
+  return processPurchaseEvent({
+    platform: "payt",
+    source: "payt",
+    eventType: payload.status,
+    action: classifyEvent(payload.status),
+    productCodes: extractProductCodes(payload),
+    mainProductCode: payload.product.code,
+    buyerEmail: payload.customer.email,
+    buyerName: payload.customer.name?.trim() || undefined,
+    buyerPhone: payload.customer.phone?.trim() || undefined,
+    buyerDoc: payload.customer.doc,
+    amountPaid: payload.transaction?.total_price ?? null,
+    transactionId: payload.transaction_id,
+    isRealRefund: ["refunded", "chargeback"].includes(payload.status),
+    rawPayload: rawJson,
   });
-
-  return NextResponse.json({ received: true, processed, total: courses.length });
 }
 
 export async function GET() {
