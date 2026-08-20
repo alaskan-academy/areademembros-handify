@@ -63,7 +63,9 @@ export const PaytPayloadSchema = z.object({
   started_at: z.string().optional(),
   updated_at: z.string().optional(),
   customer: z.object({
-    email: z.string().email(),
+    // `.trim()` antes do `.email()`: espaço em volta do e-mail faria a compra
+    // ser rejeitada com 400 e a aluna ficaria sem acesso.
+    email: z.string().trim().email(),
     name: z.string().optional().default(""),
     doc: z.string().optional(),         // CPF (11 dígitos) ou CNPJ
     phone: z.string().optional(),

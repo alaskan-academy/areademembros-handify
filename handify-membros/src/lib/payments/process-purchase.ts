@@ -149,20 +149,40 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
       const mainTokenResult = tokenResults.find((r) => r.course.id === mainCourse.id);
       const activationToken = mainTokenResult?.token ?? tokenResults.find((r) => r.token)?.token;
 
-      if (activationToken) {
-        await sendAccessConfirmedEmail({
-          to: event.buyerEmail,
-          studentName: event.buyerName || event.buyerEmail,
-          courseTitle: mainCourse.title,
-          courseSlug: mainCourse.slug,
-          activationToken,
-          totalCourses: courses.length,
-        });
+      // A compradora ainda não tem conta: sem esse e-mail ela não tem como
+      // entrar. Se o envio falhar, o evento fica marcado como não processado
+      // com o motivo, para aparecer no painel de webhooks e ser reenviado.
+      let emailError: string | undefined;
+
+      if (!activationToken) {
+        emailError = "Token de ativação não foi criado — e-mail de acesso não enviado";
+      } else {
+        try {
+          await sendAccessConfirmedEmail({
+            to: event.buyerEmail,
+            studentName: event.buyerName || event.buyerEmail,
+            courseTitle: mainCourse.title,
+            courseSlug: mainCourse.slug,
+            activationToken,
+            totalCourses: courses.length,
+          });
+          console.info(
+            `${log} ${courses.length} token(s) criados, 1 e-mail enviado para ${event.buyerEmail}`
+          );
+        } catch (err) {
+          emailError = `Token criado, mas o e-mail de acesso falhou: ${
+            err instanceof Error ? err.message : String(err)
+          }`;
+          console.error(`${log} ${emailError} (${event.buyerEmail})`);
+        }
       }
 
-      console.info(
-        `${log} ${courses.length} token(s) criados, 1 e-mail enviado para ${event.buyerEmail}`
-      );
+      await logPaymentEvent(supabase, event, {
+        processed: !emailError,
+        error: emailError,
+        amountPaid,
+      });
+      return NextResponse.json({ received: true });
     }
 
     await logPaymentEvent(supabase, event, { processed: true, amountPaid });

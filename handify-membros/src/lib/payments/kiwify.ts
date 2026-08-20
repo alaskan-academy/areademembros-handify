@@ -12,7 +12,9 @@ const KiwifyProductSchema = z
 
 const KiwifyCustomerSchema = z
   .object({
-    email: z.string().email(),
+    // `.trim()` antes do `.email()`: espaço em volta do e-mail faria a compra
+    // ser rejeitada com 400 e a aluna ficaria sem acesso.
+    email: z.string().trim().email(),
     full_name: z.string().optional(),
     first_name: z.string().optional(),
     // A Kiwify manda o CPF em maiúsculas; alguns payloads antigos usam minúsculas.
