@@ -53,6 +53,22 @@ async function logPaymentEvent(
   });
 }
 
+/**
+ * Devolve cada código também em maiúsculas e minúsculas.
+ *
+ * Necessário porque a comparação de array no Postgres é sensível a caixa e os
+ * ids da Kiwify circulam nas duas formas (o painel mostra em maiúsculas, o
+ * webhook manda em minúsculas). Códigos da Payt são maiúsculos e não mudam.
+ */
+function caseVariants(codes: string[]): string[] {
+  return [...new Set(codes.flatMap((c) => [c, c.toLowerCase(), c.toUpperCase()]))];
+}
+
+/** Verifica se o curso tem o código, ignorando maiúsculas/minúsculas. */
+function hasCode(codes: string[] | null, code: string): boolean {
+  return !!codes?.some((c) => c.toLowerCase() === code.toLowerCase());
+}
+
 function calcExpiresAt(accessDays: number | null): string | null {
   if (!accessDays) return null;
   const d = new Date();
@@ -82,10 +98,14 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
   // Busca todos os cursos correspondentes de uma vez
   // (overlap: qualquer code do curso bate com qualquer code do payload)
+  //
+  // `overlaps` compara texto exato, e os ids UUID da Kiwify aparecem ora em
+  // maiúsculas ora em minúsculas dependendo de onde foram copiados. Mandar as
+  // três formas evita que o acesso deixe de liberar por causa disso.
   const { data: courses } = await supabase
     .from("courses")
     .select("id, title, slug, access_days, product_codes")
-    .overlaps("product_codes", event.productCodes);
+    .overlaps("product_codes", caseVariants(event.productCodes));
 
   if (!courses?.length) {
     const msg = `Nenhum curso encontrado para product_codes: ${event.productCodes.join(", ")}`;
@@ -124,7 +144,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
       // Usa o token do curso principal (ou o primeiro disponível) no e-mail
       const mainCourse =
-        courses.find((c) => (c.product_codes as string[])?.includes(event.mainProductCode)) ??
+        courses.find((c) => hasCode(c.product_codes as string[], event.mainProductCode)) ??
         courses[0];
       const mainTokenResult = tokenResults.find((r) => r.course.id === mainCourse.id);
       const activationToken = mainTokenResult?.token ?? tokenResults.find((r) => r.token)?.token;
@@ -269,7 +289,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
     // E-mail de acesso confirmado (referenciando o produto principal)
     const mainCourse =
-      courses.find((c) => (c.product_codes as string[])?.includes(event.mainProductCode)) ??
+      courses.find((c) => hasCode(c.product_codes as string[], event.mainProductCode)) ??
       courses[0];
     ;(async () => {
       const { data: profile } = await supabase
