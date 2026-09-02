@@ -76,6 +76,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|workbox-.*\\.js|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.webp|.*\\.gif|.*\\.ico).*)",
+    // worker-*.js e fallback-*.js são carregados por importScripts() de dentro do
+    // sw.js durante o install do service worker. Sem esta exclusão o middleware
+    // redireciona para /login, o install falha e o Android recusa instalar o app —
+    // mesma causa que já tinha derrubado /~offline.
+    "/((?!_next/static|_next/image|favicon.ico|icons|manifest.json|sw.js|workbox-.*\\.js|worker-.*\\.js|fallback-.*\\.js|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.webp|.*\\.gif|.*\\.ico).*)",
   ],
 };

@@ -42,9 +42,19 @@ export default function RootLayout({
       className={`${montserrat.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        {/* Captura beforeinstallprompt via arquivo estático — evita warning do React */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="/pwa-capture.js" />
+        {/*
+          Guarda o evento `beforeinstallprompt` para o botão "Instalar app" poder
+          reabri-lo depois. O navegador dispara esse evento uma única vez e bem
+          cedo, então precisa estar embutido: como arquivo separado ele chegava
+          tarde e, para quem não estava logada, o middleware ainda redirecionava
+          /pwa-capture.js para /login — o script nunca executava.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__pwaInstallPrompt=e;});",
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
         {children}
