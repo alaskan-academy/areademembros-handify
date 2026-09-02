@@ -46,8 +46,8 @@ export default function CatalogHeader({
             className="flex items-center gap-2 shrink-0"
           >
             <Image
-              src="/logo-vertical-azul.png"
-              alt="Handify™"
+              src="/icon.png"
+              alt=""
               width={28}
               height={28}
               unoptimized

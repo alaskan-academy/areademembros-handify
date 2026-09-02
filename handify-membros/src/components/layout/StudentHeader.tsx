@@ -78,8 +78,8 @@ export default function StudentHeader({
             {/* Logo */}
             <Link href="/cursos" className="flex items-center gap-2 shrink-0">
               <Image
-                src="/logo-vertical-azul.png"
-                alt="Handify™"
+                src="/icon.png"
+                alt=""
                 width={28}
                 height={28}
                 unoptimized

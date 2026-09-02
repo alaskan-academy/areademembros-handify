@@ -56,8 +56,8 @@ export default async function StaticPage({
         <div className="max-w-4xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-4">
           <Link href="/cursos" className="flex items-center gap-2 shrink-0">
             <Image
-              src="/logo-vertical-azul.png"
-              alt="Handify™"
+              src="/icon.png"
+              alt=""
               width={26}
               height={26}
               unoptimized
