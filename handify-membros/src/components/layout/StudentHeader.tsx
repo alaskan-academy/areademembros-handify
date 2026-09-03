@@ -69,7 +69,10 @@ export default function StudentHeader({
 
   return (
     <>
-    <header className="sticky top-0 z-40 bg-white shadow-sm">
+    <header
+      className="sticky z-40 bg-white shadow-sm"
+      style={{ top: "var(--install-bar-h)" }}
+    >
       <div className="brand-stripe"><span /><span /><span /></div>
 
       <div className="border-b border-border/60">

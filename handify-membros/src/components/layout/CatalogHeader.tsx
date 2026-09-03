@@ -31,7 +31,10 @@ export default function CatalogHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-border/60 shadow-sm">
+    <header
+      className="sticky z-40 bg-white border-b border-border/60 shadow-sm"
+      style={{ top: "var(--install-bar-h)" }}
+    >
       <div className="brand-stripe">
         <span />
         <span />

@@ -80,10 +80,17 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
       <aside
         className={cn(
           "hidden md:flex flex-col shrink-0 bg-white border-r border-border/60 z-30",
-          "fixed top-[61px] left-0 h-[calc(100vh-61px)] overflow-hidden",
+          "fixed left-0 overflow-hidden",
           "transition-[width] duration-200 ease-in-out",
           collapsed ? "w-16" : "w-60"
         )}
+        style={{
+          // 61px = altura do header. A tarja de instalar, quando aparece,
+          // empurra o header para baixo — sem somar isso aqui a lateral
+          // ficaria por baixo dele.
+          top: "calc(61px + var(--install-bar-h))",
+          height: "calc(100vh - 61px - var(--install-bar-h))",
+        }}
       >
         <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-2 px-2">
           {visibleItems.map((item) => {

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import UpdatePrompt from "@/components/pwa/UpdatePrompt";
-import InstallPrompt from "@/components/pwa/InstallPrompt";
+import InstallBar from "@/components/pwa/InstallBar";
 import PushPromptBanner from "@/components/pwa/PushPromptBanner";
 import BackButtonGuard from "@/components/pwa/BackButtonGuard";
 import { createClient } from "@/lib/supabase/server";
@@ -91,6 +91,7 @@ export default async function StudentLayout({
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
       <ScrollToTop />
+      <InstallBar />
       {user ? (
         <StudentHeader
           fullName={profile?.full_name ?? ""}
@@ -124,7 +125,6 @@ export default async function StudentLayout({
       {user && <PushPromptBanner />}
       <BackButtonGuard />
       <UpdatePrompt />
-      <InstallPrompt />
     </div>
   );
 }

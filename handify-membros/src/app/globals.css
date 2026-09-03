@@ -10,6 +10,11 @@
    Paleta oficial: nunca aproxime, use hex exatos
    ============================================================ */
 :root {
+  /* Altura da tarja de instalar o app — a tarja escreve o valor real aqui
+     quando aparece. O header e a barra lateral descontam isso do topo,
+     senao a tarja passaria por cima deles ao rolar a pagina. */
+  --install-bar-h:      0px;
+
   /* Brand primárias */
   --handify-blue:       #6699F3;  /* Azul Handify — CTA, links, destaques */
   --handify-green:      #72CF92;  /* Verde Orgânico — sucesso, accent */
