@@ -166,6 +166,14 @@ export default async function AlunosPage({
     }
   }
   const semCadastro = Array.from(byEmail.values());
+  const termo = q.toLowerCase();
+  const semCadastroFiltrado = termo
+    ? semCadastro.filter(
+        (r) =>
+          r.email.toLowerCase().includes(termo) ||
+          r.buyer_name?.toLowerCase().includes(termo)
+      )
+    : semCadastro;
   const semCadastroCount = semCadastro.length;
 
   // ── Dados "cadastradas" (só no tab correspondente) ────────────────────────
@@ -183,7 +191,9 @@ export default async function AlunosPage({
   let count = 0;
   let cpfSearch = false;
 
-  if (activeTab === "cadastradas") {
+  // Com busca ativa os dois grupos aparecem juntos, entao esta consulta roda
+  // mesmo quando a aba selecionada e "sem-cadastro".
+  if (activeTab === "cadastradas" || q) {
     if (q && isCpf(q)) {
       cpfSearch = true;
       const cpfDigits = formatCpfRaw(q);
@@ -352,7 +362,17 @@ export default async function AlunosPage({
         </div>
       )}
 
-      {/* Abas */}
+      {/* Busca unica: filtra cadastradas e sem cadastro ao mesmo tempo */}
+      <AlunosSearch defaultValue={q} />
+      {cpfSearch && (
+        <p className="text-xs text-[#6699F3]">
+          Buscando por CPF nos registros de compra.
+        </p>
+      )}
+
+      {/* Abas: so fazem sentido quando nao ha busca. Com busca, os dois
+          grupos aparecem juntos e a aba deixaria a metade escondida. */}
+      {!q && (
       <div className="border-b border-border">
         <nav className="flex gap-1 -mb-px">
           <Link
@@ -395,20 +415,17 @@ export default async function AlunosPage({
           </Link>
         </nav>
       </div>
-
-      {/* Conteúdo do tab "Sem cadastro" */}
-      {activeTab === "sem-cadastro" && (
-        <SemCadastroClient rows={semCadastro} />
       )}
 
-      {/* Conteúdo do tab "Cadastradas" */}
-      {activeTab === "cadastradas" && (
+      {/* Cadastradas — sempre visivel quando ha busca */}
+      {(activeTab === "cadastradas" || q) && (
         <>
-          <AlunosSearch defaultValue={q} />
-          {cpfSearch && (
-            <p className="text-xs text-[#6699F3]">
-              Buscando por CPF nos registros de compra.
-            </p>
+          {q && (
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-[#6699F3]">
+              <UserCheck className="w-4 h-4" />
+              Cadastradas
+              <span className="text-xs bg-[#6699F3]/15 px-1.5 py-0.5 rounded-full">{count}</span>
+            </h2>
           )}
 
           <div className="handify-card overflow-hidden overflow-x-auto">
@@ -529,7 +546,23 @@ export default async function AlunosPage({
             )}
           </div>
 
-          {/* Paginação */}
+          {/* Sem cadastro — aparece junto quando ha busca */}
+      {(activeTab === "sem-cadastro" || q) && (
+        <>
+          {q && (
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-amber-600 pt-2">
+              <UserX className="w-4 h-4" />
+              Sem cadastro
+              <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                {semCadastroFiltrado.length}
+              </span>
+            </h2>
+          )}
+          <SemCadastroClient rows={semCadastro} buscaExterna={q} />
+        </>
+      )}
+
+      {/* Paginação */}
           {!cpfSearch && totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
               {page > 1 && (
