@@ -24,10 +24,19 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (!profiles?.length) {
-    return csvResponse("Nome,E-mail,Telefone,Nascimento,Qtd. Cursos,Cursos,Fonte,Data da 1ª Matrícula,Aulas Concluídas,Progresso Médio (%),Certificados,Última Atividade,Data de Cadastro,Status\n");
+    return csvResponse("Nome,E-mail,Telefone,Nascimento,Qtd. Cursos,Cursos,Fonte,Data da 1ª Matrícula,Aulas Concluídas,Progresso Médio (%),Certificados,Última Atividade,Data de Cadastro,Handify Completo,Status\n");
   }
 
   const profileIds = profiles.map((p) => p.id);
+
+  // Quem tem o Handify Completo ativo (membership, não soma de cursos).
+  const { data: membershipRows } = await service
+    .from("memberships")
+    .select("user_id")
+    .eq("plan", "completo")
+    .is("revoked_at", null)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+  const temCompleto = new Set((membershipRows ?? []).map((m) => m.user_id as string));
 
   // ── 2. Matrículas + cursos ──────────────────────────────────
   const { data: enrollments } = await service
@@ -114,7 +123,7 @@ export async function GET() {
     "Qtd. Cursos", "Cursos", "Fonte", "Data da 1ª Matrícula",
     "Aulas Concluídas", "Progresso Médio (%)",
     "Certificados", "Última Atividade",
-    "Data de Cadastro", "Status",
+    "Data de Cadastro", "Handify Completo", "Status",
   ].join(",");
 
   const rows = (profiles as Array<{
@@ -174,6 +183,7 @@ export async function GET() {
       escape(certCountByUser[p.id] ?? 0),
       escape(lastActivity),
       escape(new Date(p.created_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })),
+      escape(temCompleto.has(p.id) ? "Sim" : "Não"),
       escape(p.banned ? "Banida" : "Ativa"),
     ].join(",");
   });

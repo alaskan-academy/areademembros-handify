@@ -13,6 +13,7 @@ import {
   Users,
   UserCheck,
   UserX,
+  Sparkles,
 } from "lucide-react";
 import { hashCpf, decryptCpf } from "@/lib/cpf-crypto";
 import AlunosSearch from "./alunos-search";
@@ -38,7 +39,6 @@ type ConversionStats = {
 };
 
 const PAGE_SIZE = 25;
-const GRANT_EVENT_TYPES = ["paid", "approved", "completed", "confirmed"];
 
 function isCpf(q: string) {
   return q.replace(/\D/g, "").length === 11;
@@ -50,7 +50,7 @@ function formatCpfRaw(q: string) {
 export default async function AlunosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; tab?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; tab?: string; plano?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -64,7 +64,19 @@ export default async function AlunosPage({
     .single();
   if (me?.role !== "admin") redirect("/dashboard");
 
-  const { q: rawQ, page: rawPage, tab: rawTab } = await searchParams;
+  const { q: rawQ, page: rawPage, tab: rawTab, plano } = await searchParams;
+
+  // Quem tem o Handify Completo ativo — serve para a coluna "Plano" e para o
+  // filtro `?plano=completo`. São dezenas de ids; cabe numa consulta só.
+  const { data: membershipRows } = await createServiceClient()
+    .from("memberships")
+    .select("user_id")
+    .eq("plan", "completo")
+    .is("revoked_at", null)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+  const idsCompleto = [...new Set((membershipRows ?? []).map((m) => m.user_id as string))];
+  const temCompleto = new Set(idsCompleto);
+  const soCompleto = plano === "completo";
   const activeTab =
     rawTab === "sem-cadastro" ? "sem-cadastro" : "cadastradas";
   const q = rawQ?.trim() ?? "";
@@ -243,8 +255,11 @@ export default async function AlunosPage({
           { count: "exact" }
         )
         .neq("role", "admin")
-        .order("created_at", { ascending: false })
-        .range(from, to);
+        .order("created_at", { ascending: false });
+      // Filtro "só Handify Completo": são dezenas de alunas, cabem numa página —
+      // sem paginação, os links de página não precisam carregar o parâmetro.
+      if (soCompleto) query = query.in("id", idsCompleto.length ? idsCompleto : ["00000000-0000-0000-0000-000000000000"]);
+      else query = query.range(from, to);
       if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
       const { data, count: c } = await query;
       profiles = (data ?? []) as ProfileRow[];
@@ -292,6 +307,18 @@ export default async function AlunosPage({
             <Download className="w-4 h-4" />
             Exportar CSV
           </a>
+          <Link
+            href={soCompleto ? "/admin/alunos" : "/admin/alunos?plano=completo"}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+              soCompleto
+                ? "border-[#6699F3] bg-[#6699F3]/10 text-[#6699F3]"
+                : "border-border hover:bg-muted"
+            }`}
+            title={soCompleto ? "Mostrar todas" : "Mostrar só quem tem o Handify Completo"}
+          >
+            <Sparkles className="w-4 h-4" />
+            Completo · {idsCompleto.length}
+          </Link>
         </div>
       </div>
 
@@ -460,6 +487,9 @@ export default async function AlunosPage({
                     <th className="text-center px-4 py-3 font-semibold text-foreground/70 hidden sm:table-cell">
                       Matrículas
                     </th>
+                    <th className="text-center px-4 py-3 font-semibold text-foreground/70 hidden sm:table-cell">
+                      Plano
+                    </th>
                     <th className="text-center px-4 py-3 font-semibold text-foreground/70">
                       Status
                     </th>
@@ -519,6 +549,19 @@ export default async function AlunosPage({
                         <span className="font-semibold">
                           {enrollCount[p.id] ?? 0}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-center hidden sm:table-cell">
+                        {temCompleto.has(p.id) ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] text-xs font-semibold"
+                            title="Tem o Handify Completo ativo"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            Completo
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {p.banned ? (

@@ -219,7 +219,11 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       Verificado no localhost: conta com cursos e sem plano voltou a ver a barra
 - [x] Admin ficha da aluna: card "Handify Completo" com status, **Dar** (motivo +
       origem manual/bônus + validade) e **Revogar** (motivo), `audit_log`, selo no
-      cabeçalho. Verificado por tsc + build; não cliquei (sessão do navegador não é admin)
+      cabeçalho. Verificado com clique (sessão admin): aluna com plano mostra selo +
+      "Ativo · Desde 17/07/2026 · origem Payt" + Revogar; sem plano, "Não tem" + Dar
+- [x] **Prova viva do caminho "sem conta ainda":** aluna comprou o plano em 02/09,
+      criou a conta em 03/09 18:39 e a membership nasceu sozinha no mesmo minuto via
+      `handle_new_user → process_pending_payment_events → sync` (50 → 51)
 - [x] Build, testes, commit (sem push até a Jessica mandar)
 
 **Achado durante a fase 1 — corrigido com autorização da Jessica (03/09):**
@@ -237,10 +241,18 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
         com o que comprou separado (Saponaria, Lembrancinha; Helena com 4). Sem e-mail
         — reembolso foi semanas atrás, elas sabem.
 
-### Fase 2 — Expor a oferta
-- [ ] Barra de progresso "Você já tem X de 23" no dashboard
+### Fase 2 — Expor a oferta (em andamento, 03/09)
+- [x] Card "Você já tem X de 23" no dashboard (`PlanProgressCard`): só para quem
+      não tem membership e já tem ≥1 curso do plano (quem tem zero vê a barra do
+      header). Copy Handify ("abre os outros N", nunca "faltam"), barra de progresso,
+      CTA para o `link_url` da promo. Previsto: **3.317 alunas** veriam; a conta de
+      teste veria "9 de 23". Verificado por tsc + build; a sessão do navegador era a
+      admin (X=0 → oculto, como desenhado) — o visual real é na conta de aluna
 - [ ] Momento certo: convite ao concluir curso / baixar certificado
-- [ ] Filtro "Completo" e coluna na lista de alunas; export CSV com tier
+- [x] Lista de alunas: coluna "Plano" com pill Completo + chip-filtro
+      `?plano=completo` (mostra a contagem; sem paginação, cabe numa página).
+      Verificado com clique: 51 linhas, 51 pills. CSV: coluna "Handify Completo"
+      (Sim/Não) antes de "Status" — verificado no download
 - [ ] Campanha segmento 699 (e-mail via Resend, template Handify)
 
 ### Fase 3 — Tiers no banco

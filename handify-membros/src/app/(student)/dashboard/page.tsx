@@ -5,6 +5,9 @@ import { BookOpen } from "lucide-react";
 import { CourseProgressCard, type CourseCardData } from "@/components/student/CourseProgressCard";
 import { markSectionVisited } from "@/lib/onboarding/actions";
 import DiscoveryCard from "@/components/onboarding/DiscoveryCard";
+import PlanProgressCard from "@/components/promo/PlanProgressCard";
+import { hasActiveMembership } from "@/lib/auth/access";
+import { createServiceClient } from "@/lib/supabase/service";
 import PageTour from "@/components/tour/PageTour";
 import { SECTION_TOURS } from "@/lib/tour/tours";
 
@@ -38,6 +41,46 @@ export default async function MinhaJornadaPage() {
   ]);
 
   const firstName = profile?.full_name?.split(" ")[0] || "aluna";
+
+  // "Você já tem X de N" — a oferta do Handify Completo como progresso. Só para
+  // quem não tem o plano; o total vem dos cursos publicados que fazem parte dele.
+  // Service client porque a policy de `courses` não é o ponto aqui — só contamos
+  // ids. Ver .claude/plans/tiers-handify.md, fase 2.
+  const planoProgresso = await (async () => {
+    const service = createServiceClient();
+    const [{ data: promo }, temPlano] = await Promise.all([
+      service
+        .from("annual_promo")
+        .select("active, link_url, button_text, subscription_product_codes")
+        .eq("active", true)
+        .maybeSingle(),
+      hasActiveMembership(user.id),
+    ]);
+    const codes = (promo?.subscription_product_codes as string[] | null) ?? [];
+    if (!promo?.link_url || temPlano || !codes.length) return null;
+
+    const { data: cursosDoPlano } = await service
+      .from("courses")
+      .select("id")
+      .eq("published", true)
+      .overlaps("checkout_codes", codes);
+    const ids = (cursosDoPlano ?? []).map((c) => c.id);
+    if (!ids.length) return null;
+
+    const { count } = await supabase
+      .from("enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("course_id", ids)
+      .or(`expires_at.is.null,expires_at.gt.${now}`);
+
+    return {
+      temDoPlano: count ?? 0,
+      totalDoPlano: ids.length,
+      linkUrl: promo.link_url as string,
+      buttonText: promo.button_text as string | null,
+    };
+  })();
   const visitedSections = (profile?.visited_sections as Record<string, boolean>) ?? {};
 
   const showDashboardTour = !visitedSections["dashboard"];
@@ -204,6 +247,9 @@ export default async function MinhaJornadaPage() {
 
       {/* Onboarding: explorar a plataforma */}
       <DiscoveryCard visitedSections={visitedSections} />
+
+      {/* Handify Completo como progresso — só para quem não tem o plano */}
+      {planoProgresso && <PlanProgressCard {...planoProgresso} />}
 
       {cards.length === 0 ? (
         <div className="handify-card p-12 text-center space-y-4">
