@@ -38,7 +38,7 @@ export default async function StudentLayout({
   const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }, { data: promoRaw }] =
     await Promise.all([
       user
-        ? supabase.from("profiles").select("full_name, avatar_url, role, terms_accepted_at, visited_sections").eq("id", user.id).single()
+        ? supabase.from("profiles").select("full_name, avatar_url, role, terms_accepted_at, visited_sections, app_installed_at").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
       user ? getNotifications(user.id, 30) : Promise.resolve([]),
       user ? getUnreadCount(user.id) : Promise.resolve(0),
@@ -91,7 +91,7 @@ export default async function StudentLayout({
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F5F0] w-full">
       <ScrollToTop />
-      <InstallBar />
+      <InstallBar appInstalado={!!(profile as Record<string, unknown>)?.app_installed_at} />
       {user ? (
         <StudentHeader
           fullName={profile?.full_name ?? ""}

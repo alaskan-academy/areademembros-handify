@@ -3,17 +3,28 @@
 import { useEffect, useState } from "react";
 import { Download, Share, X } from "lucide-react";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
+import { registrarAppInstalado } from "@/lib/pwa/actions";
 
 /**
  * Tarja fixa no topo convidando a instalar o app.
  *
- * Substitui o aviso flutuante (`InstallPrompt`), que cobria a tela inteira com
- * um modal — intrusivo, e ainda por cima aparecia sobre o conteudo que a aluna
- * estava lendo. A tarja fica no topo, nao tapa nada e sai com um toque no X.
+ * Substitui o aviso flutuante, que cobria a tela inteira com um modal por cima
+ * do conteudo que a aluna estava lendo. A tarja fica no topo, nao tapa nada e
+ * sai com um toque no X.
  *
  * A altura vai para `--install-bar-h` no <html> porque o header e a barra
  * lateral se posicionam a partir do topo (`sticky top-0` e `fixed top-[61px]`):
  * sem descontar a tarja, ela cobriria o header ao rolar a pagina.
+ *
+ * Aparece apenas para quem ainda nao instalou, e cada navegador informa isso de
+ * um jeito diferente:
+ *
+ * - Rodando de dentro do app: `display-mode: standalone` — nao mostra, e
+ *   aproveita para registrar a instalacao no perfil.
+ * - Chrome/Edge/Firefox: nao disparam `beforeinstallprompt` quando o app ja
+ *   esta instalado. O silencio do evento e a propria garantia.
+ * - Safari no iPhone: nao tem evento nem API. Depende do registro no perfil
+ *   (feito quando ela abre pelo icone) ou do "Ja instalei" na tarja.
  */
 
 const DISMISSED_KEY = "handify-install-bar-dismissed";
@@ -27,6 +38,7 @@ type BeforeInstallPromptEvent = Event & {
 /** `installable` = Android/Chrome (instala com um toque); `ios` = passo a passo manual. */
 type Estado = "oculta" | "installable" | "ios";
 
+/** Esta pagina esta rodando de dentro do app instalado? */
 function rodandoComoApp() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
@@ -35,14 +47,30 @@ function rodandoComoApp() {
   );
 }
 
-export default function InstallBar() {
+export default function InstallBar({
+  /**
+   * Ja consta no perfil que esta aluna tem o app. Vem do servidor porque o
+   * iPhone nao tem como informar isso ao Safari.
+   */
+  appInstalado = false,
+}: {
+  appInstalado?: boolean;
+}) {
   const [estado, setEstado] = useState<Estado>("oculta");
   const [evento, setEvento] = useState<BeforeInstallPromptEvent | null>(null);
   const [passosAbertos, setPassosAbertos] = useState(false);
   useModalBackGuard(passosAbertos, () => setPassosAbertos(false));
 
   useEffect(() => {
-    if (rodandoComoApp()) return;
+    if (rodandoComoApp()) {
+      // Abriu pelo icone da tela inicial — no iPhone essa e a unica prova de
+      // que o app esta instalado. Registra no perfil para a tarja nao voltar a
+      // aparecer quando ela abrir a plataforma pelo Safari.
+      if (!appInstalado) registrarAppInstalado().catch(() => {});
+      return;
+    }
+
+    if (appInstalado) return;
     if (localStorage.getItem(DISMISSED_KEY)) return;
 
     const ua = navigator.userAgent;
@@ -56,8 +84,8 @@ export default function InstallBar() {
       return;
     }
 
-    // O script no <head> guarda o evento antes do React montar — o navegador o
-    // dispara uma unica vez, entao na pratica o listener abaixo quase nunca ve.
+    // O script no <head> guarda o evento antes do React montar, porque o
+    // navegador o dispara uma unica vez e o listener abaixo quase nunca ve.
     const jaCapturado = (window as unknown as { __pwaInstallPrompt?: BeforeInstallPromptEvent })
       .__pwaInstallPrompt;
     if (jaCapturado) {
@@ -65,10 +93,10 @@ export default function InstallBar() {
       setEstado("installable");
     }
 
-    // Em desenvolvimento o `next-pwa` fica desligado, entao o navegador nunca
-    // dispara `beforeinstallprompt` e a tarja nao apareceria nunca no
-    // localhost — sem isso, so daria para conferir o visual em producao.
-    // O botao fica inerte aqui: sem evento, nao ha o que instalar.
+    // Em desenvolvimento o `next-pwa` fica desligado ("PWA support is disabled"
+    // no log do dev), entao o navegador nunca dispara `beforeinstallprompt` e a
+    // tarja nao apareceria nunca no localhost. O botao fica inerte aqui: sem
+    // evento, nao ha o que instalar.
     if (process.env.NODE_ENV === "development" && !jaCapturado) {
       setEstado("installable");
     }
@@ -78,17 +106,24 @@ export default function InstallBar() {
       setEvento(e as BeforeInstallPromptEvent);
       setEstado("installable");
     }
-    function aoInstalar() {
-      setEstado("oculta");
-    }
 
     window.addEventListener("beforeinstallprompt", aoReceber);
+    return () => window.removeEventListener("beforeinstallprompt", aoReceber);
+  }, [appInstalado]);
+
+  // O registro fica num efeito proprio porque precisa valer mesmo quando a
+  // tarja nao aparece: a aluna pode ter fechado a tarja e instalado depois pelo
+  // botao do perfil. No efeito acima esse caso caia num `return` antecipado e a
+  // instalacao passava batida.
+  useEffect(() => {
+    if (appInstalado) return;
+    function aoInstalar() {
+      setEstado("oculta");
+      registrarAppInstalado().catch(() => {});
+    }
     window.addEventListener("appinstalled", aoInstalar);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", aoReceber);
-      window.removeEventListener("appinstalled", aoInstalar);
-    };
-  }, []);
+    return () => window.removeEventListener("appinstalled", aoInstalar);
+  }, [appInstalado]);
 
   // Reserva o espaco no topo enquanto a tarja existe, e devolve quando ela sai.
   useEffect(() => {
@@ -103,12 +138,21 @@ export default function InstallBar() {
     setPassosAbertos(false);
   }
 
+  /** Ela diz que ja instalou: vale para a conta, nao so para este navegador. */
+  function jaInstalei() {
+    registrarAppInstalado().catch(() => {});
+    fechar();
+  }
+
   async function instalar() {
     if (!evento) return;
     await evento.prompt();
     const { outcome } = await evento.userChoice;
     setEvento(null);
-    if (outcome === "accepted") setEstado("oculta");
+    if (outcome === "accepted") {
+      setEstado("oculta");
+      registrarAppInstalado().catch(() => {});
+    }
   }
 
   if (estado === "oculta") return null;
@@ -123,24 +167,18 @@ export default function InstallBar() {
           </span>
         </p>
 
-        {estado === "installable" ? (
-          <button
-            onClick={instalar}
-            className="shrink-0 flex items-center gap-1.5 px-3.5 h-11 rounded-lg bg-[#6699F3] text-white text-[13px] font-semibold hover:bg-[#5580d4] handify-transition"
-          >
+        <button
+          onClick={estado === "installable" ? instalar : () => setPassosAbertos((v) => !v)}
+          aria-expanded={estado === "ios" ? passosAbertos : undefined}
+          className="shrink-0 flex items-center gap-1.5 px-3.5 h-11 rounded-lg bg-[#6699F3] text-white text-[13px] font-semibold hover:bg-[#5580d4] handify-transition"
+        >
+          {estado === "installable" ? (
             <Download className="w-4 h-4 shrink-0" />
-            Baixar
-          </button>
-        ) : (
-          <button
-            onClick={() => setPassosAbertos((v) => !v)}
-            aria-expanded={passosAbertos}
-            className="shrink-0 flex items-center gap-1.5 px-3.5 h-11 rounded-lg bg-[#6699F3] text-white text-[13px] font-semibold hover:bg-[#5580d4] handify-transition"
-          >
+          ) : (
             <Share className="w-4 h-4 shrink-0" />
-            Baixar
-          </button>
-        )}
+          )}
+          Baixar
+        </button>
 
         <button
           onClick={fechar}
@@ -177,6 +215,18 @@ export default function InstallBar() {
               </li>
             ))}
           </ol>
+
+          {/*
+            No iPhone nao ha como o site saber que o app ja esta na tela
+            inicial. Quem ja instalou precisa de uma saida que valha para a
+            conta — nao so para este navegador.
+          */}
+          <button
+            onClick={jaInstalei}
+            className="mt-3 min-h-[44px] text-[13px] text-white/60 hover:text-white underline handify-transition"
+          >
+            Já instalei o app
+          </button>
         </div>
       )}
     </div>

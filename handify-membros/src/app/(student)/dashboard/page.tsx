@@ -3,10 +3,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { CourseProgressCard, type CourseCardData } from "@/components/student/CourseProgressCard";
-import type { CourseMenuModule } from "@/components/student/CourseMenuModal";
 import { markSectionVisited } from "@/lib/onboarding/actions";
 import DiscoveryCard from "@/components/onboarding/DiscoveryCard";
-import PwaInstallCard from "@/components/onboarding/PwaInstallCard";
 import PageTour from "@/components/tour/PageTour";
 import { SECTION_TOURS } from "@/lib/tour/tours";
 
@@ -204,9 +202,8 @@ export default async function MinhaJornadaPage() {
         </p>
       </div>
 
-      {/* Onboarding: explorar a plataforma + instalar app */}
+      {/* Onboarding: explorar a plataforma */}
       <DiscoveryCard visitedSections={visitedSections} />
-      <PwaInstallCard />
 
       {cards.length === 0 ? (
         <div className="handify-card p-12 text-center space-y-4">
