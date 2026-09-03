@@ -348,6 +348,20 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
 - [ ] "Negócio da Semana" no feed
 - [ ] Kit de boas-vindas do Completo; votação do próximo curso; acesso antecipado
 
-### Fase 6 — Primeira ferramenta exclusiva
-- [ ] Escolher entre: precificação de catálogo · pedidos/estoque · orçamento para
-      cliente · calendário sazonal. Critério: a que mais "vende" o Completo na tela.
+### Fase 6 — Ferramentas exclusivas do Completo ("Guardar")
+- [x] **Minhas receitas** (`/ferramentas/minhas-receitas`, 03/09): a ficha de "Minha
+      receita" guardada na conta. Tabela `recipes` com resumo (custo, preço, margem,
+      aroma, pavio) + o formulário inteiro em jsonb (reabre como estava). **"Nunca
+      some, só congela" no RLS**: a dona sempre lê; criar/editar/apagar exige
+      membership ativa — plano vencido vê a lista em modo leitura com o convite de
+      renovar. Na ficha: "Guardar na conta" → vira "Atualizar em Minhas receitas" +
+      link. Abrir pela URL (`?receita=id`, só a dona). Verificado ponta a ponta com a
+      sessão admin: guardar (toast), listar (nome, 10 velas de 200 g, custo/preço/
+      margem, essência = pavio A2025), abrir na Ficha, apagar com confirmação → 0 no
+      banco. **Achado no teste: hora de trabalho negativa virava desconto no custo**
+      — bloqueado na tela (`min=0`, parse ≥ 0) e no cálculo (`pos()`), com teste (26).
+- [ ] **Catálogo e tabela de preços (PDF)** — a vitrine do plano, com a marca dela.
+      Base: `recipes` (custo) + produtos. Aqui o e-mail da campanha passa a valer
+- [ ] Pedidos e clientes · Rótulos · Estoque · Calendário
+- [ ] Bloco "Meu negócio" no topo de Ferramentas para o Completo (quando houver
+      receitas/pedidos para resumir)

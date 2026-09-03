@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Plus, Trash2, Check, Sparkles, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { salvarReceita } from '@/lib/receitas/actions'
 import type { WickRecommendation } from '@/lib/pavio/types'
 import type { ToolState } from '@/lib/ferramentas/types'
 import {
@@ -70,7 +71,8 @@ const SALVAS_KEY = 'handify_receitas_salvas'
 const uid = () => Math.random().toString(36).slice(2) + Date.now()
 const novoInsumo = (nome = ''): InsumoForm => ({ id: uid(), nome, qtdComprada: '', unidade: 'g', precoCompra: '', qtdUsadaNoLote: '' })
 const novaEmb = (): EmbForm => ({ id: uid(), nome: '', qtdComprada: '', unidade: 'un', precoCompra: '', qtdUsadaNoLote: '1', escopo: 'unidade' })
-const n = (s: string) => parseFloat(String(s).replace(',', '.')) || 0
+// Aceita vírgula; negativo vira zero — mão de obra "-1 h" tirava dinheiro do custo.
+const n = (s: string) => Math.max(0, parseFloat(String(s).replace(',', '.')) || 0)
 
 function receitaVazia(produto: Produto = 'sabonetes'): Receita {
   return {
@@ -155,6 +157,8 @@ export default function MinhaReceita({
   tier,
   etapaInicial,
   produtoInicial,
+  receitaInicial = null,
+  nova = false,
 }: {
   acesso: AcessoEtapas
   recomendacoes: WickRecommendation[]
@@ -162,8 +166,17 @@ export default function MinhaReceita({
   tier: 'visitante' | 'aluna' | 'completo' | 'admin'
   etapaInicial?: string
   produtoInicial?: string
+  /** Receita guardada na conta, aberta a partir de Minhas receitas. */
+  receitaInicial?: { id: string; data: Receita } | null
+  /** Veio de "Nova receita": ignora o rascunho do aparelho. */
+  nova?: boolean
 }) {
-  const [receita, setReceita] = useState<Receita>(() => receitaVazia(produtoInicial === 'velas' ? 'velas' : 'sabonetes'))
+  const [receita, setReceita] = useState<Receita>(
+    () => receitaInicial?.data ?? receitaVazia(produtoInicial === 'velas' ? 'velas' : 'sabonetes')
+  )
+  // Id na conta: existe quando ela abriu uma guardada ou já guardou esta.
+  const [receitaId, setReceitaId] = useState<string | null>(receitaInicial?.id ?? null)
+  const [guardando, setGuardando] = useState(false)
   const [carregou, setCarregou] = useState(false)
   const [toast, setToast] = useState('')
 
@@ -185,14 +198,14 @@ export default function MinhaReceita({
     // hidratação diferente do servidor. Roda uma vez, sem cascata.
     try {
       const salvo = localStorage.getItem(RASCUNHO_KEY)
-      if (salvo && !produtoInicial) {
+      if (salvo && !produtoInicial && !receitaInicial && !nova) {
         const r = JSON.parse(salvo) as Receita
         // eslint-disable-next-line react-hooks/set-state-in-effect
         if (r && r.produto) setReceita(r)
       }
     } catch {}
     setCarregou(true)
-  }, [produtoInicial])
+  }, [produtoInicial, receitaInicial, nova])
   useEffect(() => {
     if (!carregou) return
     try { localStorage.setItem(RASCUNHO_KEY, JSON.stringify(receita)) } catch {}
@@ -248,7 +261,36 @@ export default function MinhaReceita({
   }
   function novaReceita() {
     setReceita(receitaVazia(receita.produto))
+    setReceitaId(null)
     irPara('produto')
+  }
+
+  // ── Guardar na conta (Handify Completo) ──
+  async function guardarNaConta() {
+    const nome = receita.nome.trim() || `${info.nome} sem nome`
+    setGuardando(true)
+    try {
+      const r = await salvarReceita({
+        id: receitaId ?? undefined,
+        name: nome,
+        product: receita.produto,
+        units: Math.round(custo.unidades),
+        unit_weight: n(receita.pesoPorUnidade) || null,
+        cost_per_unit: temDados ? Math.round(custo.custoPorUnidade * 100) / 100 : null,
+        price: temDados ? Math.round(preco * 100) / 100 : null,
+        margin: receita.margem,
+        aroma: aroma && aroma.gramas > 0
+          ? `${receita.aroma.tipo === 'oleo' ? 'Óleo essencial' : 'Essência'} ${numero(aroma.ml, 1)} mL = ${numero(aroma.gramas, 1)} g = ${aroma.gotas} gotas`
+          : null,
+        wick: pavioRec ? `${codigosNoFornecedor(pavioRec.wick_primary, receita.pavio.waxType).indicados.join(' ou ') || pavioRec.wick_primary} (${pavioRec.wick_primary})` : null,
+        data: receita,
+      })
+      if (r.error) { avisar(r.error); return }
+      if (r.id) setReceitaId(r.id)
+      avisar(receitaId ? 'Receita atualizada em Minhas receitas.' : 'Guardada em Minhas receitas.')
+    } finally {
+      setGuardando(false)
+    }
   }
 
   return (
@@ -306,10 +348,10 @@ export default function MinhaReceita({
             </Campo>
             <div className="grid grid-cols-2 gap-3">
               <Campo rotulo={`Quantos ${info.plural} por lote?`}>
-                <input type="number" inputMode="decimal" value={receita.unidades} onChange={e => set({ unidades: e.target.value })} placeholder="Ex.: 20" className={INPUT} />
+                <input type="number" min={0} inputMode="decimal" value={receita.unidades} onChange={e => set({ unidades: e.target.value })} placeholder="Ex.: 20" className={INPUT} />
               </Campo>
               <Campo rotulo={info.peso}>
-                <input type="number" inputMode="decimal" value={receita.pesoPorUnidade} onChange={e => set({ pesoPorUnidade: e.target.value })} placeholder="Ex.: 90" className={INPUT} />
+                <input type="number" min={0} inputMode="decimal" value={receita.pesoPorUnidade} onChange={e => set({ pesoPorUnidade: e.target.value })} placeholder="Ex.: 90" className={INPUT} />
               </Campo>
             </div>
             <Rodape onAvancar={() => { if (unidades <= 0) return avisar(`Diga quantos ${info.plural} por lote.`); proxima() }} />
@@ -379,7 +421,7 @@ export default function MinhaReceita({
               )}
               {receita.aroma.tipo && receita.aroma.intensidade === 'custom' && (
                 <Campo rotulo="Percentual (%)">
-                  <input type="number" inputMode="decimal" value={receita.aroma.customPct} onChange={e => set({ aroma: { ...receita.aroma, customPct: e.target.value } })} placeholder="Ex.: 2,5" className={INPUT} />
+                  <input type="number" min={0} inputMode="decimal" value={receita.aroma.customPct} onChange={e => set({ aroma: { ...receita.aroma, customPct: e.target.value } })} placeholder="Ex.: 2,5" className={INPUT} />
                 </Campo>
               )}
               {aroma && aroma.gramas > 0 && (
@@ -432,12 +474,12 @@ export default function MinhaReceita({
 
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-2">Outros custos do lote</p>
             <div className="grid grid-cols-2 gap-3">
-              <Campo rotulo="Horas de trabalho"><input type="number" inputMode="decimal" value={receita.outros.horasTrabalho} onChange={e => set({ outros: { ...receita.outros, horasTrabalho: e.target.value } })} placeholder="Ex.: 2" className={INPUT} /></Campo>
-              <Campo rotulo="Valor da sua hora (R$)"><input type="number" inputMode="decimal" value={receita.outros.valorHora} onChange={e => set({ outros: { ...receita.outros, valorHora: e.target.value } })} className={INPUT} /></Campo>
-              <Campo rotulo="Luz, gás, água (R$)"><input type="number" inputMode="decimal" value={receita.outros.utilidades} onChange={e => set({ outros: { ...receita.outros, utilidades: e.target.value } })} className={INPUT} /></Campo>
-              <Campo rotulo="Frete dos insumos (R$)"><input type="number" inputMode="decimal" value={receita.outros.frete} onChange={e => set({ outros: { ...receita.outros, frete: e.target.value } })} placeholder="0" className={INPUT} /></Campo>
-              <Campo rotulo="Divulgação (R$)"><input type="number" inputMode="decimal" value={receita.outros.marketing} onChange={e => set({ outros: { ...receita.outros, marketing: e.target.value } })} placeholder="0" className={INPUT} /></Campo>
-              <Campo rotulo="Perda de material (%)"><input type="number" inputMode="decimal" value={receita.outros.perdaPct} onChange={e => set({ outros: { ...receita.outros, perdaPct: e.target.value } })} className={INPUT} /></Campo>
+              <Campo rotulo="Horas de trabalho"><input type="number" min={0} inputMode="decimal" value={receita.outros.horasTrabalho} onChange={e => set({ outros: { ...receita.outros, horasTrabalho: e.target.value } })} placeholder="Ex.: 2" className={INPUT} /></Campo>
+              <Campo rotulo="Valor da sua hora (R$)"><input type="number" min={0} inputMode="decimal" value={receita.outros.valorHora} onChange={e => set({ outros: { ...receita.outros, valorHora: e.target.value } })} className={INPUT} /></Campo>
+              <Campo rotulo="Luz, gás, água (R$)"><input type="number" min={0} inputMode="decimal" value={receita.outros.utilidades} onChange={e => set({ outros: { ...receita.outros, utilidades: e.target.value } })} className={INPUT} /></Campo>
+              <Campo rotulo="Frete dos insumos (R$)"><input type="number" min={0} inputMode="decimal" value={receita.outros.frete} onChange={e => set({ outros: { ...receita.outros, frete: e.target.value } })} placeholder="0" className={INPUT} /></Campo>
+              <Campo rotulo="Divulgação (R$)"><input type="number" min={0} inputMode="decimal" value={receita.outros.marketing} onChange={e => set({ outros: { ...receita.outros, marketing: e.target.value } })} placeholder="0" className={INPUT} /></Campo>
+              <Campo rotulo="Perda de material (%)"><input type="number" min={0} inputMode="decimal" value={receita.outros.perdaPct} onChange={e => set({ outros: { ...receita.outros, perdaPct: e.target.value } })} className={INPUT} /></Campo>
               <Campo rotulo="Onde vende">
                 <select value={receita.outros.canalPct} onChange={e => set({ outros: { ...receita.outros, canalPct: e.target.value } })} className={INPUT}>
                   <option value="0">Direto (WhatsApp, feira) — 0%</option>
@@ -518,7 +560,20 @@ export default function MinhaReceita({
                 <Check className="w-4 h-4" /> Salvar neste aparelho
               </button>
               {tier === 'completo' || tier === 'admin' ? (
-                <p className="text-xs text-muted-foreground text-center">Guardar na conta, em <b>Minhas receitas</b> — em breve.</p>
+                <>
+                  <button
+                    onClick={guardarNaConta}
+                    disabled={guardando}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-[#6699F3] text-[#6699F3] text-sm font-semibold min-h-[44px] hover:bg-[#6699F3]/10 disabled:opacity-60 handify-transition"
+                  >
+                    <Sparkles className="w-4 h-4" /> {guardando ? 'Guardando…' : receitaId ? 'Atualizar em Minhas receitas' : 'Guardar na conta'}
+                  </button>
+                  {receitaId && (
+                    <Link href="/ferramentas/minhas-receitas" className="text-center text-xs text-[#6699F3] font-semibold underline min-h-[36px] inline-flex items-center justify-center">
+                      Ver Minhas receitas
+                    </Link>
+                  )}
+                </>
               ) : (
                 <a href={planLink ?? '/cursos'} target={planLink ? '_blank' : undefined} rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#6699F3] text-[#6699F3] text-sm font-semibold min-h-[44px]">
                   <Sparkles className="w-4 h-4" /> Guardar na conta — no Handify Completo
@@ -605,17 +660,17 @@ function LinhaInsumo({ item, custo, podeRemover, onChange, onRemove }: { item: I
       <div className="grid grid-cols-3 gap-2 text-xs">
         <label className="text-muted-foreground">Comprei
           <div className="flex gap-1 mt-1">
-            <input type="number" inputMode="decimal" value={item.qtdComprada} onChange={e => onChange({ qtdComprada: e.target.value })} placeholder="1000" className={cn(INPUT, 'mt-0 px-2')} />
+            <input type="number" min={0} inputMode="decimal" value={item.qtdComprada} onChange={e => onChange({ qtdComprada: e.target.value })} placeholder="1000" className={cn(INPUT, 'mt-0 px-2')} />
             <select value={item.unidade} onChange={e => onChange({ unidade: e.target.value })} className="rounded-lg border border-border bg-white px-1 text-xs min-h-[44px]">
               <option>g</option><option>kg</option><option>mL</option><option>L</option><option>un</option>
             </select>
           </div>
         </label>
         <label className="text-muted-foreground">Paguei (R$)
-          <input type="number" inputMode="decimal" value={item.precoCompra} onChange={e => onChange({ precoCompra: e.target.value })} placeholder="30" className={cn(INPUT, 'px-2')} />
+          <input type="number" min={0} inputMode="decimal" value={item.precoCompra} onChange={e => onChange({ precoCompra: e.target.value })} placeholder="30" className={cn(INPUT, 'px-2')} />
         </label>
         <label className="text-muted-foreground">Uso no lote
-          <input type="number" inputMode="decimal" value={item.qtdUsadaNoLote} onChange={e => onChange({ qtdUsadaNoLote: e.target.value })} placeholder="1800" className={cn(INPUT, 'px-2')} />
+          <input type="number" min={0} inputMode="decimal" value={item.qtdUsadaNoLote} onChange={e => onChange({ qtdUsadaNoLote: e.target.value })} placeholder="1800" className={cn(INPUT, 'px-2')} />
         </label>
       </div>
       {custo > 0 && <p className="text-xs text-right text-muted-foreground">custa <b className="text-foreground tabular-nums">{reais(custo)}</b> no lote</p>}
@@ -634,13 +689,13 @@ function LinhaEmbalagem({ item, podeRemover, onChange, onRemove }: { item: EmbFo
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
         <label className="text-muted-foreground">Comprei (un)
-          <input type="number" inputMode="decimal" value={item.qtdComprada} onChange={e => onChange({ qtdComprada: e.target.value })} placeholder="50" className={cn(INPUT, 'px-2')} />
+          <input type="number" min={0} inputMode="decimal" value={item.qtdComprada} onChange={e => onChange({ qtdComprada: e.target.value })} placeholder="50" className={cn(INPUT, 'px-2')} />
         </label>
         <label className="text-muted-foreground">Paguei (R$)
-          <input type="number" inputMode="decimal" value={item.precoCompra} onChange={e => onChange({ precoCompra: e.target.value })} placeholder="10" className={cn(INPUT, 'px-2')} />
+          <input type="number" min={0} inputMode="decimal" value={item.precoCompra} onChange={e => onChange({ precoCompra: e.target.value })} placeholder="10" className={cn(INPUT, 'px-2')} />
         </label>
         <label className="text-muted-foreground">Uso
-          <input type="number" inputMode="decimal" value={item.qtdUsadaNoLote} onChange={e => onChange({ qtdUsadaNoLote: e.target.value })} placeholder="1" className={cn(INPUT, 'px-2')} />
+          <input type="number" min={0} inputMode="decimal" value={item.qtdUsadaNoLote} onChange={e => onChange({ qtdUsadaNoLote: e.target.value })} placeholder="1" className={cn(INPUT, 'px-2')} />
         </label>
       </div>
       <div className="flex gap-2 text-xs">
@@ -660,7 +715,7 @@ function EscalarLote({ unidades, onEscalar }: { unidades: number; onEscalar: (no
     <div className="rounded-xl border border-dashed border-border p-3">
       <p className="text-xs font-semibold text-muted-foreground mb-1">Quer fazer outra quantidade? A receita escala sozinha.</p>
       <div className="flex gap-2">
-        <input type="number" inputMode="decimal" value={novas} onChange={e => setNovas(e.target.value)} placeholder={unidades ? `Ex.: ${unidades * 2}` : 'Ex.: 50'} className={cn(INPUT, 'mt-0 flex-1')} aria-label="Nova quantidade do lote" />
+        <input type="number" min={0} inputMode="decimal" value={novas} onChange={e => setNovas(e.target.value)} placeholder={unidades ? `Ex.: ${unidades * 2}` : 'Ex.: 50'} className={cn(INPUT, 'mt-0 flex-1')} aria-label="Nova quantidade do lote" />
         <button onClick={() => { const v = n(novas); if (v > 0 && unidades > 0) { onEscalar(v); setNovas('') } }} className="rounded-lg border border-[#6699F3] text-[#6699F3] px-4 text-sm font-semibold min-h-[44px]">Escalar</button>
       </div>
     </div>

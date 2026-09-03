@@ -54,16 +54,19 @@ export type CustoBase = {
   imposto: number;
 };
 
+/** Quantidade, preço ou hora negativos não existem — viram zero, não desconto. */
+const pos = (v: number) => (Number.isFinite(v) && v > 0 ? v : 0);
+
 export function custoInsumo(i: Insumo): number {
   if (!(i.qtdComprada > 0)) return 0;
-  return (i.qtdUsadaNoLote / i.qtdComprada) * i.precoCompra;
+  return (pos(i.qtdUsadaNoLote) / i.qtdComprada) * pos(i.precoCompra);
 }
 
 /** Custo da embalagem POR UNIDADE. */
 export function custoEmbalagemPorUnidade(e: Embalagem, unidades: number): number {
   if (!(e.qtdComprada > 0)) return 0;
-  const porItem = e.precoCompra / e.qtdComprada;
-  const custo = porItem * e.qtdUsadaNoLote;
+  const porItem = pos(e.precoCompra) / e.qtdComprada;
+  const custo = porItem * pos(e.qtdUsadaNoLote);
   return e.escopo === "unidade" ? custo : unidades > 0 ? custo / unidades : 0;
 }
 
@@ -74,7 +77,16 @@ export function calcularCustoBase(input: {
   outros: OutrosCustos;
 }): CustoBase {
   const unidades = input.unidades > 0 ? input.unidades : 1;
-  const o = input.outros;
+  const o: OutrosCustos = {
+    horasTrabalho: pos(input.outros.horasTrabalho),
+    valorHora: pos(input.outros.valorHora),
+    utilidades: pos(input.outros.utilidades),
+    frete: pos(input.outros.frete),
+    marketing: pos(input.outros.marketing),
+    perdaPct: pos(input.outros.perdaPct),
+    canalPct: pos(input.outros.canalPct),
+    impostoPct: pos(input.outros.impostoPct),
+  };
 
   const materiaPrimaLote = input.insumos.reduce((s, i) => s + custoInsumo(i), 0);
   const materiaPrimaPorUnidade = materiaPrimaLote / unidades;

@@ -74,6 +74,20 @@ describe("custo base por unidade", () => {
     expect(c.unidades).toBe(1);
     expect(c.materiaPrimaPorUnidade).toBeCloseTo(54, 6);
   });
+
+  it("valor negativo conta como zero, nunca como desconto (achado no teste: -1 h tirava R$ 1,50 do custo)", () => {
+    const c = calcularCustoBase({
+      unidades: 20,
+      insumos: [base, essencia, { ...base, nome: "Bug", qtdUsadaNoLote: -500 }],
+      embalagens: [rotulo, caixaEnvio],
+      outros: { ...outros, horasTrabalho: -1, frete: -20 },
+    });
+    // igual à receita de referência sem mão de obra (−1 h → 0) e sem frete (−20 → 0):
+    // 3,15 + 0,1575 + 0,30 + 0 + (10 + 0)/20 = 4,1075
+    expect(c.maoDeObraPorUnidade).toBe(0);
+    expect(c.fixosPorUnidade).toBeCloseTo(0.5, 6);
+    expect(c.custoPorUnidade).toBeCloseTo(4.1075, 6);
+  });
 });
 
 describe("preço e lucro", () => {
