@@ -1,4 +1,6 @@
 import { hasCourseAccess } from "@/lib/auth/access";
+import { getPlanoProgresso } from "@/lib/promo/plano-progresso";
+import PlanProgressCard from "@/components/promo/PlanProgressCard";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
@@ -98,6 +100,11 @@ export default async function CourseDetailPage({
     }
   }
 
+  // Momento certo: curso concluído é quando ela acabou de ganhar algo. O
+  // convite ao Handify Completo aparece aqui, não no login. Null se já tem.
+  const planoProgresso =
+    user && isEnrolled && progressPct === 100 ? await getPlanoProgresso(user.id) : null;
+
   const totalLessons = modules.reduce(
     (acc, m) => acc + (m.lessons?.length ?? 0),
     0
@@ -192,6 +199,10 @@ export default async function CourseDetailPage({
                   <MessageSquare className="w-4 h-4" />
                   Comunidade do curso
                 </Link>
+              )}
+
+              {planoProgresso && (
+                <PlanProgressCard {...planoProgresso} titulo="Curso concluído! Você já tem" compacto />
               )}
             </div>
           ) : (

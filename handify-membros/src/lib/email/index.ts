@@ -346,6 +346,99 @@ export async function sendReengagementEmail({
   }
 }
 
+// ─── Convite ao Handify Completo ("você já tem X de N") ─────────────────────
+// Campanha para quem já tem vários cursos e nunca viu a oferta do plano — a
+// barra "Seja Premium" ficou escondida de 99% das alunas até 03/09/2026.
+// Mesma lógica do card do painel: a oferta como progresso, não como banner.
+// Ver .claude/plans/tiers-handify.md, fase 2.
+
+export type PlanUpgradeEmailInput = {
+  studentName: string;
+  /** Cursos do plano que ela já tem (títulos, para a lista). */
+  cursosQueTem: string[];
+  totalDoPlano: number;
+  linkUrl: string;
+  buttonText?: string | null;
+};
+
+function planBar(tem: number, total: number) {
+  const pct = Math.min(Math.round((tem / total) * 100), 100);
+  return `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace:0pt;mso-table-rspace:0pt;margin:0 0 6px;">
+    <tr>
+      <td bgcolor="#F5F5F0" style="background-color:#F5F5F0;border-radius:8px;height:10px;font-size:0;line-height:0;">
+        <table cellpadding="0" cellspacing="0" role="presentation" width="${pct}%" style="mso-table-lspace:0pt;mso-table-rspace:0pt;">
+          <tr><td bgcolor="#6699F3" style="background-color:#6699F3;border-radius:8px;height:10px;font-size:0;line-height:0;">&nbsp;</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  <p style="color:#555555;font-size:13px;margin:0 0 24px;text-align:right;font-family:Arial,Helvetica,sans-serif;">${tem} de ${total} cursos</p>`;
+}
+
+/** Separado do envio para dar para ver o e-mail pronto antes de configurar. */
+export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject: string; html: string } {
+  const firstName = input.studentName.split(" ")[0] || "aluna";
+  const tem = input.cursosQueTem.length;
+  const total = input.totalDoPlano;
+  const restantes = Math.max(total - tem, 0);
+  const maisDaMetade = tem * 2 >= total;
+
+  const primeiros = input.cursosQueTem.slice(0, 3);
+  const extras = tem - primeiros.length;
+  const lista =
+    primeiros.length === 1
+      ? primeiros[0]
+      : `${primeiros.slice(0, -1).join(", ")} e ${primeiros[primeiros.length - 1]}`;
+  const oQueJaTem = extras > 0 ? `${lista} — e mais ${extras}` : lista;
+
+  const subject = `${firstName}, você já tem ${tem} de ${total} cursos da Handify 💛`;
+
+  const html = emailWrapper(`
+      <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+        Olá, ${firstName}! Você já tem <span style="color:#6699F3;">${tem} de ${total}</span> cursos da Handify
+      </h1>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 20px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Olha só o que já é seu: <strong style="color:#2D2D2D;">${oQueJaTem}</strong>.
+      </p>
+      ${planBar(tem, total)}
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 16px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        ${
+          maisDaMetade
+            ? `Mais da metade da Handify já é sua. O <strong style="color:#2D2D2D;">Handify Completo</strong> abre os outros ${restantes} de uma vez — e todo curso novo que a gente lançar entra sozinho, sem você precisar comprar de novo.`
+            : `O <strong style="color:#2D2D2D;">Handify Completo</strong> abre os outros ${restantes} de uma vez — e todo curso novo que a gente lançar entra sozinho, sem você precisar comprar de novo.`
+        }
+      </p>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 28px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Para quem já tem ${tem} cursos, o Completo é um passo — não uma compra nova.
+      </p>
+      ${ctaButton(input.linkUrl, input.buttonText || "Ver o Handify Completo")}
+      <p style="color:#888888;font-size:13px;line-height:1.6;margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;">
+        Cada passo da jornada conta. 💛
+      </p>
+      <p style="color:#999999;font-size:12px;line-height:1.6;margin:0;font-family:Arial,Helvetica,sans-serif;">
+        Se não quiser receber convites como este, é só responder este e-mail que a gente para.
+      </p>
+      ${supportBlock()}
+    `);
+
+  return { subject, html };
+}
+
+export async function sendPlanUpgradeEmail(input: PlanUpgradeEmailInput & { to: string }): Promise<void> {
+  if (!input.cursosQueTem.length || input.totalDoPlano === 0) return;
+  const { subject, html } = renderPlanUpgradeEmail(input);
+  const { error } = await getResend().emails.send({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: input.to,
+    subject,
+    html,
+  });
+  if (error) {
+    console.error("[email] plan upgrade error:", error);
+  }
+}
+
 // ─── Novo curso disponível ────────────────────────────────────────────────────
 
 export async function sendNewCourseEmail({
@@ -493,7 +586,6 @@ export async function sendNewsPostEmail({
   studentName,
   postTitle,
   postBody,
-  postId,
 }: {
   to: string;
   studentName: string;

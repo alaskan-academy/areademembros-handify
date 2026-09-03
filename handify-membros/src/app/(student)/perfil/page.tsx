@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import PageTour from "@/components/tour/PageTour";
 import { SECTION_TOURS } from "@/lib/tour/tours";
+import { getPlanoProgresso } from "@/lib/promo/plano-progresso";
 
 export default async function PerfilPage() {
   const supabase = await createClient();
@@ -18,6 +19,9 @@ export default async function PerfilPage() {
     .single();
 
   const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {};
+  // Convite ao Handify Completo junto dos certificados — momento em que ela
+  // acabou de ganhar algo. Null para quem já tem o plano.
+  const planoProgresso = await getPlanoProgresso(user.id);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -29,7 +33,7 @@ export default async function PerfilPage() {
           </div>
         }
       >
-        <PerfilView />
+        <PerfilView planoProgresso={planoProgresso} />
       </Suspense>
     </div>
   );

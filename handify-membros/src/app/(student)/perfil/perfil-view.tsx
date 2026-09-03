@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import PlanProgressCard, { type PlanProgressData } from "@/components/promo/PlanProgressCard";
 import {
   Award,
   BookOpen,
@@ -62,13 +63,6 @@ type CourseCard = {
   lastLessonId: string | null;
 };
 
-const DEFAULT_PREFS: EmailPrefs = {
-  certificate: true,
-  reengagement: true,
-  news_post: true,
-  new_course: true,
-};
-
 // Garante que chaves ausentes no banco virem true (opt-in por padrão)
 function mergeWithDefaults(raw: EmailPrefs | null): EmailPrefs {
   return {
@@ -81,7 +75,12 @@ function mergeWithDefaults(raw: EmailPrefs | null): EmailPrefs {
 
 // ─── Page root ────────────────────────────────────────────────────────────────
 
-export default function PerfilView() {
+export default function PerfilView({
+  planoProgresso = null,
+}: {
+  /** Convite ao Handify Completo junto dos certificados; null para quem já tem. */
+  planoProgresso?: PlanProgressData | null;
+}) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [courses, setCourses] = useState<CourseCard[]>([]);
@@ -233,7 +232,7 @@ export default function PerfilView() {
 
       {/* Meus certificados */}
       <div id="tour-perfil-certs">
-      <CertificatesSection certificates={certificates} />
+      <CertificatesSection certificates={certificates} planoProgresso={planoProgresso} />
       </div>
 
       {/* Preferências de e-mail */}
@@ -583,13 +582,24 @@ function CoursesSection({ courses }: { courses: CourseCard[] }) {
 
 // ─── Seção: Certificados ──────────────────────────────────────────────────────
 
-function CertificatesSection({ certificates }: { certificates: Certificate[] }) {
+function CertificatesSection({
+  certificates,
+  planoProgresso,
+}: {
+  certificates: Certificate[];
+  planoProgresso: PlanProgressData | null;
+}) {
   return (
     <section className="space-y-4">
       <h2 className="text-lg font-semibold flex items-center gap-2">
         <Award className="w-5 h-5 text-[#6699F3]" />
         Meus certificados
       </h2>
+
+      {/* Certificado na mão é o momento certo para o convite ao Completo */}
+      {certificates.length > 0 && planoProgresso && (
+        <PlanProgressCard {...planoProgresso} titulo="Certificado na mão — e você já tem" compacto />
+      )}
 
       {!certificates.length ? (
         <div className="handify-card p-8 text-center space-y-2">

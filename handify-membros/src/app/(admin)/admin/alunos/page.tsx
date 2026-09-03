@@ -77,6 +77,42 @@ export default async function AlunosPage({
   const idsCompleto = [...new Set((membershipRows ?? []).map((m) => m.user_id as string))];
   const temCompleto = new Set(idsCompleto);
   const soCompleto = plano === "completo";
+
+  // "Sem cadastro" não tem conta, logo não tem membership — mas pode ter comprado
+  // o plano. O sinal está em payment_events: em ordem cronológica, pagamento
+  // liga e reembolso/cancelamento depois desliga. É o mesmo critério da sync que
+  // cria a membership quando a conta nasce.
+  const emailsComPlano = await (async () => {
+    const svc = createServiceClient();
+    const { data: promo } = await svc
+      .from("annual_promo")
+      .select("subscription_product_codes")
+      .maybeSingle();
+    const codigos = ((promo?.subscription_product_codes as string[] | null) ?? []).flatMap((c) => [
+      c,
+      c.toLowerCase(),
+      c.toUpperCase(),
+    ]);
+    if (!codigos.length) return new Set<string>();
+    const { data: eventos } = await svc
+      .from("payment_events")
+      .select("buyer_email, event_type")
+      .in("product_code", codigos)
+      .order("created_at", { ascending: true });
+    const pagos = new Set(["paid", "approved", "completed", "confirmed", "order_approved", "subscription_renewed"]);
+    const desfeitos = new Set([
+      "refunded", "order_refunded", "chargeback", "canceled", "cancelled",
+      "subscription_canceled", "subscription_late",
+    ]);
+    const vigente = new Set<string>();
+    for (const ev of eventos ?? []) {
+      const email = (ev.buyer_email as string | null)?.toLowerCase();
+      if (!email) continue;
+      if (pagos.has(ev.event_type as string)) vigente.add(email);
+      else if (desfeitos.has(ev.event_type as string)) vigente.delete(email);
+    }
+    return vigente;
+  })();
   const activeTab =
     rawTab === "sem-cadastro" ? "sem-cadastro" : "cadastradas";
   const q = rawQ?.trim() ?? "";
@@ -165,6 +201,7 @@ export default async function AlunosPage({
           (t as { buyer_phone?: string | null }).buyer_phone ?? null,
         created_at: t.created_at,
         courses: [],
+        temPlano: emailsComPlano.has(key),
       });
     }
     if (course) {
@@ -179,13 +216,14 @@ export default async function AlunosPage({
   }
   const semCadastro = Array.from(byEmail.values());
   const termo = q.toLowerCase();
-  const semCadastroFiltrado = termo
-    ? semCadastro.filter(
-        (r) =>
-          r.email.toLowerCase().includes(termo) ||
-          r.buyer_name?.toLowerCase().includes(termo)
-      )
-    : semCadastro;
+  const semCadastroComPlano = semCadastro.filter((r) => r.temPlano).length;
+  const semCadastroFiltrado = semCadastro.filter(
+    (r) =>
+      (!soCompleto || r.temPlano) &&
+      (!termo ||
+        r.email.toLowerCase().includes(termo) ||
+        r.buyer_name?.toLowerCase().includes(termo))
+  );
   const semCadastroCount = semCadastro.length;
 
   // ── Dados "cadastradas" (só no tab correspondente) ────────────────────────
@@ -308,7 +346,12 @@ export default async function AlunosPage({
             Exportar CSV
           </a>
           <Link
-            href={soCompleto ? "/admin/alunos" : "/admin/alunos?plano=completo"}
+            href={`/admin/alunos${
+              [activeTab === "sem-cadastro" ? "tab=sem-cadastro" : "", soCompleto ? "" : "plano=completo"]
+                .filter(Boolean)
+                .map((p, i) => (i === 0 ? `?${p}` : `&${p}`))
+                .join("") || ""
+            }`}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
               soCompleto
                 ? "border-[#6699F3] bg-[#6699F3]/10 text-[#6699F3]"
@@ -317,7 +360,7 @@ export default async function AlunosPage({
             title={soCompleto ? "Mostrar todas" : "Mostrar só quem tem o Handify Completo"}
           >
             <Sparkles className="w-4 h-4" />
-            Completo · {idsCompleto.length}
+            Completo · {activeTab === "sem-cadastro" ? semCadastroComPlano : idsCompleto.length}
           </Link>
         </div>
       </div>
@@ -589,7 +632,12 @@ export default async function AlunosPage({
             )}
           </div>
 
-          {/* Sem cadastro — aparece junto quando ha busca */}
+        </>
+      )}
+
+      {/* Sem cadastro — aparece junto quando ha busca. Fica FORA do bloco de
+          cima: quando estava dentro, a aba "Sem cadastro" sem busca nao
+          renderizava nada (regressao da busca unificada, 03/09/2026). */}
       {(activeTab === "sem-cadastro" || q) && (
         <>
           {q && (
@@ -601,7 +649,7 @@ export default async function AlunosPage({
               </span>
             </h2>
           )}
-          <SemCadastroClient rows={semCadastro} buscaExterna={q} />
+          <SemCadastroClient rows={semCadastroFiltrado} buscaExterna={q} />
         </>
       )}
 
@@ -629,8 +677,6 @@ export default async function AlunosPage({
               )}
             </div>
           )}
-        </>
-      )}
     </div>
   );
 }

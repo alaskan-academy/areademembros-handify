@@ -248,12 +248,31 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       CTA para o `link_url` da promo. Previsto: **3.317 alunas** veriam; a conta de
       teste veria "9 de 23". Verificado por tsc + build; a sessão do navegador era a
       admin (X=0 → oculto, como desenhado) — o visual real é na conta de aluna
-- [ ] Momento certo: convite ao concluir curso / baixar certificado
+- [x] Momento certo: o mesmo card, compacto, na página do curso quando está 100%
+      ("Curso concluído! Você já tem X de 23…") e em Meus certificados quando há
+      certificado ("Certificado na mão — e você já tem…"). Cálculo único em
+      `src/lib/promo/plano-progresso.ts` para os três lugares nunca divergirem.
+      Texto ajustado a pedido da Jessica: "cursos **da Handify**" (não "do ateliê").
+      Verificado por tsc + build; a sessão do navegador é admin (sem progresso →
+      oculto), o visual real é na conta de aluna
 - [x] Lista de alunas: coluna "Plano" com pill Completo + chip-filtro
       `?plano=completo` (mostra a contagem; sem paginação, cabe numa página).
       Verificado com clique: 51 linhas, 51 pills. CSV: coluna "Handify Completo"
       (Sim/Não) antes de "Status" — verificado no download
-- [ ] Campanha segmento 699 (e-mail via Resend, template Handify)
+- [x] **Sem cadastro** também: coluna "Plano" e o mesmo filtro. Sem conta não há
+      membership, então o sinal vem de `payment_events` (pago com código do plano,
+      sem reembolso depois — mesma regra da sync). 13 compradoras do plano ainda
+      sem conta. Chip preserva a aba e mostra a contagem da aba
+- [x] **Regressão corrigida no caminho:** a aba "Sem cadastro" não renderizava
+      nada sem busca — o bloco estava *dentro* da condicional da aba "Cadastradas"
+      desde a busca unificada de 03/09 (já em produção). Movido para fora;
+      verificado: 480 linhas na aba, e a busca unificada segue mostrando as duas
+- [~] Campanha segmento 699: template `renderPlanUpgradeEmail` /
+      `sendPlanUpgradeEmail` pronto em `src/lib/email/index.ts`, preview gerado por
+      `scripts/preview-email-completo.ts` e mostrado à Jessica. **Decisão dela:
+      enviar só depois das ferramentas exclusivas (fase 6), para o e-mail já
+      mostrá-las.** Nada configurado, nada enviado. Ao retomar: filtrar por
+      `email_prefs`, segmento 4+ cursos sem membership, e ela aprova o texto final
 
 ### Fase 3 — Tiers no banco
 - [ ] `courses.incluido_no_plano`; grant do plano usa a flag
