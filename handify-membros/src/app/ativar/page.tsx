@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense } from "react";
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -90,12 +91,12 @@ function AtivarContent() {
 
           <p className="text-sm text-center text-[#888]">
             Já tem conta na nova área?{" "}
-            <a
+            <Link
               href="/login"
               className="text-[#2D2D2D] font-medium underline-offset-4 hover:underline"
             >
               Entrar
-            </a>
+            </Link>
           </p>
 
           <p className="text-xs text-center text-[#aaa]">

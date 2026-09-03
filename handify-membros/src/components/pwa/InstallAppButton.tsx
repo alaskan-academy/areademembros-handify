@@ -11,7 +11,7 @@ type InstallState =
   | "ios-other"     // Chrome/Firefox no iOS — precisa abrir no Safari
   | "unsupported";  // navegador sem suporte
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
 export default function InstallAppButton() {

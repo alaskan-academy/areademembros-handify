@@ -887,7 +887,7 @@ export default function CourseManager({
   useEffect(() => {
     setCourseItems(sortByPosition(courses.filter((c) => c.course_type === "course")));
     setMaterialItems(sortByPosition(courses.filter((c) => c.course_type === "material")));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [courses]);
 
   // Drag-and-drop

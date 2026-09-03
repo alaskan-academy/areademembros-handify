@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { Lock, Eye, EyeOff, CheckCircle2, Cake, Phone } from "lucide-react";
 import { activateAccount } from "./actions";
@@ -241,9 +242,9 @@ export default function ActivateForm({
 
         <p className="text-center text-xs text-muted-foreground">
           Já tem conta?{" "}
-          <a href="/login" className="text-[#6699F3] hover:underline font-medium">
+          <Link href="/login" className="text-[#6699F3] hover:underline font-medium">
             Fazer login
-          </a>
+          </Link>
         </p>
       </div>
     </div>

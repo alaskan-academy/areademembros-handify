@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useMemo, useRef, useEffect } from "react";
 import {
-  Mail,
   Phone,
   Package,
   Clock,

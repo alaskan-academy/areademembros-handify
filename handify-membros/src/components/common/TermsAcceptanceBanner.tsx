@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { FileText, X, Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { acceptTerms } from "@/lib/terms/actions";
 
 export default function TermsAcceptanceBanner() {

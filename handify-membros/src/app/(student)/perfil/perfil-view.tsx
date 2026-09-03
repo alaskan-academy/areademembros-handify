@@ -162,8 +162,8 @@ export default function PerfilView() {
           totalsMap[m.course_id] = (totalsMap[m.course_id] ?? 0) + (m.lessons ?? []).filter((l) => !l.archived).length;
         }
 
-        let completedMap: Record<string, number> = {};
-        let lastLessonMap: Record<string, string> = {};
+        const completedMap: Record<string, number> = {};
+        const lastLessonMap: Record<string, string> = {};
 
         if (allLessonIds.length) {
           const { data: progress } = await supabase

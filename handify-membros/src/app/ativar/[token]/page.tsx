@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { validateToken } from "./actions";
 import ActivateForm from "./ActivateForm";
-import { redirect } from "next/navigation";
 
 export default async function AtivarPage({
   params,
@@ -23,12 +23,12 @@ export default async function AtivarPage({
           <p className="text-muted-foreground text-sm leading-relaxed">
             {error ?? "Este link não é válido."}
           </p>
-          <a
+          <Link
             href="/login"
             className="inline-block mt-2 bg-[#6699F3] text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#4d7de0] transition-colors"
           >
             Ir para o login
-          </a>
+          </Link>
         </div>
       </div>
     );

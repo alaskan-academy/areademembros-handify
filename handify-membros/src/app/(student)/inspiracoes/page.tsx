@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, Bookmark } from 'lucide-react'
+import { Bookmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'

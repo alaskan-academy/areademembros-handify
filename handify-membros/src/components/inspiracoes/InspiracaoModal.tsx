@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useState } from 'react'
 import { X, ChevronLeft, ChevronRight, User, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'

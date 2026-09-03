@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useTransition } from 'react';
 import Link from 'next/link';
 import {
-  ChevronLeft, Bookmark, BookmarkCheck, Share2, BookOpen,
+  ChevronLeft, Bookmark, BookmarkCheck, BookOpen,
   ChevronDown, Trash2, CheckCircle2, AlertCircle, ClipboardCopy,
 } from 'lucide-react';
 import { saveWickFormula, deleteWickFormula, updateTestNotes } from '@/lib/pavio/actions';

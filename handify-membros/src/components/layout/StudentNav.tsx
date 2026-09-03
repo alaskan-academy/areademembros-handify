@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, BookOpen, MessageSquare, User,
   Menu as MenuIcon, X, LogOut, ExternalLink,
-  ChevronLeft, ChevronRight, PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen,
   Home, Bell, Users, ShoppingBag, Star, Heart, Globe, Video,
   Award, Settings, HelpCircle, GraduationCap, Layers,
   Zap, Gift, Map, Sparkles, Wrench, type LucideIcon,

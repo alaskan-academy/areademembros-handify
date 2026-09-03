@@ -18,7 +18,7 @@ export async function getSuppliers(
   const supabase = await createClient()
 
   // Base query com channels e tags
-  let query = supabase
+  const query = supabase
     .from('suppliers')
     .select(`
       *,

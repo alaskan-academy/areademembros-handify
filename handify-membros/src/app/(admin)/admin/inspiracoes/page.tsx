@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { Sparkles, Plus, Edit, Archive, Eye, EyeOff } from 'lucide-react'
+import { Sparkles, Plus, Edit } from 'lucide-react'
 
 export const metadata = { title: 'Admin — Inspirações | Handify' }
 

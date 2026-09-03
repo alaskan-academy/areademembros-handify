@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import * as path from "path";
+
 
 const QUALIFYING_CODES = new Set([
   "4MJ9YD","R2JAJA","RW2MMP","4NYAEE","LPGKQ8","RKJWA8","L9QEPN"

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { formatPrice, formatDuration } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import CursosGrid from "./cursos-grid";
 import BannerDisplay from "@/components/banner/BannerDisplay";
 import MigradaBanner from "./MigradaBanner";

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Users, BookOpen, Award, TrendingUp,
-  ShoppingBag, Image as ImageIcon, Bell, Newspaper,
+  Image as ImageIcon, Bell, Newspaper,
   BarChart3, CheckCircle2, Clock, XCircle, Webhook,
   ArrowRight, AlertTriangle, Flag, Store, MessageCircle, Lightbulb, Sparkles, PlusCircle,
 } from "lucide-react";

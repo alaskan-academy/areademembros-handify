@@ -18,7 +18,7 @@ export default function SectionWelcomeBanner({ section }: Props) {
     startTransition(() => {
       markSectionVisited(section.id);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [section.id]);
 
   if (!visible) return null;

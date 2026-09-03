@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
 const TERMOS_HTML = `<h1>Termo de Uso</h1>

@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
-import { Plus, X, Send, Clock, Users, BookOpen } from "lucide-react";
+import { Plus, X, Send, Clock } from "lucide-react";
 import { createCampaign } from "@/lib/notifications/actions";
 
 type Course = { id: string; title: string };

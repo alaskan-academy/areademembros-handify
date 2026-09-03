@@ -52,6 +52,13 @@ export default function FullPageMessage({
           <div className="w-full flex flex-col gap-3 pt-2">
             {children}
 
+            {/*
+              `<a>` em vez de `<Link>` de propósito: esta tela aparece quando
+              algo quebrou. A navegação do Next reaproveita o estado do app —
+              e é justamente esse estado que pode estar corrompido. Recarregar
+              a página inteira garante que a aluna sai do erro.
+            */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/cursos"
               className="handify-transition inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#6699F3] px-5 text-base font-semibold text-white hover:bg-[#5589e2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6699F3]"

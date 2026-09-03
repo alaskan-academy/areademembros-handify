@@ -8,7 +8,7 @@ import {
   Home, BookOpen, Users, Star,
   Image as ImageIcon, Bell, Mail, Newspaper,
   MessageSquare, Flag, BarChart3, Menu as MenuIcon, X, FileText,
-  ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, Store,
+  ChevronRight, PanelLeftClose, PanelLeftOpen, Store,
   MessageCircle, Lightbulb, Sparkles, PlusCircle, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

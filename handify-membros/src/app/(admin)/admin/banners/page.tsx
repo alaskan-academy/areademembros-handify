@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Image, Plus, Pencil } from "lucide-react";
+import { Image as ImageIcon, Plus, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toggleBannerActiveAction } from "./actions";
 
@@ -63,7 +63,7 @@ export default async function BannersPage() {
       {/* Lista */}
       {!banners?.length ? (
         <div className="handify-card py-16 flex flex-col items-center justify-center text-center text-muted-foreground">
-          <Image className="w-10 h-10 mb-3 opacity-30" />
+          <ImageIcon className="w-10 h-10 mb-3 opacity-30" />
           <p className="font-medium">Nenhum banner criado</p>
           <p className="text-sm mt-1">Crie seu primeiro banner para começar.</p>
         </div>
