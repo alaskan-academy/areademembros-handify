@@ -12,8 +12,8 @@ interface Props {
 
 function Avatar({ name, size = 'md' }: { name: string | null; size?: 'sm' | 'md' }) {
   const cls = size === 'sm'
-    ? 'w-6 h-6 text-[9px] bg-[#72CF92]/15 text-[#72CF92]'
-    : 'w-7 h-7 text-[10px] bg-[#6699F3]/10 text-[#6699F3]'
+    ? 'w-6 h-6 text-xs bg-[#72CF92]/15 text-[#72CF92]'
+    : 'w-7 h-7 text-xs bg-[#6699F3]/10 text-[#6699F3]'
   return (
     <div className={`${cls} rounded-full flex items-center justify-center shrink-0 font-bold uppercase`}>
       {(name ?? 'A').charAt(0)}
@@ -126,12 +126,12 @@ function CommentItem({
           <p className="text-xs font-semibold leading-none mb-1">{c.profiles?.full_name ?? 'Aluna'}</p>
           <p className="text-xs text-foreground/75 leading-relaxed">{c.body}</p>
           <div className="flex items-center gap-3 mt-1">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {new Date(c.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
             </p>
             <button
               onClick={() => setReplyingTo(isReplying ? null : c.id)}
-              className="text-[10px] text-[#6699F3] font-medium hover:underline"
+              className="text-xs text-[#6699F3] font-medium hover:underline"
             >
               Responder
             </button>
@@ -148,7 +148,7 @@ function CommentItem({
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold leading-none mb-1">{r.profiles?.full_name ?? 'Aluna'}</p>
                 <p className="text-xs text-foreground/75 leading-relaxed">{r.body}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {new Date(r.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                 </p>
               </div>

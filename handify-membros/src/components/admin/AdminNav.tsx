@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home, BookOpen, Users, Star,
@@ -226,15 +227,17 @@ export default function AdminNav({
           )}
         >
           {collapsed ? (
-            <div className="w-7 h-7 rounded-lg bg-[#6699F3]/20 flex items-center justify-center">
-              <span className="text-[#6699F3] font-black text-sm">H</span>
-            </div>
+            <Image src="/icon.png" alt="Handify" width={28} height={28} unoptimized className="object-contain" />
           ) : (
-            <div>
-              <p className="text-white font-bold text-sm tracking-wide">Handify</p>
-              <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mt-0.5">
-                Painel Admin
-              </p>
+            <div className="flex items-center gap-2.5">
+              <Image src="/icon.png" alt="" width={28} height={28} unoptimized className="object-contain shrink-0" />
+              <div>
+                {/* Fundo escuro: nome em branco, conforme a IDV */}
+                <p className="text-white font-bold text-sm tracking-wide leading-none">Handify™</p>
+                <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mt-1">
+                  Painel Admin
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -322,11 +325,14 @@ export default function AdminNav({
               <span className="flex-1 bg-[#FEC649]" />
             </div>
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] shrink-0">
-              <div>
-                <p className="text-white font-bold text-sm">Handify</p>
-                <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mt-0.5">
-                  Painel Admin
-                </p>
+              <div className="flex items-center gap-2.5">
+                <Image src="/icon.png" alt="" width={28} height={28} unoptimized className="object-contain shrink-0" />
+                <div>
+                  <p className="text-white font-bold text-sm leading-none">Handify™</p>
+                  <p className="text-white/30 text-[10px] font-semibold uppercase tracking-widest mt-1">
+                    Painel Admin
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setDrawerOpen(false)}

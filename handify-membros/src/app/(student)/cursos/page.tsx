@@ -74,11 +74,13 @@ export default async function CursosPage({
       ? supabase.from("enrollments").select("course_id").eq("user_id", user.id).or(`expires_at.is.null,expires_at.gt.${now}`)
       : Promise.resolve({ data: null }),
     user
-      ? supabase.from("profiles").select("visited_sections").eq("id", user.id).single()
+      ? supabase.from("profiles").select("visited_sections, role").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
   ]);
 
   const visitedSections = (profileResult?.data?.visited_sections as Record<string, boolean>) ?? {};
+  // Admin enxerga e acessa todo o catálogo, inclusive cursos criados depois.
+  const isAdmin = profileResult?.data?.role === "admin";
 
   const categories: CatalogCategory[] = (categoriesRaw ?? []) as CatalogCategory[];
   const showcaseMap = Object.fromEntries(
@@ -92,24 +94,28 @@ export default async function CursosPage({
   const enrolledIdsList = ((enrollmentResult?.data ?? []) as { course_id: string }[]).map((e) => e.course_id);
   const allRelevantIds = [...new Set([...showcaseIds, ...enrolledIdsList])];
 
-  const { data: coursesRaw } = allRelevantIds.length > 0
-    ? await service
-        .from("courses")
-        .select(
-          `
-          id, slug, title, description, thumbnail_url,
-          price, workload_hours, checkout_url, course_type,
-          category:categories(id, name, slug),
-          modules(
-            id, title, position, archived,
-            lessons(id, title, duration_seconds, is_preview, position, archived)
-          )
+  const coursesQuery = () =>
+    service
+      .from("courses")
+      .select(
         `
+        id, slug, title, description, thumbnail_url,
+        price, workload_hours, checkout_url, course_type,
+        category:categories(id, name, slug),
+        modules(
+          id, title, position, archived,
+          lessons(id, title, duration_seconds, is_preview, position, archived)
         )
-        .eq("published", true)
-        .in("id", allRelevantIds)
-        .order("position")
-    : { data: [] };
+      `
+      )
+      .eq("published", true);
+
+  // Admin recebe o catálogo publicado inteiro, sem filtro de matrícula.
+  const { data: coursesRaw } = isAdmin
+    ? await coursesQuery().order("position")
+    : allRelevantIds.length > 0
+      ? await coursesQuery().in("id", allRelevantIds).order("position")
+      : { data: [] };
 
   type RawLesson = {
     id: string;
@@ -187,7 +193,10 @@ export default async function CursosPage({
 
   // Dados de matrícula e progresso (somente se logada)
   if (user) {
-    const enrolledIds = new Set(enrolledIdsList);
+    // Admin conta como matriculada em tudo — inclusive nos cursos criados depois.
+    const enrolledIds = isAdmin
+      ? new Set(courses.map((c) => c.id))
+      : new Set(enrolledIdsList);
 
     if (enrolledIds.size > 0) {
       const enrolledCourses = courses.filter((c) => enrolledIds.has(c.id));

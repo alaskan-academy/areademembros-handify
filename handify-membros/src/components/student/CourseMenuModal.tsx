@@ -149,13 +149,13 @@ export function CourseMenuModal({
                           )}
                           <span className="line-clamp-2 leading-snug flex-1">{l.title}</span>
                           {isNext && (
-                            <span className="text-[10px] bg-[#6699F3] text-white px-1.5 py-0.5 rounded-full shrink-0 font-semibold">próxima</span>
+                            <span className="text-xs bg-[#6699F3] text-white px-1.5 py-0.5 rounded-full shrink-0 font-semibold">próxima</span>
                           )}
                           {isLast && !isNext && (
-                            <span className="text-[10px] text-muted-foreground shrink-0">última</span>
+                            <span className="text-xs text-muted-foreground shrink-0">última</span>
                           )}
                           {l.is_preview && !done && !isNext && !isLast && (
-                            <span className="text-[10px] text-[#72CF92] shrink-0">(grátis)</span>
+                            <span className="text-xs text-[#72CF92] shrink-0">(grátis)</span>
                           )}
                         </Link>
                       </li>

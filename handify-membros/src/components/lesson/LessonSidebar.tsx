@@ -48,7 +48,7 @@ function ModuleList({ courseModules, lessonId, completedSet }: Props) {
                     <span className="line-clamp-2 leading-snug">
                       {l.title}
                       {l.is_preview && (
-                        <span className="ml-1 text-[10px] text-[#72CF92]">(grátis)</span>
+                        <span className="ml-1 text-xs text-[#72CF92]">(grátis)</span>
                       )}
                     </span>
                   </Link>

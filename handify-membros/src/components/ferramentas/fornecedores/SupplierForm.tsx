@@ -392,7 +392,7 @@ export function SupplierForm({ supplier, tagTypes: initialTagTypes = [], niches 
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                    {!p.active && <span className="text-[10px] text-muted-foreground">Inativo</span>}
+                    {!p.active && <span className="text-xs text-muted-foreground">Inativo</span>}
                   </div>
                   <Pencil className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-[#6699F3] transition-colors shrink-0" />
                 </Link>

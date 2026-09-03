@@ -144,12 +144,12 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold', badge)}>
+            <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold', badge)}>
               <Icon className="w-2.5 h-2.5" />
               {label}
             </span>
             {post.pinned && (
-              <span className="text-[10px] bg-[#FEC649] text-[#0F0F0F] px-1.5 py-0.5 rounded-full font-bold leading-none">
+              <span className="text-xs bg-[#FEC649] text-[#0F0F0F] px-1.5 py-0.5 rounded-full font-bold leading-none">
                 📌 Fixado
               </span>
             )}
@@ -250,19 +250,19 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                 <div className="flex flex-wrap gap-4 bg-muted/50 rounded-xl p-3">
                   {post.recipe_data.tempo && (
                     <div className="text-xs">
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Tempo</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide">Tempo</p>
                       <p className="font-semibold mt-0.5">{post.recipe_data.tempo}</p>
                     </div>
                   )}
                   {post.recipe_data.temperatura && (
                     <div className="text-xs">
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Temperatura</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide">Temperatura</p>
                       <p className="font-semibold mt-0.5">{post.recipe_data.temperatura}</p>
                     </div>
                   )}
                   {post.recipe_data.nivel && (
                     <div className="text-xs">
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Nível</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide">Nível</p>
                       <p className="font-semibold mt-0.5">{post.recipe_data.nivel}</p>
                     </div>
                   )}
@@ -276,7 +276,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                     {post.recipe_data.paleta_cores.map((hex, i) => (
                       <div key={i} className="flex flex-col items-center gap-1">
                         <div className="w-9 h-9 rounded-lg border border-border/60 shadow-sm" style={{ background: hex }} />
-                        <span className="text-[9px] text-muted-foreground font-mono">{hex}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{hex}</span>
                       </div>
                     ))}
                   </div>
@@ -303,7 +303,7 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                   <ol className="space-y-2.5">
                     {post.recipe_data.passos.map((passo, i) => (
                       <li key={i} className="flex gap-3 text-xs text-foreground/80 leading-relaxed">
-                        <span className="shrink-0 w-5 h-5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-bold flex items-center justify-center text-[10px]">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-bold flex items-center justify-center text-xs">
                           {i + 1}
                         </span>
                         {passo}
@@ -324,13 +324,13 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
                 <div className="flex gap-6">
                   {post.recipe_data.custo_medio && (
                     <div className="text-xs">
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Custo médio</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide">Custo médio</p>
                       <p className="font-bold mt-0.5">{post.recipe_data.custo_medio}</p>
                     </div>
                   )}
                   {post.recipe_data.preco_venda && (
                     <div className="text-xs">
-                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Preço de venda</p>
+                      <p className="text-muted-foreground text-xs uppercase tracking-wide">Preço de venda</p>
                       <p className="font-bold mt-0.5 text-[#6699F3]">{post.recipe_data.preco_venda}</p>
                     </div>
                   )}

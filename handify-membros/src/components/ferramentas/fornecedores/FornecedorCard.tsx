@@ -79,7 +79,7 @@ export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts
           {supplierNiches.length > 0 && (
             <div className="flex gap-1 flex-wrap mt-1">
               {supplierNiches.map(n => (
-                <span key={n.id} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#72CF92]/15 text-green-700">
+                <span key={n.id} className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#72CF92]/15 text-green-700">
                   {n.name}
                 </span>
               ))}
@@ -112,7 +112,7 @@ export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts
       {supplier.tags.length > 0 && (
         <div className="px-4 mt-2.5 flex flex-wrap gap-1">
           {supplier.tags.map(t => (
-            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/50">
+            <span key={t} className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/50">
               {t}
             </span>
           ))}
@@ -131,7 +131,7 @@ export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                'flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
+                'flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                 CHANNEL_COLORS[ch.channel as Channel]
               )}
             >
@@ -146,7 +146,7 @@ export function FornecedorCard({ supplier, userId, onOpenReviews, linkedProducts
       {/* Produtos vinculados */}
       {linkedProducts.length > 0 && (
         <div className="px-4 mt-3 pt-3 border-t border-border/40">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
             Produtos disponíveis
           </p>
           <div className="flex flex-col gap-1.5">

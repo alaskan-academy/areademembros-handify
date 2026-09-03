@@ -39,7 +39,7 @@ export default function SectionWelcomeBanner({ section }: Props) {
             <ol className="mt-3 space-y-1.5">
               {section.steps.map((step, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6699F3]/15 text-[10px] font-bold text-[#6699F3]">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6699F3]/15 text-xs font-bold text-[#6699F3]">
                     {i + 1}
                   </span>
                   <span>{step}</span>

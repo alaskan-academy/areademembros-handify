@@ -120,7 +120,7 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm">{authorName}</span>
               {post.pinned && (
-                <span className="flex items-center gap-1 text-[10px] font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-xs font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">
                   <Pin className="w-2.5 h-2.5" /> Fixado
                 </span>
               )}
@@ -211,13 +211,13 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-semibold">{comment.profiles?.full_name || "Aluna"}</span>
                           {isAdmin && (
-                            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-[#6699F3] bg-[#6699F3]/10 px-1.5 py-0.5 rounded">
+                            <span className="flex items-center gap-0.5 text-xs font-semibold text-[#6699F3] bg-[#6699F3]/10 px-1.5 py-0.5 rounded">
                               <ShieldCheck className="w-2.5 h-2.5" /> Equipe Handify
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: ptBR })}
                           </span>
                           {comment.user_id === userId && (

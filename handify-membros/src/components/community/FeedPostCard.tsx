@@ -63,7 +63,7 @@ export default function FeedPostCard({ post, userId: _userId, initialLiked }: Pr
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm text-foreground">{authorName}</span>
               {post.pinned && (
-                <span className="flex items-center gap-1 text-[10px] font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 text-xs font-semibold text-[#6699F3] bg-[#6699F3]/10 px-2 py-0.5 rounded-full">
                   <Pin className="w-2.5 h-2.5" /> Fixado
                 </span>
               )}

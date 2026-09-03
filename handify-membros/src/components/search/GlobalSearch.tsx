@@ -168,7 +168,7 @@ export default function GlobalSearch() {
                 const Icon = meta.icon;
                 return (
                   <div key={group}>
-                    <p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                    <p className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
                       {meta.label}
                     </p>
                     {items.map((item) => {

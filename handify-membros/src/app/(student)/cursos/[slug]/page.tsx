@@ -1,3 +1,4 @@
+import { hasCourseAccess } from "@/lib/auth/access";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
@@ -71,15 +72,8 @@ export default async function CourseDetailPage({
   let progressPct = 0;
 
   if (user) {
-    const now = new Date().toISOString();
-    const { data: enrollment } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("course_id", course.id)
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .maybeSingle();
-    isEnrolled = !!enrollment;
+    // Admin tem acesso a todos os cursos, inclusive os criados depois.
+    isEnrolled = await hasCourseAccess(course.id);
 
     if (isEnrolled) {
       const allLessonIds = modules.flatMap((m) =>
@@ -149,7 +143,7 @@ export default async function CourseDetailPage({
               {/* Barra de progresso — idêntica ao dashboard */}
               {totalLessons > 0 && (
                 <div className="space-y-1">
-                  <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>{completedCount}/{totalLessons} aulas</span>
                     <span className={cn("font-semibold", progressPct === 100 ? "text-[#72CF92]" : "text-[#6699F3]")}>
                       {progressPct}%

@@ -146,7 +146,7 @@ export default async function VerificarPage({
               <div className="pt-2 border-t border-border">
                 <p className="text-xs text-muted-foreground">
                   Hash de verificação:{" "}
-                  <span className="font-mono text-[10px] break-all">{cert.verify_hash}</span>
+                  <span className="font-mono text-xs break-all">{cert.verify_hash}</span>
                 </p>
               </div>
             </div>

@@ -115,7 +115,7 @@ export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
                 {tab.icon}
               </div>
               <div className="text-left min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-1">
                   Artesanato selecionado
                 </p>
                 <p className="font-black text-[#0F0F0F] text-base leading-none">{tab.label}</p>
@@ -130,7 +130,7 @@ export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
           {/* Painel retrátil com opções */}
           {selectorOpen && (
             <div className="bg-white rounded-2xl border border-border/70 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 Escolha seu artesanato
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -157,7 +157,7 @@ export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
                   >
                     <span className="text-xl opacity-40">{t.icon}</span>
                     <span className="truncate">{t.label}</span>
-                    <span className="text-[8px] font-black bg-[#FEC649] text-[#0F0F0F] px-1 py-0.5 rounded-full leading-none ml-auto shrink-0">
+                    <span className="text-xs font-black bg-[#FEC649] text-[#0F0F0F] px-1 py-0.5 rounded-full leading-none ml-auto shrink-0">
                       BREVE
                     </span>
                   </button>
@@ -204,7 +204,7 @@ export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
                   <div className="text-3xl mb-3">{tool.icon}</div>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="font-black text-[#2D2D2D] text-base">{tool.name}</h3>
-                    <span className="text-[10px] font-black bg-[#FEC649] text-[#0F0F0F] px-2 py-1 rounded-full whitespace-nowrap shrink-0">
+                    <span className="text-xs font-black bg-[#FEC649] text-[#0F0F0F] px-2 py-1 rounded-full whitespace-nowrap shrink-0">
                       Em breve
                     </span>
                   </div>

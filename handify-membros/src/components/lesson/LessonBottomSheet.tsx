@@ -135,7 +135,7 @@ export function LessonBottomSheet({ materials, courseModules, lessonId, complete
                           <FileText className="w-5 h-5 text-[#6699F3]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-bold text-[#6699F3] uppercase tracking-wider mb-0.5">
+                          <p className="text-xs font-bold text-[#6699F3] uppercase tracking-wider mb-0.5">
                             Material da aula
                           </p>
                           <p className="text-sm font-medium truncate">{m.name}</p>
@@ -192,7 +192,7 @@ export function LessonBottomSheet({ materials, courseModules, lessonId, complete
                                 <span className="line-clamp-2 leading-snug flex-1">
                                   {l.title}
                                   {l.is_preview && (
-                                    <span className="ml-1 text-[10px] text-[#72CF92]">(grátis)</span>
+                                    <span className="ml-1 text-xs text-[#72CF92]">(grátis)</span>
                                   )}
                                 </span>
                               </Link>

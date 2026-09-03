@@ -80,7 +80,7 @@ export default function PwaInstallCard() {
                 'Confirme tocando em "Adicionar"',
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6699F3]/15 text-[10px] font-bold text-[#6699F3]">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6699F3]/15 text-xs font-bold text-[#6699F3]">
                     {i + 1}
                   </span>
                   <span>{step}</span>
@@ -102,7 +102,7 @@ export default function PwaInstallCard() {
                 'Toque em "Adicionar" no canto superior direito',
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-foreground/80">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6699F3]/15 text-[10px] font-bold text-[#6699F3]">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#6699F3]/15 text-xs font-bold text-[#6699F3]">
                     {i + 1}
                   </span>
                   <span>{step}</span>

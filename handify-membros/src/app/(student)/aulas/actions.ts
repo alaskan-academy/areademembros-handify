@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { hasCourseAccess } from "@/lib/auth/access";
 import { generateCertificatePdf } from "@/lib/certificate";
 import { sendCertificateEmail } from "@/lib/email";
 import { decryptCpf, formatCpf } from "@/lib/cpf-crypto";
@@ -35,16 +36,10 @@ export async function getLessonAccess(
   const courseId = mod?.course_id;
   if (!courseId) return { hasAccess: false, videoId: null };
 
-  const now = new Date().toISOString();
-  const { data: enrollment } = await supabase
-    .from("enrollments")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("course_id", courseId)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .maybeSingle();
+  // Admin assiste tudo, inclusive cursos criados depois — regra em hasCourseAccess.
+  const allowed = await hasCourseAccess(courseId);
 
-  return { hasAccess: !!enrollment, videoId: enrollment ? videoId : null };
+  return { hasAccess: allowed, videoId: allowed ? videoId : null };
 }
 
 /** @deprecated use getLessonAccess */

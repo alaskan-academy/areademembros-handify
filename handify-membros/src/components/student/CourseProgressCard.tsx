@@ -70,7 +70,7 @@ export function CourseProgressCard({ card }: { card: CourseCardData }) {
             </div>
           )}
           {isComplete && (
-            <div className="absolute top-2 right-2 bg-[#72CF92] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            <div className="absolute top-2 right-2 bg-[#72CF92] text-white text-xs font-bold px-2 py-0.5 rounded-full">
               Concluído ✓
             </div>
           )}
@@ -90,7 +90,7 @@ export function CourseProgressCard({ card }: { card: CourseCardData }) {
 
           {progress.total > 0 && (
             <div className="space-y-1">
-              <div className="flex justify-between items-center text-[11px] text-muted-foreground">
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
                 <span>{progress.completed}/{progress.total} aulas</span>
                 <span className={cn("font-semibold", isComplete ? "text-[#72CF92]" : "text-[#6699F3]")}>
                   {progress.percentage}%

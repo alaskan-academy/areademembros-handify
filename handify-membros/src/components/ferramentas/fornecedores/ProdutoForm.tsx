@@ -259,7 +259,7 @@ export function ProdutoForm({ product, suppliers, courses }: Props) {
         <label className="text-sm font-semibold text-foreground">Cursos</label>
         <p className="text-xs text-muted-foreground">
           Marque os cursos onde este material é utilizado.{' '}
-          <code className="bg-muted px-1 rounded text-[11px]">/ferramentas/fornecedores?curso=slug</code>
+          <code className="bg-muted px-1 rounded text-xs">/ferramentas/fornecedores?curso=slug</code>
         </p>
         {courses.length === 0 ? (
           <p className="text-xs text-muted-foreground italic">Nenhum curso cadastrado.</p>

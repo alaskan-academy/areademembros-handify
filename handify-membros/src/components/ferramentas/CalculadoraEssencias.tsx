@@ -67,7 +67,7 @@ function EduAccordion({ tipoAlerta }: { tipoAlerta: 'hidro' | 'lipo' }) {
               <p className="text-xs text-gray-600 leading-relaxed">
                 Solúvel em água. Indicada para produtos de base aquosa: sabonete líquido, gel de banho, shampô, sal de banho.
               </p>
-              <div className="mt-2 text-[11px] font-semibold text-blue-700">✅ Sabonete líquido, gel de banho, xampus</div>
+              <div className="mt-2 text-xs font-semibold text-blue-700">✅ Sabonete líquido, gel de banho, xampus</div>
             </div>
             <div className={`rounded-xl border-2 p-3 ${tipoAlerta === 'lipo' ? 'border-amber-200 bg-amber-50/60' : 'border-gray-200 bg-white'}`}>
               <div className="flex items-center gap-1.5 font-bold text-sm text-amber-700 mb-1.5">
@@ -76,7 +76,7 @@ function EduAccordion({ tipoAlerta }: { tipoAlerta: 'hidro' | 'lipo' }) {
               <p className="text-xs text-gray-600 leading-relaxed">
                 Solúvel em gordura. Indicada para base glicerinada sólida, velas, cremes e manteigas — incorpora sem separar.
               </p>
-              <div className="mt-2 text-[11px] font-semibold text-amber-700">✅ Base glicerinada, velas, cremes, manteigas</div>
+              <div className="mt-2 text-xs font-semibold text-amber-700">✅ Base glicerinada, velas, cremes, manteigas</div>
             </div>
           </div>
           <div className="mt-3 flex gap-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
@@ -220,7 +220,7 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                 Aroma sintético, econômico e muito concentrado. A escolha mais comum para quem está começando.
               </p>
               {tipoEssencia === 'essencia' && (
-                <div className="mt-3 inline-block text-[11px] font-bold text-white bg-[#6699F3] px-2.5 py-1 rounded-full">
+                <div className="mt-3 inline-block text-xs font-bold text-white bg-[#6699F3] px-2.5 py-1 rounded-full">
                   ✓ Selecionada
                 </div>
               )}
@@ -241,7 +241,7 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                 Extrato 100% natural da planta. Mais delicado e caro — requer dosagem menor.
               </p>
               {tipoEssencia === 'oleo' && (
-                <div className="mt-3 inline-block text-[11px] font-bold text-white bg-[#6699F3] px-2.5 py-1 rounded-full">
+                <div className="mt-3 inline-block text-xs font-bold text-white bg-[#6699F3] px-2.5 py-1 rounded-full">
                   ✓ Selecionado
                 </div>
               )}
@@ -283,9 +283,9 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
               >
                 <div className="text-xl mb-1">{opt.emoji}</div>
                 <div className="text-xs font-black text-[#2D2D2D]">{opt.label}</div>
-                <div className="text-[10px] text-gray-400 mt-0.5">{opt.desc}</div>
+                <div className="text-xs text-gray-400 mt-0.5">{opt.desc}</div>
                 {intensidade === opt.key && tipoEssencia && opt.key !== 'custom' && (
-                  <div className="mt-1.5 text-[11px] font-bold text-[#6699F3]">
+                  <div className="mt-1.5 text-xs font-bold text-[#6699F3]">
                     {config.rates[tipoEssencia][opt.key]}%
                   </div>
                 )}
@@ -341,7 +341,7 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                     {ml.toFixed(1).replace('.', ',')}
                     <span className="text-xs sm:text-sm font-medium"> mL</span>
                   </div>
-                  <div className="text-[10px] sm:text-xs text-gray-400 mt-1">mililitros</div>
+                  <div className="text-xs sm:text-xs text-gray-400 mt-1">mililitros</div>
                 </div>
                 <div className="bg-[#6699F3] rounded-xl p-2 sm:p-4 text-center">
                   <div className="text-xl sm:text-2xl mb-1">⚖️</div>
@@ -349,7 +349,7 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                     {gramas.toFixed(1).replace('.', ',')}
                     <span className="text-xs sm:text-sm font-medium"> g</span>
                   </div>
-                  <div className="text-[10px] sm:text-xs text-blue-200 mt-1">gramas</div>
+                  <div className="text-xs sm:text-xs text-blue-200 mt-1">gramas</div>
                 </div>
                 <div className="bg-white/10 rounded-xl p-2 sm:p-4 text-center">
                   <div className="text-xl sm:text-2xl mb-1">💧</div>
@@ -357,7 +357,7 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                     {gotas}
                     <span className="text-xs sm:text-sm font-medium"> gts</span>
                   </div>
-                  <div className="text-[10px] sm:text-xs text-gray-400 mt-1">gotas</div>
+                  <div className="text-xs sm:text-xs text-gray-400 mt-1">gotas</div>
                 </div>
               </div>
 
@@ -366,7 +366,7 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                 {config.dicaAdicionar}
               </div>
 
-              <p className="text-[10px] text-gray-500 text-center">
+              <p className="text-xs text-gray-500 text-center">
                 * Gotas calculadas com base em 20 gotas por mL (conta-gotas padrão).
               </p>
             </div>

@@ -89,7 +89,7 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
                     </div>
                   )}
                   <span className="text-xs font-medium">{r.profiles?.full_name ?? 'Aluna'}</span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">
+                  <span className="text-xs text-muted-foreground ml-auto">
                     {new Date(r.created_at).toLocaleDateString('pt-BR', { timeZone: "America/Sao_Paulo" })}
                   </span>
                 </div>
@@ -124,7 +124,7 @@ export function ReviewsModal({ supplier, userId, onClose }: Props) {
               </button>
             </form>
           )}
-          <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+          <p className="text-xs text-muted-foreground mt-1.5 text-center">
             Comentários são revisados antes de aparecerem publicamente.
           </p>
         </div>

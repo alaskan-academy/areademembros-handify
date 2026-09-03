@@ -519,7 +519,7 @@ function CoursesSection({ courses }: { courses: CourseCard[] }) {
                   </p>
                   {course.total > 0 && (
                     <div className="space-y-0.5">
-                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                      <div className="flex justify-between text-xs text-muted-foreground">
                         <span>
                           {course.completed}/{course.total} aulas
                         </span>

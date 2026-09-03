@@ -105,7 +105,7 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
           {/* Header */}
           <div className="flex items-start justify-between p-4 border-b border-border/60 shrink-0">
             <div className="flex-1 min-w-0 pr-3">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{post.type}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{post.type}</p>
               <h2 className="font-bold text-base leading-snug">{post.title}</h2>
               {post.author && (
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -177,19 +177,19 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
                   <div className="flex flex-wrap gap-4 bg-muted/50 rounded-xl p-3">
                     {post.recipe_data.tempo && (
                       <div className="text-xs">
-                        <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Tempo</p>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wide">Tempo</p>
                         <p className="font-semibold mt-0.5">{post.recipe_data.tempo}</p>
                       </div>
                     )}
                     {post.recipe_data.temperatura && (
                       <div className="text-xs">
-                        <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Temperatura</p>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wide">Temperatura</p>
                         <p className="font-semibold mt-0.5">{post.recipe_data.temperatura}</p>
                       </div>
                     )}
                     {post.recipe_data.nivel && (
                       <div className="text-xs">
-                        <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Nível</p>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wide">Nível</p>
                         <p className="font-semibold mt-0.5">{post.recipe_data.nivel}</p>
                       </div>
                     )}
@@ -207,7 +207,7 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
                             className="w-9 h-9 rounded-lg border border-border/60 shadow-sm"
                             style={{ background: hex }}
                           />
-                          <span className="text-[9px] text-muted-foreground font-mono">{hex}</span>
+                          <span className="text-xs text-muted-foreground font-mono">{hex}</span>
                         </div>
                       ))}
                     </div>
@@ -239,7 +239,7 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
                     <ol className="space-y-2.5">
                       {post.recipe_data.passos.map((passo, i) => (
                         <li key={i} className="flex gap-3 text-xs text-foreground/80 leading-relaxed">
-                          <span className="shrink-0 w-5 h-5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-bold flex items-center justify-center text-[10px]">
+                          <span className="shrink-0 w-5 h-5 rounded-full bg-[#6699F3]/10 text-[#6699F3] font-bold flex items-center justify-center text-xs">
                             {i + 1}
                           </span>
                           {passo}
@@ -262,13 +262,13 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
                   <div className="flex gap-6">
                     {post.recipe_data.custo_medio && (
                       <div className="text-xs">
-                        <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Custo médio</p>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wide">Custo médio</p>
                         <p className="font-bold mt-0.5">{post.recipe_data.custo_medio}</p>
                       </div>
                     )}
                     {post.recipe_data.preco_venda && (
                       <div className="text-xs">
-                        <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Preço de venda</p>
+                        <p className="text-muted-foreground text-xs uppercase tracking-wide">Preço de venda</p>
                         <p className="font-bold mt-0.5 text-[#6699F3]">{post.recipe_data.preco_venda}</p>
                       </div>
                     )}

@@ -172,7 +172,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
               href={href}
               id={tourId}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition-colors min-h-[52px]",
+                "flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors min-h-[52px]",
                 isActive ? "text-[#6699F3]" : "text-foreground/45 hover:text-foreground/70"
               )}
             >
@@ -187,7 +187,7 @@ export default function StudentNav({ navItems, role, fullName }: StudentNavProps
         <button
           id="tour-nav-menu"
           onClick={() => setDrawerOpen(true)}
-          className="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium text-foreground/45 hover:text-foreground/70 transition-colors min-h-[52px]"
+          className="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-medium text-foreground/45 hover:text-foreground/70 transition-colors min-h-[52px]"
           aria-label="Ver mais opções"
         >
           <MenuIcon className="w-5 h-5" strokeWidth={1.6} />

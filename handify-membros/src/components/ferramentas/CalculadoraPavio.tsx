@@ -227,7 +227,7 @@ function OptionCard({
             {label}
           </span>
           {badge && (
-            <span className="text-[10px] font-black bg-[#72CF92]/20 text-[#3a9e5c] px-2 py-0.5 rounded-full uppercase tracking-wide">
+            <span className="text-xs font-black bg-[#72CF92]/20 text-[#3a9e5c] px-2 py-0.5 rounded-full uppercase tracking-wide">
               {badge}
             </span>
           )}
@@ -396,7 +396,7 @@ function SavedFormulaCard({
         </button>
       </div>
       <div className="bg-[#6699F3]/5 border border-[#6699F3]/20 rounded-xl px-3 py-2.5">
-        <p className="text-[10px] font-black text-[#6699F3] uppercase tracking-wider mb-0.5">Pavio principal</p>
+        <p className="text-xs font-black text-[#6699F3] uppercase tracking-wider mb-0.5">Pavio principal</p>
         <p className="font-bold text-foreground">{formula.wick_primary}</p>
         {formula.wick_alternatives.length > 0 && (
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -742,7 +742,7 @@ export default function CalculadoraPavio({
           </div>
 
           <div className="text-center py-2">
-            <p className="text-[10px] font-black text-[#6699F3] uppercase tracking-widest mb-1">Pavio principal</p>
+            <p className="text-xs font-black text-[#6699F3] uppercase tracking-widest mb-1">Pavio principal</p>
             <p className="text-3xl font-black text-foreground">{rec.wick_primary}</p>
             {(() => {
               const base = normalizeWickName(rec.wick_primary);
@@ -762,7 +762,7 @@ export default function CalculadoraPavio({
 
           {rec.wick_alternatives.length > 0 && (
             <div>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-2">Alternativas para teste</p>
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-2">Alternativas para teste</p>
               <div className="flex flex-col gap-1.5">
                 {rec.wick_alternatives.map(alt => {
                   const altBase = normalizeWickName(alt);
@@ -787,7 +787,7 @@ export default function CalculadoraPavio({
           )}
 
           <div className="border-t border-[#6699F3]/10 pt-3">
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider mb-1.5">Configuração</p>
+            <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-1.5">Configuração</p>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span>🕯️ {answers.candleType === 'container' ? 'Recipiente' : 'Molde'}</span>
               <span>🌿 {waxLabel}</span>

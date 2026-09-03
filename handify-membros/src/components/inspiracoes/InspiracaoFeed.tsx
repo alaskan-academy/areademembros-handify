@@ -115,7 +115,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
             <SlidersHorizontal className="w-4 h-4" />
             <span className="hidden sm:inline text-xs">Filtros</span>
             {activeFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-[#6699F3] text-white text-[10px] font-bold flex items-center justify-center leading-none">
+              <span className="w-4 h-4 rounded-full bg-[#6699F3] text-white text-xs font-bold flex items-center justify-center leading-none">
                 {activeFilterCount}
               </span>
             )}
@@ -128,7 +128,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
           <div className="bg-white rounded-xl border border-border/70 p-4 space-y-4">
             {/* Tipo */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tipo</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tipo</p>
               <div className="flex flex-wrap gap-1.5">
                 {TIPOS.map(t => (
                   <button
@@ -150,7 +150,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
             {/* Categoria */}
             {categories.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Artesanato</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Artesanato</p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setNicho('')}
@@ -184,7 +184,7 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
             {/* Curso */}
             {courses.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Curso</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Curso</p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setCourseId('')}

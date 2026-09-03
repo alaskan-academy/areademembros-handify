@@ -68,7 +68,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
             <SlidersHorizontal className="w-4 h-4" />
             <span className="hidden sm:inline text-xs">Categoria</span>
             {activeCategory && (
-              <span className="w-4 h-4 rounded-full bg-[#6699F3] text-white text-[10px] font-bold flex items-center justify-center leading-none">
+              <span className="w-4 h-4 rounded-full bg-[#6699F3] text-white text-xs font-bold flex items-center justify-center leading-none">
                 1
               </span>
             )}
@@ -79,7 +79,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
 
       {filtersOpen && categories.length > 0 && (
         <div className="bg-white rounded-xl border border-border/70 p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Categoria
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -492,19 +492,19 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
 
         {/* Badge status */}
         {course.isEnrolled ? (
-          <span className="absolute top-1.5 left-1.5 bg-[#6699F3] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+          <span className="absolute top-1.5 left-1.5 bg-[#6699F3] text-white text-xs font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
             <CheckCircle className="w-2.5 h-2.5" />
             {isComplete ? "Concluído" : "Matriculada"}
           </span>
         ) : course.hasPreview ? (
-          <span className="absolute top-1.5 left-1.5 bg-[#72CF92] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+          <span className="absolute top-1.5 left-1.5 bg-[#72CF92] text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
             Prévia grátis
           </span>
         ) : null}
 
         {/* Badge tipo */}
         <span className={cn(
-          "absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+          "absolute bottom-1.5 left-1.5 text-xs font-bold px-1.5 py-0.5 rounded-full",
           isMaterial ? "bg-[#FEC649] text-[#0F0F0F]" : "bg-white/90 text-[#6699F3]"
         )}>
           {isMaterial ? "Material" : "Curso"}
@@ -516,7 +516,7 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
         {/* Topo: categoria + título — ocupa espaço disponível, nunca transborda */}
         <div className="flex-1 min-h-0 overflow-hidden">
           {course.categoryName && (
-            <p className="text-[10px] font-medium text-[#6699F3] uppercase tracking-wide line-clamp-1 mb-1">
+            <p className="text-xs font-medium text-[#6699F3] uppercase tracking-wide line-clamp-1 mb-1">
               {course.categoryName}
             </p>
           )}
@@ -528,7 +528,7 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
         {/* Rodapé: progresso ou preço — sempre na base, nunca comprimido */}
         {course.isEnrolled && course.progress && course.progress.total > 0 ? (
           <div className="shrink-0 space-y-1">
-            <div className="flex justify-between items-center text-[10px] text-muted-foreground">
+            <div className="flex justify-between items-center text-xs text-muted-foreground">
               <span>{course.progress.completed}/{course.progress.total} aulas</span>
               <span className="font-semibold" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
                 {course.progress.percentage}%
@@ -543,13 +543,13 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
                 }}
               />
             </div>
-            <p className="text-[10px] font-medium" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
+            <p className="text-xs font-medium" style={{ color: isComplete ? "#72CF92" : "#6699F3" }}>
               {isComplete ? "Rever" : hasStarted ? "Continuar" : "Começar"}
             </p>
           </div>
         ) : (
           <div className="shrink-0 flex items-center justify-between">
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="w-3 h-3" />
               {course.workload_hours}h
             </span>
@@ -641,7 +641,7 @@ function CourseModal({
               </span>
             )}
             <span className={cn(
-              "text-[10px] font-bold px-2 py-0.5 rounded-full",
+              "text-xs font-bold px-2 py-0.5 rounded-full",
               isMaterial ? "bg-[#FEC649] text-[#0F0F0F]" : "bg-[#6699F3]/15 text-[#6699F3]"
             )}>
               {isMaterial ? "Material Didático" : "Curso"}

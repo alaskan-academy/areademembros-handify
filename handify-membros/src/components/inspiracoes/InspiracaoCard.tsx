@@ -78,31 +78,31 @@ export function InspiracaoCard({ post, userId, onClick }: Props) {
     >
       <div className="relative">
         <CardThumbnail post={post} />
-        <span className={cn('absolute top-2 left-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold', badge)}>
+        <span className={cn('absolute top-2 left-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-semibold', badge)}>
           <Icon className="w-2.5 h-2.5" />
           {label}
         </span>
         {post.pinned && (
-          <span className="absolute top-2 right-2 text-[10px] bg-[#FEC649] text-[#0F0F0F] px-1.5 py-0.5 rounded-full font-bold leading-none">
+          <span className="absolute top-2 right-2 text-xs bg-[#FEC649] text-[#0F0F0F] px-1.5 py-0.5 rounded-full font-bold leading-none">
             📌
           </span>
         )}
         {post.type === 'carrossel' && post.media.length > 1 && (
-          <span className="absolute bottom-2 right-2 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded-full font-medium">
+          <span className="absolute bottom-2 right-2 text-xs bg-black/60 text-white px-1.5 py-0.5 rounded-full font-medium">
             1/{post.media.length}
           </span>
         )}
       </div>
 
       <div className="p-2.5">
-        <p className="text-[11px] font-semibold leading-snug mb-1.5 line-clamp-2 text-foreground">
+        <p className="text-xs font-semibold leading-snug mb-1.5 line-clamp-2 text-foreground">
           {post.title}
         </p>
 
         {post.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
             {post.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+              <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                 {tag}
               </span>
             ))}

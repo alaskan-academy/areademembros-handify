@@ -99,7 +99,7 @@ function DownloadBlock({ material }: { material?: LessonMaterial }) {
         <Download className="w-6 h-6 text-[#6699F3]" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-bold text-[#6699F3] uppercase tracking-wider mb-0.5">
+        <p className="text-xs font-bold text-[#6699F3] uppercase tracking-wider mb-0.5">
           Material da aula
         </p>
         <p className="text-sm font-medium text-foreground truncate">{material.name}</p>

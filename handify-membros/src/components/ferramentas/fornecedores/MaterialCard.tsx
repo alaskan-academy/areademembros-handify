@@ -34,7 +34,7 @@ export function MaterialCard({ product }: Props) {
                 href={link.buy_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6699F3] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-medium text-[#6699F3] hover:underline"
               >
                 {link.supplier.name}
                 <ExternalLink className="w-2.5 h-2.5" />
