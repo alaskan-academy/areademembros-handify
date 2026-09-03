@@ -48,8 +48,10 @@ export default function InstallAppButton() {
     if (early) {
       setDeferredPrompt(early);
       setState("installable");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).__pwaInstallPrompt;
+      // Nao apagar: o navegador dispara beforeinstallprompt uma unica vez, e o
+      // script no <head> o captura antes do React montar. Se o primeiro
+      // componente que le apaga, os outros (o card do painel, o aviso
+      // flutuante) ficam sem nada e nao mostram botao nenhum.
       window.addEventListener("appinstalled", () => setInstalled(true));
       return;
     }

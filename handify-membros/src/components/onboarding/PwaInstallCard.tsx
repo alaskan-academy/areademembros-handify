@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Smartphone, X, ChevronDown, ChevronUp } from "lucide-react";
+import InstallAppButton from "@/components/pwa/InstallAppButton";
 
 const STORAGE_KEY = "handify_pwa_install_dismissed";
 
@@ -52,6 +53,16 @@ export default function PwaInstallCard() {
       <p className="mt-2 text-xs text-muted-foreground">
         Acesse a plataforma direto pela tela inicial do seu celular, sem precisar abrir o navegador.
       </p>
+
+      {/*
+        Mesmo botao do perfil: no Android instala com um toque, no Safari abre
+        o passo a passo. Ele nao renderiza nada quando o navegador nao suporta,
+        e nesse caso sobra o "Ver como instalar" logo abaixo — que continua
+        sendo a saida para quem so pode instalar na mao.
+      */}
+      <div className="mt-3">
+        <InstallAppButton />
+      </div>
 
       <button
         onClick={() => setExpanded((v) => !v)}

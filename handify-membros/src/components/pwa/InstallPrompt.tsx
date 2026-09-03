@@ -50,6 +50,16 @@ export default function InstallPrompt() {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
+    // O script no <head> guarda o evento antes do React montar, entao na
+    // pratica o listener acima quase nunca dispara — sem ler isto aqui, este
+    // aviso nunca aparecia no Android.
+    const jaCapturado = (window as unknown as { __pwaInstallPrompt?: BeforeInstallPromptEvent })
+      .__pwaInstallPrompt;
+    if (jaCapturado) {
+      setDeferredPrompt(jaCapturado);
+      setVisible(true);
+    }
+
     if (detected === "ios") {
       setVisible(true);
     }
