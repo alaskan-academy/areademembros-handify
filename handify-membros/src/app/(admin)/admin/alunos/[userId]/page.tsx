@@ -158,6 +158,32 @@ export default async function AlunaDetailPage({
     .order("created_at", { ascending: false })
     .limit(20);
 
+  // Handify Completo — histórico (a ativa, se houver, é a que não tem revoked_at)
+  const { data: membershipRows } = await service
+    .from("memberships")
+    .select("id, source, granted_at, expires_at, revoked_at, reason, granted_by, admin:profiles!granted_by(full_name)")
+    .eq("user_id", userId)
+    .eq("plan", "completo")
+    .order("granted_at", { ascending: false })
+    .limit(10);
+  const memberships = (membershipRows ?? []).map((m) => {
+    const row = m as unknown as {
+      id: string; source: string; granted_at: string; expires_at: string | null;
+      revoked_at: string | null; reason: string | null;
+      admin: { full_name: string | null } | { full_name: string | null }[] | null;
+    };
+    const admin = Array.isArray(row.admin) ? row.admin[0] : row.admin;
+    return {
+      id: row.id,
+      source: row.source,
+      granted_at: row.granted_at,
+      expires_at: row.expires_at,
+      revoked_at: row.revoked_at,
+      reason: row.reason,
+      granted_by_name: admin?.full_name ?? null,
+    };
+  });
+
   // Todos os cursos publicados + enrollment da aluna mesclados
   const { data: allCourses } = await service
     .from("courses")
@@ -339,6 +365,7 @@ export default async function AlunaDetailPage({
       <AlunaDetail
         defaultTab={tab === "atividade" ? "atividade" : "perfil"}
         activity={activityItems}
+        memberships={memberships}
         profile={{
           id: profile.id,
           full_name: profile.full_name,

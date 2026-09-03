@@ -273,6 +273,65 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
   const processed = results.filter(Boolean).length;
 
+  // ─── Handify Completo ──────────────────────────────────────────────────────
+  // O plano é uma entidade própria (`memberships`) — quem comprou os 23 cursos
+  // separados NÃO é Completo. As matrículas dos cursos já foram feitas acima
+  // pelos checkout_codes; aqui registramos o plano em si. Se a compradora ainda
+  // não tem conta, quem cria a membership é `process_pending_payment_events`
+  // (SQL) quando a conta nasce. Contexto em .claude/plans/tiers-handify.md.
+  const { data: promo } = await supabase
+    .from("annual_promo")
+    .select("subscription_product_codes")
+    .maybeSingle();
+  const planCodes = (promo?.subscription_product_codes as string[] | null) ?? [];
+  const isPlanEvent = event.productCodes.some((c) => hasCode(planCodes, c));
+
+  if (isPlanEvent) {
+    const { data: current } = await supabase
+      .from("memberships")
+      .select("id, expires_at")
+      .eq("user_id", user.id)
+      .eq("plan", "completo")
+      .is("revoked_at", null)
+      .maybeSingle();
+
+    if (event.action === "grant") {
+      const stillActive =
+        current && (!current.expires_at || new Date(current.expires_at) > new Date());
+      if (!stillActive) {
+        // Vencida mas não revogada: fecha antes de abrir a nova (índice único
+        // permite uma ativa por plano).
+        if (current) {
+          await supabase.from("memberships").update({ revoked_at: now }).eq("id", current.id);
+        }
+        const { error } = await supabase.from("memberships").insert({
+          user_id: user.id,
+          plan: "completo",
+          source: event.source,
+          granted_at: now,
+          reason: `compra via ${event.platform} (${event.transactionId})`,
+        });
+        if (error) console.error(`${log} Erro ao registrar Handify Completo:`, error.message);
+        else console.info(`${log} Handify Completo concedido: user=${user.id}`);
+      }
+    } else if (current) {
+      await supabase.from("memberships").update({ revoked_at: now }).eq("id", current.id);
+      await supabase.from("audit_log").insert({
+        admin_id: null,
+        action: "membership.revoked",
+        target_type: "membership",
+        target_id: current.id,
+        meta: {
+          user_id: user.id,
+          reason: event.eventType,
+          platform: event.platform,
+          transaction_id: event.transactionId,
+        },
+      });
+      console.info(`${log} Handify Completo revogado: user=${user.id} motivo=${event.eventType}`);
+    }
+  }
+
   // Salva CPF, telefone e nome no perfil
   // (apenas no grant, sem sobrescrever dados existentes)
   if (event.action === "grant") {

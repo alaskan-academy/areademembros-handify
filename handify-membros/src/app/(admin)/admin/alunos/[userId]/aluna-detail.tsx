@@ -30,6 +30,7 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -41,6 +42,7 @@ import {
   resendAccessEmailAction,
   setStudentPasswordAction,
 } from "./actions";
+import { grantMembershipAction, revokeMembershipAction } from "./membership-actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import ActivityTab, { type ActivityItem } from "@/components/admin/alunos/ActivityTab";
 
@@ -80,6 +82,21 @@ type PaytEnrollment = {
   expires_at: string | null;
 };
 
+/** Uma linha de `memberships` (plan = completo). Ativa = sem revoked_at e não vencida. */
+type Membership = {
+  id: string;
+  source: string;
+  granted_at: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  reason: string | null;
+  granted_by_name: string | null;
+};
+
+function membershipAtiva(m: Membership): boolean {
+  return !m.revoked_at && (!m.expires_at || new Date(m.expires_at) > new Date());
+}
+
 interface Props {
   profile: {
     id: string;
@@ -98,6 +115,7 @@ interface Props {
   auditLog: AuditEntry[];
   activity: ActivityItem[];
   paytEnrollments: PaytEnrollment[];
+  memberships: Membership[];
   defaultTab?: "perfil" | "atividade";
 }
 
@@ -105,6 +123,8 @@ const ACTION_LABELS: Record<string, string> = {
   grant_access: "Acesso concedido",
   revoke_access: "Acesso revogado",
   "enrollment.revoked": "Acesso revogado (webhook)",
+  "membership.granted": "Handify Completo concedido",
+  "membership.revoked": "Handify Completo revogado",
   ban: "Aluna banida",
   unban: "Ban removido",
   update_email: "E-mail atualizado",
@@ -113,8 +133,9 @@ const ACTION_LABELS: Record<string, string> = {
   delete_forum_post: "Post do fórum deletado",
 };
 
-export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, paytEnrollments, defaultTab = "perfil" }: Props) {
+export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, paytEnrollments, memberships, defaultTab = "perfil" }: Props) {
   const initial = profile.full_name?.charAt(0)?.toUpperCase() ?? "?";
+  const temCompleto = memberships.some(membershipAtiva);
   const [activeTab, setActiveTab] = useState<"perfil" | "atividade">(defaultTab);
   const [banPending, startBanTransition] = useTransition();
   const [banned, setBanned] = useState(profile.banned);
@@ -239,6 +260,15 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
             <KeyRound className="w-3.5 h-3.5" />
             Definir senha
           </button>
+          {temCompleto && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] text-xs font-semibold"
+              title="Tem o Handify Completo ativo"
+            >
+              <Sparkles className="w-3 h-3" />
+              Handify Completo
+            </span>
+          )}
           {banned && (
             <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
               Banida
@@ -466,6 +496,9 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
               </>
             )}
           </section>
+
+          {/* Handify Completo */}
+          <MembershipSection userId={profile.id} memberships={memberships} />
 
           {/* Acesso em lote */}
           {unenrolledCourses.length > 0 && (
@@ -869,6 +902,210 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
 }
 
 // ─── Acesso em lote ───────────────────────────────────────────────────────────
+
+// ─── Handify Completo ─────────────────────────────────────────────────────────
+const MEMBERSHIP_SOURCE_LABEL: Record<string, string> = {
+  payt: "Payt",
+  kiwify: "Kiwify",
+  manual: "Manual",
+  bonus: "Bônus",
+  migration: "Migração",
+};
+
+function dataBR(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
+/**
+ * Status do plano + Dar/Revogar. Antes "dar o Completo" era marcar 23 checkboxes
+ * em "Dar acesso em lote", e o sistema seguia sem saber que a aluna tinha o
+ * plano. Agora a membership é a fonte da verdade e as matrículas são consequência
+ * (ver membership-actions.ts).
+ */
+function MembershipSection({ userId, memberships }: { userId: string; memberships: Membership[] }) {
+  const ativa = memberships.find(membershipAtiva) ?? null;
+  const historico = memberships.filter((m) => m !== ativa);
+  const [mode, setMode] = useState<"idle" | "granting" | "revoking">("idle");
+  const [showHistory, setShowHistory] = useState(false);
+  const [grantState, grantAction, grantPending] = useActionState(grantMembershipAction, {});
+  const [revokeState, revokeAction, revokePending] = useActionState(revokeMembershipAction, {});
+  const feedback = grantState.error || grantState.success || revokeState.error || revokeState.success;
+  const feedbackIsError = !!(grantState.error || revokeState.error);
+
+  return (
+    <section className="handify-card overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/60 flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-[#6699F3]" />
+        <span className="font-semibold text-sm">Handify Completo</span>
+        <span
+          className={cn(
+            "ml-auto px-2 py-0.5 rounded-full text-xs font-semibold",
+            ativa ? "bg-[#72CF92]/15 text-[#3d9e5a]" : "bg-muted text-muted-foreground"
+          )}
+        >
+          {ativa
+            ? ativa.expires_at
+              ? `Ativo até ${dataBR(ativa.expires_at)}`
+              : "Ativo"
+            : "Não tem"}
+        </span>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {ativa ? (
+          <div className="text-sm space-y-1">
+            <p className="text-foreground">
+              Desde <strong>{dataBR(ativa.granted_at)}</strong> · origem{" "}
+              <strong>{MEMBERSHIP_SOURCE_LABEL[ativa.source] ?? ativa.source}</strong>
+              {ativa.granted_by_name && <> · por {ativa.granted_by_name}</>}
+            </p>
+            {ativa.reason && <p className="text-muted-foreground text-xs">{ativa.reason}</p>}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Esta aluna não tem o plano. Dar o Completo libera todos os cursos do plano de uma
+            vez e registra que ela é aluna Completo — o que 23 acessos avulsos não fazem.
+          </p>
+        )}
+
+        {mode === "idle" && (
+          <div className="flex flex-wrap gap-2">
+            {ativa ? (
+              <button
+                onClick={() => setMode("revoking")}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border border-red-300 text-red-600 hover:bg-red-50 transition-colors min-h-[40px]"
+              >
+                <Minus className="w-3.5 h-3.5" />
+                Revogar Handify Completo
+              </button>
+            ) : (
+              <button
+                onClick={() => setMode("granting")}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-[#6699F3] text-white hover:bg-[#5580d4] transition-colors min-h-[40px]"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Dar Handify Completo
+              </button>
+            )}
+            {historico.length > 0 && (
+              <button
+                onClick={() => setShowHistory((v) => !v)}
+                className="px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[40px]"
+              >
+                {showHistory ? "Esconder histórico" : `Histórico (${historico.length})`}
+              </button>
+            )}
+          </div>
+        )}
+
+        {mode === "granting" && (
+          <form action={grantAction} className="space-y-3 rounded-lg bg-muted/40 p-4">
+            <input type="hidden" name="user_id" value={userId} />
+            <div className="grid sm:grid-cols-2 gap-3">
+              <label className="block text-xs font-medium text-muted-foreground">
+                Origem
+                <select
+                  name="source"
+                  defaultValue="manual"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                >
+                  <option value="manual">Manual (erro de disparo, acordo)</option>
+                  <option value="bonus">Bônus (presente, campanha)</option>
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-muted-foreground">
+                Validade (opcional)
+                <input
+                  type="date"
+                  name="expires_at"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                />
+              </label>
+            </div>
+            <label className="block text-xs font-medium text-muted-foreground">
+              Motivo
+              <input
+                name="reason"
+                required
+                placeholder="Ex.: pagou na Payt em 02/09, webhook não chegou"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={grantPending}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#6699F3] text-white hover:bg-[#5580d4] disabled:opacity-60 transition-colors min-h-[40px]"
+              >
+                {grantPending ? "Liberando…" : "Confirmar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("idle")}
+                className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground min-h-[40px]"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+
+        {mode === "revoking" && ativa && (
+          <form action={revokeAction} className="space-y-3 rounded-lg bg-red-50 p-4">
+            <input type="hidden" name="user_id" value={userId} />
+            <input type="hidden" name="membership_id" value={ativa.id} />
+            <p className="text-xs text-red-700">
+              Encerra o plano e os cursos que vieram junto com ele. Cursos que a aluna comprou
+              separado continuam.
+            </p>
+            <label className="block text-xs font-medium text-red-700">
+              Motivo
+              <input
+                name="reason"
+                required
+                placeholder="Ex.: reembolso acordado em 03/09"
+                className="mt-1 w-full rounded-lg border border-red-200 bg-white px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={revokePending}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60 transition-colors min-h-[40px]"
+              >
+                {revokePending ? "Revogando…" : "Revogar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("idle")}
+                className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground min-h-[40px]"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+
+        {feedback && (
+          <p className={cn("text-sm", feedbackIsError ? "text-red-600" : "text-[#3d9e5a]")}>{feedback}</p>
+        )}
+
+        {showHistory && historico.length > 0 && (
+          <ul className="space-y-1.5 text-xs text-muted-foreground border-t border-border/60 pt-3">
+            {historico.map((m) => (
+              <li key={m.id}>
+                {dataBR(m.granted_at)} → {m.revoked_at ? `revogado em ${dataBR(m.revoked_at)}` : m.expires_at ? `venceu em ${dataBR(m.expires_at)}` : "—"}
+                {" · "}
+                {MEMBERSHIP_SOURCE_LABEL[m.source] ?? m.source}
+                {m.reason && <> · {m.reason}</>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function BulkGrantSection({
   userId,

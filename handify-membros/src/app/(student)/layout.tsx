@@ -5,6 +5,7 @@ import InstallBar from "@/components/pwa/InstallBar";
 import PushPromptBanner from "@/components/pwa/PushPromptBanner";
 import BackButtonGuard from "@/components/pwa/BackButtonGuard";
 import { createClient } from "@/lib/supabase/server";
+import { hasActiveMembership } from "@/lib/auth/access";
 import { redirect } from "next/navigation";
 import StudentHeader from "@/components/layout/StudentHeader";
 import StudentNav from "@/components/layout/StudentNav";
@@ -54,21 +55,15 @@ export default async function StudentLayout({
         .maybeSingle(),
     ]);
 
-  // Verificar se a aluna já tem o plano completo (ocultar barra para quem já assinou)
+  // Esconde a barra "Seja Premium" só de quem TEM o Handify Completo.
+  //
+  // Antes escondia de quem tinha matrícula em qualquer curso cujos
+  // checkout_codes contivessem o código do plano — e como esse código está em
+  // 23 dos 24 cursos, quem comprou só Saponaria "parecia" ter o plano. Medido em
+  // 03/09/2026: 30 de 3.387 alunas viam a oferta. Ver .claude/plans/tiers-handify.md.
   let annualPromo: AnnualPromoData | null = promoRaw ? { ...promoRaw } : null;
-  if (annualPromo && user && promoRaw?.subscription_product_codes?.length) {
-    const { data: matchingCourses } = await supabase
-      .from("courses")
-      .select("id")
-      .overlaps("checkout_codes", promoRaw.subscription_product_codes);
-    if (matchingCourses?.length) {
-      const { count } = await supabase
-        .from("enrollments")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .in("course_id", matchingCourses.map((c) => c.id));
-      if ((count ?? 0) > 0) annualPromo = null;
-    }
+  if (annualPromo && user && (await hasActiveMembership(user.id))) {
+    annualPromo = null;
   }
 
   const navItems: NavItem[] = (menuItemsRaw ?? []).map((i) => {

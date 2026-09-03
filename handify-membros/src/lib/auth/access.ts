@@ -30,6 +30,51 @@ export async function getViewer(): Promise<{ userId: string | null; isAdmin: boo
   return { userId: user.id, isAdmin: profile?.role === "admin" };
 }
 
+export type Tier = "visitante" | "aluna" | "completo" | "admin";
+
+/**
+ * Esta aluna tem o Handify Completo ativo?
+ *
+ * O plano é uma entidade própria (`memberships`), não a soma dos cursos: quem
+ * comprou os 23 cursos separados NÃO é Completo. Espelha
+ * `public.has_active_membership()` no banco — os dois precisam concordar.
+ * Contexto em .claude/plans/tiers-handify.md.
+ */
+export async function hasActiveMembership(userId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("plan", "completo")
+    .is("revoked_at", null)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}
+
+/**
+ * Tier da pessoa logada — derivado, nunca armazenado, para não desatualizar
+ * quando o plano vence. Espelha `public.current_tier()` no banco.
+ */
+export async function getTier(): Promise<Tier> {
+  const { userId, isAdmin } = await getViewer();
+  if (!userId) return "visitante";
+  if (isAdmin) return "admin";
+  if (await hasActiveMembership(userId)) return "completo";
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("enrollments")
+    .select("id")
+    .eq("user_id", userId)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+    .limit(1)
+    .maybeSingle();
+  return data ? "aluna" : "visitante";
+}
+
 /** A pessoa logada pode assistir este curso? Admin sempre pode. */
 export async function hasCourseAccess(courseId: string): Promise<boolean> {
   const { userId, isAdmin } = await getViewer();

@@ -8,7 +8,7 @@ import { z } from "zod";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { sendAccessConfirmedEmail, sendLoginReminderEmail } from "@/lib/email";
 
-async function getAdminId(): Promise<string> {
+export async function getAdminId(): Promise<string> {
   const supabase = await createClient();
   const {
     data: { user },
