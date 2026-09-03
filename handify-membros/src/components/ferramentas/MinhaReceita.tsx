@@ -18,6 +18,7 @@ import {
   TAXAS_AROMA,
   reais,
   numero,
+  codigosNoFornecedor,
   type Insumo,
   type Embalagem,
   type RespostasPavio,
@@ -493,7 +494,20 @@ export default function MinhaReceita({
               <Detalhe rotulo={receita.aroma.tipo === 'oleo' ? 'Óleo essencial' : 'Essência'} valor={`${numero(aroma.ml, 1)} mL = ${numero(aroma.gramas, 1)} g = ${aroma.gotas} gotas (${percentualAroma}% do lote)`} />
             )}
             {receita.produto === 'velas' && pavioRec && (
-              <Detalhe rotulo="Pavio" valor={`${pavioRec.wick_primary}${pavioRec.wick_alternatives?.length ? ` (alternativas: ${pavioRec.wick_alternatives.join(', ')})` : ''}`} />
+              <Detalhe rotulo="Pavio" valor={(() => {
+                const loja = codigosNoFornecedor(pavioRec.wick_primary, receita.pavio.waxType)
+                const principal = loja.indicados.length ? `${loja.indicados.join(' ou ')} (${pavioRec.wick_primary})` : pavioRec.wick_primary
+                const alts = (pavioRec.wick_alternatives ?? [])
+                  .filter(a => {
+                    const c = codigosNoFornecedor(a, receita.pavio.waxType)
+                    return !c.indicados.length || c.indicados.join() !== loja.indicados.join()
+                  })
+                  .map(a => {
+                    const c = codigosNoFornecedor(a, receita.pavio.waxType)
+                    return c.indicados.length ? `${c.indicados.join(' ou ')} (${a})` : a
+                  })
+                return alts.length ? `${principal}. Alternativas: ${alts.join(', ')}` : principal
+              })()} />
             )}
             <div className="text-xs text-muted-foreground">
               {receita.insumos.filter(i => i.nome).map(i => `${i.nome} ${i.qtdUsadaNoLote}${i.unidade}`).join(', ')}
@@ -755,8 +769,46 @@ function EtapaPavio({ respostas, sugestaoFragrancia, onChange, rec, onVoltar, on
         rec ? (
           <div className="rounded-xl bg-[#F5F5F0] p-4 space-y-1">
             <p className="text-xs text-muted-foreground">Pavio recomendado para {CERA_LABEL[r.waxType!] ?? r.waxType}</p>
-            <p className="text-2xl font-black text-[#6699F3]">{rec.wick_primary}</p>
-            {rec.wick_alternatives?.length > 0 && <p className="text-sm">Alternativas: <b>{rec.wick_alternatives.join(', ')}</b></p>}
+            {(() => {
+              const loja = codigosNoFornecedor(rec.wick_primary, r.waxType)
+              const fila = (c: { indicados: string[]; outros: string[] }) =>
+                [c.indicados.join(' ou '), c.outros.length ? `(se não achar: ${c.outros.join(' ou ')})` : ''].filter(Boolean).join(' ')
+              return (
+                <>
+                  <p className="text-2xl font-black text-[#6699F3]">
+                    {loja.indicados.length ? loja.indicados.join(' ou ') : rec.wick_primary}
+                  </p>
+                  {loja.indicados.length > 0 && (
+                    <p className="text-sm">
+                      É o pavio <b>{rec.wick_primary}</b>{loja.mm ? ` (${loja.mm} mm)` : ''}
+                      {loja.outros.length > 0 && <> — se não achar, <b>{loja.outros.join(' ou ')}</b></>}
+                    </p>
+                  )}
+                  {rec.wick_alternatives?.length > 0 && (
+                    <div className="text-sm pt-1">
+                      <p className="text-xs text-muted-foreground">Alternativas</p>
+                      {rec.wick_alternatives.filter(alt => {
+                        // Séries diferentes com o mesmo código na loja (LX 12 e CD 12
+                        // são ambos A2025) repetiriam a mesma resposta.
+                        const c = codigosNoFornecedor(alt, r.waxType)
+                        return !c.indicados.length || c.indicados.join() !== loja.indicados.join()
+                      }).map(alt => {
+                        const c = codigosNoFornecedor(alt, r.waxType)
+                        return (
+                          <p key={alt}>
+                            <b>{c.indicados.length ? fila(c) : alt}</b>
+                            {c.indicados.length > 0 && <span className="text-muted-foreground"> = {alt}</span>}
+                          </p>
+                        )
+                      })}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Na loja, o pavio de algodão vem com código A ou B: <b>A</b> queima mais suave (soja, coco, ecomix), <b>B</b> queima mais forte (parafina). O número cresce com o tamanho do pote.
+                  </p>
+                </>
+              )
+            })()}
             {rec.notes && <p className="text-xs text-muted-foreground">{rec.notes}</p>}
             <p className="text-xs text-muted-foreground pt-1">Faça o teste de queima: a piscina de cera deve chegar até a borda em 2–3 h, sem fuligem.</p>
           </div>

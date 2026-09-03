@@ -9,6 +9,8 @@ import {
   lucroPorUnidade,
   precoParaMargem,
   TAXAS_AROMA,
+  codigosNoFornecedor,
+  normalizarNomePavio,
   type Embalagem,
   type Insumo,
   type OutrosCustos,
@@ -199,5 +201,42 @@ describe("pavio", () => {
       candleType: "container", waxType: "soy", moldShape: null, diameterValue: 7, fragranceMid: 8, hasDye: null,
     });
     expect(r?.wick_primary).toBe("A");
+  });
+});
+
+describe("código do pavio na loja", () => {
+  it("LX 12 com soja: pede A (queima suave); B fica como alternativa", () => {
+    const c = codigosNoFornecedor("LX 12", "soy");
+    expect(c.indicados).toEqual(["A2025"]);
+    expect(c.outros).toEqual(["B2020", "B2025"]);
+    expect(c.mm).toBe("3");
+  });
+
+  it("LX 12 com parafina: pede B (queima forte)", () => {
+    const c = codigosNoFornecedor("LX 12", "paraffin");
+    expect(c.indicados).toEqual(["B2020", "B2025"]);
+    expect(c.outros).toEqual(["A2025"]);
+  });
+
+  it("série sem código da cera (ECO 4 só tem B) não deixa a aluna sem resposta", () => {
+    const c = codigosNoFornecedor("ECO 4", "soy");
+    expect(c.indicados).toEqual(["B2020"]);
+    expect(c.outros).toEqual([]);
+  });
+
+  it("cera desconhecida: todos os equivalentes, sem preferência", () => {
+    const c = codigosNoFornecedor("CD 10", "blend");
+    expect(c.indicados).toEqual(["A2020", "B2020"]);
+    expect(c.outros).toEqual([]);
+  });
+
+  it("normaliza '2× LX 12 (2 pavios)' e 'nº'", () => {
+    expect(normalizarNomePavio("2× LX 12 (2 pavios)")).toBe("LX 12");
+    expect(normalizarNomePavio("Pavio quadrado nº 4")).toBe("Pavio quadrado #4");
+    expect(codigosNoFornecedor("2× LX 12 (2 pavios)", "soy").indicados).toEqual(["A2025"]);
+  });
+
+  it("pavio fora da tabela: vazio, não erro", () => {
+    expect(codigosNoFornecedor("Pavio de madeira", "soy")).toEqual({ indicados: [], outros: [], mm: null });
   });
 });
