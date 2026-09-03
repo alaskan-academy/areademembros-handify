@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -18,6 +19,11 @@ async function assertAdmin() {
   if (p?.role !== "admin") redirect("/dashboard");
 }
 
+// Envolve fetchAll devolvendo { data } para o restante do arquivo nao mudar.
+async function pag<T>(q: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  return { data: await fetchAll<T>(q) };
+}
+
 export default async function FunilPage() {
   await assertAdmin();
   const service = createServiceClient();
@@ -33,19 +39,23 @@ export default async function FunilPage() {
     { data: lessons },
     { data: profiles },
   ] = await Promise.all([
-    service
+    // Paginadas: lesson_progress tem 22 mil linhas e enrollments 8 mil. Sem
+    // isso o funil era calculado sobre 1.000 linhas — menos de 5% do real.
+    pag((de, ate) => service
       .from("enrollments")
       .select("user_id, course_id, granted_at")
-      .or(`expires_at.is.null,expires_at.gte.${now}`),
-    service.from("lesson_progress").select("user_id, lesson_id, completed, updated_at"),
-    service.from("certificates").select("user_id, course_id, issued_at"),
-    service.from("courses").select("id, title").eq("published", true),
-    service.from("lessons").select("id, title, module:modules(course_id)"),
-    service
+      .or(`expires_at.is.null,expires_at.gte.${now}`)
+      .range(de, ate)),
+    pag((de, ate) => service.from("lesson_progress").select("user_id, lesson_id, completed, updated_at").range(de, ate)),
+    pag((de, ate) => service.from("certificates").select("user_id, course_id, issued_at").range(de, ate)),
+    pag((de, ate) => service.from("courses").select("id, title").eq("published", true).range(de, ate)),
+    pag((de, ate) => service.from("lessons").select("id, title, module:modules(course_id)").range(de, ate)),
+    pag((de, ate) => service
       .from("profiles")
       .select("id, full_name, email, avatar_url")
       .eq("role", "student")
-      .eq("banned", false),
+      .eq("banned", false)
+      .range(de, ate)),
   ]);
 
   // ── Mapa: lessonId → courseId + title ────────────────────────────

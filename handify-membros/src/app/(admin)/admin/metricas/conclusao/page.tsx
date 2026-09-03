@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -19,18 +20,34 @@ export default async function TaxaConclusaoPage() {
 
   const now = new Date().toISOString();
 
-  const [{ data: enrollsAll }, { data: certs }, { data: profiles }, { data: courses }] = await Promise.all([
-    service
-      .from("enrollments")
-      .select("user_id, course_id, granted_at")
-      .or(`expires_at.is.null,expires_at.gte.${now}`),
-    service.from("certificates").select("user_id, course_id, issued_at"),
-    service.from("profiles").select("id, full_name, email, avatar_url").eq("role", "student").eq("banned", false),
-    service.from("courses").select("id, title"),
+  // Paginado: enrollments e profiles passam de 1.000 linhas, e o Supabase
+  // corta nesse numero sem avisar — as metricas sairiam erradas.
+  const [enrollsAll, certs, profiles, courses] = await Promise.all([
+    fetchAll<{ user_id: string; course_id: string; granted_at: string }>((de, ate) =>
+      service
+        .from("enrollments")
+        .select("user_id, course_id, granted_at")
+        .or(`expires_at.is.null,expires_at.gte.${now}`)
+        .range(de, ate)
+    ),
+    fetchAll<{ user_id: string; course_id: string; issued_at: string }>((de, ate) =>
+      service.from("certificates").select("user_id, course_id, issued_at").range(de, ate)
+    ),
+    fetchAll<{ id: string; full_name: string | null; email: string | null; avatar_url: string | null }>((de, ate) =>
+      service
+        .from("profiles")
+        .select("id, full_name, email, avatar_url")
+        .eq("role", "student")
+        .eq("banned", false)
+        .range(de, ate)
+    ),
+    fetchAll<{ id: string; title: string }>((de, ate) =>
+      service.from("courses").select("id, title").range(de, ate)
+    ),
   ]);
 
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
-  const courseMap = new Map((courses ?? []).map((c) => [c.id, c]));
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+  const courseMap = new Map(courses.map((c) => [c.id, c]));
 
   // Alunas com ≥1 certificado (concluíram pelo menos um curso)
   const certsByUser = new Map<string, { courseId: string; issuedAt: string }[]>();
@@ -40,7 +57,7 @@ export default async function TaxaConclusaoPage() {
   }
 
   // Alunas matriculadas sem nenhum certificado (em andamento)
-  const enrolledUserIds = new Set((enrollsAll ?? []).map((e) => e.user_id));
+  const enrolledUserIds = new Set(enrollsAll.map((e) => e.user_id));
   const certUserIds = new Set(certsByUser.keys());
 
   // Quem concluiu: tem certificado E tem matrícula ativa
@@ -61,7 +78,7 @@ export default async function TaxaConclusaoPage() {
   const inProgress = [...enrolledUserIds]
     .filter((id) => !certUserIds.has(id))
     .map((id) => {
-      const userEnrolls = (enrollsAll ?? []).filter((e) => e.user_id === id);
+      const userEnrolls = enrollsAll.filter((e) => e.user_id === id);
       return {
         profile: profileMap.get(id),
         enrollCount: userEnrolls.length,
@@ -143,9 +160,9 @@ export default async function TaxaConclusaoPage() {
             <div className="divide-y divide-border/40 max-h-[480px] overflow-y-auto">
               {concluded.map(({ profile, certs: userCerts }) => (
                 <div key={profile!.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/20 transition-colors">
-                  <StudentAvatar name={profile!.full_name ?? profile!.email} url={profile!.avatar_url} size={32} />
+                  <StudentAvatar name={profile!.full_name || profile!.email || "Aluna"} url={profile!.avatar_url} size={32} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{profile!.full_name ?? profile!.email}</p>
+                    <p className="text-sm font-medium truncate">{profile!.full_name || profile!.email || "Aluna"}</p>
                     <p className="text-xs text-muted-foreground truncate">{profile!.email}</p>
                   </div>
                   <div className="text-right shrink-0">
@@ -181,9 +198,9 @@ export default async function TaxaConclusaoPage() {
             <div className="divide-y divide-border/40 max-h-[480px] overflow-y-auto">
               {inProgress.map(({ profile, enrollCount }) => (
                 <div key={profile!.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/20 transition-colors">
-                  <StudentAvatar name={profile!.full_name ?? profile!.email} url={profile!.avatar_url} size={32} />
+                  <StudentAvatar name={profile!.full_name || profile!.email || "Aluna"} url={profile!.avatar_url} size={32} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{profile!.full_name ?? profile!.email}</p>
+                    <p className="text-sm font-medium truncate">{profile!.full_name || profile!.email || "Aluna"}</p>
                     <p className="text-xs text-muted-foreground truncate">{profile!.email}</p>
                   </div>
                   <div className="text-right shrink-0">

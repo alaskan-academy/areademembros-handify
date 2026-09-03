@@ -1,7 +1,13 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import EngajamentoPage from "@/components/admin/metrics/EngajamentoPage";
+
+// Envolve fetchAll devolvendo { data } para o restante do arquivo nao mudar.
+async function pag<T>(q: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  return { data: await fetchAll<T>(q) };
+}
 
 export default async function EngajamentoAdminPage({
   searchParams,
@@ -32,13 +38,15 @@ export default async function EngajamentoAdminPage({
   type Row = { id: string; user_id: string };
 
   // Step 1: query all activity tables in parallel
-  const fpq = service.from("forum_posts").select("id, user_id");
-  const fcq = service.from("forum_comments").select("id, user_id");
-  const ssq = service.from("supplier_suggestions").select("id, user_id");
-  const lpq = service.from("lesson_progress").select("user_id").eq("completed", true);
-  const ilq = service.from("inspiration_likes").select("user_id");
-  const ibq = service.from("inspiration_bookmarks").select("user_id");
-  const icq = service.from("inspiration_comments").select("user_id").eq("approved", true);
+  // Cada uma paginada: lesson_progress sozinha tem 22 mil linhas e o Supabase
+  // corta em 1.000, o que subestimava o engajamento sem avisar.
+  const fpq = (de: number, ate: number) => service.from("forum_posts").select("id, user_id").range(de, ate);
+  const fcq = (de: number, ate: number) => service.from("forum_comments").select("id, user_id").range(de, ate);
+  const ssq = (de: number, ate: number) => service.from("supplier_suggestions").select("id, user_id").range(de, ate);
+  const lpq = (de: number, ate: number) => service.from("lesson_progress").select("user_id").eq("completed", true).range(de, ate);
+  const ilq = (de: number, ate: number) => service.from("inspiration_likes").select("user_id").range(de, ate);
+  const ibq = (de: number, ate: number) => service.from("inspiration_bookmarks").select("user_id").range(de, ate);
+  const icq = (de: number, ate: number) => service.from("inspiration_comments").select("user_id").eq("approved", true).range(de, ate);
 
   const [
     { data: forumPostsRaw },
@@ -49,13 +57,13 @@ export default async function EngajamentoAdminPage({
     { data: inspBookmarksRaw },
     { data: inspCommentsRaw },
   ] = await Promise.all([
-    since ? fpq.gte("created_at", since) : fpq,
-    since ? fcq.gte("created_at", since) : fcq,
-    since ? ssq.gte("created_at", since) : ssq,
-    since ? lpq.gte("updated_at", since) : lpq,
-    since ? ilq.gte("created_at", since) : ilq,
-    since ? ibq.gte("created_at", since) : ibq,
-    since ? icq.gte("created_at", since) : icq,
+    pag((de, ate) => (since ? fpq(de, ate).gte("created_at", since) : fpq(de, ate))),
+    pag((de, ate) => (since ? fcq(de, ate).gte("created_at", since) : fcq(de, ate))),
+    pag((de, ate) => (since ? ssq(de, ate).gte("created_at", since) : ssq(de, ate))),
+    pag((de, ate) => (since ? lpq(de, ate).gte("updated_at", since) : lpq(de, ate))),
+    pag((de, ate) => (since ? ilq(de, ate).gte("created_at", since) : ilq(de, ate))),
+    pag((de, ate) => (since ? ibq(de, ate).gte("created_at", since) : ibq(de, ate))),
+    pag((de, ate) => (since ? icq(de, ate).gte("created_at", since) : icq(de, ate))),
   ]);
 
   const forumPosts = (forumPostsRaw ?? []) as Row[];

@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { createServiceClient } from "@/lib/supabase/service";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 let vapidConfigured = false;
 function ensureVapid() {
@@ -59,14 +60,20 @@ export async function broadcastPush(
   userIds?: string[]
 ): Promise<number> {
   const service = createServiceClient();
-  let query = service
-    .from("push_subscriptions")
-    .select("endpoint, p256dh, auth");
-  if (userIds?.length) {
-    query = query.in("user_id", userIds);
-  }
-  const { data: subs } = await query;
-  if (!subs?.length) return 0;
+
+  // Pagina até o fim: sem isso, o Supabase corta em 1.000 inscrições e as
+  // demais nunca recebem nada — silenciosamente, sem erro.
+  const subs = await fetchAll<{ endpoint: string; p256dh: string; auth: string }>(
+    (de, ate) => {
+      const query = service
+        .from("push_subscriptions")
+        .select("endpoint, p256dh, auth")
+        .range(de, ate);
+      return userIds?.length ? query.in("user_id", userIds) : query;
+    }
+  );
+
+  if (!subs.length) return 0;
 
   const results = await Promise.allSettled(
     subs.map((sub) =>

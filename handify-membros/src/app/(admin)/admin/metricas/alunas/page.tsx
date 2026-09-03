@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -23,6 +24,11 @@ type Profile = {
   created_at: string;
 };
 
+// Envolve fetchAll devolvendo { data } para o restante do arquivo nao mudar.
+async function pag<T>(q: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  return { data: await fetchAll<T>(q) };
+}
+
 export default async function AlunaRankingPage() {
   await assertAdmin();
   const service = createServiceClient();
@@ -35,15 +41,19 @@ export default async function AlunaRankingPage() {
     { data: courses },
     { data: paymentEvents },
   ] = await Promise.all([
-    service.from("lesson_progress").select("user_id, lesson_id, completed, updated_at"),
-    service.from("certificates").select("user_id, course_id, issued_at"),
-    service.from("enrollments").select("user_id, course_id, granted_at, source"),
-    service.from("profiles").select("id, full_name, email, avatar_url, created_at").eq("role", "student").eq("banned", false),
-    service.from("courses").select("id, title, price"),
-    service.from("payment_events")
+    // Todas paginadas: lesson_progress tem 22 mil linhas, enrollments 8 mil,
+    // payment_events 9 mil. Sem paginar, o Supabase corta em 1.000 e as
+    // metricas mostram uma fatia da realidade sem avisar.
+    pag((de, ate) => service.from("lesson_progress").select("user_id, lesson_id, completed, updated_at").range(de, ate)),
+    pag((de, ate) => service.from("certificates").select("user_id, course_id, issued_at").range(de, ate)),
+    pag((de, ate) => service.from("enrollments").select("user_id, course_id, granted_at, source").range(de, ate)),
+    pag((de, ate) => service.from("profiles").select("id, full_name, email, avatar_url, created_at").eq("role", "student").eq("banned", false).range(de, ate)),
+    pag((de, ate) => service.from("courses").select("id, title, price").range(de, ate)),
+    pag((de, ate) => service.from("payment_events")
       .select("buyer_email, buyer_name, amount_paid")
       .eq("processed", true)
-      .not("amount_paid", "is", null),
+      .not("amount_paid", "is", null)
+      .range(de, ate)),
   ]);
 
   const profiles = (allProfiles ?? []) as Profile[];

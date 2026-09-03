@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -16,6 +17,25 @@ import {
 import { hashCpf, decryptCpf } from "@/lib/cpf-crypto";
 import AlunosSearch from "./alunos-search";
 import SemCadastroClient, { type SemCadastroRow } from "./SemCadastroClient";
+
+type TokenRow = {
+  id: string;
+  email: string;
+  buyer_name: string | null;
+  buyer_phone: string | null;
+  created_at: string;
+  token: string;
+  expires_at: string;
+  // O Supabase tipa o embed como array; o uso abaixo ja faz o cast.
+  courses?: unknown;
+};
+
+type ConversionStats = {
+  total_buyers: number;
+  with_account: number;
+  pending_count: number;
+  conversion_pct: number;
+};
 
 const PAGE_SIZE = 25;
 const GRANT_EVENT_TYPES = ["paid", "approved", "completed", "confirmed"];
@@ -81,49 +101,40 @@ export default async function AlunosPage({
   }
 
   // ── Dados para card de conversão (sempre) ─────────────────────────────────
-  const [{ data: paidEvents }, { data: allProfileEmails }] = await Promise.all(
-    [
-      service
-        .from("payment_events")
-        .select("buyer_email")
-        .eq("processed", true)
-        .in("event_type", GRANT_EVENT_TYPES),
-      service
-        .from("profiles")
-        .select("email")
-        .neq("role", "admin"),
-    ]
-  );
+  // Contado no banco, nao somando as linhas recebidas: o Supabase corta em
+  // 1.000 e o card mostrava 931 compradoras onde havia 3.157 — taxa de 48%
+  // quando a real e 85%.
+  const { data: statsRows } = await service.rpc("admin_conversion_stats");
+  const stats = (statsRows as unknown as ConversionStats[] | null)?.[0];
 
-  const uniqueBuyers = new Set(
-    (paidEvents ?? [])
-      .map((e) => e.buyer_email?.toLowerCase())
-      .filter(Boolean) as string[]
-  );
-  const profileEmailSet = new Set(
-    (allProfileEmails ?? [])
-      .map((p) => p.email?.toLowerCase())
-      .filter(Boolean) as string[]
-  );
-  const totalBuyers = uniqueBuyers.size;
-  const withAccount = [...uniqueBuyers].filter((e) =>
-    profileEmailSet.has(e)
-  ).length;
-  const pendingCount = totalBuyers - withAccount;
-  const conversionRate =
-    totalBuyers > 0 ? Math.round((withAccount / totalBuyers) * 100) : 0;
+  const totalBuyers = Number(stats?.total_buyers ?? 0);
+  const withAccount = Number(stats?.with_account ?? 0);
+  const pendingCount = Number(stats?.pending_count ?? 0);
+  const conversionRate = Number(stats?.conversion_pct ?? 0);
 
   // ── Dados "sem cadastro" ─────────────────────────────────────────────────────
   // Sempre busca para mostrar o badge no tab e calcular o card
-  const { data: rawTokens } = await service
-    .from("activation_tokens")
-    .select(
-      "id, email, buyer_name, buyer_phone, created_at, token, expires_at, courses(id, title, slug)"
-    )
-    .eq("used", false)
-    .order("created_at", { ascending: false });
+  // Paginado: sao 9 mil tokens e o Supabase corta em 1.000, entao a aba
+  // "Sem cadastro" mostrava so uma fatia.
+  const rawTokens = await fetchAll<TokenRow>((de, ate) =>
+    service
+      .from("activation_tokens")
+      .select(
+        "id, email, buyer_name, buyer_phone, created_at, token, expires_at, courses(id, title, slug)"
+      )
+      .eq("used", false)
+      .order("created_at", { ascending: false })
+      .range(de, ate)
+  );
 
-  const unregisteredTokens = (rawTokens ?? []).filter(
+  const perfisExistentes = await fetchAll<{ email: string | null }>((de, ate) =>
+    service.from("profiles").select("email").range(de, ate)
+  );
+  const profileEmailSet = new Set(
+    perfisExistentes.map((p) => p.email?.toLowerCase()).filter(Boolean) as string[]
+  );
+
+  const unregisteredTokens = rawTokens.filter(
     (t) => !profileEmailSet.has(t.email.toLowerCase())
   );
 
