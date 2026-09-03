@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { assertToolAccess } from '@/lib/ferramentas/access'
 import { getSuppliers, getNiches, getProducts, getTagTypes } from '@/lib/fornecedores/actions'
 import { FornecedoresPage } from '@/components/ferramentas/fornecedores/FornecedoresPage'
 
@@ -19,6 +20,8 @@ export default async function FornecedoresRoute({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+  // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
+  await assertToolAccess('fornecedores')
 
   const { nicho, curso, produto } = await searchParams
 

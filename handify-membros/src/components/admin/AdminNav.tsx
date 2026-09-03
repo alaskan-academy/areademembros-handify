@@ -10,6 +10,7 @@ import {
   MessageSquare, Flag, BarChart3, Menu as MenuIcon, X, FileText,
   ChevronRight, PanelLeftClose, PanelLeftOpen, Store,
   MessageCircle, Lightbulb, Sparkles, PlusCircle, type LucideIcon,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
@@ -63,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Ferramentas",
     items: [
+      { href: "/admin/ferramentas",              icon: Wrench,        label: "Ferramentas e tiers" },
       { href: "/admin/fornecedores",             icon: Store,         label: "Fornecedores" },
       { href: "/admin/fornecedores/comentarios", icon: MessageCircle, label: "Coment. Fornecedores",  badgeKey: "reviews" },
       { href: "/admin/fornecedores/sugestoes",   icon: Lightbulb,     label: "Sugest. Fornecedores",  badgeKey: "suggestions" },

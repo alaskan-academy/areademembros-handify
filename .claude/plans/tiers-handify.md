@@ -300,8 +300,26 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       perdeu item). Layout deriva o tier (`getTier`) e o nav mostra os itens do tier
       e dos de baixo; `admin` segue sendo papel. Formulário do admin com os nomes
       novos. Verificado: /cursos com os 9 itens, /admin/menu sem guest/student
-- [ ] Tabela `tools` com `tier_minimo`; hub lê do banco; cadeado que mostra
-- [ ] `current_tier()` nas policies do que for exclusivo
+- [x] **Ferramentas no banco, por tier e por categoria** (proposta v2 aprovada em 03/09,
+      artefato "Ferramentas por Tier"). Tabelas `tools` + `tool_categories`; regra:
+      visitante = qualquer conta · aluna = membership OU matrícula em curso de uma das
+      categorias da ferramenta (sem categoria = qualquer curso) · completo = membership.
+      `src/lib/ferramentas/access.ts` (`getToolsForViewer`, `assertToolAccess`) espelha a
+      regra; as 4 páginas de ferramenta chamam a trava (sem ela o cadeado seria só
+      cosmético). Hub novo: "Seus artesanatos" derivado dos cursos, abas Calcular ·
+      Guardar · Fornecedores, cadeado que mostra o preview borrado e o caminho, busca
+      única, primeira ferramenta visível sem rolar no celular. Admin em
+      `/admin/ferramentas` ("Ferramentas e tiers") edita tier, categorias, grupo, ordem,
+      em breve, ativa — sem deploy. 12 ferramentas semeadas (6 calcular, 1 fornecedores,
+      5 guardar em breve). Verificado com clique (sessão admin): hub, admin e trava.
+      **Jessica revisa o mapeamento no painel** — proposta atual: Essências ← Saboaria,
+      Velas, Aromas, Cosméticos · Pavio ← Velas · Rótulo ← Saboaria, Cosméticos.
+- [ ] `current_tier()` nas policies do que for exclusivo (quando as ferramentas
+      "Guardar" tiverem tabelas próprias)
+- [ ] Nome da seção: **"Ferramentas"** (mantido); bloco do Completo: **"Meu negócio"**
+- [ ] **"Minha receita" como fluxo** absorvendo Lucro + Essências + Pavio + Escala de
+      lote, com a porta "O que você precisa agora?" (4 botões). Cada etapa continua
+      abrindo sozinha. Ao entrar, desativar as três entradas antigas na tabela
 
 ### Fase 4 — Porta aberta
 - [ ] Landing pública `/comecar` (proposta do gratuito) + onboarding direto para a

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { assertToolAccess } from '@/lib/ferramentas/access'
 import CalculadoraLucro, { type ProdutoConfig } from '@/components/ferramentas/CalculadoraLucro'
 
 // Mapa de slugs do DB → chave do CONFIGS (permite URLs como /saboaria-artesanal)
@@ -66,6 +67,8 @@ export default async function CalculadoraPage({
 }: {
   params: Promise<{ produto: string }>
 }) {
+  // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
+  await assertToolAccess('calculadora-lucro')
   const { produto } = await params
   const config = CONFIGS[SLUG_MAP[produto] ?? produto]
   if (!config) notFound()

@@ -1,252 +1,312 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, ChevronDown, Search, X } from 'lucide-react'
+import { ChevronRight, Search, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { NicheRow } from '@/lib/fornecedores/types'
+import type { ToolSection, ToolView, ViewerTools } from '@/lib/ferramentas/types'
 
-type Tool = { name: string; desc: string; href: string; icon: string; soon?: boolean }
-type Tab = { key: string; label: string; icon: string; tools: Tool[] }
+/**
+ * Área Ferramentas — a mesma tela para todos os tiers; o que muda é o estado de
+ * cada ferramenta. Aprovado pela Jessica em 03/09 ("Ferramentas por Tier · v2").
+ *
+ * - "Seus artesanatos" vem dos cursos que ela tem, não de um seletor.
+ * - Agrupado pelo que ela quer fazer: Calcular · Guardar · Fornecedores.
+ * - Trancada nunca some: mostra o resultado borrado e o caminho. Nunca "bloqueado".
+ * - Cabe na primeira tela do celular: título de uma linha, primeira ferramenta
+ *   visível sem rolar.
+ */
 
-const NICHE_ICONS: Record<string, string> = {
-  'velas-artesanais':  '🕯️',
-  'saboaria-artesanal': '🧼',
-  'aromaterapia':      '🌿',
-  'embalagens':        '📦',
-}
-
-function nicheToTab(niche: NicheRow): Tab {
-  const icon = NICHE_ICONS[niche.slug] ?? '🎨'
-  const tools: Tool[] = [
-    {
-      name: 'Calculadora de Lucro',
-      desc: `Calcule o custo real e o preço ideal de venda para ${niche.name.toLowerCase()} — incluindo mão de obra, embalagem e impostos.`,
-      href: `/ferramentas/calculadora-lucro/${niche.slug}`,
-      icon: '🧮',
-    },
-    {
-      name: 'Calculadora de Essências',
-      desc: 'Descubra exatamente quanto de essência ou óleo essencial usar na sua receita — resultado em mL, gramas e gotas.',
-      href: `/ferramentas/calculadora-essencias/${niche.slug}`,
-      icon: '💧',
-    },
-    {
-      name: `Fornecedores de ${niche.name}`,
-      desc: `Lista curada de materiais e lojas para ${niche.name.toLowerCase()} artesanais.`,
-      href: `/ferramentas/fornecedores?nicho=${niche.id}`,
-      icon: '🏪',
-    },
-    {
-      name: 'Calculadora de Receita',
-      desc: 'Escale sua receita para diferentes tamanhos de lote automaticamente.',
-      href: '#',
-      icon: '📐',
-      soon: true,
-    },
-  ]
-
-  if (niche.slug === 'velas-artesanais') {
-    tools.splice(2, 0, {
-      name: 'Calculadora de Pavio',
-      desc: 'Responda 5 perguntas e descubra qual pavio usar na sua vela — com alternativas, notas de queima e dicas de teste.',
-      href: '/ferramentas/calculadora-pavio',
-      icon: '🕯️',
-    })
-  }
-
-  return { key: niche.slug, label: niche.name, icon, tools }
-}
-
-const COMING_SOON_TABS = [
-  { label: 'Costura', icon: '✂️' },
-  { label: 'Crochê', icon: '🧶' },
-  { label: 'Pintura', icon: '🎨' },
+const SECOES: { key: ToolSection; label: string; hint: string }[] = [
+  { key: 'calcular', label: 'Calcular', hint: 'Dá o número e você segue' },
+  { key: 'guardar', label: 'Guardar', hint: 'Seu negócio fica salvo aqui' },
+  { key: 'fornecedores', label: 'Fornecedores', hint: 'Onde comprar' },
 ]
 
-export default function FerramentasHub({ niches }: { niches: NicheRow[] }) {
-  const TABS: Tab[] = niches.map(nicheToTab)
-  const [activeTab, setActiveTab] = useState(TABS[0]?.key ?? '')
-  const [selectorOpen, setSelectorOpen] = useState(false)
-  const [busca, setBusca] = useState('')
-  const tab = TABS.find(t => t.key === activeTab) ?? TABS[0] ?? { key: '', label: '', icon: '', tools: [] }
+const ICONE_NICHO: Record<string, string> = {
+  'velas-artesanais': '🕯️',
+  'saboaria-artesanal': '🧼',
+}
 
-  const filteredTools = busca.trim()
-    ? tab.tools.filter(t =>
-        t.name.toLowerCase().includes(busca.trim().toLowerCase()) ||
-        t.desc.toLowerCase().includes(busca.trim().toLowerCase())
-      )
-    : tab.tools
+const TIER_LABEL: Record<string, string> = {
+  aluna: 'para alunas',
+  completo: 'no Handify Completo',
+}
+
+export default function FerramentasHub({
+  dados,
+  bloqueada,
+}: {
+  dados: ViewerTools
+  /** Slug de uma ferramenta que ela tentou abrir sem ter acesso. */
+  bloqueada?: string
+}) {
+  const { tools, nichos, planLink, tier } = dados
+  const ferramentaBloqueada = bloqueada ? tools.find(t => t.slug === bloqueada) : undefined
+  const [secao, setSecao] = useState<ToolSection>(ferramentaBloqueada?.section ?? 'calcular')
+  const [busca, setBusca] = useState('')
+
+  const porSecao = useMemo(() => {
+    const termo = busca.trim().toLowerCase()
+    const filtrar = (t: ToolView) =>
+      !termo || t.name.toLowerCase().includes(termo) || (t.description ?? '').toLowerCase().includes(termo)
+    return Object.fromEntries(
+      SECOES.map(s => [s.key, tools.filter(t => t.section === s.key && filtrar(t))])
+    ) as Record<ToolSection, ToolView[]>
+  }, [tools, busca])
+
+  const lista = porSecao[secao]
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
-      {/* Hero */}
-      <div className="bg-white border-b border-border/60">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 text-center">
-          <h1 className="text-3xl sm:text-4xl font-black text-[#0F0F0F]">
-            Ferramentas para <span className="text-[#6699F3]">Artesãs</span>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-4">
+        {/* Cabeçalho curto: a primeira ferramenta precisa aparecer sem rolar */}
+        <div className="flex items-end justify-between gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#0F0F0F] leading-none">
+            Ferra<span className="text-[#6699F3]">mentas</span>
           </h1>
-          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Calculadoras, fornecedores e recursos para você precificar, planejar e crescer no artesanato.
-          </p>
+          {tier === 'completo' && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-[#6699F3]">
+              <Sparkles className="w-3.5 h-3.5" /> Completo
+            </span>
+          )}
+        </div>
+
+        {/* Seus artesanatos — derivado dos cursos; chip apagado é convite */}
+        {nichos.length > 0 && (
+          <div id="tour-ferramentas-nicho" className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+            <span>Seus artesanatos:</span>
+            {nichos.map(n => (
+              <span
+                key={n.id}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border-[1.5px] px-2.5 py-1 text-xs font-semibold',
+                  n.ativo
+                    ? 'border-[#6699F3] text-[#6699F3] bg-[#6699F3]/10'
+                    : 'border-border text-muted-foreground bg-white'
+                )}
+                title={n.ativo ? `Você tem curso de ${n.name}` : `Ainda sem curso de ${n.name}`}
+              >
+                <span>{ICONE_NICHO[n.slug] ?? '🎨'}</span>
+                {n.name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Aviso: tentou abrir algo que ainda não tem */}
+        {ferramentaBloqueada && ferramentaBloqueada.state !== 'aberta' && (
+          <div className="rounded-xl border border-[#FEC649]/60 bg-[#FEC649]/15 px-4 py-3 text-sm text-[#2D2D2D]">
+            <strong>{ferramentaBloqueada.name}</strong> {textoDoCaminho(ferramentaBloqueada)}.
+          </div>
+        )}
+
+        {/* Seções */}
+        <div className="flex border-b border-border/70">
+          {SECOES.map(s => {
+            const n = porSecao[s.key].length
+            return (
+              <button
+                key={s.key}
+                onClick={() => setSecao(s.key)}
+                title={s.hint}
+                className={cn(
+                  'flex-1 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors min-h-[44px]',
+                  secao === s.key
+                    ? 'border-[#6699F3] text-[#6699F3]'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {s.label}
+                {n > 0 && <span className="ml-1 text-xs font-medium opacity-70">{n}</span>}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Busca — uma só, em todas as seções */}
+        <div id="tour-ferramentas-busca" className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="Buscar ferramenta…"
+            aria-label="Buscar ferramenta"
+            className="w-full pl-9 pr-9 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 min-h-[44px]"
+          />
+          {busca && (
+            <button
+              onClick={() => setBusca('')}
+              aria-label="Limpar busca"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Lista */}
+        {lista.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
+            <p className="text-sm font-medium">
+              {busca ? 'Nenhuma ferramenta com esse nome' : 'Nada aqui ainda'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {lista.map(t => (
+              <ToolCard key={t.slug} tool={t} planLink={planLink} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** "abre com o seu primeiro curso" — a frase que diz o caminho, na voz Handify. */
+function textoDoCaminho(t: ToolView): string {
+  switch (t.state) {
+    case 'com_curso':
+      return 'abre com o seu primeiro curso'
+    case 'com_categoria':
+      return `abre com um curso de ${listaEm(t.unlockCategories)} — ou com o Handify Completo`
+    case 'com_completo':
+      return 'faz parte do Handify Completo'
+    case 'em_breve':
+      return 'ainda está sendo preparada'
+    default:
+      return ''
+  }
+}
+
+function listaEm(nomes: string[]): string {
+  const curtos = nomes.map(n => n.replace(/ Artesana(l|is)$/i, ''))
+  if (curtos.length <= 1) return curtos[0] ?? ''
+  return `${curtos.slice(0, -1).join(', ')} ou ${curtos[curtos.length - 1]}`
+}
+
+function ToolCard({ tool, planLink }: { tool: ToolView; planLink: string | null }) {
+  const icone = (
+    <div className="w-10 h-10 rounded-xl bg-[#6699F3]/10 flex items-center justify-center text-xl shrink-0">
+      {tool.icon ?? '🧰'}
+    </div>
+  )
+
+  if (tool.state === 'aberta' && tool.href) {
+    return (
+      <Link
+        href={tool.href}
+        className="group bg-white rounded-2xl border border-border/60 hover:border-[#6699F3]/50 hover:shadow-md transition-all p-4 flex items-center gap-3"
+      >
+        {icone}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-[#2D2D2D] text-[15px] leading-tight group-hover:text-[#6699F3] transition-colors">
+            {tool.name}
+          </h3>
+          {tool.description && (
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">{tool.description}</p>
+          )}
+        </div>
+        <span className="shrink-0 inline-flex items-center gap-1 bg-[#6699F3] text-white text-xs font-bold rounded-lg px-3 min-h-[40px]">
+          Abrir <ChevronRight className="w-4 h-4" />
+        </span>
+      </Link>
+    )
+  }
+
+  if (tool.state === 'em_breve') {
+    return (
+      <div className="bg-white rounded-2xl border border-border/60 p-4 flex items-center gap-3 opacity-75">
+        {icone}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-[#2D2D2D] text-[15px] leading-tight">{tool.name}</h3>
+          {tool.description && (
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">{tool.description}</p>
+          )}
+        </div>
+        <span className="shrink-0 text-right">
+          <span className="block text-[11px] font-black bg-[#FEC649] text-[#0F0F0F] px-2 py-1 rounded-full">
+            Em breve
+          </span>
+          {TIER_LABEL[tool.minTier] && (
+            <span className="block text-[10px] text-muted-foreground mt-1">{TIER_LABEL[tool.minTier]}</span>
+          )}
+        </span>
+      </div>
+    )
+  }
+
+  // Trancada: mostra o resultado que ela teria, borrado, e o caminho.
+  const caminho =
+    tool.state === 'com_completo'
+      ? { texto: 'No Handify Completo', botao: 'Desbloquear', href: planLink ?? '/cursos', externo: !!planLink }
+      : tool.state === 'com_categoria'
+      ? { texto: `Com um curso de ${listaEm(tool.unlockCategories)}`, botao: 'Ver cursos', href: '/cursos', externo: false }
+      : { texto: 'Com o seu primeiro curso', botao: 'Ver cursos', href: '/cursos', externo: false }
+
+  return (
+    <div className="bg-white rounded-2xl border border-border/60 p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#F5F5F0] flex items-center justify-center text-xl shrink-0">
+          {tool.icon ?? '🧰'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-[#2D2D2D] text-[15px] leading-tight">{tool.name}</h3>
+          {tool.description && (
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">{tool.description}</p>
+          )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {tool.preview.length > 0 && (
+        <div
+          aria-hidden
+          className="rounded-lg border border-dashed border-border/70 px-3 py-2 space-y-1 select-none pointer-events-none"
+          style={{ filter: 'blur(2.5px)', opacity: 0.65 }}
+        >
+          {tool.preview.slice(0, 3).map((p, i) => (
+            <div key={i} className="flex justify-between text-xs tabular-nums">
+              <span>{p.label}</span>
+              <b>{p.value}</b>
+            </div>
+          ))}
+        </div>
+      )}
 
-        {/* Seletor de artesanato — retrátil */}
-        <div id="tour-ferramentas-nicho" className="mb-5 space-y-2">
-          {/* Botão que mostra a seleção atual */}
-          <button
-            onClick={() => setSelectorOpen(v => !v)}
-            aria-expanded={selectorOpen}
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs text-muted-foreground leading-snug">
+          {caminho.texto}
+          {tool.state === 'com_categoria' && planLink && (
+            <>
+              {' '}— ou{' '}
+              <a href={planLink} target="_blank" rel="noopener noreferrer" className="text-[#6699F3] font-semibold underline">
+                o Completo
+              </a>
+            </>
+          )}
+        </span>
+        {caminho.externo ? (
+          <a
+            href={caminho.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 inline-flex items-center bg-[#6699F3] text-white text-xs font-bold rounded-lg px-3 min-h-[40px] hover:bg-[#5580d4] transition-colors"
+          >
+            {caminho.botao}
+          </a>
+        ) : (
+          <Link
+            href={caminho.href}
             className={cn(
-              'w-full flex items-center justify-between gap-3 bg-white rounded-2xl border-2 p-4 transition-colors',
-              selectorOpen
-                ? 'border-[#6699F3]'
-                : 'border-[#6699F3]/40 hover:border-[#6699F3]'
+              'shrink-0 inline-flex items-center text-xs font-bold rounded-lg px-3 min-h-[40px] transition-colors',
+              'bg-[#72CF92] text-[#0F0F0F] hover:bg-[#5fbf80]'
             )}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-[#6699F3]/10 flex items-center justify-center text-2xl shrink-0">
-                {tab.icon}
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground leading-none mb-1">
-                  Artesanato selecionado
-                </p>
-                <p className="font-black text-[#0F0F0F] text-base leading-none">{tab.label}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-[#6699F3] shrink-0">
-              <span className="text-sm font-semibold hidden sm:inline">Trocar</span>
-              <ChevronDown className={cn('w-5 h-5 transition-transform', selectorOpen && 'rotate-180')} />
-            </div>
-          </button>
-
-          {/* Painel retrátil com opções */}
-          {selectorOpen && (
-            <div className="bg-white rounded-2xl border border-border/70 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Escolha seu artesanato
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {TABS.map(t => (
-                  <button
-                    key={t.key}
-                    onClick={() => { setActiveTab(t.key); setSelectorOpen(false) }}
-                    className={cn(
-                      'flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all text-left',
-                      activeTab === t.key
-                        ? 'border-[#6699F3] bg-[#6699F3]/5 text-[#6699F3]'
-                        : 'border-border/60 text-foreground/70 hover:border-[#6699F3]/50 hover:text-[#6699F3]'
-                    )}
-                  >
-                    <span className="text-xl">{t.icon}</span>
-                    {t.label}
-                  </button>
-                ))}
-                {COMING_SOON_TABS.map(t => (
-                  <button
-                    key={t.label}
-                    disabled
-                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl border-2 border-border/30 font-bold text-sm text-gray-300 cursor-not-allowed"
-                  >
-                    <span className="text-xl opacity-40">{t.icon}</span>
-                    <span className="truncate">{t.label}</span>
-                    <span className="text-xs font-black bg-[#FEC649] text-[#0F0F0F] px-1 py-0.5 rounded-full leading-none ml-auto shrink-0">
-                      BREVE
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Busca dentro da categoria */}
-          <div id="tour-ferramentas-busca" className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              value={busca}
-              onChange={e => setBusca(e.target.value)}
-              placeholder={`Buscar em ${tab.label}...`}
-              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow"
-            />
-            {busca && (
-              <button
-                onClick={() => setBusca('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Tool cards */}
-        {filteredTools.length === 0 && busca && (
-          <div className="col-span-2 text-center py-12 text-muted-foreground">
-            <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
-            <p className="text-sm font-medium">Nenhuma ferramenta encontrada</p>
-          </div>
+            {caminho.botao}
+          </Link>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {filteredTools.map(tool => (
-            tool.soon ? (
-              <div
-                key={tool.name}
-                className="bg-white rounded-2xl border border-border/60 opacity-60 overflow-hidden"
-              >
-                <div className="p-6">
-                  <div className="text-3xl mb-3">{tool.icon}</div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-black text-[#2D2D2D] text-base">{tool.name}</h3>
-                    <span className="text-xs font-black bg-[#FEC649] text-[#0F0F0F] px-2 py-1 rounded-full whitespace-nowrap shrink-0">
-                      Em breve
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500 leading-relaxed">{tool.desc}</p>
-                </div>
-              </div>
-            ) : (
-              <Link
-                key={tool.name}
-                href={tool.href}
-                className="group bg-white rounded-2xl border border-border/60 hover:border-[#6699F3]/50 hover:shadow-md transition-all overflow-hidden flex flex-col"
-              >
-                <div className="flex h-[3px]">
-                  <span className="flex-1 bg-[#6699F3]" />
-                  <span className="flex-1 bg-[#72CF92]" />
-                  <span className="flex-1 bg-[#FEC649]" />
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <div className="text-3xl mb-3">{tool.icon}</div>
-                  <h3 className="font-black text-[#2D2D2D] text-base mb-2 group-hover:text-[#6699F3] transition-colors">
-                    {tool.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed flex-1">{tool.desc}</p>
-                  <div className="mt-5 flex items-center gap-1.5 bg-[#6699F3] group-hover:bg-[#5288EF] text-white text-sm font-bold px-4 py-3 rounded-xl transition-colors justify-center">
-                    Abrir ferramenta
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </Link>
-            )
-          ))}
-        </div>
-
-        {/* Info strip */}
-        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:justify-center gap-2 sm:gap-6 mt-10 text-sm text-gray-500">
-          {[
-            { dot: '#6699F3', text: 'Gratuito para todas as alunas' },
-            { dot: '#FEC649', text: 'Novas ferramentas em breve' },
-          ].map(({ dot, text }) => (
-            <div key={text} className="flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} />
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   )

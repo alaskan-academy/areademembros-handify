@@ -134,7 +134,7 @@ export const SECTION_TOURS: Record<string, TourStep[]> = {
   ferramentas: [
     {
       targetId: "tour-ferramentas-nicho",
-      text: "Selecione seu tipo de artesanato para ver as ferramentas disponíveis.",
+      text: "Seus artesanatos aparecem aqui, pelos cursos que você tem — as ferramentas se adaptam a eles.",
     },
     {
       targetId: "tour-ferramentas-busca",

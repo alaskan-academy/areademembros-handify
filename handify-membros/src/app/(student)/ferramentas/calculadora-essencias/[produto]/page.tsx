@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { assertToolAccess } from '@/lib/ferramentas/access'
 import CalculadoraEssencias, { type EssenciasConfig } from '@/components/ferramentas/CalculadoraEssencias'
 
 const SLUG_MAP: Record<string, string> = {
@@ -61,6 +62,8 @@ export default async function CalculadoraEssenciasPage({
 }: {
   params: Promise<{ produto: string }>
 }) {
+  // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
+  await assertToolAccess('calculadora-essencias')
   const { produto } = await params
   const config = CONFIGS[SLUG_MAP[produto] ?? produto]
   if (!config) notFound()

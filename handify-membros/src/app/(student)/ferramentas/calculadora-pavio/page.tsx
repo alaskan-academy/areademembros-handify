@@ -1,4 +1,5 @@
 import { getWickRecommendations, getSavedFormulas } from '@/lib/pavio/actions';
+import { assertToolAccess } from '@/lib/ferramentas/access';
 import CalculadoraPavio from '@/components/ferramentas/CalculadoraPavio';
 
 export const metadata = {
@@ -7,6 +8,8 @@ export const metadata = {
 };
 
 export default async function CalculadoraPavioPage() {
+  // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
+  await assertToolAccess('calculadora-pavio');
   const [recommendations, savedFormulas] = await Promise.all([
     getWickRecommendations(),
     getSavedFormulas(),
