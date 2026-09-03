@@ -15,7 +15,7 @@ insert into public.tools (slug, name, description, icon, section, min_tier, href
   ('minha-receita', 'Minha receita',
    'Do ingrediente ao preço, num fluxo só — quanto de essência, qual pavio, quanto custa e por quanto vender.',
    '📒', 'calcular', 'visitante', '/ferramentas/minha-receita', false, 5,
-   '[{"label":"Vela lavanda 200g","value":"R$ 9,40 / un"},{"label":"Essência · moderado","value":"12 mL · 240 gotas"},{"label":"Pavio","value":"CDN 12"}]')
+   '[{"label":"Vela lavanda 200g","value":"R$ 9,40 / un"},{"label":"Essência, moderado","value":"12 mL = 240 gotas"},{"label":"Pavio","value":"CDN 12"}]')
 on conflict (slug) do nothing;
 
 update public.tools

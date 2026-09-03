@@ -105,7 +105,7 @@ const PRODUTO_INFO: Record<Produto, { icone: string; nome: string; singular: str
 const CERAS_RECIPIENTE = [
   { value: 'soy', label: 'Cera de soja', desc: 'EcoSoya, Golden Wax, NatureCera…' },
   { value: 'paraffin', label: 'Parafina', desc: 'Parafina container ou vela' },
-  { value: 'ecomix', label: 'Ecomix', desc: 'Blend brasileiro de soja + parafina' },
+  { value: 'ecomix', label: 'Ecomix', desc: 'Blend de soja + parafina, o mais usado' },
   { value: 'coconut', label: 'Cera de coco', desc: 'Coconut Wax, Coco 83…' },
   { value: 'blend', label: 'Outro blend', desc: 'Mistura de ceras (não ecomix)' },
   { value: 'beeswax', label: 'Cera de abelha', desc: 'Cera de abelha pura' },
@@ -387,7 +387,7 @@ export default function MinhaReceita({
                   <Valor v={`${numero(aroma.gramas, 1)} g`} l="gramas" />
                   <Valor v={String(aroma.gotas)} l="gotas" />
                   <p className="col-span-3 text-xs text-muted-foreground mt-1">
-                    {percentualAroma}% de {numero(aroma.pesoLote, 0)} g de lote · 20 gotas por mL
+                    {percentualAroma}% de {numero(aroma.pesoLote, 0)} g de lote (20 gotas por mL)
                   </p>
                 </div>
               )}
@@ -470,7 +470,7 @@ export default function MinhaReceita({
                   <Valor v={reais(lucro)} l={`lucro / ${info.singular}`} />
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
-                  No lote de {custo.unidades}: {reais(preco * custo.unidades)} de venda · {reais(lucro * custo.unidades)} de lucro
+                  No lote de {custo.unidades}: {reais(preco * custo.unidades)} de venda e {reais(lucro * custo.unidades)} de lucro
                 </p>
               </div>
             ) : (
@@ -481,7 +481,7 @@ export default function MinhaReceita({
         )}
 
         {etapa === 'ficha' && (
-          <Cartao titulo={receita.nome || `${info.nome} sem nome`} sub={`${custo.unidades} ${info.plural} · ${receita.pesoPorUnidade || '—'} g cada`}>
+          <Cartao titulo={receita.nome || `${info.nome} sem nome`} sub={`${custo.unidades} ${info.plural} de ${receita.pesoPorUnidade || '—'} g cada`}>
             <div className="grid grid-cols-3 gap-2 text-center">
               <Valor v={reais(custo.custoPorUnidade)} l="custo" />
               <Valor v={reais(preco)} l="preço" destaque />
@@ -490,13 +490,13 @@ export default function MinhaReceita({
             <Detalhe rotulo="Margem" valor={`${receita.margem}%`} />
             <Detalhe rotulo="Matéria-prima do lote" valor={reais(materiaPrimaLote)} />
             {aroma && aroma.gramas > 0 && (
-              <Detalhe rotulo={receita.aroma.tipo === 'oleo' ? 'Óleo essencial' : 'Essência'} valor={`${numero(aroma.ml, 1)} mL · ${numero(aroma.gramas, 1)} g · ${aroma.gotas} gotas (${percentualAroma}%)`} />
+              <Detalhe rotulo={receita.aroma.tipo === 'oleo' ? 'Óleo essencial' : 'Essência'} valor={`${numero(aroma.ml, 1)} mL = ${numero(aroma.gramas, 1)} g = ${aroma.gotas} gotas (${percentualAroma}% do lote)`} />
             )}
             {receita.produto === 'velas' && pavioRec && (
-              <Detalhe rotulo="Pavio" valor={`${pavioRec.wick_primary}${pavioRec.wick_alternatives?.length ? ` · alternativas: ${pavioRec.wick_alternatives.join(', ')}` : ''}`} />
+              <Detalhe rotulo="Pavio" valor={`${pavioRec.wick_primary}${pavioRec.wick_alternatives?.length ? ` (alternativas: ${pavioRec.wick_alternatives.join(', ')})` : ''}`} />
             )}
             <div className="text-xs text-muted-foreground">
-              {receita.insumos.filter(i => i.nome).map(i => `${i.nome} ${i.qtdUsadaNoLote}${i.unidade}`).join(' · ')}
+              {receita.insumos.filter(i => i.nome).map(i => `${i.nome} ${i.qtdUsadaNoLote}${i.unidade}`).join(', ')}
             </div>
 
             <div className="grid gap-2 pt-2">
