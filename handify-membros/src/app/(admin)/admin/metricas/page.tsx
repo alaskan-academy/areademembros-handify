@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -11,6 +12,11 @@ async function assertAdmin() {
   if (!user) redirect("/login");
   const { data: p } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (p?.role !== "admin") redirect("/dashboard");
+}
+
+// Envolve fetchAll devolvendo { data } para o restante do arquivo nao mudar.
+async function pag<T>(q: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  return { data: await fetchAll<T>(q) };
 }
 
 export default async function MetricasPage() {
@@ -41,10 +47,12 @@ export default async function MetricasPage() {
     // Cursos publicados
     service.from("courses").select("*", { count: "exact", head: true }).eq("published", true),
 
-    // Top cursos por matrículas
-    service.from("enrollments")
+    // Top cursos por matrículas — paginado: sao 8.5 mil matriculas e o
+    // Supabase corta em 1.000, o que alterava as contagens E a ordem do ranking.
+    pag((de, ate) => service.from("enrollments")
       .select("course_id, courses(title, slug, thumbnail_url)")
-      .or("expires_at.is.null,expires_at.gte." + new Date().toISOString()),
+      .or("expires_at.is.null,expires_at.gte." + new Date().toISOString())
+      .range(de, ate)),
 
     // Webhooks recentes
     service.from("payment_events")
@@ -52,13 +60,15 @@ export default async function MetricasPage() {
       .order("created_at", { ascending: false })
       .limit(15),
 
-    // Matrículas por fonte
-    service.from("enrollments")
+    // Matrículas por fonte — idem
+    pag((de, ate) => service.from("enrollments")
       .select("source")
-      .or("expires_at.is.null,expires_at.gte." + new Date().toISOString()),
+      .or("expires_at.is.null,expires_at.gte." + new Date().toISOString())
+      .range(de, ate)),
 
-    // Alunas com push ativo (distinct user_id)
-    service.from("push_subscriptions").select("user_id"),
+    // Alunas com push ativo (distinct user_id) — 1.114 inscricoes, tambem
+    // passava do corte e subestimava o numero.
+    pag((de, ate) => service.from("push_subscriptions").select("user_id").range(de, ate)),
   ]);
 
   // Agrupa top cursos por course_id

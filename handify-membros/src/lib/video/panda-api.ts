@@ -27,12 +27,34 @@ export interface PandaVideo {
   created_at: string;
 }
 
+/**
+ * Todos os vídeos da conta.
+ *
+ * A API do Panda pagina: pedir `limit=200` devolve só a primeira página e nada
+ * indica que faltou o resto. A conta tem 294 vídeos em 2 páginas, e as métricas
+ * ignoravam quase cem deles.
+ */
 export async function getVideos(
-  limit = 200
+  porPagina = 200,
+  maxPaginas = 20
 ): Promise<{ videos: PandaVideo[]; total: number } | null> {
-  return pandaFetch<{ videos: PandaVideo[]; pages: number; total: number }>(
-    `/videos?limit=${limit}`
+  const primeira = await pandaFetch<{ videos: PandaVideo[]; pages: number; total: number }>(
+    `/videos?limit=${porPagina}`
   );
+  if (!primeira) return null;
+
+  const videos = [...(primeira.videos ?? [])];
+  const paginas = Math.min(primeira.pages ?? 1, maxPaginas);
+
+  for (let pagina = 2; pagina <= paginas; pagina++) {
+    const proxima = await pandaFetch<{ videos: PandaVideo[] }>(
+      `/videos?limit=${porPagina}&page=${pagina}`
+    );
+    if (!proxima?.videos?.length) break;
+    videos.push(...proxima.videos);
+  }
+
+  return { videos, total: primeira.total ?? videos.length };
 }
 
 /**

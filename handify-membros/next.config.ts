@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "ozsbyscxcpijyvnjlkpw.supabase.co" },
       // Miniaturas de vídeo do YouTube nos posts de inspiração.
       { protocol: "https", hostname: "img.youtube.com" },
+      // Miniaturas do Panda Video na tela de métricas de vídeo. Faltava aqui,
+      // e o next/image derrubava a página inteira — ela abria em branco.
+      { protocol: "https", hostname: "cdn.pandavideo.com" },
     ],
   },
   async redirects() {

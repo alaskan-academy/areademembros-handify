@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -14,18 +15,33 @@ async function assertAdmin() {
   if (p?.role !== "admin") redirect("/dashboard");
 }
 
+// Envolve fetchAll devolvendo { data } para o restante do arquivo nao mudar.
+async function pag<T>(q: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  return { data: await fetchAll<T>(q) };
+}
+
 export default async function VideosMetricasPage() {
   await assertAdmin();
   const service = createServiceClient();
 
-  const [pandaResult, { data: lessons }, { data: allProgress }] = await Promise.all([
+  const [pandaResult, { data: lessons }, { data: videoBlocks }, { data: allProgress }] = await Promise.all([
     getVideos(200),
-    service
+    // Todas as aulas, nao so as que usam o campo antigo video_panda_id:
+    // a maior parte dos videos hoje vive em blocos de conteudo.
+    pag((di, ate) => service
       .from("lessons")
       .select("id, title, video_panda_id, module:modules(course_id, courses(title, slug))")
-      .not("video_panda_id", "is", null),
-    // Todos os registros de progresso (completed ou não) = proxy de "visualizações"
-    service.from("lesson_progress").select("lesson_id, completed"),
+      .range(di, ate)),
+    // Blocos de video das aulas — guardam a URL do player do Panda.
+    pag((di, ate) => service
+      .from("lesson_content_blocks")
+      .select("lesson_id, content")
+      .eq("type", "video")
+      .range(di, ate)),
+    // Todos os registros de progresso (completed ou não) = proxy de "visualizações".
+    // Paginado: sao 22 mil linhas e o Supabase corta em 1.000, o que reduzia as
+    // visualizacoes a menos de 5% do real.
+    pag((di, ate) => service.from("lesson_progress").select("lesson_id, completed").range(di, ate)),
   ]);
 
   const pandaConfigured = !!process.env.PANDA_VIDEO_API_KEY;
@@ -34,16 +50,34 @@ export default async function VideosMetricasPage() {
   // Mapa video_external_id → info da lição
   type LessonInfo = { lessonId: string; lessonTitle: string; courseTitle: string; courseSlug: string };
   const lessonByVideoId = new Map<string, LessonInfo>();
+  const infoDaAula = new Map<string, LessonInfo>();
   for (const l of lessons ?? []) {
-    if (!l.video_panda_id) continue;
     const mod = l.module as unknown as { courses: { title: string; slug: string } | null } | null;
-    // video_panda_id pode ser UUID ou URL completa — extrai sempre o UUID
-    lessonByVideoId.set(extractPandaVideoId(l.video_panda_id), {
+    infoDaAula.set(l.id, {
       lessonId: l.id,
       lessonTitle: l.title,
       courseTitle: mod?.courses?.title ?? "—",
       courseSlug: mod?.courses?.slug ?? "",
     });
+    // Campo antigo, ainda usado por algumas aulas.
+    if (l.video_panda_id) {
+      lessonByVideoId.set(extractPandaVideoId(l.video_panda_id), infoDaAula.get(l.id)!);
+    }
+  }
+
+  // Blocos de conteudo: e onde esta a maior parte dos videos hoje. Sem isso a
+  // tela contava 5 videos quando a plataforma tem mais de cem.
+  for (const b of videoBlocks ?? []) {
+    const info = infoDaAula.get(b.lesson_id);
+    if (!info) continue;
+    let url: string | null = null;
+    try {
+      const c = typeof b.content === "string" ? JSON.parse(b.content) : b.content;
+      url = (c as { video_panda_id?: string })?.video_panda_id ?? null;
+    } catch {
+      // bloco com conteudo fora do formato esperado — ignora
+    }
+    if (url) lessonByVideoId.set(extractPandaVideoId(url), info);
   }
 
   // Agrega progresso por lição

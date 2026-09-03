@@ -257,9 +257,18 @@ export default async function FunilPage() {
 
   // ── Totais globais ────────────────────────────────────────────────
   const totalEnrollments = enrollments?.length ?? 0;
-  const allStartedUsers = new Set(allProgress?.map((p) => p.user_id) ?? []).size;
-  const taxaAtivacao = totalEnrollments > 0
-    ? Math.round((allStartedUsers / totalEnrollments) * 100)
+
+  // Ativacao e por ALUNA, nao por matricula: o tooltip diz "percentual de
+  // alunas matriculadas que assistiram pelo menos uma aula". Antes dividia
+  // alunas distintas por total de matriculas — unidades diferentes, e o painel
+  // mostrava 32% quando o real passa de 80%.
+  const alunasMatriculadas = new Set(enrollments?.map((e) => e.user_id) ?? []);
+  const alunasQueIniciaram = new Set(
+    (allProgress ?? []).map((p) => p.user_id).filter((id) => alunasMatriculadas.has(id))
+  );
+  const allStartedUsers = alunasQueIniciaram.size;
+  const taxaAtivacao = alunasMatriculadas.size > 0
+    ? Math.round((allStartedUsers / alunasMatriculadas.size) * 100)
     : 0;
   const totalCerts = certs?.length ?? 0;
   const taxaConclusao = totalEnrollments > 0

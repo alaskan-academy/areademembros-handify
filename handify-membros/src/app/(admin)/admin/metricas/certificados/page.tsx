@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -13,17 +14,29 @@ async function assertAdmin() {
   if (p?.role !== "admin") redirect("/dashboard");
 }
 
+// Envolve fetchAll devolvendo { data } para o restante do arquivo nao mudar.
+async function pag<T>(q: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  return { data: await fetchAll<T>(q) };
+}
+
 export default async function CertificadosPage() {
   await assertAdmin();
   const service = createServiceClient();
 
+  // Paginado: sao 3.3 mil perfis e o Supabase corta em 1.000. Sem isso, quem
+  // tem certificado e nao esta no primeiro milhar aparecia como "Sem nome".
   const [{ data: certs }, { data: profiles }, { data: courses }] = await Promise.all([
-    service
+    pag((di, ate) => service
       .from("certificates")
       .select("id, user_id, course_id, verify_hash, issued_at")
-      .order("issued_at", { ascending: false }),
-    service.from("profiles").select("id, full_name, email, avatar_url").eq("role", "student"),
-    service.from("courses").select("id, title, slug"),
+      .order("issued_at", { ascending: false })
+      .range(di, ate)),
+    pag((di, ate) => service
+      .from("profiles")
+      .select("id, full_name, email, avatar_url")
+      .eq("role", "student")
+      .range(di, ate)),
+    pag((di, ate) => service.from("courses").select("id, title, slug").range(di, ate)),
   ]);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
