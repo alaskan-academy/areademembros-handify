@@ -14,7 +14,13 @@ export type PurchaseEvent = {
   source: "payt" | "kiwify";
   /** Rótulo do evento em `payment_events.event_type`. */
   eventType: string;
-  action: "grant" | "revoke" | "ignore";
+  /**
+   * `revoke_if_paid`: a plataforma mandou um cancelamento que pode ser PIX
+   * abandonado (nada a desfazer) ou estorno concluído (revogar). O adaptador
+   * não tem como saber; `processPurchaseEvent` resolve olhando se já houve
+   * pagamento aprovado deste e-mail para esses códigos.
+   */
+  action: "grant" | "revoke" | "revoke_if_paid" | "ignore";
   /** Todos os códigos de produto da compra (principal, itens, order bumps). */
   productCodes: string[];
   /** Código do produto principal — usado para escolher o curso do e-mail. */
@@ -89,6 +95,28 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
   // Só registra valor pago em eventos de pagamento confirmado
   const amountPaid = event.action === "grant" ? event.amountPaid : null;
+
+  // "canceled" na Payt é ambíguo: PIX/boleto abandonado antes de pagar (nada a
+  // desfazer) OU reembolso concluído (paid → refund_requested → canceled). Só dá
+  // para saber olhando o histórico: se já houve pagamento aprovado deste e-mail
+  // para algum desses códigos, é estorno e revoga. Achado em 03/09/2026: 6 alunas
+  // cancelaram o Handify Completo (R$327 devolvido) e ficaram com os 23 cursos.
+  if (event.action === "revoke_if_paid") {
+    const { data: pagoAntes } = await supabase
+      .from("payment_events")
+      .select("id")
+      .ilike("buyer_email", event.buyerEmail)
+      .in("event_type", ["paid", "approved", "completed", "confirmed", "order_approved", "subscription_renewed"])
+      .in("product_code", caseVariants(event.productCodes))
+      .limit(1)
+      .maybeSingle();
+    event = pagoAntes
+      ? { ...event, action: "revoke", isRealRefund: true }
+      : { ...event, action: "ignore" };
+    console.info(
+      `${log} canceled resolvido como ${event.action} (${pagoAntes ? "havia pagamento" : "sem pagamento anterior"}) para ${event.buyerEmail}`
+    );
+  }
 
   // Evento sem efeito sobre o acesso — ack sem processar (não é erro, só aguarda)
   if (event.action === "ignore") {

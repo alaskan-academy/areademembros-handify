@@ -222,15 +222,20 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       cabeçalho. Verificado por tsc + build; não cliquei (sessão do navegador não é admin)
 - [x] Build, testes, commit (sem push até a Jessica mandar)
 
-**Achado durante a fase 1 — decidir com a Jessica:**
-- [ ] **7 alunas cancelaram o plano e continuam com os 23 cursos.** `payt.ts` só
-      revoga em `refunded`/`chargeback`; `canceled` cai em "ignore" porque foi assumido
-      como "PIX abandonado antes de pagar". Mas a Payt usa `canceled` também para
-      reembolso concluído (`paid → refund_requested → canceled`). As de `chargeback`
-      foram revogadas (0 cursos); as de `canceled` não (23 cursos cada, R$327 devolvido).
-      Correção proposta: `canceled` revoga **só se houver `paid` anterior** para o
-      mesmo e-mail + código (não toca no PIX abandonado). Retroativo nas 7 = mexer em
-      dados de alunas reais → só com o "pode" dela.
+**Achado durante a fase 1 — corrigido com autorização da Jessica (03/09):**
+- [x] **Alunas que cancelaram o plano continuavam com os 23 cursos.** `payt.ts` só
+      revogava em `refunded`/`chargeback`; `canceled` caía em "ignore" porque foi
+      assumido como "PIX abandonado antes de pagar". Mas a Payt usa `canceled` também
+      para reembolso concluído (`paid → refund_requested → canceled`).
+      - **Código:** `canceled` vira `revoke_if_paid`; `processPurchaseEvent` resolve
+        olhando se houve pagamento aprovado do mesmo e-mail para esses códigos —
+        revoga se sim, ignora se não (PIX abandonado segue intocado). Teste e2e novo.
+      - **Retroativo:** eram **6**, não 7 — a 7ª (`anamaria…`) pagou o plano *depois*
+        dos `canceled` (PIX abandonados) e tem o plano de direito; a simulação a
+        excluiu. Nas 6: **129 matrículas encerradas** (22+22+19+22+22+22), 129 linhas
+        em `audit_log` (`enrollment.revoked`, `retroativo: true`). Cada uma ficou só
+        com o que comprou separado (Saponaria, Lembrancinha; Helena com 4). Sem e-mail
+        — reembolso foi semanas atrás, elas sabem.
 
 ### Fase 2 — Expor a oferta
 - [ ] Barra de progresso "Você já tem X de 23" no dashboard

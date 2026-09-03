@@ -116,4 +116,22 @@ test.describe("Webhook Payt — validação", () => {
     const body = await response.json();
     expect(body.received).toBe(true);
   });
+
+  // "canceled" sem pagamento anterior = PIX abandonado: precisa ser ignorado, não
+  // revogado. O caso com pagamento anterior (estorno) exige estado no banco e
+  // fica fora deste teste de validação.
+  test("status 'canceled' sem pagamento anterior é ignorado e retorna 200", async ({ request }) => {
+    const secret = process.env.PAYT_WEBHOOK_SECRET;
+    if (!secret) {
+      test.skip(true, "PAYT_WEBHOOK_SECRET não configurado");
+      return;
+    }
+
+    const response = await request.post(WEBHOOK_URL, {
+      data: makePayload(secret, "canceled"),
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.received).toBe(true);
+  });
 });

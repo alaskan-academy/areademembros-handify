@@ -181,11 +181,17 @@ export function extractProductCodes(payload: PaytPayload): string[] {
 
 const GRANT_STATUSES = new Set(["paid", "approved", "completed", "confirmed"]);
 // Apenas estornos reais (pagamento foi feito e revertido) devem revogar acesso.
-// PIX/boleto expirado ou cancelado antes do pagamento → "ignore" (nada a desfazer).
 const REVOKE_STATUSES = new Set(["refunded", "chargeback"]);
+// "canceled" é ambíguo na Payt: PIX/boleto abandonado antes de pagar (nada a
+// desfazer) OU reembolso concluído (a sequência é paid → refund_requested →
+// canceled). Tratar sempre como "ignore" deixou 6 alunas com o Handify Completo
+// inteiro depois do estorno (03/09/2026). Quem decide é `processPurchaseEvent`,
+// olhando se houve pagamento aprovado antes.
+const AMBIGUOUS_STATUSES = new Set(["canceled", "cancelled"]);
 
-export function classifyEvent(status: string): "grant" | "revoke" | "ignore" {
+export function classifyEvent(status: string): "grant" | "revoke" | "revoke_if_paid" | "ignore" {
   if (GRANT_STATUSES.has(status)) return "grant";
   if (REVOKE_STATUSES.has(status)) return "revoke";
+  if (AMBIGUOUS_STATUSES.has(status)) return "revoke_if_paid";
   return "ignore";
 }
