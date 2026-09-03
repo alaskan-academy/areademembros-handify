@@ -25,7 +25,8 @@ const menuItemSchema = z.object({
   url: z.string().min(1, "URL obrigatória").max(255),
   icon: z.enum(VALID_ICONS).optional().nullable(),
   target: z.enum(["_self", "_blank"]).default("_self"),
-  visible_to: z.enum(["guest", "student", "admin"]),
+  // Tier mínimo que vê o item (visitante < aluna < completo); admin é papel.
+  visible_to: z.enum(["visitante", "aluna", "completo", "admin"]),
   position: z.coerce.number().int().min(0),
   parent_id: z.string().uuid().nullable().optional(),
   active: z.boolean().default(true),

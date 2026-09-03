@@ -21,19 +21,19 @@ export async function getPlanoProgresso(userId: string): Promise<PlanProgressDat
   const [{ data: promo }, temPlano] = await Promise.all([
     service
       .from("annual_promo")
-      .select("active, link_url, button_text, subscription_product_codes")
+      .select("active, link_url, button_text")
       .eq("active", true)
       .maybeSingle(),
     hasActiveMembership(userId),
   ]);
-  const codes = (promo?.subscription_product_codes as string[] | null) ?? [];
-  if (!promo?.link_url || temPlano || !codes.length) return null;
+  if (!promo?.link_url || temPlano) return null;
 
+  // O que faz parte do plano é a flag `in_plan` do curso, não o código colado.
   const { data: cursosDoPlano } = await service
     .from("courses")
     .select("id")
     .eq("published", true)
-    .overlaps("checkout_codes", codes);
+    .eq("in_plan", true);
   const ids = (cursosDoPlano ?? []).map((c) => c.id);
   if (!ids.length) return null;
 

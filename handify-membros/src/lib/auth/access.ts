@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import type { Tier } from "@/types";
 
 /**
  * Quem está pedindo, e se é admin.
@@ -30,7 +32,7 @@ export async function getViewer(): Promise<{ userId: string | null; isAdmin: boo
   return { userId: user.id, isAdmin: profile?.role === "admin" };
 }
 
-export type Tier = "visitante" | "aluna" | "completo" | "admin";
+export type { Tier };
 
 /**
  * Esta aluna tem o Handify Completo ativo?
@@ -75,7 +77,16 @@ export async function getTier(): Promise<Tier> {
   return data ? "aluna" : "visitante";
 }
 
-/** A pessoa logada pode assistir este curso? Admin sempre pode. */
+/**
+ * A pessoa logada pode assistir este curso? Admin sempre pode. Espelha
+ * `public.is_enrolled()` no banco — os dois precisam concordar.
+ *
+ * Handify Completo: curso marcado `in_plan` é dela mesmo sem matrícula — é
+ * assim que curso novo entra no plano sozinho, sem colar o código do plano em
+ * cada curso nem refazer matrículas. A matrícula é criada aqui, no primeiro
+ * acesso (source `subscription`), porque progresso, conclusão e certificado
+ * saem dela.
+ */
 export async function hasCourseAccess(courseId: string): Promise<boolean> {
   const { userId, isAdmin } = await getViewer();
   if (!userId) return false;
@@ -89,6 +100,29 @@ export async function hasCourseAccess(courseId: string): Promise<boolean> {
     .eq("course_id", courseId)
     .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .maybeSingle();
+  if (enrollment) return true;
 
-  return !!enrollment;
+  if (!(await hasActiveMembership(userId))) return false;
+
+  const service = createServiceClient();
+  const { data: course } = await service
+    .from("courses")
+    .select("in_plan")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (!course?.in_plan) return false;
+
+  // Vencida (plano revogado e devolvido) ou inexistente — vira ativa agora.
+  const { error } = await service.from("enrollments").upsert(
+    {
+      user_id: userId,
+      course_id: courseId,
+      source: "subscription",
+      granted_at: new Date().toISOString(),
+      expires_at: null,
+    },
+    { onConflict: "user_id,course_id" }
+  );
+  if (error) console.error("[access] matrícula do plano no primeiro acesso:", error.message);
+  return true;
 }

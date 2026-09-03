@@ -33,15 +33,17 @@ type MenuItem = {
   url: string;
   icon: string | null;
   target: "_self" | "_blank";
-  visible_to: "guest" | "student" | "admin";
+  visible_to: "visitante" | "aluna" | "completo" | "admin";
   position: number;
   parent_id: string | null;
   active: boolean;
 };
 
+// Tier mínimo que vê o item — cada tier vê o seu nível e os de baixo.
 const VISIBILITY_LABELS: Record<string, string> = {
-  guest: "Todos (visitantes + alunas)",
-  student: "Apenas alunas logadas",
+  visitante: "Todas as contas (visitante em diante)",
+  aluna: "Alunas com curso em diante",
+  completo: "Só Handify Completo",
   admin: "Apenas admins",
 };
 
@@ -132,7 +134,7 @@ function ItemForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="visible_to">Visibilidade</Label>
-          <select id="visible_to" name="visible_to" defaultValue={item?.visible_to ?? "student"} className={SELECT_CLASS}>
+          <select id="visible_to" name="visible_to" defaultValue={item?.visible_to ?? "visitante"} className={SELECT_CLASS}>
             {Object.entries(VISIBILITY_LABELS).map(([val, label]) => (
               <option key={val} value={val}>{label}</option>
             ))}
@@ -272,9 +274,11 @@ export default function MenuClient({ items }: { items: MenuItem[] }) {
     const visibilityColor =
       item.visible_to === "admin"
         ? { color: "#FEC649", border: "#FEC649", bg: "#FEC64918" }
-        : item.visible_to === "guest"
+        : item.visible_to === "completo"
         ? { color: "#6699F3", border: "#6699F3", bg: "#6699F318" }
-        : { color: "#72CF92", border: "#72CF92", bg: "#72CF9218" };
+        : item.visible_to === "aluna"
+        ? { color: "#72CF92", border: "#72CF92", bg: "#72CF9218" }
+        : { color: "#777777", border: "#cccccc", bg: "#77777714" };
 
     return (
       <div

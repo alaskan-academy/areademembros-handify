@@ -16,7 +16,8 @@ export type NavItem = {
   href: string;
   icon: string | null;
   target: "_self" | "_blank";
-  visible_to: "guest" | "student" | "admin";
+  /** Tier mínimo que vê o item; "admin" é papel, não tier. */
+  visible_to: "visitante" | "aluna" | "completo" | "admin";
 };
 
 interface StudentHeaderProps {

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/(auth)/actions";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import type { NavItem } from "@/components/layout/StudentHeader";
-import type { Role } from "@/types";
+import type { Role, Tier } from "@/types";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, BookOpen, User, Bell, Users, Home,
@@ -35,20 +35,24 @@ const BOTTOM_TABS = [
 interface StudentNavProps {
   navItems: NavItem[];
   role: Role;
+  /** Tier derivado no servidor (visitante · aluna · completo · admin). */
+  tier: Tier;
   fullName: string;
 }
 
-export default function StudentNav({ navItems, role, fullName }: StudentNavProps) {
+// Cada tier vê os itens do seu nível e dos de baixo. "admin" é papel, não
+// tier — continua condicionado ao role, como sempre foi.
+const TIER_RANK: Record<Tier, number> = { visitante: 0, aluna: 1, completo: 2, admin: 3 };
+
+export default function StudentNav({ navItems, role, tier, fullName }: StudentNavProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const markDrawerNavigating = useModalBackGuard(drawerOpen, () => setDrawerOpen(false));
 
   const visibleItems = navItems.filter((item) => {
-    if (item.visible_to === "guest") return true;
-    if (item.visible_to === "student") return true;
     if (item.visible_to === "admin") return role === "admin";
-    return false;
+    return TIER_RANK[item.visible_to] <= TIER_RANK[tier];
   });
 
   // Restaura preferência salva

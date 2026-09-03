@@ -20,7 +20,7 @@ interface Niche { id: string; name: string }
 interface Course {
   id: string; title: string; slug: string; description: string | null;
   price: number | null; checkout_codes: string[]; workload_hours: number | null;
-  course_type: "course" | "material"; is_subscription_only: boolean;
+  course_type: "course" | "material"; in_plan: boolean;
   has_certificate: boolean; published: boolean;
   category_id: string | null; forum_id: string | null; niche_id: string | null;
   thumbnail_url: string | null; checkout_url: string | null; position: number;
@@ -620,7 +620,7 @@ function CourseForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    if (!fd.get("is_subscription_only")) fd.set("is_subscription_only", "false");
+    if (!fd.get("in_plan")) fd.set("in_plan", "false");
     if (!fd.get("has_certificate")) fd.set("has_certificate", "false");
     if (!fd.get("published")) fd.set("published", "false");
 
@@ -652,10 +652,10 @@ function CourseForm({
 
   const checkboxes = [
     {
-      name: "is_subscription_only",
-      label: "Apenas assinantes",
-      desc: "Requer plano ativo para acessar",
-      checked: initial?.is_subscription_only ?? false,
+      name: "in_plan",
+      label: "Incluído no Handify Completo",
+      desc: "Quem tem o plano recebe este curso — inclusive quem já é aluna Completo, sem precisar comprar",
+      checked: initial?.in_plan ?? false,
     },
     {
       name: "has_certificate",

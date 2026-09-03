@@ -59,7 +59,7 @@ export interface Course {
   price: number;
   checkout_codes: string[];
   workload_hours: number;
-  is_subscription_only: boolean;
+  in_plan: boolean;
   published: boolean;
   position: number;
   created_at: string;
@@ -170,3 +170,10 @@ export interface ShowcaseCourse {
   active: boolean;
   course?: Course;
 }
+
+/**
+ * Tier da aluna — derivado, nunca armazenado (ver getTier em lib/auth/access.ts
+ * e public.current_tier() no banco). Ordem importa: cada tier vê o que é do seu
+ * nível e dos de baixo.
+ */
+export type Tier = "visitante" | "aluna" | "completo" | "admin";

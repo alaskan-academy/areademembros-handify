@@ -47,7 +47,7 @@ export default async function CourseDetailPage({
     .select(
       `
       id, slug, title, description, thumbnail_url,
-      price, workload_hours, is_subscription_only, checkout_codes, checkout_url,
+      price, workload_hours, in_plan, checkout_codes, checkout_url,
       category:categories(name, slug),
       forum:forums(slug),
       modules(

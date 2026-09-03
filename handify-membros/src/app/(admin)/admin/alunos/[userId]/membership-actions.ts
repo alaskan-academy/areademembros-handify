@@ -23,19 +23,12 @@ export type MembershipActionState = { error?: string; success?: string };
 
 type Service = ReturnType<typeof createServiceClient>;
 
-/** Cursos que fazem parte do plano hoje: os que têm o código do plano nos checkout_codes. */
+/** Cursos que fazem parte do plano: a flag `in_plan`, marcada pela admin no curso. */
 async function cursosDoPlano(service: Service) {
-  const { data: promo } = await service
-    .from("annual_promo")
-    .select("subscription_product_codes")
-    .maybeSingle();
-  const codes = (promo?.subscription_product_codes as string[] | null) ?? [];
-  if (!codes.length) return [];
-
   const { data } = await service
     .from("courses")
     .select("id, title, slug")
-    .overlaps("checkout_codes", codes)
+    .eq("in_plan", true)
     .order("position");
   return (data ?? []) as { id: string; title: string; slug: string }[];
 }

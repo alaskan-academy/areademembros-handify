@@ -5,7 +5,8 @@ import InstallBar from "@/components/pwa/InstallBar";
 import PushPromptBanner from "@/components/pwa/PushPromptBanner";
 import BackButtonGuard from "@/components/pwa/BackButtonGuard";
 import { createClient } from "@/lib/supabase/server";
-import { hasActiveMembership } from "@/lib/auth/access";
+import { getTier } from "@/lib/auth/access";
+import type { Tier } from "@/types";
 import { redirect } from "next/navigation";
 import StudentHeader from "@/components/layout/StudentHeader";
 import StudentNav from "@/components/layout/StudentNav";
@@ -61,8 +62,11 @@ export default async function StudentLayout({
   // checkout_codes contivessem o código do plano — e como esse código está em
   // 23 dos 24 cursos, quem comprou só Saponaria "parecia" ter o plano. Medido em
   // 03/09/2026: 30 de 3.387 alunas viam a oferta. Ver .claude/plans/tiers-handify.md.
+  // Tier derivado (visitante · aluna · completo · admin) — decide a barra do
+  // plano e quais itens de menu aparecem. Ver .claude/plans/tiers-handify.md.
+  const tier: Tier = user ? await getTier() : "visitante";
   let annualPromo: AnnualPromoData | null = promoRaw ? { ...promoRaw } : null;
-  if (annualPromo && user && (await hasActiveMembership(user.id))) {
+  if (annualPromo && tier === "completo") {
     annualPromo = null;
   }
 
@@ -76,7 +80,10 @@ export default async function StudentLayout({
       href,
       icon: i.icon ?? null,
       target: (i.target as "_self" | "_blank") ?? "_self",
-      visible_to: i.visible_to as "guest" | "student" | "admin",
+      // Nomes antigos (guest/student) viram o tier mais baixo: tiers só adicionam.
+      visible_to: (i.visible_to === "guest" || i.visible_to === "student"
+        ? "visitante"
+        : i.visible_to) as NavItem["visible_to"],
     };
   });
 
@@ -106,6 +113,7 @@ export default async function StudentLayout({
           <StudentNav
             navItems={navItems}
             role={(profile?.role ?? "student") as Role}
+            tier={tier}
             fullName={profile?.full_name ?? ""}
           />
         )}

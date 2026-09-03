@@ -342,6 +342,30 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         if (error) console.error(`${log} Erro ao registrar Handify Completo:`, error.message);
         else console.info(`${log} Handify Completo concedido: user=${user.id}`);
       }
+
+      // Todo curso marcado `in_plan` entra na compra do plano — inclusive os que
+      // não carregam o código do plano nos checkout_codes (cursos novos). Os
+      // que carregam já foram matriculados acima.
+      const jaTratados = new Set(courses.map((c) => c.id));
+      const { data: doPlano } = await supabase
+        .from("courses")
+        .select("id, access_days")
+        .eq("in_plan", true);
+      const faltando = (doPlano ?? []).filter((c) => !jaTratados.has(c.id));
+      if (faltando.length) {
+        const { error } = await supabase.from("enrollments").upsert(
+          faltando.map((c) => ({
+            user_id: user.id,
+            course_id: c.id,
+            source: event.source,
+            granted_at: now,
+            expires_at: calcExpiresAt(c.access_days as number | null),
+          })),
+          { onConflict: "user_id,course_id" }
+        );
+        if (error) console.error(`${log} Erro nos cursos do plano sem código:`, error.message);
+        else console.info(`${log} +${faltando.length} curso(s) do plano sem código: user=${user.id}`);
+      }
     } else if (current) {
       await supabase.from("memberships").update({ revoked_at: now }).eq("id", current.id);
       await supabase.from("audit_log").insert({

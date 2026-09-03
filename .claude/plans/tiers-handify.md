@@ -283,9 +283,23 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       mostrá-las.** Nada configurado, nada enviado. Ao retomar: filtrar por
       `email_prefs`, segmento 4+ cursos sem membership, e ela aprova o texto final
 
-### Fase 3 — Tiers no banco
-- [ ] `courses.incluido_no_plano`; grant do plano usa a flag
-- [ ] `menu_items.visible_to` por tier
+### Fase 3 — Tiers no banco (em andamento, 03/09)
+- [x] **`courses.in_plan`** (o `is_subscription_only` renomeado — nenhum curso o
+      usava). Backfill: 23 cursos (só "Velas Perfeitas" fica fora). Checkbox no
+      admin do curso: "Incluído no Handify Completo".
+      - Acesso: `is_enrolled()` (SQL) e `hasCourseAccess()` (TS) aceitam
+        *membership ativa + curso in_plan* mesmo sem matrícula — curso novo marcado
+        entra na hora para quem tem o plano. O TS cria a matrícula no primeiro acesso
+        (`source: subscription`), porque progresso e certificado saem dela.
+      - Compra do plano (webhook e `process_pending_payment_events`) matricula em
+        todos os `in_plan`, inclusive os sem o código do plano nos checkout_codes.
+      - "Dar Handify Completo" e o card "X de 23" passam a contar pela flag.
+      - Verificado: tsc/build, funções no banco citam `in_plan`, /admin/cursos abre
+- [x] **`menu_items.visible_to` por tier**: enum ganhou `visitante | aluna |
+      completo`; `guest` e `student` viraram `visitante` (tiers só adicionam — ninguém
+      perdeu item). Layout deriva o tier (`getTier`) e o nav mostra os itens do tier
+      e dos de baixo; `admin` segue sendo papel. Formulário do admin com os nomes
+      novos. Verificado: /cursos com os 9 itens, /admin/menu sem guest/student
 - [ ] Tabela `tools` com `tier_minimo`; hub lê do banco; cadeado que mostra
 - [ ] `current_tier()` nas policies do que for exclusivo
 
