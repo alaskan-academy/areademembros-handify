@@ -1,10 +1,9 @@
 -- ETAPA 2 de 2 — remove a camada de compatibilidade.
 --
--- NÃO RODAR ANTES DO DEPLOY. Só depois que a versão do código que usa
--- `supplier_products` e `checkout_codes` estiver no ar e confirmada.
--- Enquanto este arquivo terminar em .pending, ele não é aplicado.
---
--- Como aplicar: renomear para .sql e rodar.
+-- APLICADA em 03/09/2026, depois do deploy confirmado em produção:
+-- webhook da Kiwify respondeu 200 processando 1 curso, tela de erro própria
+-- no ar, catálogo público respondendo, e nenhum arquivo do código publicado
+-- referenciando os nomes antigos.
 
 drop view if exists public.products;
 
