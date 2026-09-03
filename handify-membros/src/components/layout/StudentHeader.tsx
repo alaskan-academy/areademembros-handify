@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LogOut, User, Star } from "lucide-react";
 import { logoutAction } from "@/app/(auth)/actions";
+import GlobalSearch from "@/components/search/GlobalSearch";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import AnnualPromoModal, { type AnnualPromoData } from "@/components/promo/AnnualPromoModal";
 import type { Role } from "@/types";
@@ -103,8 +104,9 @@ export default function StudentHeader({
               </button>
             )}
 
-            {/* Sino + avatar */}
+            {/* Busca global + sino + avatar */}
             <div className="flex items-center gap-1">
+              <GlobalSearch />
               <NotificationBell
                 userId={userId}
                 initialNotifications={initialNotifications}

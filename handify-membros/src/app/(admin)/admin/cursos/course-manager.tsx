@@ -1,5 +1,6 @@
 "use client";
 
+import CertificadosPendentes from "@/components/admin/CertificadosPendentes";
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Eye, EyeOff, X, Save, Upload, Loader2, Settings2, Check, GripVertical, BookOpen, FileText } from "lucide-react";
@@ -829,6 +830,11 @@ function CourseForm({
           </label>
         ))}
       </div>
+
+      {/* Só aparece quando ha quem concluiu sem certificado */}
+      {courseId && initial?.has_certificate && (
+        <CertificadosPendentes courseId={courseId} />
+      )}
 
       {/* ── Ações ─── */}
       <div className="flex gap-2 pt-2 border-t border-border/50">

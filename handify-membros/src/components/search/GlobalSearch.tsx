@@ -96,9 +96,9 @@ export default function GlobalSearch() {
       <button
         onClick={() => setOpen(true)}
         aria-label="Buscar"
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/60 bg-muted/50 text-sm text-muted-foreground hover:bg-muted hover:border-border transition-colors"
+        className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-border/60 bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:border-border"
       >
-        <Search className="w-3.5 h-3.5 shrink-0" />
+        <Search className="w-4 h-4 shrink-0" />
         <span className="hidden sm:inline">Buscar…</span>
       </button>
     );
