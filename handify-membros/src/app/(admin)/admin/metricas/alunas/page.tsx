@@ -16,6 +16,11 @@ async function assertAdmin() {
   if (p?.role !== "admin") redirect("/dashboard");
 }
 
+/** Origens de matricula que representam compra. */
+const TIPOS_APROVADOS = ["paid", "approved", "completed", "confirmed", "order_approved", "subscription_renewed"];
+
+const FONTES_PAGAS = new Set(["payt", "kiwify", "migration"]);
+
 type Profile = {
   id: string;
   full_name: string | null;
@@ -46,13 +51,15 @@ export default async function AlunaRankingPage() {
     // metricas mostram uma fatia da realidade sem avisar.
     pag((de, ate) => service.from("lesson_progress").select("user_id, lesson_id, completed, updated_at").range(de, ate)),
     pag((de, ate) => service.from("certificates").select("user_id, course_id, issued_at").range(de, ate)),
-    pag((de, ate) => service.from("enrollments").select("user_id, course_id, granted_at, source").range(de, ate)),
+    pag((de, ate) => service.from("enrollments").select("user_id, course_id, granted_at, source, expires_at").range(de, ate)),
     pag((de, ate) => service.from("profiles").select("id, full_name, email, avatar_url, created_at").eq("role", "student").eq("banned", false).range(de, ate)),
     pag((de, ate) => service.from("courses").select("id, title, price").range(de, ate)),
+    // Filtra por TIPO de evento, nao por `processed`. Um pagamento aprovado
+    // cujo curso nao estava cadastrado fica com processed=false, mas o dinheiro
+    // entrou — sao R$ 559 que ficavam invisiveis. Inclui os tipos da Kiwify.
     pag((de, ate) => service.from("payment_events")
-      .select("buyer_email, buyer_name, amount_paid")
-      .eq("processed", true)
-      .not("amount_paid", "is", null)
+      .select("buyer_email, buyer_name, amount_paid, event_type, product_code")
+      .in("event_type", [...TIPOS_APROVADOS, "refunded", "chargeback"])
       .range(de, ate)),
   ]);
 
@@ -122,12 +129,29 @@ export default async function AlunaRankingPage() {
   // ── Rankings financeiros ─────────────────────────────────────────
   // Valor real pago por e-mail (payment_events.amount_paid quando disponível)
   const realSpentByEmail = new Map<string, number>(); // centavos
-  const txCountByEmail = new Map<string, number>();
+  // Quanto foi pago por e-mail + produto, para saber o que devolver quando vem
+  // um reembolso: o evento de reembolso nao traz valor confiavel (vem zerado),
+  // mas traz o codigo do produto, o que permite achar a compra original.
+  const pagoPorEmailProduto = new Map<string, number>();
+  const chaveCompra = (email: string, produto: string | null) =>
+    email + "|" + (produto ?? "");
+
   for (const pe of paymentEvents ?? []) {
-    if (!pe.buyer_email || !pe.amount_paid) continue;
+    if (!pe.buyer_email) continue;
+    if (!TIPOS_APROVADOS.includes(pe.event_type) || !pe.amount_paid) continue;
     const email = pe.buyer_email.toLowerCase();
     realSpentByEmail.set(email, (realSpentByEmail.get(email) ?? 0) + pe.amount_paid);
-    txCountByEmail.set(email, (txCountByEmail.get(email) ?? 0) + 1);
+    const chave = chaveCompra(email, pe.product_code);
+    pagoPorEmailProduto.set(chave, (pagoPorEmailProduto.get(chave) ?? 0) + pe.amount_paid);
+  }
+
+  for (const pe of paymentEvents ?? []) {
+    if (!pe.buyer_email) continue;
+    if (pe.event_type !== "refunded" && pe.event_type !== "chargeback") continue;
+    const email = pe.buyer_email.toLowerCase();
+    const devolvido = pagoPorEmailProduto.get(chaveCompra(email, pe.product_code));
+    if (!devolvido) continue; // sem compra correspondente registrada
+    realSpentByEmail.set(email, Math.max(0, (realSpentByEmail.get(email) ?? 0) - devolvido));
   }
 
   // Matrículas completas por usuária (para modal e fallback de preço)
@@ -146,9 +170,16 @@ export default async function AlunaRankingPage() {
       source: e.source ?? "manual",
       grantedAt: e.granted_at,
     });
-    if (e.source === "payt" && course.price) {
-      spentByUser.set(e.user_id, (spentByUser.get(e.user_id) ?? 0) + course.price);
+    // Contava so origem "payt": deixava de fora a Kiwify e as matriculas
+    // vindas da migracao da plataforma antiga, que tambem foram compradas.
+    // "manual" fica de fora de proposito — e cortesia, nao compra.
+    // Matricula revogada (reembolso) tem expires_at no passado e deixa de contar.
+    const acessoVigente = !e.expires_at || new Date(e.expires_at) > new Date();
+    if (FONTES_PAGAS.has(e.source ?? "") && acessoVigente) {
       buyCountByUser.set(e.user_id, (buyCountByUser.get(e.user_id) ?? 0) + 1);
+      if (course.price) {
+        spentByUser.set(e.user_id, (spentByUser.get(e.user_id) ?? 0) + course.price);
+      }
     }
   }
 
@@ -176,7 +207,10 @@ export default async function AlunaRankingPage() {
       email: prof.email,
       avatar: prof.avatar_url,
       totalSpent: finalSpentByUser.get(id) ?? 0,
-      buyCount: txCountByEmail.get(prof.email.toLowerCase()) ?? buyCountByUser.get(id) ?? 0,
+      // Cursos adquiridos, que e o que o card diz medir. txCountByEmail conta
+      // TRANSACOES: uma compra com combo vale 1 ali e varios cursos aqui, e
+      // misturar as duas fontes tornava o ranking incoerente.
+      buyCount: buyCountByUser.get(id) ?? 0,
     };
   };
 
@@ -186,16 +220,11 @@ export default async function AlunaRankingPage() {
     .map(([id]) => toStudentRow(id))
     .filter((x): x is StudentRow => x !== null);
 
-  const topByBuys: StudentRow[] = [...new Set([...txCountByEmail.keys(), ...[...buyCountByUser.keys()].map((id) => profiles.find((p) => p.id === id)?.email.toLowerCase() ?? "")])]
-    .map((email) => {
-      const prof = profileByEmail.get(email);
-      if (!prof) return null;
-      const count = txCountByEmail.get(email) ?? buyCountByUser.get(prof.id) ?? 0;
-      return { id: prof.id, name: prof.full_name ?? prof.email, email: prof.email, avatar: prof.avatar_url, totalSpent: finalSpentByUser.get(prof.id) ?? 0, buyCount: count };
-    })
-    .filter((x): x is StudentRow => x !== null)
-    .sort((a, b) => b.buyCount - a.buyCount)
-    .slice(0, 10);
+  const topByBuys: StudentRow[] = [...buyCountByUser.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id]) => toStudentRow(id))
+    .filter((x): x is StudentRow => x !== null);
 
   // Apenas dados dos usuários relevantes para o modal (mantém prop pequena)
   const relevantIds = new Set([...topBySpent.map((s) => s.id), ...topByBuys.map((s) => s.id)]);

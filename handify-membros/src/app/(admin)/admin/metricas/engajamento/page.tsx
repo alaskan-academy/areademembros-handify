@@ -66,13 +66,26 @@ export default async function EngajamentoAdminPage({
     pag((de, ate) => (since ? icq(de, ate).gte("created_at", since) : icq(de, ate))),
   ]);
 
-  const forumPosts = (forumPostsRaw ?? []) as Row[];
-  const forumComments = (forumCommentsRaw ?? []) as Row[];
-  const suggestions = (suggestionsRaw ?? []) as Row[];
-  const lessons = (lessonsRaw ?? []) as { user_id: string }[];
-  const inspLikes = (inspLikesRaw ?? []) as { user_id: string }[];
-  const inspBookmarks = (inspBookmarksRaw ?? []) as { user_id: string }[];
-  const inspComments = (inspCommentsRaw ?? []) as { user_id: string }[];
+  // Esta tela mede engajamento DAS ALUNAS. A atividade da propria equipe
+  // inflava os numeros — os 149 comentarios do forum, por exemplo, eram todos
+  // respostas da admin, e o card mostrava isso como engajamento da comunidade.
+  const adminIds = new Set(
+    (
+      await fetchAll<{ id: string }>((de, ate) =>
+        service.from("profiles").select("id").eq("role", "admin").range(de, ate)
+      )
+    ).map((p) => p.id)
+  );
+  const semAdmin = <T extends { user_id: string }>(linhas: T[] | null) =>
+    (linhas ?? []).filter((l) => !adminIds.has(l.user_id));
+
+  const forumPosts = semAdmin(forumPostsRaw as Row[] | null) as Row[];
+  const forumComments = semAdmin(forumCommentsRaw as Row[] | null) as Row[];
+  const suggestions = semAdmin(suggestionsRaw as Row[] | null) as Row[];
+  const lessons = semAdmin(lessonsRaw as { user_id: string }[] | null);
+  const inspLikes = semAdmin(inspLikesRaw as { user_id: string }[] | null);
+  const inspBookmarks = semAdmin(inspBookmarksRaw as { user_id: string }[] | null);
+  const inspComments = semAdmin(inspCommentsRaw as { user_id: string }[] | null);
 
   // Step 2: aggregate counts by user_id
   type Counts = {

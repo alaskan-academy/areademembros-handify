@@ -85,7 +85,7 @@ export function FinancialRankings({
         {/* Maior gasto */}
         <RankCard
           title="Maior gasto total"
-          subtitle="por valor pago em cursos (Payt)"
+          subtitle="pago na Payt/Kiwify — migração usa preço de catálogo"
           icon={DollarSign}
           color="#72CF92"
           items={topBySpent}
@@ -97,7 +97,7 @@ export function FinancialRankings({
         {/* Mais compras */}
         <RankCard
           title="Mais compras"
-          subtitle="por quantidade de cursos adquiridos via Payt"
+          subtitle="cursos adquiridos — Payt, Kiwify e migração"
           icon={ShoppingBag}
           color="#6699F3"
           items={topByBuys}
