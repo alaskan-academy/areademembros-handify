@@ -1,0 +1,17 @@
+-- ETAPA 2 de 2 — remove a camada de compatibilidade.
+--
+-- NÃO RODAR ANTES DO DEPLOY. Só depois que a versão do código que usa
+-- `supplier_products` e `checkout_codes` estiver no ar e confirmada.
+-- Enquanto este arquivo terminar em .pending, ele não é aplicado.
+--
+-- Como aplicar: renomear para .sql e rodar.
+
+drop view if exists public.products;
+
+drop trigger if exists trg_sync_courses_checkout_codes on public.courses;
+drop function if exists public.sync_courses_checkout_codes();
+alter table public.courses drop column if exists product_codes;
+
+drop trigger if exists trg_sync_banners_checkout_codes on public.banners;
+drop function if exists public.sync_banners_checkout_codes();
+alter table public.banners drop column if exists product_codes;

@@ -8,7 +8,7 @@ export type BannerRow = {
   title: string;
   image_url: string;
   link_url: string;
-  product_codes: string[];
+  checkout_codes: string[];
   position_slot: string;
   starts_at: string | null;
   ends_at: string | null;
@@ -208,9 +208,9 @@ export default function BannerForm({ action, banner, courses, submitLabel }: Pro
               <label key={c.id} className="flex items-center gap-2 cursor-pointer text-sm">
                 <input
                   type="checkbox"
-                  name="product_codes"
+                  name="checkout_codes"
                   value={c.product_code!}
-                  defaultChecked={banner?.product_codes.includes(c.product_code!)}
+                  defaultChecked={banner?.checkout_codes.includes(c.product_code!)}
                   className="accent-[#6699F3] w-4 h-4 shrink-0"
                 />
                 <span className="flex-1 truncate">{c.title}</span>

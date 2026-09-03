@@ -18,7 +18,7 @@ interface Forum { id: string; title: string; slug: string }
 interface Niche { id: string; name: string }
 interface Course {
   id: string; title: string; slug: string; description: string | null;
-  price: number | null; product_codes: string[]; workload_hours: number | null;
+  price: number | null; checkout_codes: string[]; workload_hours: number | null;
   course_type: "course" | "material"; is_subscription_only: boolean;
   has_certificate: boolean; published: boolean;
   category_id: string | null; forum_id: string | null; niche_id: string | null;
@@ -503,7 +503,7 @@ function ProductCodesInput({ defaultCodes }: { defaultCodes?: string[] }) {
         <span className="text-muted-foreground/60 ml-1">(um ou mais — Enter ou vírgula para adicionar)</span>
       </label>
       {/* hidden: envia os códigos como CSV para o formData */}
-      <input type="hidden" name="product_codes" value={codes.join(",")} />
+      <input type="hidden" name="checkout_codes" value={codes.join(",")} />
       <div
         className="flex flex-wrap gap-1.5 min-h-[38px] w-full text-sm border border-border rounded-lg px-2.5 py-2 focus-within:ring-2 focus-within:ring-[#6699F3]/40 bg-background cursor-text"
         onClick={(e) => (e.currentTarget.querySelector("input") as HTMLInputElement | null)?.focus()}
@@ -750,7 +750,7 @@ function CourseForm({
         </div>
       </div>
 
-      <ProductCodesInput defaultCodes={initial?.product_codes ?? []} />
+      <ProductCodesInput defaultCodes={initial?.checkout_codes ?? []} />
 
       {courseId && <RetroactiveEnrollButton courseId={courseId} />}
 
@@ -1015,7 +1015,7 @@ export default function CourseManager({
               <p className="text-xs text-muted-foreground mt-0.5">
                 {course.category?.name && <span>{course.category.name} · </span>}
                 {formatPrice(course.price ?? 0)} · {course.workload_hours ?? 0}h
-                {course.product_codes?.length > 0 && <span> · cod: {course.product_codes.join(", ")}</span>}
+                {course.checkout_codes?.length > 0 && <span> · cod: {course.checkout_codes.join(", ")}</span>}
                 {course.forum?.title && <span className="text-[#6699F3]"> · fórum: {course.forum.title}</span>}
               </p>
             </div>

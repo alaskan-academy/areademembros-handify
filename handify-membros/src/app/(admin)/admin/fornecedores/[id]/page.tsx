@@ -21,17 +21,17 @@ export default async function EditarFornecedorPage({ params }: { params: Promise
     service.from('suppliers').select('*, supplier_channels(*), supplier_tags(tag), supplier_niche_links(niche_id)').eq('id', id).single(),
     service
       .from('product_supplier_links')
-      .select('product_id, buy_url, products(id, name, image_url, active)')
+      .select('product_id, buy_url, supplier_products(id, name, image_url, active)')
       .eq('supplier_id', id),
     getTagTypes(),
     getNiches(),
   ])
 
   const linkedProducts = (linkedRaw ?? []).map((r: any) => ({
-    id: r.products?.id as string,
-    name: r.products?.name as string,
-    image_url: r.products?.image_url as string | null,
-    active: r.products?.active as boolean,
+    id: r.supplier_products?.id as string,
+    name: r.supplier_products?.name as string,
+    image_url: r.supplier_products?.image_url as string | null,
+    active: r.supplier_products?.active as boolean,
     buy_url: r.buy_url as string,
   })).filter(p => p.id)
 

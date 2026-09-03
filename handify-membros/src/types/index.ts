@@ -57,7 +57,7 @@ export interface Course {
   thumbnail_url: string | null;
   category_id: string;
   price: number;
-  product_codes: string[];
+  checkout_codes: string[];
   workload_hours: number;
   is_subscription_only: boolean;
   published: boolean;
@@ -133,7 +133,7 @@ export interface Banner {
   title: string;
   image_url: string;
   link_url: string;
-  product_codes: string[];
+  checkout_codes: string[];
   position_slot: BannerSlot;
   starts_at: string | null;
   ends_at: string | null;

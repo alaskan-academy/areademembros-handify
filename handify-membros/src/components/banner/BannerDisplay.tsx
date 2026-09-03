@@ -10,7 +10,7 @@ type BannerRow = {
   id: string;
   image_url: string;
   link_url: string;
-  product_codes: string[];
+  checkout_codes: string[];
   starts_at: string | null;
   ends_at: string | null;
 };
@@ -22,7 +22,7 @@ export default async function BannerDisplay({ slot }: Props) {
   const [{ data: banners }, { data: { user } }] = await Promise.all([
     supabase
       .from("banners")
-      .select("id, image_url, link_url, product_codes, starts_at, ends_at")
+      .select("id, image_url, link_url, checkout_codes, starts_at, ends_at")
       .eq("active", true)
       .eq("position_slot", slot)
       .order("created_at"),
@@ -40,7 +40,7 @@ export default async function BannerDisplay({ slot }: Props) {
 
   if (!inPeriod.length) return null;
 
-  // Determina product_codes que o usuário já possui (via matrícula)
+  // Determina checkout_codes que o usuário já possui (via matrícula)
   const userProductCodes = new Set<string>();
 
   if (user) {
@@ -58,8 +58,8 @@ export default async function BannerDisplay({ slot }: Props) {
 
   // Exibe o primeiro banner cujo produto o usuário ainda não tem
   const banner = inPeriod.find((b) => {
-    if (b.product_codes.length === 0) return true; // sem restrição → mostra a todos
-    return !b.product_codes.some((pc) => userProductCodes.has(pc));
+    if (b.checkout_codes.length === 0) return true; // sem restrição → mostra a todos
+    return !b.checkout_codes.some((pc) => userProductCodes.has(pc));
   });
 
   if (!banner) return null;

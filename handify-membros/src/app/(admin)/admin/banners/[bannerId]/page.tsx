@@ -21,7 +21,7 @@ export default async function EditBannerPage({
   const [{ data: banner }, { data: courses }] = await Promise.all([
     supabase
       .from("banners")
-      .select("id, title, image_url, link_url, product_codes, position_slot, starts_at, ends_at, active")
+      .select("id, title, image_url, link_url, checkout_codes, position_slot, starts_at, ends_at, active")
       .eq("id", bannerId)
       .single(),
     supabase

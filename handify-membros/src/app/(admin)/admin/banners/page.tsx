@@ -27,7 +27,7 @@ export default async function BannersPage() {
   // Admin usa service client implicitamente via RLS admin policy
   const { data: banners } = await supabase
     .from("banners")
-    .select("id, title, image_url, link_url, product_codes, position_slot, starts_at, ends_at, active, created_at")
+    .select("id, title, image_url, link_url, checkout_codes, position_slot, starts_at, ends_at, active, created_at")
     .order("created_at", { ascending: false });
 
   const now = new Date();
@@ -114,8 +114,8 @@ export default async function BannersPage() {
                         {b.ends_at && ` → ${new Date(b.ends_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}`}
                       </span>
                     )}
-                    {b.product_codes.length > 0 && (
-                      <span>{b.product_codes.length} curso(s) associado(s)</span>
+                    {b.checkout_codes.length > 0 && (
+                      <span>{b.checkout_codes.length} curso(s) associado(s)</span>
                     )}
                   </div>
                 </div>

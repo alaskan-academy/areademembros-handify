@@ -161,11 +161,11 @@ export default async function AlunaDetailPage({
   // Todos os cursos publicados + enrollment da aluna mesclados
   const { data: allCourses } = await service
     .from("courses")
-    .select("id, title, thumbnail_url, slug, product_codes")
+    .select("id, title, thumbnail_url, slug, checkout_codes")
     .eq("published", true)
     .order("title");
 
-  type CourseWithCodes = { id: string; title: string; thumbnail_url: string | null; slug: string; product_codes: string[] | null };
+  type CourseWithCodes = { id: string; title: string; thumbnail_url: string | null; slug: string; checkout_codes: string[] | null };
   const coursesWithCodes = (allCourses ?? []) as unknown as CourseWithCodes[];
 
   // Compras via Payt — uma entrada por curso (inclui order bumps e upsells)

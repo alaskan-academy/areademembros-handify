@@ -71,7 +71,7 @@ export async function createBannerAction(
   try { await assertAdmin(); } catch (e) { return { error: (e as Error).message }; }
 
   const service = createServiceClient();
-  const productCodes = formData.getAll("product_codes").map(String).filter(Boolean);
+  const productCodes = formData.getAll("checkout_codes").map(String).filter(Boolean);
 
   const parsed = bannerSchema.safeParse({
     title: formData.get("title"),
@@ -89,7 +89,7 @@ export async function createBannerAction(
   const { error } = await service.from("banners").insert({
     ...parsed.data,
     image_url: imageResult.imageUrl,
-    product_codes: productCodes,
+    checkout_codes: productCodes,
     starts_at: toIso(parsed.data.starts_at),
     ends_at: toIso(parsed.data.ends_at),
   });
@@ -110,7 +110,7 @@ export async function updateBannerAction(
   try { await assertAdmin(); } catch (e) { return { error: (e as Error).message }; }
 
   const service = createServiceClient();
-  const productCodes = formData.getAll("product_codes").map(String).filter(Boolean);
+  const productCodes = formData.getAll("checkout_codes").map(String).filter(Boolean);
 
   const parsed = bannerSchema.safeParse({
     title: formData.get("title"),
@@ -130,7 +130,7 @@ export async function updateBannerAction(
     .update({
       ...parsed.data,
       image_url: imageResult.imageUrl,
-      product_codes: productCodes,
+      checkout_codes: productCodes,
       starts_at: toIso(parsed.data.starts_at),
       ends_at: toIso(parsed.data.ends_at),
     })

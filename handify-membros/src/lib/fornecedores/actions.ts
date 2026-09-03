@@ -377,7 +377,7 @@ export async function getProducts(nicheId?: string, courseId?: string): Promise<
   }
 
   let query = supabase
-    .from('products')
+    .from('supplier_products')
     .select('*')
     .eq('active', true)
     .order('name', { ascending: true })
@@ -424,7 +424,7 @@ export async function adminGetProducts(): Promise<ProductWithDetails[]> {
   const supabase = createServiceClient()
 
   const { data: productsRaw, error } = await supabase
-    .from('products')
+    .from('supplier_products')
     .select('*')
     .order('name', { ascending: true })
   if (error) throw error
@@ -474,8 +474,8 @@ export async function adminUpsertProduct(product: {
   const { id, course_ids, supplier_links, ...fields } = product
 
   const { data, error } = id
-    ? await supabase.from('products').update(fields).eq('id', id).select('id').single()
-    : await supabase.from('products').insert(fields).select('id').single()
+    ? await supabase.from('supplier_products').update(fields).eq('id', id).select('id').single()
+    : await supabase.from('supplier_products').insert(fields).select('id').single()
   if (error) throw error
   const productId = data.id
 
@@ -500,7 +500,7 @@ export async function adminUpsertProduct(product: {
 
 export async function adminDeleteProduct(id: string): Promise<void> {
   const supabase = createServiceClient()
-  await supabase.from('products').delete().eq('id', id)
+  await supabase.from('supplier_products').delete().eq('id', id)
   revalidatePath('/ferramentas/fornecedores')
   revalidatePath('/admin/fornecedores/produtos')
 }

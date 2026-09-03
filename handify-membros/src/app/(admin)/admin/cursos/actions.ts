@@ -166,7 +166,7 @@ const CourseSchema = z.object({
   slug: z.string().min(3).max(100).regex(/^[a-z0-9-]+$/, "Slug: apenas letras minusculas, numeros e hifens"),
   description: z.string().max(5000).optional().default(""),
   price: z.number().min(0),
-  product_codes: z.array(z.string().max(100)).default([]),
+  checkout_codes: z.array(z.string().max(100)).default([]),
   workload_hours: z.number().min(0).max(9999),
   course_type: z.enum(["course", "material"]).default("course"),
   is_subscription_only: z.boolean().default(false),
@@ -189,7 +189,7 @@ export async function createCourse(
     slug: formData.get("slug") as string,
     description: formData.get("description") as string,
     price: Number(formData.get("price") ?? 0),
-    product_codes: (formData.get("product_codes") as string ?? "")
+    checkout_codes: (formData.get("checkout_codes") as string ?? "")
       .split(",").map((s) => s.trim()).filter(Boolean),
     workload_hours: Number(formData.get("workload_hours") ?? 0),
     course_type: (formData.get("course_type") as string) || "course",
@@ -225,7 +225,7 @@ export async function updateCourse(
     slug: formData.get("slug") as string,
     description: formData.get("description") as string,
     price: Number(formData.get("price") ?? 0),
-    product_codes: (formData.get("product_codes") as string ?? "")
+    checkout_codes: (formData.get("checkout_codes") as string ?? "")
       .split(",").map((s) => s.trim()).filter(Boolean),
     workload_hours: Number(formData.get("workload_hours") ?? 0),
     course_type: (formData.get("course_type") as string) || "course",
@@ -322,7 +322,7 @@ export async function deleteCourse(courseId: string): Promise<void> {
 
 /**
  * Concede acesso ao curso para todas as alunas que já pagaram por qualquer
- * um dos product_codes configurados no curso mas ainda não têm matrícula.
+ * um dos checkout_codes configurados no curso mas ainda não têm matrícula.
  * Também consome activation_tokens não utilizados para esses cursos/e-mails.
  */
 export async function retroactiveEnroll(
@@ -331,14 +331,14 @@ export async function retroactiveEnroll(
   await assertAdmin();
   const service = createServiceClient();
 
-  // 1. Pegar product_codes e access_days do curso
+  // 1. Pegar checkout_codes e access_days do curso
   const { data: course } = await service
     .from("courses")
-    .select("product_codes, access_days")
+    .select("checkout_codes, access_days")
     .eq("id", courseId)
     .single();
 
-  if (!course?.product_codes?.length) {
+  if (!course?.checkout_codes?.length) {
     return { count: 0, error: "Curso sem product codes configurados." };
   }
 
@@ -348,7 +348,7 @@ export async function retroactiveEnroll(
   const { data: events, error: evErr } = await service
     .from("payment_events")
     .select("buyer_email")
-    .in("product_code", course.product_codes as string[])
+    .in("product_code", course.checkout_codes as string[])
     .in("event_type", grantStatuses)
     .eq("processed", true);
 

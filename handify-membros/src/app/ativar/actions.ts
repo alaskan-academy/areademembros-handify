@@ -91,7 +91,7 @@ export async function completarAtivarAction(
   // Valida token
   const { data: candidate } = await service
     .from("migration_candidates")
-    .select("id, email, full_name, cpf_raw, phone, product_codes, token_expires, activated_at")
+    .select("id, email, full_name, cpf_raw, phone, checkout_codes, token_expires, activated_at")
     .eq("token", token)
     .maybeSingle();
 
@@ -182,7 +182,7 @@ export async function completarAtivarAction(
   }
 
   // Concede matrículas
-  await grantMigrationEnrollments(userId, candidate.email, service, candidate.product_codes ?? []);
+  await grantMigrationEnrollments(userId, candidate.email, service, candidate.checkout_codes ?? []);
 
   // Limpa dados sensíveis e marca como ativada
   await service
@@ -222,24 +222,24 @@ async function grantMigrationEnrollments(
   service: any,
   productCodes?: string[]
 ) {
-  // Se não veio product_codes, busca da tabela
+  // Se não veio checkout_codes, busca da tabela
   let codes = productCodes;
   if (!codes) {
     const { data } = await service
       .from("migration_candidates")
-      .select("product_codes")
+      .select("checkout_codes")
       .eq("email", email)
       .maybeSingle();
-    codes = data?.product_codes ?? [];
+    codes = data?.checkout_codes ?? [];
   }
 
   if (!codes?.length) return;
 
-  // Busca course_ids pelos product_codes
+  // Busca course_ids pelos checkout_codes
   const { data: courses } = await service
     .from("courses")
-    .select("id, product_codes")
-    .overlaps("product_codes", codes);
+    .select("id, checkout_codes")
+    .overlaps("checkout_codes", codes);
 
   if (!courses?.length) return;
 

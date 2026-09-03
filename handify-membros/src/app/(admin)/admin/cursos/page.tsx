@@ -12,7 +12,7 @@ export default async function AdminCoursesPage() {
   const [{ data: courses }, { data: categories }, { data: forums }, { data: showcaseRows }, { data: niches }] = await Promise.all([
     supabase
       .from("courses")
-      .select("id, title, slug, description, price, product_codes, workload_hours, course_type, is_subscription_only, has_certificate, published, category_id, forum_id, niche_id, thumbnail_url, checkout_url, position, category:categories(name), forum:forums(title, slug)")
+      .select("id, title, slug, description, price, checkout_codes, workload_hours, course_type, is_subscription_only, has_certificate, published, category_id, forum_id, niche_id, thumbnail_url, checkout_url, position, category:categories(name), forum:forums(title, slug)")
       .order("position")
       .order("created_at", { ascending: false }),
     supabase.from("categories").select("id, name").order("name"),
@@ -23,7 +23,7 @@ export default async function AdminCoursesPage() {
 
   type CourseRow = {
     id: string; title: string; slug: string; description: string | null;
-    price: number | null; product_codes: string[]; workload_hours: number | null;
+    price: number | null; checkout_codes: string[]; workload_hours: number | null;
     course_type: "course" | "material"; is_subscription_only: boolean;
     has_certificate: boolean; published: boolean;
     category_id: string | null; forum_id: string | null; niche_id: string | null;

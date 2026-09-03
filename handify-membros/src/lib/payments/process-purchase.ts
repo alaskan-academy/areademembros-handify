@@ -104,11 +104,11 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   // três formas evita que o acesso deixe de liberar por causa disso.
   const { data: courses } = await supabase
     .from("courses")
-    .select("id, title, slug, access_days, product_codes")
-    .overlaps("product_codes", caseVariants(event.productCodes));
+    .select("id, title, slug, access_days, checkout_codes")
+    .overlaps("checkout_codes", caseVariants(event.productCodes));
 
   if (!courses?.length) {
-    const msg = `Nenhum curso encontrado para product_codes: ${event.productCodes.join(", ")}`;
+    const msg = `Nenhum curso encontrado para checkout_codes: ${event.productCodes.join(", ")}`;
     console.warn(log, msg);
     await logPaymentEvent(supabase, event, { processed: false, error: msg, amountPaid });
     return NextResponse.json({ received: true, warning: msg });
@@ -144,7 +144,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
       // Usa o token do curso principal (ou o primeiro disponível) no e-mail
       const mainCourse =
-        courses.find((c) => hasCode(c.product_codes as string[], event.mainProductCode)) ??
+        courses.find((c) => hasCode(c.checkout_codes as string[], event.mainProductCode)) ??
         courses[0];
       const mainTokenResult = tokenResults.find((r) => r.course.id === mainCourse.id);
       const activationToken = mainTokenResult?.token ?? tokenResults.find((r) => r.token)?.token;
@@ -309,7 +309,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
     // E-mail de acesso confirmado (referenciando o produto principal)
     const mainCourse =
-      courses.find((c) => hasCode(c.product_codes as string[], event.mainProductCode)) ??
+      courses.find((c) => hasCode(c.checkout_codes as string[], event.mainProductCode)) ??
       courses[0];
     ;(async () => {
       const { data: profile } = await supabase

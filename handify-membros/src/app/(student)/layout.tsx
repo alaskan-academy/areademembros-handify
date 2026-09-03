@@ -60,7 +60,7 @@ export default async function StudentLayout({
     const { data: matchingCourses } = await supabase
       .from("courses")
       .select("id")
-      .overlaps("product_codes", promoRaw.subscription_product_codes);
+      .overlaps("checkout_codes", promoRaw.subscription_product_codes);
     if (matchingCourses?.length) {
       const { count } = await supabase
         .from("enrollments")
