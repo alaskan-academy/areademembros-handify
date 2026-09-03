@@ -1,5 +1,6 @@
 "use client";
 
+import CommentBox from "@/components/ui/comment-box";
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import { Heart, MessageCircle, ChevronDown, ChevronUp, Trash2, Pin, Send, Loader2, Paperclip, Clock, ShieldCheck } from "lucide-react";
@@ -240,12 +241,14 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
           <form onSubmit={handleComment} className="flex gap-2.5">
             <Avatar name="Você" size={7} />
             <div className="flex-1 flex gap-2">
-              <textarea value={commentBody} onChange={(e) => setCommentBody(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleComment(e as unknown as React.FormEvent); } }}
-                placeholder="Escreva sua resposta… (Enter para enviar)"
-                aria-label="Escreva sua resposta"
-                rows={1} className="flex-1 resize-none rounded-lg border border-border px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/30 placeholder:text-muted-foreground"
-                style={{ minHeight: "44px" }} />
+              <CommentBox
+                value={commentBody}
+                onChange={setCommentBody}
+                onSubmit={() => handleComment({ preventDefault: () => {} } as React.FormEvent)}
+                placeholder="Escreva sua resposta… (Enter para enviar, Shift+Enter quebra linha)"
+                ariaLabel="Escreva sua resposta"
+                className="bg-white"
+              />
               <button type="submit" disabled={!commentBody.trim() || submitting}
                 aria-label="Enviar comentário"
                 className="p-2 rounded-lg bg-[#6699F3] text-white disabled:opacity-40 hover:opacity-90 transition-opacity shrink-0 self-end">

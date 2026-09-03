@@ -22,8 +22,23 @@ export default async function ForumLandingPage() {
 
   const courseIds = (enrolledCourses ?? []).map((e) => e.course_id);
 
+  // Admin acessa todos os cursos, mas nao tem matricula — sem isto a tela
+  // mostrava "Nenhum forum disponivel" para a propria equipe.
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  const ehAdmin = me?.role === "admin";
+
   let forumIds: string[] = [];
-  if (courseIds.length > 0) {
+  if (ehAdmin) {
+    const { data: todos } = await supabase
+      .from("forums")
+      .select("id")
+      .eq("archived", false);
+    forumIds = (todos ?? []).map((f) => f.id);
+  } else if (courseIds.length > 0) {
     const { data: linkedCourses } = await supabase
       .from("courses")
       .select("forum_id")
@@ -72,7 +87,7 @@ export default async function ForumLandingPage() {
             Comunidade
           </p>
           <h1 className="text-3xl sm:text-4xl font-black text-[#0F0F0F]">
-            <span className="text-[#6699F3]">Comunidade</span>
+            Fóruns dos seus <span className="text-[#6699F3]">cursos</span>
           </h1>
           <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
             Tire dúvidas, compartilhe projetos e troque experiências com outras artesãs.

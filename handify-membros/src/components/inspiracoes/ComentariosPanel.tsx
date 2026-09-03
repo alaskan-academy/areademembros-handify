@@ -1,5 +1,6 @@
 'use client'
 
+import CommentBox from "@/components/ui/comment-box";
 import { useState, useEffect, useTransition } from 'react'
 import { Send, MessageCircle, Loader2 } from 'lucide-react'
 import { getComments, submitComment } from '@/lib/inspiracoes/actions'
@@ -69,13 +70,11 @@ function ReplyForm({
   return (
     <div>
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
+        <CommentBox
           value={body}
-          onChange={e => setBody(e.target.value)}
-          placeholder={`Responder a ${parentName ?? 'Aluna'}...`}
-          maxLength={2000}
+          onChange={setBody}
+          placeholder={`Responder a ${parentName ?? "Aluna"}...`}
           autoFocus
-          className="flex-1 text-xs px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow min-h-[44px]"
         />
         <button
           type="button"
@@ -254,12 +253,10 @@ export function ComentariosPanel({ postId, userId }: Props) {
       {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
 
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
+        <CommentBox
           value={body}
-          onChange={e => { setBody(e.target.value); setSent(false) }}
+          onChange={(v) => { setBody(v); setSent(false); }}
           placeholder="Escreva um comentário..."
-          maxLength={2000}
-          className="flex-1 text-xs px-3 py-2.5 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow min-h-[44px]"
         />
         <button
           type="submit"

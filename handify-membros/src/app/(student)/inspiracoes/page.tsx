@@ -32,9 +32,6 @@ export default async function InspiracoesPage() {
       {/* Hero */}
       <div className="bg-white border-b border-border/60">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 text-center">
-          <p className="text-sm font-medium text-[#6699F3] uppercase tracking-wide mb-3">
-            Comunidade
-          </p>
           <h1 className="text-3xl sm:text-4xl font-black text-[#0F0F0F]">
             <span className="text-[#6699F3]">Inspirações</span> Handify
           </h1>
