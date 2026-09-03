@@ -65,6 +65,14 @@ export default function InstallBar() {
       setEstado("installable");
     }
 
+    // Em desenvolvimento o `next-pwa` fica desligado, entao o navegador nunca
+    // dispara `beforeinstallprompt` e a tarja nao apareceria nunca no
+    // localhost — sem isso, so daria para conferir o visual em producao.
+    // O botao fica inerte aqui: sem evento, nao ha o que instalar.
+    if (process.env.NODE_ENV === "development" && !jaCapturado) {
+      setEstado("installable");
+    }
+
     function aoReceber(e: Event) {
       e.preventDefault();
       setEvento(e as BeforeInstallPromptEvent);
