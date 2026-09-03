@@ -75,7 +75,6 @@ export default async function AlunosPage({
     .is("revoked_at", null)
     .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
   const idsCompleto = [...new Set((membershipRows ?? []).map((m) => m.user_id as string))];
-  const temCompleto = new Set(idsCompleto);
   const soCompleto = plano === "completo";
 
   // "Sem cadastro" não tem conta, logo não tem membership — mas pode ter comprado
@@ -113,8 +112,16 @@ export default async function AlunosPage({
     }
     return vigente;
   })();
-  const activeTab =
-    rawTab === "sem-cadastro" ? "sem-cadastro" : "cadastradas";
+  // Três situações, separadas: "cadastradas" = comprou e ativou (conta + curso);
+  // "sem-ativacao" = comprou e não criou conta (token pendente); "sem-cursos" =
+  // só se cadastrou e não comprou nada. `sem-cadastro` é o nome antigo da
+  // segunda, mantido para links já salvos.
+  const activeTab: "cadastradas" | "sem-ativacao" | "sem-cursos" =
+    rawTab === "sem-ativacao" || rawTab === "sem-cadastro"
+      ? "sem-ativacao"
+      : rawTab === "sem-cursos"
+      ? "sem-cursos"
+      : "cadastradas";
   const q = rawQ?.trim() ?? "";
   const page = Math.max(1, parseInt(rawPage ?? "1"));
   const from = (page - 1) * PAGE_SIZE;
@@ -227,6 +234,8 @@ export default async function AlunosPage({
   const semCadastroCount = semCadastro.length;
 
   // ── Dados "cadastradas" (só no tab correspondente) ────────────────────────
+  // Vem de `admin_alunas_view`: perfil + situação já calculada no banco
+  // (qtd_cursos, tem_curso, tem_completo), para paginar e filtrar por lá.
   type ProfileRow = {
     id: string;
     full_name: string | null;
@@ -236,25 +245,27 @@ export default async function AlunosPage({
     role: string;
     banned: boolean | null;
     created_at: string;
+    qtd_cursos: number;
+    tem_curso: boolean;
+    tem_completo: boolean;
   };
+  const PROFILE_FIELDS =
+    "id, full_name, email, phone, date_of_birth, role, banned, created_at, qtd_cursos, tem_curso, tem_completo";
   let profiles: ProfileRow[] = [];
   let count = 0;
   let cpfSearch = false;
 
   // Com busca ativa os dois grupos aparecem juntos, entao esta consulta roda
   // mesmo quando a aba selecionada e "sem-cadastro".
-  if (activeTab === "cadastradas" || q) {
+  if (activeTab !== "sem-ativacao" || q) {
     if (q && isCpf(q)) {
       cpfSearch = true;
       const cpfDigits = formatCpfRaw(q);
       const cpfH = hashCpf(cpfDigits);
 
       const { data: byHash, count: hashCount } = await service
-        .from("profiles")
-        .select(
-          "id, full_name, email, phone, date_of_birth, role, banned, created_at",
-          { count: "exact" }
-        )
+        .from("admin_alunas_view")
+        .select(PROFILE_FIELDS, { count: "exact" })
         .eq("cpf_hash", cpfH)
         .neq("role", "admin");
 
@@ -274,11 +285,8 @@ export default async function AlunosPage({
         ];
         if (emails.length > 0) {
           const { data, count: c } = await service
-            .from("profiles")
-            .select(
-              "id, full_name, email, phone, date_of_birth, role, banned, created_at",
-              { count: "exact" }
-            )
+            .from("admin_alunas_view")
+            .select(PROFILE_FIELDS, { count: "exact" })
             .in("email", emails)
             .neq("role", "admin");
           profiles = (data ?? []) as ProfileRow[];
@@ -287,17 +295,16 @@ export default async function AlunosPage({
       }
     } else {
       let query = service
-        .from("profiles")
-        .select(
-          "id, full_name, email, phone, date_of_birth, role, banned, created_at",
-          { count: "exact" }
-        )
+        .from("admin_alunas_view")
+        .select(PROFILE_FIELDS, { count: "exact" })
         .neq("role", "admin")
-        .order("created_at", { ascending: false });
-      // Filtro "só Handify Completo": são dezenas de alunas, cabem numa página —
-      // sem paginação, os links de página não precisam carregar o parâmetro.
-      if (soCompleto) query = query.in("id", idsCompleto.length ? idsCompleto : ["00000000-0000-0000-0000-000000000000"]);
-      else query = query.range(from, to);
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      // Sem busca, a aba define o segmento: com curso (comprou e ativou) ou sem
+      // curso (só se cadastrou). Com busca, as duas aparecem juntas — a busca é
+      // para achar uma pessoa, as abas são para ver os grupos.
+      if (!q) query = query.eq("tem_curso", activeTab !== "sem-cursos");
+      if (soCompleto) query = query.eq("tem_completo", true);
       if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
       const { data, count: c } = await query;
       profiles = (data ?? []) as ProfileRow[];
@@ -305,20 +312,24 @@ export default async function AlunosPage({
     }
   }
 
-  const profileIds = profiles.map((p) => p.id);
-  const { data: enrollments } = profileIds.length
-    ? await service
-        .from("enrollments")
-        .select("user_id")
-        .in("user_id", profileIds)
-    : { data: [] };
-  const enrollCount: Record<string, number> = {};
-  for (const e of enrollments ?? []) {
-    enrollCount[e.user_id] = (enrollCount[e.user_id] ?? 0) + 1;
-  }
+  // Tamanho das duas situações com conta, para as abas mostrarem o número
+  // mesmo quando não estão selecionadas. A terceira (sem ativação) já vem
+  // contada dos tokens.
+  const [{ count: countComCurso }, { count: countSemCurso }] = await Promise.all([
+    service
+      .from("admin_alunas_view")
+      .select("id", { count: "exact", head: true })
+      .neq("role", "admin")
+      .eq("tem_curso", true),
+    service
+      .from("admin_alunas_view")
+      .select("id", { count: "exact", head: true })
+      .neq("role", "admin")
+      .eq("tem_curso", false),
+  ]);
 
   const totalPages =
-    activeTab === "cadastradas" ? Math.ceil(count / PAGE_SIZE) : 0;
+    activeTab !== "sem-ativacao" ? Math.ceil(count / PAGE_SIZE) : 0;
 
   return (
     <div className="space-y-6">
@@ -347,7 +358,7 @@ export default async function AlunosPage({
           </a>
           <Link
             href={`/admin/alunos${
-              [activeTab === "sem-cadastro" ? "tab=sem-cadastro" : "", soCompleto ? "" : "plano=completo"]
+              [activeTab !== "cadastradas" ? `tab=${activeTab}` : "", soCompleto ? "" : "plano=completo"]
                 .filter(Boolean)
                 .map((p, i) => (i === 0 ? `?${p}` : `&${p}`))
                 .join("") || ""
@@ -360,7 +371,7 @@ export default async function AlunosPage({
             title={soCompleto ? "Mostrar todas" : "Mostrar só quem tem o Handify Completo"}
           >
             <Sparkles className="w-4 h-4" />
-            Completo · {activeTab === "sem-cadastro" ? semCadastroComPlano : idsCompleto.length}
+            Completo · {activeTab === "sem-ativacao" ? semCadastroComPlano : idsCompleto.length}
           </Link>
         </div>
       </div>
@@ -444,56 +455,70 @@ export default async function AlunosPage({
           grupos aparecem juntos e a aba deixaria a metade escondida. */}
       {!q && (
       <div className="border-b border-border">
-        <nav className="flex gap-1 -mb-px">
-          <Link
-            href="/admin/alunos?tab=cadastradas"
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-              activeTab === "cadastradas"
-                ? "border-[#6699F3] text-[#6699F3]"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-            }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            Cadastradas
-            {activeTab === "cadastradas" && count > 0 && (
-              <span className="ml-1 text-xs bg-[#6699F3]/15 text-[#6699F3] px-1.5 py-0.5 rounded-full font-semibold">
-                {count}
-              </span>
-            )}
-          </Link>
-          <Link
-            href="/admin/alunos?tab=sem-cadastro"
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
-              activeTab === "sem-cadastro"
-                ? "border-amber-500 text-amber-600"
-                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-            }`}
-          >
-            <UserX className="w-4 h-4" />
-            Sem cadastro
-            {semCadastroCount > 0 && (
+        <nav className="flex gap-1 -mb-px overflow-x-auto">
+          {(
+            [
+              {
+                tab: "cadastradas",
+                label: "Cadastradas",
+                hint: "Compraram e ativaram — têm conta e pelo menos um curso",
+                Icon: UserCheck,
+                total: countComCurso ?? 0,
+                ativo: "border-[#6699F3] text-[#6699F3]",
+                badge: "bg-[#6699F3]/15 text-[#6699F3]",
+              },
+              {
+                tab: "sem-ativacao",
+                label: "Sem ativação",
+                hint: "Compraram e ainda não criaram a conta",
+                Icon: UserX,
+                total: semCadastroCount,
+                ativo: "border-amber-500 text-amber-600",
+                badge: "bg-amber-100 text-amber-700",
+              },
+              {
+                tab: "sem-cursos",
+                label: "Sem cursos",
+                hint: "Só se cadastraram — nunca compraram nada",
+                Icon: UserCircle,
+                total: countSemCurso ?? 0,
+                ativo: "border-foreground/60 text-foreground",
+                badge: "bg-muted text-foreground/70",
+              },
+            ] as const
+          ).map(({ tab, label, hint, Icon, total, ativo, badge }) => (
+            <Link
+              key={tab}
+              href={`/admin/alunos?tab=${tab}`}
+              title={hint}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === tab
+                  ? ativo
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
               <span
                 className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                  activeTab === "sem-cadastro"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-muted text-muted-foreground"
+                  activeTab === tab ? badge : "bg-muted text-muted-foreground"
                 }`}
               >
-                {semCadastroCount}
+                {total}
               </span>
-            )}
-          </Link>
+            </Link>
+          ))}
         </nav>
       </div>
       )}
 
-      {/* Cadastradas — sempre visivel quando ha busca */}
-      {(activeTab === "cadastradas" || q) && (
+      {/* Com conta (cadastradas ou sem cursos) — sempre visivel quando ha busca */}
+      {(activeTab !== "sem-ativacao" || q) && (
         <>
           {q && (
             <h2 className="flex items-center gap-2 text-sm font-semibold text-[#6699F3]">
               <UserCheck className="w-4 h-4" />
-              Cadastradas
+              Com conta
               <span className="text-xs bg-[#6699F3]/15 px-1.5 py-0.5 rounded-full">{count}</span>
             </h2>
           )}
@@ -590,11 +615,11 @@ export default async function AlunosPage({
                       </td>
                       <td className="px-4 py-3 text-center hidden sm:table-cell">
                         <span className="font-semibold">
-                          {enrollCount[p.id] ?? 0}
+                          {p.qtd_cursos}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center hidden sm:table-cell">
-                        {temCompleto.has(p.id) ? (
+                        {p.tem_completo ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#6699F3]/10 text-[#6699F3] text-xs font-semibold"
                             title="Tem o Handify Completo ativo"
@@ -638,18 +663,18 @@ export default async function AlunosPage({
       {/* Sem cadastro — aparece junto quando ha busca. Fica FORA do bloco de
           cima: quando estava dentro, a aba "Sem cadastro" sem busca nao
           renderizava nada (regressao da busca unificada, 03/09/2026). */}
-      {(activeTab === "sem-cadastro" || q) && (
+      {(activeTab === "sem-ativacao" || q) && (
         <>
           {q && (
             <h2 className="flex items-center gap-2 text-sm font-semibold text-amber-600 pt-2">
               <UserX className="w-4 h-4" />
-              Sem cadastro
+              Sem ativação
               <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
                 {semCadastroFiltrado.length}
               </span>
             </h2>
           )}
-          <SemCadastroClient rows={semCadastroFiltrado} buscaExterna={q} />
+          <SemCadastroClient rows={semCadastroFiltrado} />
         </>
       )}
 
@@ -658,7 +683,7 @@ export default async function AlunosPage({
             <div className="flex items-center justify-center gap-2">
               {page > 1 && (
                 <Link
-                  href={`?${q ? `q=${encodeURIComponent(q)}&` : ""}page=${page - 1}`}
+                  href={`?tab=${activeTab}&${soCompleto ? "plano=completo&" : ""}${q ? `q=${encodeURIComponent(q)}&` : ""}page=${page - 1}`}
                   className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-muted transition-colors"
                 >
                   ← Anterior
@@ -669,7 +694,7 @@ export default async function AlunosPage({
               </span>
               {page < totalPages && (
                 <Link
-                  href={`?${q ? `q=${encodeURIComponent(q)}&` : ""}page=${page + 1}`}
+                  href={`?tab=${activeTab}&${soCompleto ? "plano=completo&" : ""}${q ? `q=${encodeURIComponent(q)}&` : ""}page=${page + 1}`}
                   className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-muted transition-colors"
                 >
                   Próxima →

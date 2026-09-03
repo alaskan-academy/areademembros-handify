@@ -267,6 +267,15 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       nada sem busca — o bloco estava *dentro* da condicional da aba "Cadastradas"
       desde a busca unificada de 03/09 (já em produção). Movido para fora;
       verificado: 480 linhas na aba, e a busca unificada segue mostrando as duas
+- [x] **Admin → Alunas em três situações** (pedido da Jessica, 03/09): Cadastradas
+      (comprou e ativou: conta + curso) · Sem ativação (comprou, não criou conta)
+      · Sem cursos (só se cadastrou, não comprou — 30 hoje, antes invisíveis no meio
+      de "Cadastradas"). View `admin_alunas_view` (security_invoker) entrega
+      `qtd_cursos`, `tem_curso`, `tem_completo` calculados no banco → paginar,
+      contar e filtrar sem listas de ids; o filtro Completo voltou a paginar.
+      **Um campo de busca só** — o segundo (dentro de Sem cadastro) foi removido.
+      Links de paginação preservam aba e filtro. `tab=sem-cadastro` (nome antigo)
+      continua funcionando. Verificado com clique nas três abas, na busca e no filtro
 - [~] Campanha segmento 699: template `renderPlanUpgradeEmail` /
       `sendPlanUpgradeEmail` pronto em `src/lib/email/index.ts`, preview gerado por
       `scripts/preview-email-completo.ts` e mostrado à Jessica. **Decisão dela:
