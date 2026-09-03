@@ -1,5 +1,6 @@
 'use client'
 
+import Image from "next/image"
 import { MessageCircle, Image as ImageIcon, PlayCircle, ChefHat, Lightbulb, Star, GalleryHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { InspiracaoPost, InspiracaoType } from '@/lib/inspiracoes/types'
@@ -26,10 +27,12 @@ function CardThumbnail({ post }: { post: InspiracaoPost }) {
     if (ytId) {
       return (
         <div className="relative aspect-square bg-black overflow-hidden">
-          <img
+          <Image
             src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`}
             alt={post.title}
-            className="w-full h-full object-cover opacity-80"
+            fill
+            sizes="(max-width: 640px) 45vw, 240px"
+            className="object-cover opacity-80"
           />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow">
@@ -44,11 +47,13 @@ function CardThumbnail({ post }: { post: InspiracaoPost }) {
   const firstMedia = post.media[0]
   if (firstMedia?.url) {
     return (
-      <div className="aspect-square overflow-hidden bg-muted flex items-center justify-center">
-        <img
+      <div className="relative aspect-square overflow-hidden bg-muted">
+        <Image
           src={firstMedia.url}
           alt={firstMedia.alt ?? post.title}
-          className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+          fill
+          sizes="(max-width: 640px) 45vw, 240px"
+          className="object-contain group-hover:scale-105 transition-transform duration-300"
         />
       </div>
     )

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useModalBackGuard } from "@/hooks/useModalBackGuard";
 import Link from "next/link";
@@ -50,7 +51,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar curso..."
-            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow"
+            className="w-full min-h-[44px] pl-9 pr-4 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-[#6699F3]/40 transition-shadow"
           />
         </div>
         {categories.length > 0 && (
@@ -59,7 +60,7 @@ export default function CursosGrid({ courses, categories, isLoggedIn, headerBann
             aria-label="Filtrar por categoria"
             aria-expanded={filtersOpen}
             className={cn(
-              "shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors",
+              "shrink-0 min-h-[44px] flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors",
               filtersOpen || activeCategory
                 ? "border-[#6699F3] text-[#6699F3] bg-[#6699F3]/5"
                 : "border-border text-foreground/60 hover:border-[#6699F3]/50 hover:text-[#6699F3]"
@@ -458,12 +459,15 @@ function CourseCard({ course, onClick }: { course: CatalogCourse; onClick: () =>
       {/* Thumbnail */}
       <div className="aspect-video relative overflow-hidden bg-[#6699F3]/10">
         {course.thumbnail_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // `sizes` evita baixar a versão desktop no celular: é aqui que está
+          // o ganho de peso, já que o catálogo carrega dezenas de capas.
+          <Image
             src={course.thumbnail_url}
             alt={course.title}
+            fill
+            sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 300px"
             className={cn(
-              "w-full h-full object-cover transition-transform duration-300 group-hover:scale-105",
+              "object-cover transition-transform duration-300 group-hover:scale-105",
               isLocked && "brightness-75"
             )}
           />
@@ -669,9 +673,14 @@ function CourseModal({
             />
           </div>
         ) : course.thumbnail_url ? (
-          <div className="w-full aspect-video overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
+          <div className="w-full aspect-video overflow-hidden relative">
+            <Image
+              src={course.thumbnail_url}
+              alt={course.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 640px"
+              className="object-cover"
+            />
           </div>
         ) : null}
 

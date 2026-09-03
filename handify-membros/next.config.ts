@@ -11,7 +11,14 @@ const nextConfig: NextConfig = {
   turbopack: {},
   images: {
     remotePatterns: [
+      // Projeto Supabase atual — onde estão as capas dos cursos.
+      // Faltava aqui, então next/image recusava essas imagens e o projeto
+      // inteiro acabou usando `unoptimized`, servindo o arquivo original.
+      { protocol: "https", hostname: "fjcdcvywdiagzovqqcpc.supabase.co" },
+      // Projeto antigo — ainda hospeda imagens de posts de inspiração.
       { protocol: "https", hostname: "ozsbyscxcpijyvnjlkpw.supabase.co" },
+      // Miniaturas de vídeo do YouTube nos posts de inspiração.
+      { protocol: "https", hostname: "img.youtube.com" },
     ],
   },
   async redirects() {

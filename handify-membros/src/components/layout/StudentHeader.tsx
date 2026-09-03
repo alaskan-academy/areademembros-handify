@@ -76,7 +76,7 @@ export default function StudentHeader({
           <div className="flex items-center h-14 gap-3">
 
             {/* Logo */}
-            <Link href="/cursos" className="flex items-center gap-2 shrink-0">
+            <Link href="/cursos" className="flex items-center gap-2 shrink-0 min-h-[44px]" aria-label="Ir para meus cursos">
               <Image
                 src="/icon.png"
                 alt=""
@@ -116,7 +116,7 @@ export default function StudentHeader({
                 <button
                   id="tour-nav-perfil"
                   onClick={() => setAvatarOpen((v) => !v)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity ml-1"
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white hover:opacity-90 transition-opacity ml-1"
                   style={{ background: "#6699F3" }}
                   aria-label="Menu do usuário"
                   aria-expanded={avatarOpen}
