@@ -1,3 +1,4 @@
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -81,9 +82,12 @@ export default async function AdminSugestoesPage() {
                         </button>
                       </form>
                       <form action={reject.bind(null, s.id)}>
-                        <button className="text-xs px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                          Rejeitar
-                        </button>
+                        <ConfirmSubmitButton
+                            pergunta="Rejeitar esta sugestão de fornecedor? Ela sai da fila."
+                            className="text-xs px-3 min-h-[36px] bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                          >
+                            Rejeitar
+                        </ConfirmSubmitButton>
                       </form>
                     </div>
                   )}

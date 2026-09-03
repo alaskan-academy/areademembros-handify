@@ -1,5 +1,6 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
@@ -34,6 +35,19 @@ export async function getCertificateDownloadUrl(
 
 // ─── Perfil ───────────────────────────────────────────────────────────────────
 
+/**
+ * Nome e bio nao tinham tamanho maximo: dava para gravar texto gigante no
+ * banco, que depois aparece no perfil publico da aluna.
+ */
+const PerfilSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(1, "Nome não pode ser vazio")
+    .max(120, "Nome muito longo (máximo 120 caracteres)"),
+  bio: z.string().trim().max(500, "Bio muito longa (máximo 500 caracteres)"),
+});
+
 export async function updateProfile(data: {
   fullName: string;
   bio: string;
@@ -44,14 +58,17 @@ export async function updateProfile(data: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Não autenticado" };
 
-  const fullName = data.fullName.trim();
-  if (!fullName) return { error: "Nome não pode ser vazio" };
+  const parsed = PerfilSchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+  }
+  const { fullName, bio } = parsed.data;
 
   const { error } = await supabase
     .from("profiles")
     .update({
       full_name: fullName,
-      bio: data.bio.trim() || null,
+      bio: bio || null,
     })
     .eq("id", user.id);
 

@@ -1,3 +1,4 @@
+import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -44,15 +45,19 @@ export default async function AdminComentariosPage() {
           <div className="flex gap-1.5 shrink-0">
             {showApprove && (
               <form action={approve.bind(null, r.id)}>
-                <button title="Aprovar" className="p-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
+                <button title="Aprovar" className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
                   <Check className="w-3.5 h-3.5" />
                 </button>
               </form>
             )}
             <form action={deleteReview.bind(null, r.id)}>
-              <button title="Excluir" className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              <ConfirmSubmitButton
+                  pergunta="Excluir esta avaliação? A aluna perde o comentário e não dá para desfazer."
+                  title="Excluir"
+                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+              </ConfirmSubmitButton>
             </form>
           </div>
         </div>
