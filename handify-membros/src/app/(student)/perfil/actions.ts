@@ -1,5 +1,6 @@
 "use server";
 
+import { traduzErroAuth } from "@/lib/auth/mensagens-erro";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -72,7 +73,10 @@ export async function updateProfile(data: {
     })
     .eq("id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[perfil] updateProfile:", error.message);
+    return { error: "Não foi possível salvar seu perfil. Tente novamente." };
+  }
   revalidatePath("/perfil");
   return {};
 }
@@ -142,7 +146,7 @@ export async function changePassword(data: {
   if (signInError) return { error: "Senha atual incorreta." };
 
   const { error } = await supabase.auth.updateUser({ password: data.newPassword });
-  if (error) return { error: error.message };
+  if (error) return { error: traduzErroAuth(error.message, "Não foi possível trocar a senha. Tente novamente.") };
   return {};
 }
 
@@ -169,6 +173,9 @@ export async function updateEmailPrefs(
     .update({ email_prefs: prefs })
     .eq("id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[perfil] email_prefs:", error.message);
+    return { error: "Não foi possível salvar suas preferências. Tente novamente." };
+  }
   return {};
 }

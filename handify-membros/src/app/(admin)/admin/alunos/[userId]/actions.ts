@@ -1,5 +1,6 @@
 "use server";
 
+import { traduzErroAuth } from "@/lib/auth/mensagens-erro";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -473,7 +474,7 @@ export async function setStudentPasswordAction(
   const service = createServiceClient();
   // email_confirm: true garante que conta inativa/não confirmada seja ativada junto
   const { error } = await service.auth.admin.updateUserById(userId, { password, email_confirm: true });
-  if (error) return { error: `Erro ao definir senha: ${error.message}` };
+  if (error) return { error: traduzErroAuth(error.message, "Não foi possível definir a senha. Tente novamente.") };
 
   await service.from("audit_log").insert({
     admin_id: adminId,

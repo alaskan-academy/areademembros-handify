@@ -1,5 +1,6 @@
 "use server";
 
+import { traduzErroAuth } from "@/lib/auth/mensagens-erro";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendWelcomeEmail } from "@/lib/email";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
@@ -115,7 +116,15 @@ export async function activateAccount(
   });
 
   if (signUpError || !created?.user) {
-    return { error: "Erro ao criar conta. Tente novamente ou entre em contato com o suporte." };
+    // Este e o caminho de quem acabou de comprar. Um generico aqui faz a aluna
+    // repetir a mesma senha fraca sem entender por que nao passa.
+    console.error("[ativar] createUser:", signUpError?.message);
+    return {
+      error: traduzErroAuth(
+        signUpError?.message,
+        "Erro ao criar conta. Tente novamente ou entre em contato com o suporte."
+      ),
+    };
   }
 
   const userId = created.user.id;
