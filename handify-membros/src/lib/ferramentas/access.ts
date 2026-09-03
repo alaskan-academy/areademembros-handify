@@ -38,6 +38,7 @@ type ToolRow = {
   min_tier: ToolTier;
   href: string | null;
   coming_soon: boolean;
+  show_in_hub: boolean;
   preview: ToolPreview[] | null;
   tool_categories: { category: { id: string; name: string; slug: string } | { id: string; name: string; slug: string }[] | null }[] | null;
 };
@@ -58,7 +59,7 @@ export async function getToolsForViewer(): Promise<ViewerTools> {
       service
         .from("tools")
         .select(
-          "id, slug, name, description, icon, section, min_tier, href, coming_soon, preview, tool_categories(category:categories(id, name, slug))"
+          "id, slug, name, description, icon, section, min_tier, href, coming_soon, show_in_hub, preview, tool_categories(category:categories(id, name, slug))"
         )
         .eq("active", true)
         .order("position"),
@@ -130,6 +131,7 @@ export async function getToolsForViewer(): Promise<ViewerTools> {
       minTier: t.min_tier,
       href,
       comingSoon: t.coming_soon,
+      showInHub: t.show_in_hub,
       preview: Array.isArray(t.preview) ? t.preview : [],
       state,
       unlockCategories: cats.map((c) => c.name).sort(),

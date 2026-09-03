@@ -317,9 +317,24 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
 - [ ] `current_tier()` nas policies do que for exclusivo (quando as ferramentas
       "Guardar" tiverem tabelas próprias)
 - [ ] Nome da seção: **"Ferramentas"** (mantido); bloco do Completo: **"Meu negócio"**
-- [ ] **"Minha receita" como fluxo** absorvendo Lucro + Essências + Pavio + Escala de
-      lote, com a porta "O que você precisa agora?" (4 botões). Cada etapa continua
-      abrindo sozinha. Ao entrar, desativar as três entradas antigas na tabela
+- [x] **"Minha receita" como fluxo** (`/ferramentas/minha-receita`): Produto →
+      Ingredientes (com escala de lote) → Essências → Pavio (só velas) → Custo e preço
+      → Ficha. Matemática extraída para `src/lib/ferramentas/calc.ts` com **19 testes
+      unitários** (vitest, `npm test`) conferidos na mão. Etapas de aluna obedecem à
+      tabela `tools` (trancadas mostram o caminho e deixam pular). Rascunho no
+      aparelho; "Salvar neste aparelho"; "Guardar na conta" aponta para o Completo
+      (Minhas receitas, em breve). Porta "O que você precisa agora?" no hub com os
+      botões que existem (2 hoje; os outros 2 aparecem quando Deu problema? e Meta
+      de renda existirem). As três calculadoras antigas continuam nas rotas (etapa
+      sozinha) mas saem da lista (`tools.show_in_hub`, editável no admin).
+      **Verificado ponta a ponta no navegador, preenchendo e conferindo na mão:**
+      sabonete 20×90 g → matéria-prima R$ 63,00 · escalar 20→50 (1800→4500) e volta ·
+      essência 36 mL/36 g/720 gotas · custo R$ 6,61 · preço R$ 11,01 · lucro R$ 4,41 ·
+      lote R$ 220,25/R$ 88,10 · salvar OK; vela 10×200 g → 200 mL/4000 gotas · pavio
+      LX 12 (alt. CD 12, ECO 4) com fragrância sugerida da etapa anterior · custo
+      R$ 14,70 · preço R$ 24,50 · lucro R$ 9,80. Calculadora de essências antiga
+      também conferida (36/36/720). Sessão do navegador é admin: etapas trancadas
+      verificadas por tipo e lógica
 
 ### Fase 4 — Porta aberta
 - [ ] Landing pública `/comecar` (proposta do gratuito) + onboarding direto para a

@@ -26,6 +26,8 @@ export type ToolView = {
   /** Já com {nicho}/{nicho_id} resolvidos para esta aluna. Null = sem rota. */
   href: string | null;
   comingSoon: boolean;
+  /** false = existe e tem regra de acesso, mas não é listada (etapas de "Minha receita"). */
+  showInHub: boolean;
   preview: ToolPreview[];
   state: ToolState;
   /** Nomes das categorias que liberam — para "Com um curso de Velas". */

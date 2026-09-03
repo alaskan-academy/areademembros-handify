@@ -23,6 +23,7 @@ const schema = z.object({
   href: z.string().trim().optional().or(z.literal("")),
   coming_soon: z.boolean(),
   active: z.boolean(),
+  show_in_hub: z.boolean(),
   position: z.coerce.number().int().min(0).max(999),
   category_ids: z.array(z.string().uuid()),
 });
@@ -44,6 +45,7 @@ export async function updateToolAction(
     href: formData.get("href") ?? "",
     coming_soon: formData.get("coming_soon") === "on",
     active: formData.get("active") === "on",
+    show_in_hub: formData.get("show_in_hub") === "on",
     position: formData.get("position") ?? 0,
     category_ids: formData.getAll("category_ids").map(String),
   });
@@ -69,6 +71,7 @@ export async function updateToolAction(
       href: campos.href || null,
       coming_soon: campos.coming_soon,
       active: campos.active,
+      show_in_hub: campos.show_in_hub,
       position: campos.position,
     })
     .eq("id", id);

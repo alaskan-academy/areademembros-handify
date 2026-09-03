@@ -49,7 +49,8 @@ export default function FerramentasHub({
   const porSecao = useMemo(() => {
     const termo = busca.trim().toLowerCase()
     const filtrar = (t: ToolView) =>
-      !termo || t.name.toLowerCase().includes(termo) || (t.description ?? '').toLowerCase().includes(termo)
+      t.showInHub &&
+      (!termo || t.name.toLowerCase().includes(termo) || (t.description ?? '').toLowerCase().includes(termo))
     return Object.fromEntries(
       SECOES.map(s => [s.key, tools.filter(t => t.section === s.key && filtrar(t))])
     ) as Record<ToolSection, ToolView[]>
@@ -100,6 +101,33 @@ export default function FerramentasHub({
             <strong>{ferramentaBloqueada.name}</strong> {textoDoCaminho(ferramentaBloqueada)}.
           </div>
         )}
+
+        {/* Porta de entrada: quatro perguntas que levam à etapa certa */}
+        {(() => {
+          const porSlug = Object.fromEntries(tools.map(t => [t.slug, t]))
+          const receita = porSlug['minha-receita']
+          const abre = (t?: ToolView) => !!t && t.state === 'aberta' && !!t.href
+          const portas: { rotulo: string; href: string }[] = []
+          if (abre(receita)) {
+            portas.push({ rotulo: 'Saber quanto cobrar', href: `${receita!.href}?etapa=preco` })
+            portas.push({ rotulo: 'Montar uma receita', href: `${receita!.href}?etapa=ingredientes` })
+          }
+          if (abre(porSlug['deu-problema'])) portas.push({ rotulo: 'Minha peça deu problema', href: porSlug['deu-problema'].href! })
+          if (abre(porSlug['meta-de-renda'])) portas.push({ rotulo: 'Começar a vender', href: porSlug['meta-de-renda'].href! })
+          if (portas.length < 2) return null
+          return (
+            <div className="rounded-xl bg-[#6699F3]/10 p-3">
+              <p className="text-xs font-bold mb-2">O que você precisa agora?</p>
+              <div className="grid grid-cols-2 gap-2">
+                {portas.map(p => (
+                  <Link key={p.href} href={p.href} className="bg-white border border-border/70 rounded-lg px-3 py-2 text-xs font-semibold leading-tight min-h-[44px] flex items-center hover:border-[#6699F3]/60 handify-transition">
+                    {p.rotulo}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Seções */}
         <div className="flex border-b border-border/70">

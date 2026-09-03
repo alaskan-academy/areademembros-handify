@@ -14,7 +14,7 @@ export default async function FerramentasAdminPage() {
     service
       .from("tools")
       .select(
-        "id, slug, name, description, icon, section, min_tier, href, coming_soon, active, position, tool_categories(category_id)"
+        "id, slug, name, description, icon, section, min_tier, href, coming_soon, active, show_in_hub, position, tool_categories(category_id)"
       )
       .order("section")
       .order("position"),
@@ -34,6 +34,7 @@ export default async function FerramentasAdminPage() {
       href: row.href,
       coming_soon: row.coming_soon,
       active: row.active,
+      show_in_hub: row.show_in_hub,
       position: row.position,
       category_ids: (row.tool_categories ?? []).map((c) => c.category_id),
     };

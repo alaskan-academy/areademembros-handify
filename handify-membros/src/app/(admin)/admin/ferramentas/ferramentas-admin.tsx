@@ -16,6 +16,7 @@ export type ToolAdminRow = {
   href: string | null;
   coming_soon: boolean;
   active: boolean;
+  show_in_hub: boolean;
   position: number;
   category_ids: string[];
 };
@@ -87,6 +88,14 @@ export default function FerramentasAdmin({
                       {!t.active && (
                         <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-600">
                           Desativada
+                        </span>
+                      )}
+                      {t.active && !t.show_in_hub && (
+                        <span
+                          className="px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground"
+                          title="Abre pela rota, mas não aparece na lista"
+                        >
+                          Fora da lista
                         </span>
                       )}
                     </div>
@@ -233,7 +242,11 @@ function ToolForm({
         </label>
         <label className="flex items-center gap-2 text-sm min-h-[36px]">
           <input type="checkbox" name="active" defaultChecked={tool.active} className="w-4 h-4 accent-[#6699F3]" />
-          Ativa (desmarcada some da lista)
+          Ativa (desmarcada, ninguém abre)
+        </label>
+        <label className="flex items-center gap-2 text-sm min-h-[36px]">
+          <input type="checkbox" name="show_in_hub" defaultChecked={tool.show_in_hub} className="w-4 h-4 accent-[#6699F3]" />
+          Aparece na lista (desmarcada, só abre pela rota)
         </label>
       </div>
 
