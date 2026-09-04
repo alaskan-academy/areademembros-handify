@@ -1,5 +1,3 @@
-import { getTier } from '@/lib/auth/access'
-import SoParaAlunas from '@/components/access/SoParaAlunas'
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FeedPostCard, { type FeedPostData } from "@/components/community/FeedPostCard";
@@ -14,22 +12,10 @@ export default async function FeedPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
-  // Os avisos são o canal da Handify com quem estuda aqui dentro.
-  if ((await getTier()) === 'visitante') {
-    return (
-      <SoParaAlunas
-        titulo="Os Avisos são para alunas"
-        oQueTem="É por aqui que a Handify conta o que é novo: curso lançando, ferramenta nova, dica da professora e aluna em destaque."
-        dentro={[
-          'Novidades da plataforma antes de todo mundo',
-          'Dicas curtas da professora',
-          'A aluna em destaque do mês, com o trabalho dela',
-        ]}
-      porQue="É o canal da Handify com quem estuda aqui dentro. Com um curso, você passa a receber tudo em primeira mão."
-    />
-    )
-  }
+  // Avisos fica aberto para toda conta, inclusive quem ainda não comprou
+  // (decisão da Jessica, 04/09): é o canal para mostrar o que a Handify faz e
+  // puxar a primeira compra. Quem publica aqui é a equipe, e o card só permite
+  // curtir — não há conteúdo de aluna exposto. O fechado é o fórum.
 
   const [postsResult, allLikesResult, userLikesResult, profileResult] = await Promise.all([
     supabase

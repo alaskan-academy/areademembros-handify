@@ -402,13 +402,22 @@ visitante lendo a comunidade, selo e carteirinha, "Bastidores do negócio",
       pedir CPF para experimentar uma calculadora afasta; ele volta a ser exigido
       quando ela compra. Termina em `/ferramentas`, não em `/cursos`. Rota pública
       no proxy; quem já está logada é redirecionada.
-- [x] **Comunidade e Inspirações passam a ser só para alunas** (decisão da Jessica
-      em 04/09, invertendo o item original "visitante lê sem postar" — abrir, mesmo
-      só para leitura, exporia projeto e foto das alunas). O item continua no menu e
-      o clique funciona; quem não tem curso vê `SoParaAlunas`: o que existe lá
-      dentro, por que é fechado, botão para os cursos e atalho para as ferramentas
-      grátis. Aplicado em `/inspiracoes`, `/inspiracoes/salvos`,
-      `/comunidade/forum` e `/comunidade/feed`.
+- [x] **Fórum e Inspirações passam a ser só para alunas; Avisos fica aberto**
+      (decisões da Jessica em 04/09). O menu mostra tudo para todas — o que muda é
+      o que abre ao clicar.
+      - **Fórum** (`/comunidade/forum`): fechado. Quem escreve lá são as alunas;
+        abrir, mesmo só para leitura, exporia o que elas postam.
+      - **Inspirações** (`/inspiracoes` e `/salvos`): fechado. É o **acervo** da
+        Handify — receita, dica, vídeo e foto para aplicar o que ela aprendeu (quem
+        publica é a equipe, não as alunas). O motivo do cadeado é que o conteúdo
+        acompanha o curso.
+      - **Avisos** (`/comunidade/feed`): **aberto para toda conta**, de propósito —
+        é o canal para mostrar o que a Handify faz e puxar a primeira compra. Quem
+        publica é a equipe e o card só deixa curtir, então não há conteúdo de aluna
+        exposto.
+      A tela travada (`SoParaAlunas`) diz o que existe lá dentro, por que é
+      fechado (texto próprio de cada área), leva aos cursos e oferece as
+      ferramentas grátis.
 
 ### Fase 5 — Marca e comunidade
 - [ ] Selo "Completo" + "Aluna desde" no fórum/perfil
