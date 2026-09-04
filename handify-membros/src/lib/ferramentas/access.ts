@@ -64,7 +64,11 @@ export async function getToolsForViewer(): Promise<ViewerTools> {
         .eq("active", true)
         .order("position"),
       service.from("niches").select("id, name, slug").order("position"),
-      service.from("annual_promo").select("link_url").eq("active", true).maybeSingle(),
+      service
+        .from("annual_promo")
+        .select("badge_text, modal_title, modal_desc, button_text, link_url")
+        .eq("active", true)
+        .maybeSingle(),
       userId
         ? supabase
             .from("enrollments")
@@ -140,7 +144,24 @@ export async function getToolsForViewer(): Promise<ViewerTools> {
     };
   });
 
-  return { tier, tools, nichos, categorias: [...categoriasSlugs], planLink: promo?.link_url ?? null };
+  return {
+    tier,
+    tools,
+    nichos,
+    categorias: [...categoriasSlugs],
+    planLink: promo?.link_url ?? null,
+    // O cadeado abre o modal com tudo que ela recebe, em vez de jogar direto no
+    // checkout — decisão da Jessica em 04/09.
+    promo: promo
+      ? {
+          badge_text: promo.badge_text ?? "Seja Premium",
+          modal_title: promo.modal_title ?? "Tenha acesso completo à Handify",
+          modal_desc: promo.modal_desc ?? "",
+          button_text: promo.button_text ?? "Assinar agora",
+          link_url: promo.link_url ?? "",
+        }
+      : null,
+  };
 }
 
 /**

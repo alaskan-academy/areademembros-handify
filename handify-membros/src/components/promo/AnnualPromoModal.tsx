@@ -15,9 +15,14 @@ export interface AnnualPromoData {
 interface Props {
   promo: AnnualPromoData;
   onClose: () => void;
+  /**
+   * O que ela recebe, listado item a item. Usado quando o modal abre a partir
+   * de uma ferramenta trancada: antes de falar em assinar, ela vê o que entra.
+   */
+  destaques?: { titulo: string; itens: { nome: string; descricao?: string | null; icone?: string | null }[] } | null;
 }
 
-export default function AnnualPromoModal({ promo, onClose }: Props) {
+export default function AnnualPromoModal({ promo, onClose, destaques = null }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null);
   useModalBackGuard(true, onClose);
 
@@ -78,6 +83,28 @@ export default function AnnualPromoModal({ promo, onClose }: Props) {
 
         {/* Corpo */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
+          {destaques && destaques.itens.length > 0 && (
+            <div className="mb-4 rounded-xl border border-[#6699F3]/20 bg-[#6699F3]/5 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#6699F3] mb-2.5">
+                {destaques.titulo}
+              </p>
+              <ul className="space-y-2.5">
+                {destaques.itens.map((i) => (
+                  <li key={i.nome} className="flex items-start gap-2.5">
+                    <span className="text-base leading-none mt-0.5 shrink-0" aria-hidden>
+                      {i.icone ?? "✅"}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-foreground leading-tight">{i.nome}</span>
+                      {i.descricao && (
+                        <span className="block text-xs text-muted-foreground leading-snug mt-0.5">{i.descricao}</span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {descParagraphs.length > 0 ? (
             <div className="space-y-3">
               {descParagraphs.map((line, i) => {

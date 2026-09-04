@@ -45,4 +45,12 @@ export type ViewerTools = {
   categorias: string[];
   /** Checkout do Handify Completo, quando a promo está ligada. */
   planLink: string | null;
+  /** Texto e link do plano, para o modal do cadeado. */
+  promo: {
+    badge_text: string;
+    modal_title: string;
+    modal_desc: string;
+    button_text: string;
+    link_url: string;
+  } | null;
 };

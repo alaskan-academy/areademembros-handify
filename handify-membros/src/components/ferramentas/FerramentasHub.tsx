@@ -6,6 +6,7 @@ import { ChevronRight, Search, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ToolSection, ToolView, ViewerTools } from '@/lib/ferramentas/types'
 import type { ResumoNegocio } from '@/lib/negocio/resumo'
+import AnnualPromoModal from '@/components/promo/AnnualPromoModal'
 import MeuNegocio from '@/components/ferramentas/MeuNegocio'
 
 /**
@@ -35,6 +36,15 @@ const TIER_LABEL: Record<string, string> = {
   completo: 'no Handify Completo',
 }
 
+/**
+ * O cadeado do Completo abre este modal, não o checkout direto: antes de falar
+ * em assinar, a aluna vê tudo que entra no plano. Decisão da Jessica, 04/09.
+ */
+function useModalDoPlano(promo: ViewerTools['promo']) {
+  const [aberto, setAberto] = useState(false)
+  return { aberto, abrir: () => setAberto(true), fechar: () => setAberto(false), disponivel: !!promo?.link_url }
+}
+
 export default function FerramentasHub({
   dados,
   bloqueada,
@@ -46,7 +56,15 @@ export default function FerramentasHub({
   /** Resumo "Meu negócio" (Completo que já usa as ferramentas). */
   negocio?: ResumoNegocio | null
 }) {
-  const { tools, nichos, planLink, tier } = dados
+  const { tools, nichos, planLink, promo, tier } = dados
+  const modalPlano = useModalDoPlano(promo)
+
+  // A lista sai das próprias ferramentas do Completo — se mudar no admin, o
+  // modal muda junto, sem ninguém precisar lembrar de atualizar texto.
+  const doCompleto = useMemo(
+    () => tools.filter(t => t.minTier === 'completo' && !t.comingSoon),
+    [tools]
+  )
   const ferramentaBloqueada = bloqueada ? tools.find(t => t.slug === bloqueada) : undefined
   const [secao, setSecao] = useState<ToolSection>(ferramentaBloqueada?.section ?? 'calcular')
   const [busca, setBusca] = useState('')
@@ -192,11 +210,22 @@ export default function FerramentasHub({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {lista.map(t => (
-              <ToolCard key={t.slug} tool={t} planLink={planLink} />
+              <ToolCard key={t.slug} tool={t} planLink={planLink} onAbrirPlano={modalPlano.disponivel ? modalPlano.abrir : null} />
             ))}
           </div>
         )}
       </div>
+
+      {modalPlano.aberto && promo && (
+        <AnnualPromoModal
+          promo={promo}
+          onClose={modalPlano.fechar}
+          destaques={{
+            titulo: 'As ferramentas que abrem com o plano',
+            itens: doCompleto.map(t => ({ nome: t.name, descricao: t.description, icone: t.icon })),
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -223,7 +252,16 @@ function listaEm(nomes: string[]): string {
   return `${curtos.slice(0, -1).join(', ')} ou ${curtos[curtos.length - 1]}`
 }
 
-function ToolCard({ tool, planLink }: { tool: ToolView; planLink: string | null }) {
+function ToolCard({
+  tool,
+  planLink,
+  onAbrirPlano,
+}: {
+  tool: ToolView
+  planLink: string | null
+  /** Abre o modal do plano. null quando a promo está desligada no admin. */
+  onAbrirPlano: (() => void) | null
+}) {
   const icone = (
     <div className="w-10 h-10 rounded-xl bg-[#6699F3]/10 flex items-center justify-center text-xl shrink-0">
       {tool.icon ?? '🧰'}
@@ -277,7 +315,7 @@ function ToolCard({ tool, planLink }: { tool: ToolView; planLink: string | null 
   // Trancada: mostra o resultado que ela teria, borrado, e o caminho.
   const caminho =
     tool.state === 'com_completo'
-      ? { texto: 'No Handify Completo', botao: 'Desbloquear', href: planLink ?? '/cursos', externo: !!planLink }
+      ? { texto: 'No Handify Completo', botao: 'Ver o que entra', href: planLink ?? '/cursos', externo: !!planLink }
       : tool.state === 'com_categoria'
       ? { texto: `Com um curso de ${listaEm(tool.unlockCategories)}`, botao: 'Ver cursos', href: '/cursos', externo: false }
       : { texto: 'Com o seu primeiro curso', botao: 'Ver cursos', href: '/cursos', externo: false }
@@ -317,21 +355,36 @@ function ToolCard({ tool, planLink }: { tool: ToolView; planLink: string | null 
           {tool.state === 'com_categoria' && planLink && (
             <>
               {' '}— ou{' '}
-              <a href={planLink} target="_blank" rel="noopener noreferrer" className="text-[#6699F3] font-semibold underline">
-                o Completo
-              </a>
+              {onAbrirPlano ? (
+                <button onClick={onAbrirPlano} className="text-[#6699F3] font-semibold underline">
+                  o Completo
+                </button>
+              ) : (
+                <a href={planLink} target="_blank" rel="noopener noreferrer" className="text-[#6699F3] font-semibold underline">
+                  o Completo
+                </a>
+              )}
             </>
           )}
         </span>
         {caminho.externo ? (
-          <a
-            href={caminho.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center bg-[#6699F3] text-white text-xs font-bold rounded-lg px-3 min-h-[40px] hover:bg-[#5580d4] transition-colors"
-          >
-            {caminho.botao}
-          </a>
+          onAbrirPlano ? (
+            <button
+              onClick={onAbrirPlano}
+              className="shrink-0 inline-flex items-center bg-[#6699F3] text-white text-xs font-bold rounded-lg px-3 min-h-[40px] hover:bg-[#5580d4] transition-colors"
+            >
+              {caminho.botao}
+            </button>
+          ) : (
+            <a
+              href={caminho.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 inline-flex items-center bg-[#6699F3] text-white text-xs font-bold rounded-lg px-3 min-h-[40px] hover:bg-[#5580d4] transition-colors"
+            >
+              {caminho.botao}
+            </a>
+          )
         ) : (
           <Link
             href={caminho.href}

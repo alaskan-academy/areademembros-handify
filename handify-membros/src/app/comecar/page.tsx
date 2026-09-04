@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Target, Stethoscope, Calculator, Check, ArrowDown } from 'lucide-react'
+import { Target, Stethoscope, Calculator, Check, ArrowUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import CadastroGratuito from './CadastroGratuito'
 
@@ -71,17 +71,35 @@ export default async function ComecarPage() {
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg">
             Três ferramentas grátis para quem faz sabonete, vela ou cosmético em casa. Sem cartão, sem prazo, sem pegadinha.
           </p>
-          <a
-            href="#criar-conta"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#6699F3] text-white text-base font-bold px-7 min-h-[56px] hover:bg-[#5580d4] handify-transition"
-          >
-            Começar agora, é grátis <ArrowDown className="w-4 h-4" />
-          </a>
         </div>
       </header>
 
+      <section id="criar-conta" className="px-4 pb-2 scroll-mt-4">
+        <div className="max-w-md mx-auto">
+          <div className="rounded-2xl bg-[#0F0F0F] p-1.5 shadow-[0_12px_32px_rgba(15,15,15,0.18)]">
+            <div className="rounded-xl bg-white p-6 sm:p-7 space-y-5">
+              <div className="text-center">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#72CF92]/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#2f8f52]">
+                  Grátis para sempre
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-[#0F0F0F] leading-tight mt-3">
+                  Crie sua conta e use agora
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  Leva um minuto. As três ferramentas abrem na hora.
+                </p>
+              </div>
+              <CadastroGratuito />
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="px-4 py-10 sm:py-14">
         <div className="max-w-2xl mx-auto space-y-4">
+          <h2 className="text-center text-lg sm:text-xl font-black text-[#0F0F0F] mb-1">
+            O que você recebe, de graça
+          </h2>
           {FERRAMENTAS.map(f => {
             const Icone = f.icone
             return (
@@ -103,13 +121,14 @@ export default async function ComecarPage() {
         </div>
       </section>
 
-      <section id="criar-conta" className="px-4 pb-12 scroll-mt-6">
-        <div className="max-w-md mx-auto bg-white rounded-2xl border border-border/60 p-6 sm:p-8 shadow-[0_1px_3px_rgba(0,0,0,0.08)] space-y-5">
-          <div className="text-center">
-            <h2 className="text-xl sm:text-2xl font-black text-[#0F0F0F] leading-tight">Crie sua conta e use agora</h2>
-            <p className="text-sm text-muted-foreground mt-1.5">Leva um minuto. As três ferramentas abrem na hora.</p>
-          </div>
-          <CadastroGratuito />
+      <section className="px-4 pb-12">
+        <div className="max-w-2xl mx-auto text-center">
+          <a
+            href="#criar-conta"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#6699F3] text-white text-base font-bold px-7 min-h-[56px] hover:bg-[#5580d4] handify-transition"
+          >
+            Criar minha conta grátis <ArrowUp className="w-4 h-4" />
+          </a>
         </div>
       </section>
 
