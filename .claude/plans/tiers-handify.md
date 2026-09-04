@@ -393,7 +393,21 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       minúsculas reaproveita a cliente (sem duplicar) e mantém "Ana Souza";
       apagar com confirmação; insert como aluna sem plano → RLS bloqueia.
 - [ ] Rótulos · Estoque · Calendário
-- [ ] **Validade do produto** (ideia da Jessica, 03/09) — ver seção "Validade" abaixo
+- [x] **Validade do produto** (`/ferramentas/validade`, 03/09, tier aluna, aba
+      Calcular, categorias Saboaria/Cosméticos/Velas/Aromas; porta "Que validade
+      pôr no rótulo?" no hub). Lógica pura em `src/lib/ferramentas/validade.ts`
+      com 15 testes: tipo do produto (glicerinado, cold process, líquido, sem
+      água, com água, vela), data (cold process = fim da cura), conservante
+      (nenhum/sintético/natural/não sei + prazo do fabricante, teto 6 meses),
+      óleos frágeis, fresco, antioxidante (6 → 9, 12 → 18), aroma, embalagem,
+      lista de insumos com data ("o que vence primeiro manda"; vencido = perigo).
+      Saída: "9 meses = vence em 03/06/2027", o que limita, alertas (perigo /
+      atenção / dica, incluindo oxidação e "antioxidante não é conservante"),
+      sugestões de aditivo pelo problema (natural + sintético, dose, pH) e texto
+      do rótulo com lote sugerido + copiar. Verificado na tela: com água sem
+      conservante = 7 dias; sintético 3 meses = 03/12/2026; cold process + óleo
+      frágil + antioxidante = 9 meses; insumo 15/01/2027 vira o limite.
+      **Pendente:** professora de saboaria valida a tabela antes do push.
 - [ ] Bloco "Meu negócio" no topo de Ferramentas para o Completo (quando houver
       receitas/pedidos para resumir)
 
@@ -441,3 +455,53 @@ professora de saboaria valida (é matéria de segurança).
 gratuito: é conhecimento que o curso ensina e tem risco se usado sem base
 (água sem conservante). No **Completo**: guardar a validade por receita, puxar
 do estoque, imprimir no rótulo e avisar "o lote X vence em 15 dias".
+
+**Aditivos (pedido da Jessica, 03/09) — a ferramenta sugere, não prescreve:**
+
+Dois grupos que a aluna costuma confundir. **Antioxidante** segura a rancificação
+do óleo (oxidação); **conservante** segura micróbio, e só faz sentido onde tem
+água. Vitamina E e extrato de semente de toranja **não conservam** contra
+micróbio — erro comum que a ferramenta corrige em texto.
+
+| Aditivo | Tipo | Para quê | Dose usual (% sobre o peso da receita) | Observação |
+|---|---|---|---|---|
+| Vitamina E (tocoferol / acetato de tocoferila) | natural | antioxidante — óleos, manteigas, cold process, glicerinado com óleos | 0,1 a 0,5% | não é conservante |
+| Extrato de alecrim (ROE) | natural | antioxidante forte | 0,05 a 0,1% | cheiro herbal leve |
+| BHT | sintético | antioxidante | 0,01 a 0,1% | barato, muito vendido em loja de saboaria |
+| EDTA dissódico | sintético | sequestrante — ajuda contra pontos laranja (DOS) no cold process, melhora espuma em água dura | 0,1 a 0,2% | dissolver na água da soda |
+| Fenoxietanol + etilhexilglicerina (Euxyl PE 9010 e similares) | sintético | conservante amplo espectro | 0,5 a 1% | pH 3 a 12 — o mais usado; escolha padrão quando tem água |
+| Fenoxietanol + caprilil glicol (Optiphen e similares) | sintético | conservante amplo espectro | 0,5 a 1,5% | sem parabeno |
+| Ácido desidroacético + álcool benzílico (Geogard 221 / Sharomix / Cosgard) | aceito em cosmética natural | conservante amplo espectro | 0,5 a 1% | só pH até 6 |
+| Sorbato de potássio + benzoato de sódio | natural | conservante | 0,1 a 0,5% cada | só pH abaixo de 5,5; fraco sozinho |
+| Naticide / Ecogard | natural (à base de fragrância) | conservante | 0,3 a 1% | tem cheiro próprio |
+| Parabenos (metil/propilparabeno, "Nipagin/Nipazol") | sintético | conservante | 0,1 a 0,3% | permitido pela ANVISA nos limites, mas cliente rejeita — a ferramenta cita, não recomenda |
+| Metilisotiazolinona (Kathon CG) | sintético | conservante | — | sensibilizante, restrito em produto que fica na pele — a ferramenta diz "evite" |
+
+**Aviso de oxidação (rancificação) que a ferramenta mostra:** sinais = cheiro de
+óleo velho, pontos laranja no cold process, escurecimento; causas = óleos com
+muito linoleico (girassol, uva, cânhamo, linhaça), calor, luz, metais da água,
+óleo já perto de vencer; prevenção = antioxidante + sequestrante no cold
+process, embalagem fechada, lugar seco e escuro, insumo novo (a validade do
+óleo é a do produto).
+
+**Cuidado ao sugerir aditivo (regras da ferramenta):**
+1. Sugere pelo tipo do produto e pelo problema (água sem conservante → conservante;
+   óleos frágeis → antioxidante), sempre com a faixa de dose e "confira a faixa
+   do fabricante do seu insumo".
+2. Mostra sempre uma opção natural e uma sintética, com o que muda (pH, cheiro,
+   custo).
+3. Alerta de compatibilidade: sorbato/benzoato e Geogard só em pH ácido; EDTA no
+   cold process vai na água da soda; conservante não substitui ingrediente
+   fresco (fruta e leite continuam a 7 dias).
+4. Efeito na validade é explícito e conservador: antioxidante alonga o limite
+   do óleo (6 → 9 meses, 12 → 18), nunca passa da validade do insumo; produto
+   com água e conservante = prazo que o fabricante do conservante indica
+   (padrão 3 meses, máximo 6 sem teste de estabilidade).
+5. Sempre fecha com: "estimativa para planejar e etiquetar; para vender em
+   escala ou registrar, teste de estabilidade". Tabela validada pela professora
+   de saboaria antes de ir ao ar.
+
+**Ordem decidida (03/09):** Validade primeiro, como ferramenta própria (aba
+Calcular, tier aluna, categorias Saboaria/Cosméticos/Velas/Aromas). Depois o
+Rótulo do sabonete nasce com o campo de validade e o botão "Não sei a
+validade → calcular", que abre a Validade e volta com o valor preenchido.

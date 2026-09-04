@@ -112,6 +112,7 @@ export default function FerramentasHub({
             portas.push({ rotulo: 'Saber quanto cobrar', href: `${receita!.href}?etapa=preco` })
             portas.push({ rotulo: 'Montar uma receita', href: `${receita!.href}?etapa=ingredientes` })
           }
+          if (abre(porSlug['validade-produto'])) portas.push({ rotulo: 'Que validade pôr no rótulo?', href: porSlug['validade-produto'].href! })
           if (abre(porSlug['deu-problema'])) portas.push({ rotulo: 'Minha peça deu problema', href: porSlug['deu-problema'].href! })
           if (abre(porSlug['meta-de-renda'])) portas.push({ rotulo: 'Começar a vender', href: porSlug['meta-de-renda'].href! })
           if (portas.length < 2) return null
