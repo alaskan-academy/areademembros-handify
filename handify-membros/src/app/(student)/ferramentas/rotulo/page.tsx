@@ -2,19 +2,22 @@ import { assertToolAccess } from '@/lib/ferramentas/access'
 import { getViewer } from '@/lib/auth/access'
 import { createClient } from '@/lib/supabase/server'
 import Rotulo from '@/components/ferramentas/Rotulo'
-import type { DadosRotulo } from '@/lib/rotulo/tipos'
+import { familiasLiberadas, type DadosRotulo } from '@/lib/rotulo/tipos'
 
 export const metadata = {
-  title: 'Rótulo do sabonete | Handify',
-  description: 'O que precisa constar no rótulo — pronto para imprimir.',
+  title: 'Rótulo do produto | Handify',
+  description: 'Sabonete, cosmético ou vela — o que precisa constar, bonito e pronto para imprimir.',
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/
 
 export default async function RotuloPage({ searchParams }: { searchParams: Promise<{ fabricacao?: string; validade?: string; lote?: string }> }) {
   // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
-  await assertToolAccess('rotulo-sabonete')
+  const dados = await assertToolAccess('rotulo-sabonete')
   const [{ fabricacao, validade, lote }, { userId }] = await Promise.all([searchParams, getViewer()])
+
+  // Sabonete/cosmético ou vela: segue o curso dela; Completo e admin veem os dois.
+  const familias = familiasLiberadas(dados.categorias, dados.tier === 'completo' || dados.tier === 'admin')
 
   // Quem tem a marca no Catálogo (Completo) já entra com ela preenchida. A dona
   // sempre lê o que é dela, mesmo com o plano vencido.
@@ -41,5 +44,5 @@ export default async function RotuloPage({ searchParams }: { searchParams: Promi
   if (validade && ISO.test(validade)) inicial.validade = validade
   if (lote) inicial.lote = lote.slice(0, 20)
 
-  return <Rotulo marca={marca} inicial={inicial} />
+  return <Rotulo marca={marca} inicial={inicial} familias={familias} />
 }

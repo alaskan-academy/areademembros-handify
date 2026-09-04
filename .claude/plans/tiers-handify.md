@@ -392,13 +392,21 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       ("Atrasado há 2 dias", 3 × 32 = R$ 96,00, "1 atrasado"); "ana souza" em
       minúsculas reaproveita a cliente (sem duplicar) e mantém "Ana Souza";
       apagar com confirmação; insert como aluna sem plano → RLS bloqueia.
-- [x] **Rótulo do sabonete** (`/ferramentas/rotulo`, 03/09, tier aluna,
-      Saboaria/Cosméticos). Sem banco: ela preenche (marca, produto, o que é,
-      conteúdo, ingredientes com dica de INCI, modo de uso e advertências já
-      escritos do jeito que a ANVISA pede, fabricação/validade/lote, quem
-      fabrica, CNPJ opcional, contato), vê a prévia na hora e baixa a folha A4
-      em PDF (`pdf-lib`, 3 tamanhos: 7×4 = 12 por folha, 9×5 = 10, 9×7 = 6;
-      letra encolhe até caber; borda fina de corte). "Copiar o texto do
+- [x] **Rótulo do produto** (`/ferramentas/rotulo`, 03/09, tier aluna;
+      sabonete/cosmético com Saboaria/Cosméticos, vela com Velas/Aromas — a
+      família dentro da ferramenta segue o curso, como na Validade). Sem banco:
+      ela preenche (marca, produto, o que é, conteúdo, ingredientes ou
+      composição, modo de uso/como usar e advertências/avisos de segurança já
+      escritos — ANVISA para cosmético, segurança de queima para vela —,
+      fabricação/validade/lote, quem fabrica, CNPJ opcional, contato), vê a
+      prévia na hora e baixa a folha A4 em PDF. **Aparência (pedido da Jessica,
+      "ficou feio")**: 3 estilos (Clássico = moldura dupla e nome em serifa;
+      Moderno = faixa colorida no topo; Delicado = fundo suave e divisória com
+      ponto), 8 cores + cor livre, forma retangular ou redonda, **tamanho
+      livre** em cm (presets Mini 7×4, Barra 9×5, Pote 9×7, Tampa 5 e 7 cm;
+      limites da folha A4) com "cabem N por folha" ao vivo; marca em caixa alta
+      espaçada, nome grande, na redonda cada linha respeita a largura do círculo;
+      letra encolhe até caber; borda fina de corte. "Copiar o texto do
       rótulo". Checklist do que a ANVISA pede marcando o que já está preenchido
       + aviso sobre "hipoalergênico / natural / orgânico" sem certificado e
       sobre notificação na ANVISA. Botão **"Não sei a validade — calcular"** →
