@@ -229,6 +229,8 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
                 key={post.id}
                 post={post}
                 userId={userId}
+                cursos={courses}
+                onCursoBloqueado={setCursoBloqueado}
               />
             ))}
           </div>

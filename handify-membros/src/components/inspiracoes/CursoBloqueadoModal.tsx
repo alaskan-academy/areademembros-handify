@@ -7,9 +7,11 @@ import { useModalBackGuard } from '@/hooks/useModalBackGuard'
 import type { CursoDoFiltro } from '@/lib/inspiracoes/types'
 
 /**
- * Aluna tocou num curso do filtro que ela não tem. Em vez de sumir o curso da
- * lista (ela nem saberia que existe conteúdo ali), o chip aparece em cinza com
- * cadeado e abre este aviso, com o caminho para comprar.
+ * Aluna tocou num curso que ela não tem — pelo filtro ou pelo selo do post.
+ *
+ * Em vez de esconder o conteúdo (ela nem saberia que existe), o acervo funciona
+ * como vitrine: ela vê a receita, vê de qual curso é, e aqui encontra o preço e
+ * o caminho para comprar. Decisão da Jessica, 04/09.
  */
 export function CursoBloqueadoModal({ curso, onClose }: { curso: CursoDoFiltro; onClose: () => void }) {
   const fundoRef = useRef<HTMLDivElement>(null)
@@ -62,8 +64,8 @@ export function CursoBloqueadoModal({ curso, onClose }: { curso: CursoDoFiltro; 
               Você ainda não tem este curso
             </h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-              As receitas e dicas de <strong className="text-foreground">{curso.title}</strong> ficam guardadas para
-              quem faz o curso. Com ele, este filtro abre e o conteúdo aparece aqui.
+              Este conteúdo é do <strong className="text-foreground">{curso.title}</strong>. Com o curso você aprende o
+              passo a passo — e tudo dele abre aqui nas Inspirações.
             </p>
           </div>
 

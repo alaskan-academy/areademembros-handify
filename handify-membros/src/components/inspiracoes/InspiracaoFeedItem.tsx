@@ -3,11 +3,13 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageCircle, User,
-  Image as ImageIcon, PlayCircle, ChefHat, Lightbulb, Star, GalleryHorizontal
+  Image as ImageIcon, PlayCircle, ChefHat, Lightbulb, Star, GalleryHorizontal,
+  GraduationCap, Lock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
-import type { InspiracaoPost, InspiracaoType } from '@/lib/inspiracoes/types'
+import Link from 'next/link'
+import type { InspiracaoPost, InspiracaoType, CursoDoFiltro } from '@/lib/inspiracoes/types'
 import { LikeButton } from './LikeButton'
 import { BookmarkButton } from './BookmarkButton'
 import { ComentariosPanel } from './ComentariosPanel'
@@ -110,9 +112,23 @@ const MAX_CONTENT_H = 320
 interface Props {
   post: InspiracaoPost
   userId: string
+  /** Cursos que aparecem no filtro, com o que a aluna tem. */
+  cursos?: CursoDoFiltro[]
+  /** Abre o convite quando o post é de um curso que ela não tem. */
+  onCursoBloqueado?: (curso: CursoDoFiltro) => void
 }
 
-export function InspiracaoFeedItem({ post, userId }: Props) {
+export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado }: Props) {
+  // De qual curso é este post. Sem isso o acervo é uma vitrine sem vitrine: a
+  // aluna vê a receita bonita e não tem caminho nenhum para o curso.
+  const cursoDoPost = (() => {
+    const ids = (post.course_ids ?? []).concat(post.course_id ? [post.course_id] : [])
+    for (const id of ids) {
+      const achado = cursos.find(c => c.id === id)
+      if (achado) return achado
+    }
+    return null
+  })()
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [needsExpand, setNeedsExpand] = useState(false)
@@ -152,6 +168,26 @@ export function InspiracaoFeedItem({ post, userId }: Props) {
               <span className="text-xs bg-[#FEC649] text-[#0F0F0F] px-1.5 py-0.5 rounded-full font-bold leading-none">
                 📌 Fixado
               </span>
+            )}
+            {cursoDoPost && (
+              cursoDoPost.temAcesso ? (
+                <Link
+                  href={`/cursos/${cursoDoPost.slug}`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#72CF92]/15 text-[#2a7d4f] hover:bg-[#72CF92]/25 transition-colors"
+                >
+                  <GraduationCap className="w-3 h-3" aria-hidden />
+                  {cursoDoPost.title}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => onCursoBloqueado?.(cursoDoPost)}
+                  aria-label={`Do ${cursoDoPost.title} — você ainda não tem este curso`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#6699F3]/10 text-[#4a7bc8] hover:bg-[#6699F3]/20 transition-colors"
+                >
+                  <Lock className="w-3 h-3" aria-hidden />
+                  Do {cursoDoPost.title}
+                </button>
+              )
             )}
           </div>
           <h2 className="font-bold text-sm leading-snug mt-1">{post.title}</h2>

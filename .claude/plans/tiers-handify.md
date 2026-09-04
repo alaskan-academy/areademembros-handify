@@ -449,10 +449,11 @@ recorte é por curso e por nicho.
 - [x] **Feed continua mostrando tudo** — decisão da Jessica em 04/09: o acervo
       é **vitrine**. Ela vê a receita do curso que não tem, e isso dá vontade de
       comprar. Só o filtro fica trancado. **Não esconder no feed.**
-      **Observação para quando for mexer:** o card do post não mostra de qual
-      curso ele é. Como vitrine, isso é o que falta para converter — ela vê a
-      receita bonita e não tem caminho. Os dados já estão lá
-      (`course_ids` vem no post), é só um selo no card levando ao curso.
+- [x] **Selo do curso no card** (04/09) — o que faltava para a vitrine virar
+      vitrine. Cada post mostra de qual curso é. Se ela tem o curso, o selo é
+      verde e leva à página dele; se não tem, é azul com cadeado ("Do Workshop
+      Buquê de Velas") e abre o mesmo aviso com o preço e o checkout. Agora ela
+      vê a receita bonita **e** tem caminho, sem precisar abrir os filtros.
 ### Fase 5 — Marca e comunidade
 - [ ] Selo "Completo" + "Aluna desde" no fórum/perfil
 - [ ] Carteirinha digital compartilhável (com ™, faixa tricolor)
