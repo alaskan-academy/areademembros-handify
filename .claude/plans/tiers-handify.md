@@ -219,12 +219,14 @@ Build, 60 testes unitários e 37 do Playwright passando.
    (prazos por tipo de produto), a lista de aditivos com doses e pH, e os 26
    problemas do "Deu problema?". É matéria de segurança: montei pela prática
    comum do mercado, mas quem assina isso é quem ensina.
-2. **Revisar Fornecedores** (item aberto desde 03/09, mais abaixo).
+2. **Fornecedores** — revisão de UX e sistema feita em 04/09 e guardada em
+   [fornecedores-revisao.md](fornecedores-revisao.md). A Jessica leu e decidiu
+   deixar a execução para depois.
 3. **Mapeamento de categoria por ferramenta** em `/admin/ferramentas` — a proposta
    está no plano; você confirma ou muda no painel, sem deploy.
 
 **Depende de infraestrutura, antes de terça:**
-4. **Push do projeto e deploy** — 31 commits parados. Sem deploy, o disparo de
+4. **Push do projeto e deploy** — 38 commits parados. Sem deploy, o disparo de
    terça não acontece e o push agendado não sai.
 5. **`CRON_SECRET` nas variáveis da Vercel** — sem ele nenhum cron roda.
 6. **Plano da Vercel** — o cron de hora em hora (sequência de conclusão e
@@ -627,10 +629,13 @@ duplicado, e a etapa 2 delas cai 30 dias depois.
   (`produtoPadrao`). As etapas Essências e Pavio já obedeciam à categoria.
 - Calculadora de lucro: gratuita, os dois produtos abertos — de propósito.
 - Qual pavio usar: só Velas (já era).
-- [ ] **Revisar Fornecedores** (pedido da Jessica, 03/09): hoje abre com
-  qualquer curso e lista todos os nichos com conteúdo. Decidir se filtra pelos
-  nichos dela (Completo vê todos) e se entra em tool_categories.
-- Catálogo, Pedidos, Minhas receitas: Completo, sem variação por nicho.
+- [ ] **Revisar Fornecedores** (pedido da Jessica, 03/09). Revisão feita em
+      04/09 e guardada em [fornecedores-revisao.md](fornecedores-revisao.md):
+      diagnóstico de UX, dados reais do banco, três blocos de melhoria em ordem
+      de prioridade, a decisão de acesso recomendada e a dívida técnica.
+      **A Jessica leu e decidiu não executar por enquanto.** O de maior retorno:
+      ligar Estoque e Produzir ao Fornecedores, que é onde a vontade de comprar
+      nasce.
 - [x] Bloco "Meu negócio" no topo de Ferramentas para o Completo — feito (ver
       "Meu negócio + Pedidos → Produzir")
 
