@@ -451,7 +451,19 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
 - [ ] Pontes — bloco 3 (com "Meu negócio"): Pedidos → Produzir (soma o que está
       em aberto, escala a receita ligada, confere contra o estoque: "faltam
       400 g de base").
-- [ ] Calendário do artesanato
+- [x] **Calendário do artesanato** (`/ferramentas/calendario`, 04/09, Completo).
+      15 datas que vendem no ano (Dia da Mulher, Dia do Artesão, Páscoa, Dia das
+      Mães, Namorados, festas juninas, Dia do Amigo, Avós, Pais, Cliente,
+      Crianças, Professor, Black Friday, Natal, Réveillon) — Páscoa, Mães, Pais e
+      Black Friday calculados (7 testes), cada uma com dica de venda e peso
+      ("Data forte"). Prazos pelo que ela faz: glicerinado 3 dias, cold process
+      37 (cura 4 a 6 semanas), velas 12, cosmético 4, + 7 se manda pelos
+      Correios; divulgar 3 semanas antes. "Próxima data" em destaque, "Produzir:
+      comece até dd/mm (em N dias)" e "Divulgar: …", vermelho quando passou.
+      "Minha data" (feira, encomenda grande) na tabela `calendar_events` (RLS
+      congela), entra na mesma linha do tempo. Preferências (o que faz, Correios)
+      no aparelho; o padrão vem dos cursos dela. Verificado: Natal com cold
+      process = produzir até 18/11; com Correios = 11/11; anotar e apagar data.
 - [x] **Validade do produto** (`/ferramentas/validade`, 03/09, tier aluna, aba
       Calcular, categorias Saboaria/Cosméticos/Velas/Aromas; porta "Que validade
       pôr no rótulo?" no hub). Lógica pura em `src/lib/ferramentas/validade.ts`
