@@ -84,7 +84,7 @@ export default function FeedPostCard({ post, userId: _userId, initialLiked }: Pr
       <div className="px-5 pt-3 pb-3">
         <h2 className="font-bold text-base text-foreground mb-2">{post.title}</h2>
 
-        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{bodyPreview}</p>
+        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">{comLinks(bodyPreview)}</p>
         {post.body.length > 300 && (
           <button
             onClick={() => setExpanded((v) => !v)}
@@ -112,4 +112,35 @@ export default function FeedPostCard({ post, userId: _userId, initialLiked }: Pr
       </div>
     </article>
   );
+}
+
+/**
+ * Transforma link em link clicável dentro do texto do post. Aceita duas formas:
+ * `[Quero conhecer](https://…)`, que é a que a aluna lê melhor, e o endereço
+ * solto. Só http e https entram; o resto continua texto puro.
+ */
+function comLinks(texto: string): React.ReactNode[] {
+  const padrao = /\[([^\]]{1,80})\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g;
+  const partes: React.ReactNode[] = [];
+  let fim = 0;
+  let m: RegExpExecArray | null;
+  while ((m = padrao.exec(texto)) !== null) {
+    if (m.index > fim) partes.push(texto.slice(fim, m.index));
+    const url = m[2] ?? m[3];
+    const rotulo = m[1] ?? m[3];
+    partes.push(
+      <a
+        key={`${m.index}-${url}`}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#6699F3] font-semibold underline underline-offset-2 break-words"
+      >
+        {rotulo}
+      </a>
+    );
+    fim = m.index + m[0].length;
+  }
+  if (fim < texto.length) partes.push(texto.slice(fim));
+  return partes;
 }
