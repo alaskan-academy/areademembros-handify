@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { assertToolAccess } from '@/lib/ferramentas/access'
 import { produtosLiberados } from '@/lib/ferramentas/produtos'
+import { listarEstoque } from '@/lib/estoque/actions'
 import CalculadoraEssencias, { type EssenciasConfig } from '@/components/ferramentas/CalculadoraEssencias'
 
 const SLUG_MAP: Record<string, string> = {
@@ -74,5 +75,8 @@ export default async function CalculadoraEssenciasPage({
   if (!liberados.includes(chave as 'sabonetes' | 'velas')) {
     redirect(liberados[0] ? `/ferramentas/calculadora-essencias/${liberados[0]}` : '/ferramentas?bloqueada=calculadora-essencias')
   }
-  return <CalculadoraEssencias config={config} />
+  // Quem tem essência anotada no Estoque vê "você tem X — faltam Y".
+  const { insumos } = await listarEstoque()
+  const essencias = insumos.filter(i => i.category === 'essencia').map(i => ({ id: i.id, name: i.name, quantity: i.quantity, unit: i.unit }))
+  return <CalculadoraEssencias config={config} essencias={essencias} />
 }

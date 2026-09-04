@@ -758,6 +758,9 @@ export default function CalculadoraPavio({
                 </p>
               );
             })()}
+            <Link href="/ferramentas/fornecedores?produto=velas" className="mt-2 inline-flex items-center text-xs font-semibold text-[#6699F3] underline min-h-[36px]">
+              Onde comprar
+            </Link>
           </div>
 
           {rec.wick_alternatives.length > 0 && (

@@ -1,5 +1,6 @@
 'use client'
 
+import TemNoEstoque, { type EssenciaEstoque } from '@/components/ferramentas/TemNoEstoque'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronDown } from 'lucide-react'
@@ -91,7 +92,7 @@ function EduAccordion({ tipoAlerta }: { tipoAlerta: 'hidro' | 'lipo' }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function CalculadoraEssencias({ config }: { config: EssenciasConfig }) {
+export default function CalculadoraEssencias({ config, essencias = [] }: { config: EssenciasConfig; essencias?: EssenciaEstoque[] }) {
   const [unidades, setUnidades] = useState('')
   const [pesoPorUnidade, setPesoPorUnidade] = useState('')
   const [tipoEssencia, setTipoEssencia] = useState<TipoEssencia>(null)
@@ -365,6 +366,12 @@ export default function CalculadoraEssencias({ config }: { config: EssenciasConf
                 <div className="font-semibold text-white mb-1.5">📌 Como adicionar</div>
                 {config.dicaAdicionar}
               </div>
+
+              {essencias.length > 0 && (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-3">
+                  <TemNoEstoque essencias={essencias} precisaMl={ml} precisaG={gramas} escuro />
+                </div>
+              )}
 
               <p className="text-xs text-gray-500 text-center">
                 * Gotas calculadas com base em 20 gotas por mL (conta-gotas padrão).

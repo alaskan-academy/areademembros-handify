@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { salvarReceita } from '@/lib/receitas/actions'
 import { moverInsumo, type Insumo as InsumoEstoque } from '@/lib/estoque/actions'
 import { qtdTexto } from '@/lib/estoque/tipos'
+import TemNoEstoque from '@/components/ferramentas/TemNoEstoque'
 import type { WickRecommendation } from '@/lib/pavio/types'
 import type { ToolState } from '@/lib/ferramentas/types'
 import {
@@ -515,6 +516,9 @@ export default function MinhaReceita({
                   <p className="col-span-3 text-xs text-muted-foreground mt-1">
                     {percentualAroma}% de {numero(aroma.pesoLote, 0)} g de lote (20 gotas por mL)
                   </p>
+                  <div className="col-span-3 text-left">
+                    <TemNoEstoque essencias={estoque.filter(e => e.category === 'essencia')} precisaMl={aroma.ml} precisaG={aroma.gramas} />
+                  </div>
                 </div>
               )}
               <Rodape onVoltar={anterior} onAvancar={proxima} />
@@ -633,6 +637,11 @@ export default function MinhaReceita({
                   })
                 return alts.length ? `${principal}. Alternativas: ${alts.join(', ')}` : principal
               })()} />
+            )}
+            {receita.produto === 'velas' && pavioRec && (
+              <Link href="/ferramentas/fornecedores?produto=velas" className="text-xs font-semibold text-[#6699F3] underline min-h-[36px] inline-flex items-center">
+                Onde comprar o pavio
+              </Link>
             )}
             {receita.validade && (
               <Detalhe rotulo="Validade" valor={`vence em ${receita.validade.split('-').reverse().join('/')}`} />

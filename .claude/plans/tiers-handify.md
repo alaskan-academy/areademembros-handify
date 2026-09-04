@@ -440,9 +440,14 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       nome e preço sugerido. Verificado ponta a ponta: 1800 g de base a R$ 45/kg
       = R$ 81,00; baixa 2000 → 200 g; validade limitada pela base (6 meses =
       01/03/2027); rótulo e catálogo (R$ 7,09) preenchidos.
-- [ ] Pontes — bloco 2 (pequenas): Essências → Estoque ("você tem 20 mL —
-      faltam 16"); Qual pavio → Fornecedores ("onde comprar"); Pedidos →
-      Catálogo (item digitado vira produto).
+- [x] **Pontes — bloco 2** (04/09): Essências → Estoque ("Tem no estoque?"
+      na calculadora avulsa e na etapa da receita: "Você tem 20 mL — faltam 16 mL
+      para este lote" ou "dá para N lotes", com link para Fornecedores quando
+      falta); Qual pavio → Fornecedores ("Onde comprar" na calculadora e na ficha,
+      já no nicho Velas via `?produto=velas`); Pedidos → Catálogo (item digitado
+      ganha "+ catálogo" e vira produto com o preço do pedido). Verificado:
+      36 mL pedidos × 20 mL no estoque = "faltam 16 mL"; nicho Velas selecionado;
+      "Adicionado ao catálogo" e o botão some.
 - [ ] Pontes — bloco 3 (com "Meu negócio"): Pedidos → Produzir (soma o que está
       em aberto, escala a receita ligada, confere contra o estoque: "faltam
       400 g de base").

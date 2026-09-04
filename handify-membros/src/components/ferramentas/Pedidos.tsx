@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ChevronLeft, Plus, Trash2, Pencil, Lock, Sparkles, Check, X, MessageCircle, PackageCheck, Truck, HandCoins } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { reais } from '@/lib/ferramentas/calc'
+import { salvarProduto } from '@/lib/catalogo/actions'
 import {
   salvarPedido,
   atualizarPedido,
@@ -101,6 +102,17 @@ export default function Pedidos({
   planLink: string | null
 }) {
   const [pedidos, setPedidos] = useState<Pedido[]>(iniciais)
+  // Catálogo local: cresce quando um item digitado vira produto ("adicionar ao catálogo").
+  const [catalogo, setCatalogo] = useState<ProdutoOpcao[]>(produtos)
+  const noCatalogo = (nome: string) => catalogo.some(p => p.name.trim().toLowerCase() === nome.trim().toLowerCase())
+  function adicionarAoCatalogo(nome: string, preco: number) {
+    start(async () => {
+      const r = await salvarProduto({ recipe_id: null, name: nome, description: '', price: preco, active: true })
+      if (r.error || !r.id) { setErro(r.error ?? 'Não deu para adicionar.'); return }
+      setCatalogo(l => [...l, { id: r.id!, name: nome.trim(), price: preco }])
+      avisar('Adicionado ao catálogo.')
+    })
+  }
   const [clientesBase, setClientesBase] = useState(clientesIniciais.map(c => ({ id: c.id, name: c.name, whatsapp: c.whatsapp })))
   const [aba, setAba] = useState<Aba>('abertos')
   const [clienteFiltro, setClienteFiltro] = useState<string | null>(null)
@@ -238,7 +250,7 @@ export default function Pedidos({
         )}
 
         {editando === 'novo' && (
-          <PedidoForm clientes={clientes} produtos={produtos} onCancel={() => setEditando(null)} onSaved={aoSalvar} />
+          <PedidoForm clientes={clientes} produtos={catalogo} onCancel={() => setEditando(null)} onSaved={aoSalvar} />
         )}
 
         {erro && <p className="text-sm text-red-600">{erro}</p>}
@@ -330,7 +342,7 @@ export default function Pedidos({
               return (
                 <div key={p.id} className="bg-white rounded-2xl border border-border/60 p-4 space-y-2">
                   {editando === p.id ? (
-                    <PedidoForm pedido={p} clientes={clientes} produtos={produtos} onCancel={() => setEditando(null)} onSaved={aoSalvar} />
+                    <PedidoForm pedido={p} clientes={clientes} produtos={catalogo} onCancel={() => setEditando(null)} onSaved={aoSalvar} />
                   ) : (
                     <>
                       <div className="flex items-start justify-between gap-3">
@@ -343,7 +355,14 @@ export default function Pedidos({
                       <ul className="text-sm text-muted-foreground space-y-0.5">
                         {p.itens.map((i, k) => (
                           <li key={i.id ?? k} className="flex justify-between gap-3">
-                            <span className="min-w-0 truncate">{i.quantity}× {i.name}</span>
+                            <span className="min-w-0 truncate">
+                              {i.quantity}× {i.name}
+                              {podeEditar && !i.catalog_item_id && !noCatalogo(i.name) && (
+                                <button onClick={() => adicionarAoCatalogo(i.name, i.unit_price)} disabled={pending} className="ml-2 text-[11px] font-semibold text-[#6699F3] underline disabled:opacity-60">
+                                  + catálogo
+                                </button>
+                              )}
+                            </span>
                             <span className="tabular-nums shrink-0">{reais(i.quantity * i.unit_price)}</span>
                           </li>
                         ))}
