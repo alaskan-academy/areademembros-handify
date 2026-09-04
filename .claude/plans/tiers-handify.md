@@ -279,7 +279,13 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
 - [~] Campanha segmento 699: template `renderPlanUpgradeEmail` /
       `sendPlanUpgradeEmail` pronto em `src/lib/email/index.ts`, preview gerado por
       `scripts/preview-email-completo.ts` e mostrado à Jessica. **Decisão dela:
-      enviar só depois das ferramentas exclusivas (fase 6), para o e-mail já
+      **Pronto em 04/09**: o e-mail ganhou o bloco "E, além dos cursos, as
+      ferramentas do seu negócio" (Minhas receitas, Catálogo, Pedidos, Estoque,
+      Calendário, Meu negócio) e o assunto virou "…de 23 cursos da Handify — e
+      agora tem mais". Prévia gerada em `scripts/preview-email-completo.ts`;
+      **aguarda aprovação da Jessica e nada foi enviado**. Ao disparar: respeitar
+      `email_prefs`, mandar só para quem não tem membership ativa, em lotes.
+      Era para enviar só depois das ferramentas exclusivas (fase 6), para o e-mail já
       mostrá-las.** Nada configurado, nada enviado. Ao retomar: filtrar por
       `email_prefs`, segmento 4+ cursos sem membership, e ela aprova o texto final
 

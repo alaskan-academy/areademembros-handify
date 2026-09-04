@@ -376,6 +376,44 @@ function planBar(tem: number, total: number) {
 }
 
 /** Separado do envio para dar para ver o e-mail pronto antes de configurar. */
+/** As ferramentas exclusivas do Completo — o que faz o plano valer além dos cursos. */
+function toolsBlock(): string {
+  const itens: [string, string, string][] = [
+    ["📒", "Minhas receitas", "a receita fica guardada na conta: custo, preço, essência e pavio, para sempre"],
+    ["🏷️", "Catálogo com a sua marca", "tabela de preços em PDF pronta para mandar no WhatsApp"],
+    ["🧾", "Pedidos e clientes", "quem pediu, para quando, quanto falta receber — e o que produzir"],
+    ["📦", "Estoque de insumos", "o que está acabando, o que vence, e a validade dos seus produtos calculada"],
+    ["📅", "Calendário do artesanato", "Dia das Mães, Natal, Páscoa: quando começar a produzir para chegar a tempo"],
+    ["📊", "Meu negócio", "pedidos, a receber, estoque e próxima data numa olhada só"],
+  ];
+  const linhas = itens
+    .map(
+      ([emoji, titulo, texto]) => `
+        <tr>
+          <td style="padding:8px 10px 8px 0;vertical-align:top;font-size:18px;line-height:1.3;width:26px;font-family:Arial,Helvetica,sans-serif;">${emoji}</td>
+          <td style="padding:8px 0;vertical-align:top;font-family:Arial,Helvetica,sans-serif;">
+            <span style="color:#2D2D2D;font-size:14px;font-weight:700;line-height:1.4;">${titulo}</span><br />
+            <span style="color:#666666;font-size:13px;line-height:1.5;">${texto}</span>
+          </td>
+        </tr>`
+    )
+    .join("");
+  return `
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#F5F5F0;border-radius:12px;margin:0 0 28px;">
+        <tr>
+          <td style="padding:18px 20px 12px;">
+            <p style="color:#2D2D2D;font-size:15px;font-weight:700;margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;line-height:1.4;">
+              E, além dos cursos, as ferramentas do seu negócio
+            </p>
+            <p style="color:#666666;font-size:13px;margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;line-height:1.5;">
+              Só quem tem o Completo usa. O que você guardar nelas fica seu.
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">${linhas}</table>
+          </td>
+        </tr>
+      </table>`;
+}
+
 export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject: string; html: string } {
   const firstName = input.studentName.split(" ")[0] || "aluna";
   const tem = input.cursosQueTem.length;
@@ -391,7 +429,7 @@ export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject:
       : `${primeiros.slice(0, -1).join(", ")} e ${primeiros[primeiros.length - 1]}`;
   const oQueJaTem = extras > 0 ? `${lista} — e mais ${extras}` : lista;
 
-  const subject = `${firstName}, você já tem ${tem} de ${total} cursos da Handify 💛`;
+  const subject = `${firstName}, você já tem ${tem} de ${total} cursos da Handify — e agora tem mais 💛`;
 
   const html = emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
@@ -408,9 +446,10 @@ export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject:
             : `O <strong style="color:#2D2D2D;">Handify Completo</strong> abre os outros ${restantes} de uma vez — e todo curso novo que a gente lançar entra sozinho, sem você precisar comprar de novo.`
         }
       </p>
-      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 28px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 24px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
         Para quem já tem ${tem} cursos, o Completo é um passo — não uma compra nova.
       </p>
+      ${toolsBlock()}
       ${ctaButton(input.linkUrl, input.buttonText || "Ver o Handify Completo")}
       <p style="color:#888888;font-size:13px;line-height:1.6;margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;">
         Cada passo da jornada conta. 💛
