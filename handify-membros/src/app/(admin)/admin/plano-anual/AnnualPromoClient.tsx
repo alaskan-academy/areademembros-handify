@@ -83,7 +83,7 @@ export default function AnnualPromoClient({ promo: initial }: Props) {
         {/* Link de compra */}
         <div className="px-5 py-4 space-y-1.5">
           <label htmlFor="promo-link-url" className="block text-xs font-medium text-foreground/70">
-            URL de compra <span className="text-muted-foreground">(botão "Assinar" do modal)</span>
+            URL de compra <span className="text-muted-foreground">(botão &quot;Assinar&quot; do modal)</span>
           </label>
           <div className="flex gap-2">
             <input
