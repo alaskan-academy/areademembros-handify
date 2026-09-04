@@ -384,8 +384,9 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
 **Dois caminhos, um guarda só.** `email_campaign_sends` com prefixo
 `plano-completo`: quem entra por um caminho não recebe pelo outro.
 
-- **Base (disparo único):** `/api/cron/campanha-completo`, cron `0 11 * * 1`
-  (segunda, 8h de Brasília). Trava de data em `DATA_DO_DISPARO = 2026-09-07`:
+- **Base (disparo único):** `/api/cron/campanha-completo`, cron `0 12 * * 2`
+  (terça, 9h de Brasília — a Jessica trocou de segunda 8h em 04/09, caixa de
+  entrada menos cheia). Trava de data em `DATA_DO_DISPARO = 2026-09-08`:
   em qualquer outro dia não envia. Segmento: 4+ cursos, sem plano, opt-in —
   **703 na fila**. Envio em lotes de 100 pelo `batch.send` do Resend.
 - **Novas compradoras (sequência de 3, uma por mês, por aluna):**

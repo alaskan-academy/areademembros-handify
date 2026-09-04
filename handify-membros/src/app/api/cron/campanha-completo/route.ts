@@ -16,18 +16,18 @@ import {
 
 /**
  * Disparo ÚNICO do convite ao Handify Completo para a base que já existe:
- * alunas com 4 ou mais cursos e sem o plano. Roda na segunda, 8h de Brasília.
+ * alunas com 4 ou mais cursos e sem o plano. Roda na terça, 9h de Brasília.
  *
  * É de uma vez só de propósito: quem comprar daqui pra frente recebe pelo
  * gatilho de conclusão (`/api/cron/convite-completo`). Por isso a trava de
  * data: em qualquer outro dia a rota não envia nada. Para adiar, mude
  * `DATA_DO_DISPARO`; para cancelar, tire o cron do vercel.json.
  *
- * vercel.json: { "path": "/api/cron/campanha-completo", "schedule": "0 11 * * 1" }
+ * vercel.json: { "path": "/api/cron/campanha-completo", "schedule": "0 12 * * 2" }
  */
 
-/** Segunda-feira, 07/09/2026. Fora desta data a rota não envia. */
-const DATA_DO_DISPARO = "2026-09-07";
+/** Terça-feira, 08/09/2026. Fora desta data a rota não envia. */
+const DATA_DO_DISPARO = "2026-09-08";
 
 export const maxDuration = 300;
 
