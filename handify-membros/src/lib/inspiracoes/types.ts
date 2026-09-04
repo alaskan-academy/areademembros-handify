@@ -95,6 +95,17 @@ export interface InspiracaoComment {
 
 // ── Filtros do feed ───────────────────────────────────────────────────────────
 
+/** Curso na barra de filtros de Inspirações. */
+export interface CursoDoFiltro {
+  id: string
+  title: string
+  slug: string
+  price: number | null
+  checkoutUrl: string | null
+  /** false = aparece em cinza, com cadeado, e abre o convite de compra. */
+  temAcesso: boolean
+}
+
 export interface InspiracaoFiltros {
   tipo?: InspiracaoType | ''
   /** Tag do post — usada por destaques, não pela tela de filtros. */

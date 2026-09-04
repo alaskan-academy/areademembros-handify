@@ -439,17 +439,16 @@ recorte é por curso e por nicho.
 - [ ] **Alimentar com posts novos.** Dez itens é pouco para uma seção que é
       benefício de aluna e que agora está fechada para quem não comprou. Vale
       uma leva por categoria antes de divulgar a área.
-- [ ] **Decidir: liberar por curso?** (ideia da Jessica, 04/09) O post já liga a
-      curso, então dá para mostrar a cada aluna só o acervo dos cursos que ela
-      comprou. **Cuidado com o tamanho:** com 10 posts no total, uma aluna de um
-      curso só veria 2 ou 3, e a seção viraria um vazio. Caminho sugerido:
-      primeiro encher o acervo por categoria, depois ligar o recorte por curso —
-      e mesmo assim mostrando o resto como "de outros cursos", em vez de
-      esconder. O que abre a seção continua sendo ter qualquer curso.
-
-Ligado a isto: só **2 nichos** estão mapeados hoje (saboaria e velas), então
-quem fez Cosméticos ou Aromas cai numa lista que não fala com ela.
-
+- [x] **Curso que ela não tem aparece trancado** (04/09). Em vez de sumir da
+      lista (ela nem saberia que existe conteúdo ali), o curso vem em cinza com
+      cadeado. O clique abre `CursoBloqueadoModal`: "Você ainda não tem este
+      curso", o que existe lá dentro, o preço, e dois caminhos — "Quero este
+      curso" (checkout do próprio curso) e "Ver o que tem dentro do curso"
+      (página do curso). Os cursos dela aparecem primeiro. Quem tem o Completo
+      abre tudo que está no plano.
+- [~] **Liberar o conteúdo por curso** (ideia da Jessica, 04/09) — o filtro já
+      está assim; falta decidir se o **feed sem filtro** também esconde o que é
+      de curso que ela não tem.
 ### Fase 5 — Marca e comunidade
 - [ ] Selo "Completo" + "Aluna desde" no fórum/perfil
 - [ ] Carteirinha digital compartilhável (com ™, faixa tricolor)

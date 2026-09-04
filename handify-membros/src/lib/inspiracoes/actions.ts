@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { hasActiveMembership } from '@/lib/auth/access'
 import { revalidatePath } from 'next/cache'
 import type {
   InspiracaoPost,
@@ -10,6 +11,7 @@ import type {
   InspiracaoCursor,
   InspiracaoPage,
   UpsertInspiracaoPayload,
+  CursoDoFiltro,
 } from './types'
 
 const PAGE_SIZE = 12
@@ -20,11 +22,16 @@ const PAGE_SIZE = 12
  * Cursos que têm ao menos um post no acervo — a tela só mostra estes.
  * Antes a lista trazia os 11 cursos publicados, e 8 deles abriam tela vazia.
  */
-export async function cursosComAcervo(): Promise<{ id: string; title: string }[]> {
+export async function cursosComAcervo(userId?: string): Promise<CursoDoFiltro[]> {
   const service = createServiceClient()
-  const [{ data: posts }, { data: cursos }] = await Promise.all([
+  const agora = new Date().toISOString()
+  const [{ data: posts }, { data: cursos }, { data: minhas }, temPlano] = await Promise.all([
     service.from('inspiration_posts').select('course_ids, course_id').eq('published', true).eq('archived', false),
-    service.from('courses').select('id, title').eq('published', true),
+    service.from('courses').select('id, title, slug, price, checkout_url, in_plan').eq('published', true),
+    userId
+      ? service.from('enrollments').select('course_id').eq('user_id', userId).or(`expires_at.is.null,expires_at.gt.${agora}`)
+      : Promise.resolve({ data: [] as { course_id: string }[] }),
+    userId ? hasActiveMembership(userId) : Promise.resolve(false),
   ])
 
   const comPost = new Set<string>()
@@ -33,10 +40,24 @@ export async function cursosComAcervo(): Promise<{ id: string; title: string }[]
       comPost.add(id)
     }
   }
+  const dela = new Set((minhas ?? []).map((e) => e.course_id as string))
+
   return (cursos ?? [])
     .filter((c) => comPost.has(c.id as string))
-    .map((c) => ({ id: c.id as string, title: c.title as string }))
-    .sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'))
+    .map((c) => ({
+      id: c.id as string,
+      title: c.title as string,
+      slug: c.slug as string,
+      price: c.price != null ? Number(c.price) : null,
+      checkoutUrl: (c.checkout_url as string | null) ?? null,
+      // Quem tem o Completo abre tudo que está no plano.
+      temAcesso: dela.has(c.id as string) || (temPlano && !!c.in_plan),
+    }))
+    .sort((a, b) => {
+      // Os cursos dela primeiro; depois os trancados, em ordem alfabética.
+      if (a.temAcesso !== b.temAcesso) return a.temAcesso ? -1 : 1
+      return a.title.localeCompare(b.title, 'pt-BR')
+    })
 }
 
 export async function getInspiracoesFeed(

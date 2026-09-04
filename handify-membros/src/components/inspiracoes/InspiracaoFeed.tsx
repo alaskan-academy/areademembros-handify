@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef, useTransition } from 'react'
-import { Search, SlidersHorizontal, Loader2, ChevronDown, X } from 'lucide-react'
+import { Search, SlidersHorizontal, Loader2, ChevronDown, X, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
-import type { InspiracaoPost, InspiracaoType, InspiracaoCursor } from '@/lib/inspiracoes/types'
+import type { InspiracaoPost, InspiracaoType, InspiracaoCursor, CursoDoFiltro } from '@/lib/inspiracoes/types'
 import { InspiracaoFeedItem } from './InspiracaoFeedItem'
+import { CursoBloqueadoModal } from './CursoBloqueadoModal'
 
 const TIPOS: { value: InspiracaoType | ''; label: string }[] = [
   { value: '',          label: 'Todos' },
@@ -22,12 +23,13 @@ interface Props {
   initialPosts: InspiracaoPost[]
   initialCursor: InspiracaoCursor | null
   initialHasMore: boolean
-  courses?: { id: string; title: string }[]
+  courses?: CursoDoFiltro[]
 }
 
 export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHasMore, courses = [] }: Props) {
   const [tipo, setTipo] = useState<InspiracaoType | ''>('')
   const [courseId, setCourseId] = useState('')
+  const [cursoBloqueado, setCursoBloqueado] = useState<CursoDoFiltro | null>(null)
   const [busca, setBusca] = useState('')
   const [debouncedBusca, setDebouncedBusca] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -161,20 +163,35 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
                   >
                     Todos
                   </button>
-                  {courses.map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => setCourseId(c.id)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                        courseId === c.id
-                          ? 'bg-[#FEC649] text-[#6b4f00] shadow-sm'
-                          : 'bg-muted/60 text-foreground/70 hover:bg-[#FEC649]/20 hover:text-[#6b4f00]'
-                      )}
-                    >
-                      {c.title}
-                    </button>
-                  ))}
+                  {courses.map(c =>
+                    c.temAcesso ? (
+                      <button
+                        key={c.id}
+                        onClick={() => setCourseId(c.id)}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                          courseId === c.id
+                            ? 'bg-[#FEC649] text-[#6b4f00] shadow-sm'
+                            : 'bg-muted/60 text-foreground/70 hover:bg-[#FEC649]/20 hover:text-[#6b4f00]'
+                        )}
+                      >
+                        {c.title}
+                      </button>
+                    ) : (
+                      // Curso que ela não tem: cinza, com cadeado. O clique abre o
+                      // convite em vez de filtrar — some da lista seria pior, ela
+                      // nem saberia que existe conteúdo ali.
+                      <button
+                        key={c.id}
+                        onClick={() => setCursoBloqueado(c)}
+                        aria-label={`${c.title} — você ainda não tem este curso`}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1 bg-muted/40 text-foreground/35 hover:text-foreground/55 hover:bg-muted/70 transition-colors"
+                      >
+                        <Lock className="w-3 h-3" aria-hidden />
+                        {c.title}
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -232,6 +249,10 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
             </div>
           )}
         </>
+      )}
+
+      {cursoBloqueado && (
+        <CursoBloqueadoModal curso={cursoBloqueado} onClose={() => setCursoBloqueado(null)} />
       )}
     </>
   )

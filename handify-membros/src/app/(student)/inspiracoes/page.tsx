@@ -38,7 +38,7 @@ export default async function InspiracoesPage() {
   const service = createServiceClient()
   const [page, cursosRaw, { data: profileData }] = await Promise.all([
     getInspiracoesFeed(user.id),
-    cursosComAcervo(),
+    cursosComAcervo(user.id),
     supabase.from('profiles').select('visited_sections').eq('id', user.id).single(),
   ])
 
