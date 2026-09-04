@@ -2,7 +2,7 @@
  * Calendário do artesanato — as datas que vendem no ano e quando começar a
  * produzir para chegar a tempo. Tudo puro: Páscoa, Dia das Mães, Dia dos Pais
  * e Black Friday são calculados; o resto é fixo. Os prazos vêm do que ela faz
- * (cold process cura 4 a 6 semanas; vela de soja descansa 1 a 2 semanas).
+ * (cold process cura 4 a 6 semanas; velas descansam de 4 a 10 dias).
  */
 
 export type Produz = "glicerinado" | "cold_process" | "velas" | "cosmetico";
