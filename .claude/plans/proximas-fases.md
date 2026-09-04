@@ -71,15 +71,25 @@ Em `src/app/(student)/aulas/[id]/page.tsx` há dois `Promise.all` encadeados: Ro
 
 ---
 
-### A8. Performance — Verificar Região Vercel vs Supabase
-Se Vercel estiver em `us-east-1` e Supabase também, alunas no Brasil sofrem ~150ms extra por request.
+### A8. Performance — Região Vercel vs Supabase ✅ RESOLVIDO em 04/09/2026
 
-**O que fazer:**
-- Vercel Dashboard → Settings → Functions → Region
-- Supabase → Settings → General → Region
-- Se Vercel não estiver em `gru1` (São Paulo), considerar mover
+**Era a causa principal da lentidão.** O Supabase está em `sa-east-1` (São Paulo)
+e as funções da Vercel rodavam em `iad1` (Washington). O cabeçalho
+`X-Vercel-Id: gru1::iad1` provava o caminho: a aluna entrava pelo edge de São
+Paulo, a função executava nos Estados Unidos e o banco respondia de volta em São
+Paulo. **Cada consulta atravessava o Atlântico duas vezes.**
 
----
+Correção: `"regions": ["gru1"]` no `vercel.json` (commit `a65d75b`).
+
+Medido em produção, rota que faz uma consulta ao banco:
+
+| | Antes (iad1) | Depois (gru1) |
+|---|---|---|
+| TTFB, medidas quentes | 0,56 – 0,77 s | 0,156 – 0,285 s |
+| Mediana | ~0,61 s | **0,167 s** |
+
+**3,6× mais rápido**, e o ganho multiplica nas telas que fazem várias consultas
+em série. A página de aula, por exemplo, faz 4 rodadas sequenciais.
 
 ### A9. Vitrine Hero Hardcoded
 Textos em `src/app/(student)/cursos/page.tsx` (linhas ~259-268) estão fixos no código:
