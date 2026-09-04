@@ -379,6 +379,33 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       viu ("afundou", "manchas"); filtro por produto começa no do curso dela. Sem
       resultado → fórum do curso. **Conteúdo a validar pela professora.**
 
+### Convite ao Completo — automatizado em 04/09
+
+**Dois caminhos, um guarda só.** `email_campaign_sends` com prefixo
+`plano-completo`: quem entra por um caminho não recebe pelo outro.
+
+- **Base (disparo único):** `/api/cron/campanha-completo`, cron `0 11 * * 1`
+  (segunda, 8h de Brasília). Trava de data em `DATA_DO_DISPARO = 2026-09-07`:
+  em qualquer outro dia não envia. Segmento: 4+ cursos, sem plano, opt-in —
+  **703 na fila**. Envio em lotes de 100 pelo `batch.send` do Resend.
+- **Novas compradoras (sequência de 3, uma por mês, por aluna):**
+  `/api/cron/convite-completo`, cron `20 * * * *`. Etapa 1 = 2 h depois de
+  concluir o **primeiro** curso (abre parabenizando); etapas 2 e 3 = 30 dias
+  depois da anterior, no tom da campanha. **Para** ao assinar o Completo, ao
+  chegar na 3ª, ou se ela desmarcar o aviso no perfil. Só envia entre 8h e 21h:
+  quem conclui de madrugada recebe de manhã. A etapa 1 olha 7 dias para trás,
+  então falha de cron não deixa ninguém de fora.
+- **`?simular=1`** em qualquer uma das duas monta a fila e devolve os números
+  **sem enviar**. Não existe atalho para enviar fora da data/hora.
+
+**Incidente (04/09, meu erro):** testei a rota de conclusão com um parâmetro
+`forcar=1` que pulava a trava de horário e **enviava de verdade**. Saíram
+**23 e-mails reais às 2h26**, para alunas que de fato concluíram o primeiro
+curso e não têm o plano (conteúdo certo, hora errada e sem a Jessica ter
+mandado). O parâmetro foi removido dos dois crons e trocado por `simular=1`,
+que nunca envia. As 23 ficaram registradas como etapa 1 — não recebem
+duplicado, e a etapa 2 delas cai 30 dias depois.
+
 ### Fase 6 — Ferramentas exclusivas do Completo ("Guardar")
 - [x] **Minhas receitas** (`/ferramentas/minhas-receitas`, 03/09): a ficha de "Minha
       receita" guardada na conta. Tabela `recipes` com resumo (custo, preço, margem,

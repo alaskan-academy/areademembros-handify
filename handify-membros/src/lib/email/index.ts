@@ -359,6 +359,14 @@ export type PlanUpgradeEmailInput = {
   totalDoPlano: number;
   linkUrl: string;
   buttonText?: string | null;
+  /**
+   * "campanha": disparo para a base.
+   * "conclusao": 2 h depois de ela concluir o primeiro curso — abre parabenizando,
+   * porque nesse momento o assunto é a conquista dela, não a oferta.
+   */
+  momento?: "campanha" | "conclusao";
+  /** No momento "conclusao": o curso que ela acabou de concluir. */
+  cursoConcluido?: string | null;
 };
 
 function planBar(tem: number, total: number) {
@@ -429,14 +437,25 @@ export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject:
       : `${primeiros.slice(0, -1).join(", ")} e ${primeiros[primeiros.length - 1]}`;
   const oQueJaTem = extras > 0 ? `${lista} — e mais ${extras}` : lista;
 
-  const subject = `${firstName}, você já tem ${tem} de ${total} cursos da Handify — e agora tem mais 💛`;
+  const conclusao = input.momento === "conclusao";
+  const subject = conclusao
+    ? `Parabéns pelo seu primeiro curso, ${firstName} 🎓`
+    : `${firstName}, você já tem ${tem} de ${total} cursos da Handify — e agora tem mais 💛`;
 
   const html = emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
-        Olá, ${firstName}! Você já tem <span style="color:#6699F3;">${tem} de ${total}</span> cursos da Handify
+        ${
+          conclusao
+            ? `Você conseguiu, ${firstName}! 🎓`
+            : `Olá, ${firstName}! Você já tem <span style="color:#6699F3;">${tem} de ${total}</span> cursos da Handify`
+        }
       </h1>
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 20px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        Olha só o que já é seu: <strong style="color:#2D2D2D;">${oQueJaTem}</strong>.
+        ${
+          conclusao
+            ? `Você concluiu ${input.cursoConcluido ? `<strong style="color:#2D2D2D;">${input.cursoConcluido}</strong>` : "seu primeiro curso"} — do começo ao fim. Isso é mais do que a maioria faz. Agora que você pegou o jeito, olha o que tem pela frente.`
+            : `Olha só o que já é seu: <strong style="color:#2D2D2D;">${oQueJaTem}</strong>.`
+        }
       </p>
       ${planBar(tem, total)}
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 16px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
@@ -461,6 +480,32 @@ export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject:
     `);
 
   return { subject, html };
+}
+
+/**
+ * Envia o convite ao Completo para várias alunas de uma vez (lotes de 100, o
+ * limite do Resend). Devolve quantas saíram — o disparo da base tem centenas e
+ * uma a uma estouraria o tempo da função.
+ */
+export async function sendPlanUpgradeEmailBatch(
+  destinatarias: (PlanUpgradeEmailInput & { to: string })[]
+): Promise<{ enviados: string[]; erro: string | null }> {
+  const enviados: string[] = [];
+  for (let i = 0; i < destinatarias.length; i += 100) {
+    const fatia = destinatarias.slice(i, i + 100);
+    const { error } = await getResend().batch.send(
+      fatia.map((d) => {
+        const { subject, html } = renderPlanUpgradeEmail(d);
+        return { from: FROM, replyTo: REPLY_TO, to: d.to, subject, html };
+      })
+    );
+    if (error) {
+      console.error("[email] plan upgrade batch error:", error);
+      return { enviados, erro: error.message ?? "erro no lote" };
+    }
+    enviados.push(...fatia.map((d) => d.to));
+  }
+  return { enviados, erro: null };
 }
 
 export async function sendPlanUpgradeEmail(input: PlanUpgradeEmailInput & { to: string }): Promise<void> {

@@ -20,7 +20,7 @@ dotenv.config({ path: ".env.local" });
 
 import { renderPlanUpgradeEmail, sendPlanUpgradeEmail } from "../src/lib/email";
 
-const CAMPANHA = "plano-completo-2026-09";
+const CAMPANHA = "plano-completo-base"; // mesma do cron de segunda — o guarda é compartilhado
 const MIN_CURSOS = 4;
 const PAUSA_MS = 600; // ~1,6 e-mails por segundo, dentro do limite do Resend
 
