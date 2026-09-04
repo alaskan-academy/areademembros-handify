@@ -286,6 +286,15 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
                 />
               )}
 
+              {/* O corpo abre a receita: é onde entra o contexto, a estratégia
+                  de venda, o porquê. Antes ele era gravado e nunca aparecia. */}
+              {post.body && (
+                <div
+                  className="prose prose-sm max-w-none text-foreground/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(post.body)) }}
+                />
+              )}
+
               {post.recipe_data.beneficios && post.recipe_data.beneficios.length > 0 && (
                 <div className="rounded-xl border border-[#6699F3]/20 bg-[#6699F3]/5 p-3">
                   <p className="text-xs font-semibold text-[#4a7bc8] mb-1.5">Para que serve</p>
@@ -390,6 +399,17 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
                   )}
                 </div>
               )}
+
+              {/* Fecho da receita: convite para o curso, aviso, o que vier. */}
+              {post.blocks
+                .filter(b => b.type === 'html')
+                .map((b, i) => (
+                  <div
+                    key={i}
+                    className="prose prose-sm max-w-none text-foreground/80"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(decodeHtmlEntities(b.content)) }}
+                  />
+                ))}
             </div>
           )}
 
