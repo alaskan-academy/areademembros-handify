@@ -360,8 +360,22 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       margem, essência = pavio A2025), abrir na Ficha, apagar com confirmação → 0 no
       banco. **Achado no teste: hora de trabalho negativa virava desconto no custo**
       — bloqueado na tela (`min=0`, parse ≥ 0) e no cálculo (`pos()`), com teste (26).
-- [ ] **Catálogo e tabela de preços (PDF)** — a vitrine do plano, com a marca dela.
-      Base: `recipes` (custo) + produtos. Aqui o e-mail da campanha passa a valer
+- [x] **Catálogo e tabela de preços (PDF)** (`/ferramentas/catalogo`, 03/09): a
+      vitrine do plano, com a marca dela. Tabelas `business_profile` (nome, frase,
+      WhatsApp, Instagram, cidade — vai no topo do PDF e depois serve rótulos e
+      orçamentos) e `catalog_items` (produto, descrição, preço, "entra no PDF",
+      `recipe_id` opcional). Produto pode nascer de uma receita guardada: nome e
+      preço vêm preenchidos; o card mostra "custo R$ x = margem de y%" e, quando a
+      receita muda, "a receita sugere R$ z — Aplicar". PDF em `pdf-lib` (A4, faixa
+      tricolor, marca dela grande, "feito com Handify™" só no rodapé, ~20 KB —
+      trocado o `icon.png` de 636 KB pelo de 192 px), servido por
+      `/api/ferramentas/catalogo/pdf` (checa sessão; `/api` é público no proxy).
+      Mesmo RLS "congela": dona sempre lê e gera o PDF; escrever exige membership.
+      Verificado ponta a ponta com a sessão admin: marca salva, produto manual,
+      produto da receita (R$ 6,61 de custo em R$ 11,01 = 40%; após mudar a receita
+      para R$ 12,50, "Aplicar" → 47%), editar preço, tirar do PDF (contador 2 → 1),
+      apagar com confirmação; PDF 200/application/pdf; insert como aluna sem plano
+      → "violates row-level security". Aqui o e-mail da campanha passa a valer
 - [ ] Pedidos e clientes · Rótulos · Estoque · Calendário
 - [ ] Bloco "Meu negócio" no topo de Ferramentas para o Completo (quando houver
       receitas/pedidos para resumir)
