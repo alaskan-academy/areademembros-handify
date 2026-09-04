@@ -119,16 +119,18 @@ interface Props {
 }
 
 export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado }: Props) {
-  // De qual curso é este post. Sem isso o acervo é uma vitrine sem vitrine: a
+  // De quais cursos é este post. Sem isso o acervo é uma vitrine sem vitrine: a
   // aluna vê a receita bonita e não tem caminho nenhum para o curso.
-  const cursoDoPost = (() => {
-    const ids = (post.course_ids ?? []).concat(post.course_id ? [post.course_id] : [])
-    for (const id of ids) {
-      const achado = cursos.find(c => c.id === id)
-      if (achado) return achado
-    }
-    return null
-  })()
+  //
+  // Um post pode servir a vários cursos (a dica de essência vale para saboaria
+  // e para as quatro de velas). O selo mostra um só, senão não cabe — mas
+  // escolhe o que ela TEM, e avisa quantos outros existem. Antes ele pegava o
+  // primeiro da lista e dava a impressão de que o post era de um curso só.
+  const cursosDoPost = ((post.course_ids ?? []).concat(post.course_id ? [post.course_id] : []))
+    .map(id => cursos.find(c => c.id === id))
+    .filter((c): c is CursoDoFiltro => !!c)
+  const cursoDoPost = cursosDoPost.find(c => c.temAcesso) ?? cursosDoPost[0] ?? null
+  const outrosCursos = cursosDoPost.length - 1
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [needsExpand, setNeedsExpand] = useState(false)
@@ -177,15 +179,17 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
                 >
                   <GraduationCap className="w-3 h-3" aria-hidden />
                   {cursoDoPost.title}
+                  {outrosCursos > 0 && <span className="opacity-70">+{outrosCursos}</span>}
                 </Link>
               ) : (
                 <button
                   onClick={() => onCursoBloqueado?.(cursoDoPost)}
-                  aria-label={`Do ${cursoDoPost.title} — você ainda não tem este curso`}
+                  aria-label={`Do ${cursoDoPost.title}${outrosCursos > 0 ? ` e mais ${outrosCursos} curso(s)` : ''} — você ainda não tem este curso`}
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#6699F3]/10 text-[#4a7bc8] hover:bg-[#6699F3]/20 transition-colors"
                 >
                   <Lock className="w-3 h-3" aria-hidden />
                   Do {cursoDoPost.title}
+                  {outrosCursos > 0 && <span className="opacity-70">+{outrosCursos}</span>}
                 </button>
               )
             )}
