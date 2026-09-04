@@ -15,7 +15,7 @@ export default async function FeedPage() {
   if (!user) redirect("/login");
 
   // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
-  // Não abrimos nem para leitura — exporia projeto e foto das alunas.
+  // Os avisos são o canal da Handify com quem estuda aqui dentro.
   if ((await getTier()) === 'visitante') {
     return (
       <SoParaAlunas
@@ -26,7 +26,8 @@ export default async function FeedPage() {
           'Dicas curtas da professora',
           'A aluna em destaque do mês, com o trabalho dela',
         ]}
-      />
+      porQue="É o canal da Handify com quem estuda aqui dentro. Com um curso, você passa a receber tudo em primeira mão."
+    />
     )
   }
 

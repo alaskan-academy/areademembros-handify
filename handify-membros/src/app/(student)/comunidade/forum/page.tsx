@@ -26,7 +26,8 @@ export default async function ForumLandingPage() {
           'Ver as dúvidas que outras alunas já resolveram',
           'Mostrar o seu trabalho para quem entende do assunto',
         ]}
-      />
+      porQue="É um espaço fechado, com as alunas mostrando o que fazem e perguntando o que ainda não sabem. Por respeito a elas, só quem tem um curso entra."
+    />
     )
   }
 

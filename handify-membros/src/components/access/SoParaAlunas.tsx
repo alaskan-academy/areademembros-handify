@@ -13,6 +13,7 @@ export default function SoParaAlunas({
   titulo,
   oQueTem,
   dentro,
+  porQue,
   ferramentas = true,
 }: {
   titulo: string
@@ -20,6 +21,12 @@ export default function SoParaAlunas({
   oQueTem: string
   /** O que ela encontra lá dentro, quando for aluna. */
   dentro: string[]
+  /**
+   * Por que é fechado. Muda conforme a área: no fórum quem escreve são as
+   * alunas, então o motivo é privacidade; em Inspirações e Avisos quem publica
+   * é a equipe, e o motivo é que o conteúdo acompanha o curso.
+   */
+  porQue: string
   /** Mostra o atalho para as ferramentas grátis. */
   ferramentas?: boolean
 }) {
@@ -48,9 +55,7 @@ export default function SoParaAlunas({
             </ul>
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            É um espaço fechado, com as alunas mostrando o que fazem. Por respeito a elas, só quem tem um curso entra.
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{porQue}</p>
 
           <Link
             href="/cursos"

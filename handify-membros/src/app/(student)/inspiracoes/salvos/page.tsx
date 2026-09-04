@@ -15,16 +15,18 @@ export default async function InspiracaoSalvosPage() {
   if (!user) redirect('/login')
 
   // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
-  // Não abrimos nem para leitura — exporia projeto e foto das alunas.
+  // O acervo (receitas, dicas, vídeos) acompanha o curso — quem publica é a equipe.
   if ((await getTier()) === 'visitante') {
     return (
       <SoParaAlunas
         titulo="Inspirações é para alunas"
-        oQueTem="Aqui ficam as inspirações que você salvou para fazer depois."
+        oQueTem="Aqui ficam as receitas e dicas que você salvou para fazer depois."
         dentro={[
-          'Fotos dos projetos das alunas, com o passo a passo que elas contam',
-          'Salvar as que você quer copiar depois',
+          'Receitas prontas para copiar e adaptar ao que você já faz',
+          'Dicas curtas e vídeos de quem faz todo dia',
+          'Tudo que você salvar fica guardado aqui',
         ]}
+        porQue="É conteúdo que a equipe publica para quem está aprendendo com a gente — receita testada e dica de quem faz todo dia. Com um curso, ele abre inteiro."
       />
     )
   }
