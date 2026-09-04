@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { savePosition, markLessonComplete } from "@/app/(student)/aulas/actions";
 
@@ -10,6 +10,32 @@ interface PandaPlayerProps {
   initialPosition?: number;
   durationSeconds?: number;
   isCompleted?: boolean;
+}
+
+/**
+ * Onde guardamos a posição quando o servidor recusa a gravação.
+ *
+ * Depois de um deploy, a aula que já estava aberta continua chamando a versão
+ * antiga da Server Action, que não existe mais no servidor. Antes disso aqui, o
+ * erro era engolido por um `.catch(() => {})` e a aluna assistia a aula inteira
+ * sem nada ser salvo. Agora a posição fica no aparelho e sobe assim que a
+ * página recarrega.
+ */
+const CHAVE_POSICAO = (lessonId: string) => `handify:posicao:${lessonId}`;
+
+function guardarNoAparelho(lessonId: string, posicao: number) {
+  try { localStorage.setItem(CHAVE_POSICAO(lessonId), String(Math.floor(posicao))); } catch { /* modo privado */ }
+}
+
+function lerDoAparelho(lessonId: string): number | null {
+  try {
+    const v = localStorage.getItem(CHAVE_POSICAO(lessonId));
+    return v === null ? null : Number(v);
+  } catch { return null; }
+}
+
+function limparDoAparelho(lessonId: string) {
+  try { localStorage.removeItem(CHAVE_POSICAO(lessonId)); } catch { /* modo privado */ }
 }
 
 function isYouTube(value: string): boolean {
@@ -59,8 +85,23 @@ export default function PandaPlayer({
   const youtube = isYouTube(videoId);
   const embedUrl = youtube ? buildYouTubeEmbedUrl(videoId) : buildPandaEmbedUrl(videoId);
 
+  // Duas falhas seguidas: quase sempre é deploy novo com a aba antiga aberta.
+  const falhasRef = useRef(0);
+  const [precisaRecarregar, setPrecisaRecarregar] = useState(false);
+
   const flushPosition = useCallback(() => {
-    savePosition(lessonId, positionRef.current).catch(() => {});
+    const posicao = positionRef.current;
+    savePosition(lessonId, posicao)
+      .then(() => {
+        falhasRef.current = 0;
+        limparDoAparelho(lessonId);
+      })
+      .catch(() => {
+        // Não perde o progresso: guarda aqui e tenta de novo no próximo carregamento.
+        guardarNoAparelho(lessonId, posicao);
+        falhasRef.current += 1;
+        if (falhasRef.current >= 2) setPrecisaRecarregar(true);
+      });
   }, [lessonId]);
 
   const autoMark = useCallback(() => {
@@ -68,12 +109,29 @@ export default function PandaPlayer({
     autoMarkedRef.current = true;
     markLessonComplete(lessonId)
       .then(() => router.refresh())
-      .catch(() => {});
+      .catch(() => {
+        // Deixa tentar de novo em vez de dar a aula como concluída sem estar.
+        autoMarkedRef.current = false;
+        setPrecisaRecarregar(true);
+      });
   }, [lessonId, router]);
 
   useEffect(() => {
     autoMarkedRef.current = isCompleted;
   }, [isCompleted]);
+
+  // Sobrou posição de uma sessão em que o servidor recusou a gravação? Sobe agora.
+  useEffect(() => {
+    const pendente = lerDoAparelho(lessonId);
+    if (pendente === null || pendente <= initialPosition) {
+      if (pendente !== null) limparDoAparelho(lessonId);
+      return;
+    }
+    positionRef.current = Math.max(positionRef.current, pendente);
+    savePosition(lessonId, pendente)
+      .then(() => limparDoAparelho(lessonId))
+      .catch(() => { /* tenta de novo no próximo carregamento */ });
+  }, [lessonId, initialPosition]);
 
   useEffect(() => {
     if (durationSeconds > 0 && durationRef.current === 0) {
@@ -150,6 +208,24 @@ export default function PandaPlayer({
   }, [lessonId, initialPosition]);
 
   return (
+    <>
+      {precisaRecarregar && (
+        <div
+          role="alert"
+          className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-xl border border-[#FEC649]/60 bg-[#FEC649]/15 px-4 py-3 text-sm"
+        >
+          <p className="flex-1 leading-relaxed">
+            <strong className="font-semibold">Saiu uma versão nova da plataforma.</strong>{" "}
+            Recarregue a página para o seu progresso voltar a ser salvo. Você continua de onde parou.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="shrink-0 rounded-lg bg-[#6699F3] px-4 text-sm font-semibold text-white min-h-[44px] hover:bg-[#5580d4] handify-transition"
+          >
+            Recarregar
+          </button>
+        </div>
+      )}
     <div className="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg relative">
       <iframe
         src={embedUrl}
@@ -166,5 +242,6 @@ export default function PandaPlayer({
         />
       )}
     </div>
+    </>
   );
 }

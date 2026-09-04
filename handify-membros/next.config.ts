@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 import withPWA from "@ducanh2912/next-pwa";
 
 const nextConfig: NextConfig = {
+  // Marca cada requisição com a versão que serviu a página. Com a Proteção de
+  // Versão ligada no painel da Vercel, a aluna que está com a aula aberta
+  // durante um deploy continua conversando com a versão dela, em vez de bater
+  // numa Server Action que deixou de existir e parar de salvar o progresso.
+  // Sem a opção ligada no painel, isto é inofensivo: a Vercel ignora a marca.
+  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
