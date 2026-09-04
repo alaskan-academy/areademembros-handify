@@ -380,7 +380,7 @@ function planBar(tem: number, total: number) {
       </td>
     </tr>
   </table>
-  <p style="color:#555555;font-size:13px;margin:0 0 24px;text-align:right;font-family:Arial,Helvetica,sans-serif;">${tem} de ${total} cursos</p>`;
+  <p style="color:#555555;font-size:13px;margin:0 0 24px;text-align:right;font-family:Arial,Helvetica,sans-serif;">${tem} de ${total} cursos e materiais</p>`;
 }
 
 /** Separado do envio para dar para ver o e-mail pronto antes de configurar. */
@@ -440,14 +440,14 @@ export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject:
   const conclusao = input.momento === "conclusao";
   const subject = conclusao
     ? `Parabéns pelo seu primeiro curso, ${firstName} 🎓`
-    : `${firstName}, você já tem ${tem} de ${total} cursos da Handify — e agora tem mais 💛`;
+    : `${firstName}, você já tem ${tem} dos ${total} cursos e materiais da Handify — e agora tem mais 💛`;
 
   const html = emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
         ${
           conclusao
             ? `Você conseguiu, ${firstName}! 🎓`
-            : `Olá, ${firstName}! Você já tem <span style="color:#6699F3;">${tem} de ${total}</span> cursos da Handify`
+            : `Olá, ${firstName}! Você já tem <span style="color:#6699F3;">${tem} de ${total}</span> cursos e materiais da Handify`
         }
       </h1>
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 20px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
@@ -461,12 +461,12 @@ export function renderPlanUpgradeEmail(input: PlanUpgradeEmailInput): { subject:
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 16px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
         ${
           maisDaMetade
-            ? `Mais da metade da Handify já é sua. O <strong style="color:#2D2D2D;">Handify Completo</strong> abre os outros ${restantes} de uma vez — e todo curso novo que a gente lançar entra sozinho, sem você precisar comprar de novo.`
-            : `O <strong style="color:#2D2D2D;">Handify Completo</strong> abre os outros ${restantes} de uma vez — e todo curso novo que a gente lançar entra sozinho, sem você precisar comprar de novo.`
+            ? `Mais da metade da Handify já é sua. O <strong style="color:#2D2D2D;">Handify Completo</strong> abre os outros ${restantes} de uma vez — e todo lançamento novo entra sozinho, sem você precisar comprar de novo.`
+            : `O <strong style="color:#2D2D2D;">Handify Completo</strong> abre os outros ${restantes} de uma vez — e todo lançamento novo entra sozinho, sem você precisar comprar de novo.`
         }
       </p>
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 24px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        Para quem já tem ${tem} cursos, o Completo é um passo — não uma compra nova.
+        Para quem já tem ${tem}, o Completo é um passo — não uma compra nova.
       </p>
       ${toolsBlock()}
       ${ctaButton(input.linkUrl, input.buttonText || "Ver o Handify Completo")}

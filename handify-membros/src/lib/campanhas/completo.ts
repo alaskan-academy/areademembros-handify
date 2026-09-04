@@ -51,7 +51,7 @@ export async function linkDoPlano(service: Service): Promise<string | null> {
   return (data?.link_url as string | undefined) ?? null;
 }
 
-/** Cursos que o plano abre — o "de 23" do e-mail. */
+/** O que o plano abre (10 cursos + 13 materiais) — o "de 23" do e-mail. */
 export async function cursosDoPlano(service: Service): Promise<Map<string, string>> {
   const { data } = await service.from("courses").select("id, title").eq("in_plan", true);
   return new Map((data ?? []).map((c: { id: string; title: string }) => [c.id, c.title]));

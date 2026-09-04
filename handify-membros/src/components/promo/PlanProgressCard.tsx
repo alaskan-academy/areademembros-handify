@@ -9,11 +9,11 @@ export type PlanProgressData = {
 };
 
 /**
- * "Você já tem X de N cursos da Handify" — a oferta do Handify Completo como
+ * "Você já tem X de N cursos e materiais da Handify" — a oferta do Handify Completo como
  * progresso, não como banner.
  *
  * Quem tem 4 cursos gastou ~R$300 em partes; o Completo custa R$327. Mostrado
- * como "você já tem 4 de 23", o plano é um passo, não uma compra nova. Copy na
+ * como "você já tem 4 de 23 cursos e materiais", o plano é um passo, não uma compra nova. Copy na
  * voz Handify: nunca "faltam 19", nunca "bloqueado". Só aparece para quem NÃO
  * tem o plano e já tem pelo menos um curso dele (quem tem zero vê a barra do
  * header). Contexto em .claude/plans/tiers-handify.md, fase 2.
@@ -61,7 +61,7 @@ export default function PlanProgressCard({
             <span className="accent-word">
               {temDoPlano} de {totalDoPlano}
             </span>{" "}
-            cursos da Handify
+            cursos e materiais da Handify
           </h2>
           <p className={cn("text-muted-foreground mt-1", compacto ? "text-xs" : "text-sm")}>
             {maisDaMetade
@@ -75,7 +75,7 @@ export default function PlanProgressCard({
             aria-valuenow={temDoPlano}
             aria-valuemin={0}
             aria-valuemax={totalDoPlano}
-            aria-label={`${temDoPlano} de ${totalDoPlano} cursos do Handify Completo`}
+            aria-label={`${temDoPlano} de ${totalDoPlano} cursos e materiais do Handify Completo`}
           >
             <div
               className="h-full rounded-full bg-[#6699F3] handify-transition"

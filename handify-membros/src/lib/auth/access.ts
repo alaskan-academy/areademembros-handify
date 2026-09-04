@@ -38,7 +38,7 @@ export type { Tier };
  * Esta aluna tem o Handify Completo ativo?
  *
  * O plano é uma entidade própria (`memberships`), não a soma dos cursos: quem
- * comprou os 23 cursos separados NÃO é Completo. Espelha
+ * comprou os 23 itens separados NÃO é Completo. Espelha
  * `public.has_active_membership()` no banco — os dois precisam concordar.
  * Contexto em .claude/plans/tiers-handify.md.
  */

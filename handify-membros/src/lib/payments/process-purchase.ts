@@ -100,7 +100,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   // desfazer) OU reembolso concluído (paid → refund_requested → canceled). Só dá
   // para saber olhando o histórico: se já houve pagamento aprovado deste e-mail
   // para algum desses códigos, é estorno e revoga. Achado em 03/09/2026: 6 alunas
-  // cancelaram o Handify Completo (R$327 devolvido) e ficaram com os 23 cursos.
+  // cancelaram o Handify Completo (R$327 devolvido) e ficaram com os 23 itens do plano.
   if (event.action === "revoke_if_paid") {
     const { data: pagoAntes } = await supabase
       .from("payment_events")
@@ -302,7 +302,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   const processed = results.filter(Boolean).length;
 
   // ─── Handify Completo ──────────────────────────────────────────────────────
-  // O plano é uma entidade própria (`memberships`) — quem comprou os 23 cursos
+  // O plano é uma entidade própria (`memberships`) — quem comprou os 23 itens
   // separados NÃO é Completo. As matrículas dos cursos já foram feitas acima
   // pelos checkout_codes; aqui registramos o plano em si. Se a compradora ainda
   // não tem conta, quem cria a membership é `process_pending_payment_events`
