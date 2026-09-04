@@ -1,0 +1,45 @@
+import { assertToolAccess } from '@/lib/ferramentas/access'
+import { getViewer } from '@/lib/auth/access'
+import { createClient } from '@/lib/supabase/server'
+import Rotulo from '@/components/ferramentas/Rotulo'
+import type { DadosRotulo } from '@/lib/rotulo/tipos'
+
+export const metadata = {
+  title: 'Rótulo do sabonete | Handify',
+  description: 'O que precisa constar no rótulo — pronto para imprimir.',
+}
+
+const ISO = /^\d{4}-\d{2}-\d{2}$/
+
+export default async function RotuloPage({ searchParams }: { searchParams: Promise<{ fabricacao?: string; validade?: string; lote?: string }> }) {
+  // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
+  await assertToolAccess('rotulo-sabonete')
+  const [{ fabricacao, validade, lote }, { userId }] = await Promise.all([searchParams, getViewer()])
+
+  // Quem tem a marca no Catálogo (Completo) já entra com ela preenchida. A dona
+  // sempre lê o que é dela, mesmo com o plano vencido.
+  const marca: Partial<DadosRotulo> = {}
+  if (userId) {
+    const supabase = await createClient()
+    const { data } = await supabase.from('business_profile').select('brand_name, whatsapp, instagram, city').eq('user_id', userId).maybeSingle()
+    if (data?.brand_name) {
+      marca.marca = data.brand_name as string
+      marca.fabricante = data.brand_name as string
+      marca.contato = [
+        data.whatsapp && `WhatsApp ${data.whatsapp}`,
+        data.instagram && ((data.instagram as string).startsWith('@') ? data.instagram : `@${data.instagram}`),
+        data.city,
+      ]
+        .filter(Boolean)
+        .join(' | ')
+    }
+  }
+
+  // Vindo da Validade: fabricação, validade e lote já calculados.
+  const inicial: Partial<DadosRotulo> = {}
+  if (fabricacao && ISO.test(fabricacao)) inicial.fabricacao = fabricacao
+  if (validade && ISO.test(validade)) inicial.validade = validade
+  if (lote) inicial.lote = lote.slice(0, 20)
+
+  return <Rotulo marca={marca} inicial={inicial} />
+}

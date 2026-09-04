@@ -392,7 +392,23 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       ("Atrasado há 2 dias", 3 × 32 = R$ 96,00, "1 atrasado"); "ana souza" em
       minúsculas reaproveita a cliente (sem duplicar) e mantém "Ana Souza";
       apagar com confirmação; insert como aluna sem plano → RLS bloqueia.
-- [ ] Rótulos · Estoque · Calendário
+- [x] **Rótulo do sabonete** (`/ferramentas/rotulo`, 03/09, tier aluna,
+      Saboaria/Cosméticos). Sem banco: ela preenche (marca, produto, o que é,
+      conteúdo, ingredientes com dica de INCI, modo de uso e advertências já
+      escritos do jeito que a ANVISA pede, fabricação/validade/lote, quem
+      fabrica, CNPJ opcional, contato), vê a prévia na hora e baixa a folha A4
+      em PDF (`pdf-lib`, 3 tamanhos: 7×4 = 12 por folha, 9×5 = 10, 9×7 = 6;
+      letra encolhe até caber; borda fina de corte). "Copiar o texto do
+      rótulo". Checklist do que a ANVISA pede marcando o que já está preenchido
+      + aviso sobre "hipoalergênico / natural / orgânico" sem certificado e
+      sobre notificação na ANVISA. Botão **"Não sei a validade — calcular"** →
+      Validade com `?voltar=rotulo` → "Usar no rótulo" volta com fabricação,
+      validade e lote; o resto fica no rascunho do aparelho. Quem tem a marca no
+      Catálogo entra com marca/fabricante/contato preenchidos. PDF por POST de
+      formulário (`/api/ferramentas/rotulo/pdf`, checa sessão e acesso da
+      ferramenta). Verificado: PDF 200 e legível nos 3 tamanhos; ida e volta
+      com a Validade mantendo marca e produto digitados.
+- [ ] Estoque · Calendário
 - [x] **Validade do produto** (`/ferramentas/validade`, 03/09, tier aluna, aba
       Calcular, categorias Saboaria/Cosméticos/Velas/Aromas; porta "Que validade
       pôr no rótulo?" no hub). Lógica pura em `src/lib/ferramentas/validade.ts`
@@ -425,8 +441,9 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
   (`produtoPadrao`). As etapas Essências e Pavio já obedeciam à categoria.
 - Calculadora de lucro: gratuita, os dois produtos abertos — de propósito.
 - Qual pavio usar: só Velas (já era).
-- Fornecedores: sem categoria (qualquer curso abre) e lista todos os nichos
-  com conteúdo. Decisão pendente da Jessica: filtrar pelos nichos dela?
+- [ ] **Revisar Fornecedores** (pedido da Jessica, 03/09): hoje abre com
+  qualquer curso e lista todos os nichos com conteúdo. Decidir se filtra pelos
+  nichos dela (Completo vê todos) e se entra em tool_categories.
 - Catálogo, Pedidos, Minhas receitas: Completo, sem variação por nicho.
 - [ ] Bloco "Meu negócio" no topo de Ferramentas para o Completo (quando houver
       receitas/pedidos para resumir)

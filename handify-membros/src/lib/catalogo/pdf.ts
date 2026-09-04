@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFPage } from "pdf-lib";
+import { limpar, quebrar } from "@/lib/pdf/texto";
 import fs from "fs";
 import path from "path";
 import type { Marca } from "./actions";
@@ -25,30 +26,6 @@ const M = 48; // margem
 export type ItemPdf = { name: string; description: string | null; price: number };
 
 const reais = (n: number) => "R$ " + n.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-/**
- * Helvetica no pdf-lib usa WinAnsi: acentos, ç, —, ™ e aspas curvas entram;
- * emoji e afins não (e derrubam o encode). Tira só o que não dá para desenhar.
- */
-function limpar(s: string): string {
-  return s.replace(/[^\x20-\x7E\xA0-\xFF€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]/g, "").replace(/\s+/g, " ").trim();
-}
-
-function quebrar(texto: string, font: PDFFont, size: number, largura: number): string[] {
-  const palavras = limpar(texto).split(" ");
-  const linhas: string[] = [];
-  let atual = "";
-  for (const p of palavras) {
-    const tentativa = atual ? `${atual} ${p}` : p;
-    if (font.widthOfTextAtSize(tentativa, size) <= largura) atual = tentativa;
-    else {
-      if (atual) linhas.push(atual);
-      atual = p;
-    }
-  }
-  if (atual) linhas.push(atual);
-  return linhas;
-}
 
 export async function gerarCatalogoPdf(marca: Marca, itens: ItemPdf[]): Promise<Uint8Array> {
   const doc = await PDFDocument.create();

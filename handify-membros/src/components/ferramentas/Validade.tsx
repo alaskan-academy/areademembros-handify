@@ -73,7 +73,7 @@ function Marcar({ marcado, onChange, titulo, detalhe }: { marcado: boolean; onCh
 
 const ICONE = { perigo: ShieldAlert, atencao: AlertTriangle, dica: Lightbulb } as const
 
-export default function Validade({ categorias, tudoLiberado }: { categorias: string[]; tudoLiberado: boolean }) {
+export default function Validade({ categorias, tudoLiberado, voltar }: { categorias: string[]; tudoLiberado: boolean; voltar?: string }) {
   // Os tipos seguem o curso que ela comprou — os outros ficam visíveis e travados.
   const liberados = useMemo(() => tiposLiberados(categorias, tudoLiberado), [categorias, tudoLiberado])
   const [tipo, setTipo] = useState<TipoProduto>(liberados[0] ?? 'glicerinado')
@@ -253,6 +253,14 @@ export default function Validade({ categorias, tudoLiberado }: { categorias: str
             <div className="rounded-xl bg-white/10 p-3 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Para o rótulo</p>
               <p className="text-sm font-semibold break-words">{textoRotulo}</p>
+              {voltar === 'rotulo' && (
+                <Link
+                  href={`/ferramentas/rotulo?fabricacao=${fabricacao}&validade=${resultado.vence}&lote=${encodeURIComponent(resultado.rotulo.lote)}`}
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#6699F3] text-white text-sm font-semibold min-h-[44px] hover:bg-[#5580d4] handify-transition"
+                >
+                  <Check className="w-4 h-4" /> Usar no rótulo
+                </Link>
+              )}
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] text-white/60">Lote é sugestão (mês, ano, sequência) — mude como quiser.</p>
                 <button type="button" onClick={copiar} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-white text-[#0F0F0F] text-xs font-semibold px-3 min-h-[36px]">
