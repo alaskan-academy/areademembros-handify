@@ -427,12 +427,15 @@ Inspirações é o **acervo** da Handify: receita, dica, vídeo e foto para a al
 aplicar o que aprendeu. Quem publica é a equipe. Hoje tem **10 posts** e o
 recorte é por curso e por nicho.
 
-- [ ] **Segmentar por categoria**, como já é em Cursos e no restante da
-      plataforma. Hoje `inspiration_posts` tem `type` (foto, carrossel, vídeo,
-      receita, dica, destaque) e liga a curso e a nicho, mas **não a
-      `categories`** — que é o eixo que a aluna reconhece (Saboaria, Velas,
-      Cosméticos, Aromas e Casa). Precisa de uma ligação post → categoria, do
-      filtro na tela da aluna e do campo no admin.
+- [x] **Filtro por curso, montado sozinho** (04/09). A decisão final da Jessica
+      foi **só curso**, sem categoria: o filtro "Artesanato" saiu da tela.
+      Sobraram Tipo e Curso. A lista de cursos deixa de ser o catálogo inteiro e
+      passa a sair dos próprios posts (`cursosComAcervo()`): eram 11 cursos,
+      sendo 8 que abriam tela vazia; agora são os 4 que têm conteúdo. Sem campo
+      novo no admin e sem ninguém precisar marcar nada — publicou o post ligado
+      a um curso, o curso aparece no filtro.
+      **De passagem:** o filtro "Artesanato" mostrava as 6 categorias do
+      catálogo mas filtrava pela tag do post, e 3 delas nunca tiveram conteúdo.
 - [ ] **Alimentar com posts novos.** Dez itens é pouco para uma seção que é
       benefício de aluna e que agora está fechada para quem não comprou. Vale
       uma leva por categoria antes de divulgar a área.

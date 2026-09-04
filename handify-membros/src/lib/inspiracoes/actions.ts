@@ -16,6 +16,29 @@ const PAGE_SIZE = 12
 
 // ── Feed (alunas) ─────────────────────────────────────────────────────────────
 
+/**
+ * Cursos que têm ao menos um post no acervo — a tela só mostra estes.
+ * Antes a lista trazia os 11 cursos publicados, e 8 deles abriam tela vazia.
+ */
+export async function cursosComAcervo(): Promise<{ id: string; title: string }[]> {
+  const service = createServiceClient()
+  const [{ data: posts }, { data: cursos }] = await Promise.all([
+    service.from('inspiration_posts').select('course_ids, course_id').eq('published', true).eq('archived', false),
+    service.from('courses').select('id, title').eq('published', true),
+  ])
+
+  const comPost = new Set<string>()
+  for (const p of posts ?? []) {
+    for (const id of ((p.course_ids as string[] | null) ?? []).concat(p.course_id ? [p.course_id as string] : [])) {
+      comPost.add(id)
+    }
+  }
+  return (cursos ?? [])
+    .filter((c) => comPost.has(c.id as string))
+    .map((c) => ({ id: c.id as string, title: c.title as string }))
+    .sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'))
+}
+
 export async function getInspiracoesFeed(
   userId: string,
   filtros: InspiracaoFiltros = {},
@@ -43,7 +66,7 @@ export async function getInspiracoesFeed(
     query = query.eq('type', filtros.tipo)
   }
 
-  // Filtro por nicho/tag
+  // Filtro por tag (mantido: a busca por tag ainda serve para destaques)
   if (filtros.nicho) {
     query = query.contains('tags', [filtros.nicho])
   }

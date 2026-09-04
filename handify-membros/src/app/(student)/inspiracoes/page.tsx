@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Bookmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
+import { getInspiracoesFeed, cursosComAcervo } from '@/lib/inspiracoes/actions'
 import { InspiracaoFeed } from '@/components/inspiracoes/InspiracaoFeed'
 import PageTour from "@/components/tour/PageTour"
 import { SECTION_TOURS } from "@/lib/tour/tours"
@@ -36,16 +36,14 @@ export default async function InspiracoesPage() {
   }
 
   const service = createServiceClient()
-  const [page, { data: coursesRaw }, { data: categoriesRaw }, { data: profileData }] = await Promise.all([
+  const [page, cursosRaw, { data: profileData }] = await Promise.all([
     getInspiracoesFeed(user.id),
-    service.from('courses').select('id, title').eq('published', true).eq('course_type', 'course').order('title'),
-    service.from('categories').select('id, name, slug').order('name'),
+    cursosComAcervo(),
     supabase.from('profiles').select('visited_sections').eq('id', user.id).single(),
   ])
 
   const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {}
-  const courses = (coursesRaw ?? []) as { id: string; title: string }[]
-  const categories = (categoriesRaw ?? []) as { id: string; name: string; slug: string }[]
+  const courses = cursosRaw
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -77,7 +75,6 @@ export default async function InspiracoesPage() {
           initialCursor={page.next_cursor}
           initialHasMore={page.has_more}
           courses={courses}
-          categories={categories}
         />
       </div>
     </div>

@@ -97,6 +97,7 @@ export interface InspiracaoComment {
 
 export interface InspiracaoFiltros {
   tipo?: InspiracaoType | ''
+  /** Tag do post — usada por destaques, não pela tela de filtros. */
   nicho?: string
   curso_id?: string
   busca?: string
