@@ -282,6 +282,20 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
                 />
               )}
 
+              {post.recipe_data.beneficios && post.recipe_data.beneficios.length > 0 && (
+                <div className="rounded-xl border border-[#6699F3]/20 bg-[#6699F3]/5 p-3">
+                  <p className="text-xs font-semibold text-[#4a7bc8] mb-1.5">Para que serve</p>
+                  <ul className="space-y-1">
+                    {post.recipe_data.beneficios.map((b, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-foreground/80 leading-relaxed">
+                        <span className="text-[#72CF92] mt-0.5 shrink-0" aria-hidden>✓</span>
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {(post.recipe_data.tempo || post.recipe_data.temperatura || post.recipe_data.nivel) && (
                 <div className="flex flex-wrap gap-4 bg-muted/50 rounded-xl p-3">
                   {post.recipe_data.tempo && (
@@ -352,7 +366,7 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
               {post.recipe_data.dicas && (
                 <div className="bg-[#72CF92]/10 rounded-xl p-3 border border-[#72CF92]/20">
                   <p className="text-xs font-semibold text-[#2a9d5a] mb-1">💡 Dicas</p>
-                  <p className="text-xs text-foreground/75 leading-relaxed">{post.recipe_data.dicas}</p>
+                  <p className="text-xs text-foreground/75 leading-relaxed whitespace-pre-line">{post.recipe_data.dicas}</p>
                 </div>
               )}
 

@@ -22,6 +22,8 @@ export interface Ingrediente {
 }
 
 export interface ReceitaData {
+  /** Para que serve o produto. Aparece logo abaixo da foto, antes da ficha. */
+  beneficios?: string[]
   ingredientes?: Ingrediente[]
   passos?: string[]
   como_fazer?: string[]     // passo a passo curto (inspirações com receita simplificada)
