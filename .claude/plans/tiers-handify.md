@@ -421,6 +421,25 @@ visitante lendo a comunidade, selo e carteirinha, "Bastidores do negócio",
       fechado (texto próprio de cada área), leva aos cursos e oferece as
       ferramentas grátis.
 
+### Inspirações — segmentar e alimentar (pedido da Jessica, 04/09)
+
+Inspirações é o **acervo** da Handify: receita, dica, vídeo e foto para a aluna
+aplicar o que aprendeu. Quem publica é a equipe. Hoje tem **10 posts** e o
+recorte é por curso e por nicho.
+
+- [ ] **Segmentar por categoria**, como já é em Cursos e no restante da
+      plataforma. Hoje `inspiration_posts` tem `type` (foto, carrossel, vídeo,
+      receita, dica, destaque) e liga a curso e a nicho, mas **não a
+      `categories`** — que é o eixo que a aluna reconhece (Saboaria, Velas,
+      Cosméticos, Aromas e Casa). Precisa de uma ligação post → categoria, do
+      filtro na tela da aluna e do campo no admin.
+- [ ] **Alimentar com posts novos.** Dez itens é pouco para uma seção que é
+      benefício de aluna e que agora está fechada para quem não comprou. Vale
+      uma leva por categoria antes de divulgar a área.
+
+Ligado a isto: só **2 nichos** estão mapeados hoje (saboaria e velas), então
+quem fez Cosméticos ou Aromas cai numa lista que não fala com ela.
+
 ### Fase 5 — Marca e comunidade
 - [ ] Selo "Completo" + "Aluna desde" no fórum/perfil
 - [ ] Carteirinha digital compartilhável (com ™, faixa tricolor)
