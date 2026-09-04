@@ -157,6 +157,7 @@ export default function MinhaReceita({
   tier,
   etapaInicial,
   produtoInicial,
+  produtoPadrao = 'sabonetes',
   receitaInicial = null,
   nova = false,
 }: {
@@ -166,13 +167,15 @@ export default function MinhaReceita({
   tier: 'visitante' | 'aluna' | 'completo' | 'admin'
   etapaInicial?: string
   produtoInicial?: string
+  /** Produto do curso dela — só define por onde começa; os dois continuam abertos. */
+  produtoPadrao?: Produto
   /** Receita guardada na conta, aberta a partir de Minhas receitas. */
   receitaInicial?: { id: string; data: Receita } | null
   /** Veio de "Nova receita": ignora o rascunho do aparelho. */
   nova?: boolean
 }) {
   const [receita, setReceita] = useState<Receita>(
-    () => receitaInicial?.data ?? receitaVazia(produtoInicial === 'velas' ? 'velas' : 'sabonetes')
+    () => receitaInicial?.data ?? receitaVazia(produtoInicial === 'velas' ? 'velas' : produtoInicial === 'sabonetes' ? 'sabonetes' : produtoPadrao)
   )
   // Id na conta: existe quando ela abriu uma guardada ou já guardou esta.
   const [receitaId, setReceitaId] = useState<string | null>(receitaInicial?.id ?? null)

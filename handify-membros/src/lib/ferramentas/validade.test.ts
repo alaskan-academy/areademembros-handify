@@ -95,3 +95,15 @@ describe("ingredientes", () => {
     expect(r.alertas.some((a) => a.nivel === "perigo" && a.texto.includes("já venceu"))).toBe(true);
   });
 });
+
+describe("tipos por curso", () => {
+  it("só Velas vê vela; Saboaria vê os três sabonetes; Completo vê tudo", async () => {
+    const { tiposLiberados, cursosQueLiberam } = await import("./validade");
+    expect(tiposLiberados(["velas-artesanais"], false)).toEqual(["vela"]);
+    expect(tiposLiberados(["saboaria-artesanal"], false)).toEqual(["glicerinado", "cold_process", "liquido"]);
+    expect(tiposLiberados(["saboaria-artesanal", "cosmeticos-artesanais"], false)).toEqual(["glicerinado", "cold_process", "liquido", "anidro", "com_agua"]);
+    expect(tiposLiberados([], true)).toHaveLength(6);
+    expect(cursosQueLiberam("cold_process")).toEqual(["Saboaria"]);
+    expect(cursosQueLiberam("com_agua")).toEqual(["Cosméticos", "Aromas e Casa"]);
+  });
+});

@@ -408,6 +408,26 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       conservante = 7 dias; sintético 3 meses = 03/12/2026; cold process + óleo
       frágil + antioxidante = 9 meses; insumo 15/01/2027 vira o limite.
       **Pendente:** professora de saboaria valida a tabela antes do push.
+      **Dentro da ferramenta segue o curso (03/09):** `getToolsForViewer()` passou a
+      devolver `categorias` (slugs dos cursos dela) e `assertToolAccess()` devolve os
+      dados. Tipos por curso: Saboaria = glicerinado, cold process, líquido;
+      Cosméticos = sem água, com água, líquido; Velas = vela; Aromas e Casa = vela,
+      com água, sem água; Completo/admin = tudo. Tipo fora do curso fica visível,
+      tracejado, com cadeado e "Com o curso de X" → /cursos. Verificado simulando
+      aluna só de Velas (5 travados, Vela aberto) e admin (6 abertos).
+
+**Revisão das outras ferramentas (03/09) — o que varia por curso:**
+- Calculadora de essências: a URL `/sabonetes` ou `/velas` agora obedece ao
+  curso (aluna só de Velas que abre `/sabonetes` vai parar em `/velas`;
+  `produtosLiberados()` em `src/lib/ferramentas/produtos.ts`, com testes).
+- Minha receita: custo e preço são gratuitos (visitante), então sabonete e
+  vela continuam abertos para todas; agora **começa** no produto do curso dela
+  (`produtoPadrao`). As etapas Essências e Pavio já obedeciam à categoria.
+- Calculadora de lucro: gratuita, os dois produtos abertos — de propósito.
+- Qual pavio usar: só Velas (já era).
+- Fornecedores: sem categoria (qualquer curso abre) e lista todos os nichos
+  com conteúdo. Decisão pendente da Jessica: filtrar pelos nichos dela?
+- Catálogo, Pedidos, Minhas receitas: Completo, sem variação por nicho.
 - [ ] Bloco "Meu negócio" no topo de Ferramentas para o Completo (quando houver
       receitas/pedidos para resumir)
 

@@ -1,5 +1,6 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { assertToolAccess } from '@/lib/ferramentas/access'
+import { produtosLiberados } from '@/lib/ferramentas/produtos'
 import CalculadoraEssencias, { type EssenciasConfig } from '@/components/ferramentas/CalculadoraEssencias'
 
 const SLUG_MAP: Record<string, string> = {
@@ -63,9 +64,15 @@ export default async function CalculadoraEssenciasPage({
   params: Promise<{ produto: string }>
 }) {
   // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
-  await assertToolAccess('calculadora-essencias')
+  const dados = await assertToolAccess('calculadora-essencias')
   const { produto } = await params
-  const config = CONFIGS[SLUG_MAP[produto] ?? produto]
+  const chave = SLUG_MAP[produto] ?? produto
+  const config = CONFIGS[chave]
   if (!config) notFound()
+  // O produto da URL segue o curso dela: aluna só de Velas não abre /sabonetes.
+  const liberados = produtosLiberados(dados.categorias, dados.tier === 'completo' || dados.tier === 'admin')
+  if (!liberados.includes(chave as 'sabonetes' | 'velas')) {
+    redirect(liberados[0] ? `/ferramentas/calculadora-essencias/${liberados[0]}` : '/ferramentas?bloqueada=calculadora-essencias')
+  }
   return <CalculadoraEssencias config={config} />
 }

@@ -41,6 +41,8 @@ export type ViewerTools = {
   tools: ToolView[];
   /** Nichos das ferramentas; `ativo` = ela tem curso que mapeia para ele. */
   nichos: NichoView[];
+  /** Slugs das categorias dos cursos que ela tem — decide o que aparece dentro de cada ferramenta. */
+  categorias: string[];
   /** Checkout do Handify Completo, quando a promo está ligada. */
   planLink: string | null;
 };

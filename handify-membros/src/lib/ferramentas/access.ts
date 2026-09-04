@@ -77,6 +77,7 @@ export async function getToolsForViewer(): Promise<ViewerTools> {
 
   // Categorias dos cursos que ela tem — é isso que abre ferramenta de aluna.
   const categoriasDela = new Set<string>();
+  const categoriasSlugs = new Set<string>();
   const contagemNicho = new Map<string, number>();
   for (const row of (enrollRows ?? []) as unknown[]) {
     const course = umOuPrimeiro((row as { course?: unknown }).course) as
@@ -85,6 +86,7 @@ export async function getToolsForViewer(): Promise<ViewerTools> {
     if (!course) continue;
     if (course.category_id) categoriasDela.add(course.category_id);
     const slug = umOuPrimeiro(course.category)?.slug;
+    if (slug) categoriasSlugs.add(slug);
     const nicho = slug ? CATEGORIA_PARA_NICHO[slug] : undefined;
     if (nicho) contagemNicho.set(nicho, (contagemNicho.get(nicho) ?? 0) + 1);
   }
@@ -138,16 +140,17 @@ export async function getToolsForViewer(): Promise<ViewerTools> {
     };
   });
 
-  return { tier, tools, nichos, planLink: promo?.link_url ?? null };
+  return { tier, tools, nichos, categorias: [...categoriasSlugs], planLink: promo?.link_url ?? null };
 }
 
 /**
  * Trava de rota: a página da ferramenta chama isto antes de renderizar. Sem
  * isso o cadeado da lista seria só cosmético — bastava saber a URL.
  */
-export async function assertToolAccess(slug: string): Promise<void> {
-  const { tools } = await getToolsForViewer();
-  const tool = tools.find((t) => t.slug === slug);
+export async function assertToolAccess(slug: string): Promise<ViewerTools> {
+  const dados = await getToolsForViewer();
+  const tool = dados.tools.find((t) => t.slug === slug);
   if (!tool) redirect("/ferramentas");
   if (tool.state !== "aberta") redirect(`/ferramentas?bloqueada=${encodeURIComponent(slug)}`);
+  return dados;
 }

@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, Copy, Check, Plus, X, ShieldAlert, AlertTriangle, Lightbulb } from 'lucide-react'
+import { ChevronLeft, Copy, Check, Plus, X, ShieldAlert, AlertTriangle, Lightbulb, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   TIPOS,
   calcularValidade,
   temAgua,
+  tiposLiberados,
+  cursosQueLiberam,
   type TipoProduto,
   type Conservante,
   type Aroma,
@@ -71,8 +73,10 @@ function Marcar({ marcado, onChange, titulo, detalhe }: { marcado: boolean; onCh
 
 const ICONE = { perigo: ShieldAlert, atencao: AlertTriangle, dica: Lightbulb } as const
 
-export default function Validade() {
-  const [tipo, setTipo] = useState<TipoProduto>('glicerinado')
+export default function Validade({ categorias, tudoLiberado }: { categorias: string[]; tudoLiberado: boolean }) {
+  // Os tipos seguem o curso que ela comprou — os outros ficam visíveis e travados.
+  const liberados = useMemo(() => tiposLiberados(categorias, tudoLiberado), [categorias, tudoLiberado])
+  const [tipo, setTipo] = useState<TipoProduto>(liberados[0] ?? 'glicerinado')
   const [fabricacao, setFabricacao] = useState(hojeISO)
   const [conservante, setConservante] = useState<Conservante>('nenhum')
   const [prazoConservante, setPrazoConservante] = useState('')
@@ -134,12 +138,30 @@ export default function Validade() {
 
         <Secao titulo="O que você fez?">
           <div className="grid grid-cols-2 gap-2">
-            {TIPOS.map(t => (
-              <Opcao key={t.key} ativo={tipo === t.key} onClick={() => setTipo(t.key)}>
-                <span className="block">{t.emoji} {t.nome}</span>
-                <span className="block text-[11px] font-normal text-muted-foreground">{t.exemplo}</span>
-              </Opcao>
-            ))}
+            {TIPOS.map(t => {
+              if (liberados.includes(t.key)) {
+                return (
+                  <Opcao key={t.key} ativo={tipo === t.key} onClick={() => setTipo(t.key)}>
+                    <span className="block">{t.emoji} {t.nome}</span>
+                    <span className="block text-[11px] font-normal text-muted-foreground">{t.exemplo}</span>
+                  </Opcao>
+                )
+              }
+              const cursos = cursosQueLiberam(t.key).join(' ou ')
+              return (
+                <Link
+                  key={t.key}
+                  href="/cursos"
+                  aria-label={`${t.nome}: com o curso de ${cursos}`}
+                  className="rounded-lg border border-dashed border-border bg-[#F5F5F0] px-3 py-2 text-left min-h-[44px] block hover:border-[#6699F3]/50 handify-transition"
+                >
+                  <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Lock className="w-3.5 h-3.5 shrink-0" /> {t.emoji} {t.nome}
+                  </span>
+                  <span className="block text-[11px] font-semibold text-[#6699F3]">Com o curso de {cursos}</span>
+                </Link>
+              )
+            })}
           </div>
         </Secao>
 

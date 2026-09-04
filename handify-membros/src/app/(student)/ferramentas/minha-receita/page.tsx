@@ -1,4 +1,5 @@
 import { assertToolAccess, getToolsForViewer } from '@/lib/ferramentas/access'
+import { produtoPadrao } from '@/lib/ferramentas/produtos'
 import { getWickRecommendations } from '@/lib/pavio/actions'
 import { carregarReceita } from '@/lib/receitas/actions'
 import MinhaReceita, { type AcessoEtapas, type Receita } from '@/components/ferramentas/MinhaReceita'
@@ -41,6 +42,7 @@ export default async function MinhaReceitaPage({
       tier={dados.tier}
       etapaInicial={guardada ? etapa ?? 'ficha' : etapa}
       produtoInicial={produto}
+      produtoPadrao={produtoPadrao(dados.categorias, dados.tier === 'completo' || dados.tier === 'admin')}
       receitaInicial={guardada ? { id: guardada.id, data: guardada.data as Receita } : null}
       nova={nova === '1'}
     />

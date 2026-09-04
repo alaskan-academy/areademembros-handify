@@ -267,3 +267,28 @@ export function calcularValidade(e: EntradaValidade): ResultadoValidade {
     rotulo: { fabricacao: dataBR(e.fabricacao), validade: dataBR(vence), lote: `${String(mm).padStart(2, "0")}${yy}-01` },
   };
 }
+
+/**
+ * Quais tipos de produto a aluna vê liberados — segue o curso que ela comprou,
+ * a mesma regra que abre a ferramenta. Os outros ficam visíveis e travados,
+ * com "Com o curso de …". Completo e admin veem tudo.
+ */
+export const CATEGORIAS_VALIDADE: { slug: string; nome: string; tipos: TipoProduto[] }[] = [
+  { slug: "saboaria-artesanal", nome: "Saboaria", tipos: ["glicerinado", "cold_process", "liquido"] },
+  { slug: "cosmeticos-artesanais", nome: "Cosméticos", tipos: ["anidro", "com_agua", "liquido"] },
+  { slug: "velas-artesanais", nome: "Velas", tipos: ["vela"] },
+  { slug: "aromas-e-casa", nome: "Aromas e Casa", tipos: ["vela", "com_agua", "anidro"] },
+];
+
+export function tiposLiberados(categorias: string[], tudo: boolean): TipoProduto[] {
+  const todos = TIPOS.map((t) => t.key);
+  if (tudo) return todos;
+  const set = new Set<TipoProduto>();
+  for (const c of CATEGORIAS_VALIDADE) if (categorias.includes(c.slug)) c.tipos.forEach((t) => set.add(t));
+  return todos.filter((t) => set.has(t));
+}
+
+/** Nomes dos cursos que liberam um tipo — para o cadeado dizer o caminho. */
+export function cursosQueLiberam(tipo: TipoProduto): string[] {
+  return CATEGORIAS_VALIDADE.filter((c) => c.tipos.includes(tipo)).map((c) => c.nome);
+}
