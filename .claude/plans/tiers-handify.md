@@ -457,7 +457,7 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       Crianças, Professor, Black Friday, Natal, Réveillon) — Páscoa, Mães, Pais e
       Black Friday calculados (7 testes), cada uma com dica de venda e peso
       ("Data forte"). Prazos pelo que ela faz: glicerinado 3 dias, cold process
-      37 (cura 4 a 6 semanas), velas 12, cosmético 4, + 7 se manda pelos
+      37 (cura 4 a 6 semanas), velas 12 (cura de 4 a 10 dias, conta com 10), cosmético 4, + 7 se manda pelos
       Correios; divulgar 3 semanas antes. "Próxima data" em destaque, "Produzir:
       comece até dd/mm (em N dias)" e "Divulgar: …", vermelho quando passou.
       "Minha data" (feira, encomenda grande) na tabela `calendar_events` (RLS

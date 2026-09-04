@@ -10,7 +10,7 @@ import { PRODUZ, proximasDatas, prazosPara, diffDias, dataBR, type Produz, type 
 /**
  * Calendário do artesanato — as datas que vendem no ano e quando começar a
  * produzir para chegar a tempo, pelo que ela faz (cold process cura 4 a 6
- * semanas; vela de soja descansa 1 a 2 semanas). As datas dela (feira,
+ * semanas; velas descansam de 4 a 10 dias). As datas dela (feira,
  * encomenda grande) entram na mesma linha do tempo.
  */
 

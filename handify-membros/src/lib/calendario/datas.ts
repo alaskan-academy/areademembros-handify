@@ -10,7 +10,7 @@ export type Produz = "glicerinado" | "cold_process" | "velas" | "cosmetico";
 export const PRODUZ: { key: Produz; nome: string; emoji: string; producao: number; cura: number; explica: string }[] = [
   { key: "glicerinado", nome: "Sabonete glicerinado", emoji: "🧼", producao: 2, cura: 1, explica: "1 dia para fazer, 1 dia para secar e embalar" },
   { key: "cold_process", nome: "Sabonete cold process", emoji: "🧪", producao: 2, cura: 35, explica: "cura de 4 a 6 semanas antes de vender" },
-  { key: "velas", nome: "Velas", emoji: "🕯️", producao: 2, cura: 10, explica: "cera de soja descansa 1 a 2 semanas para o aroma firmar" },
+  { key: "velas", nome: "Velas", emoji: "🕯️", producao: 2, cura: 10, explica: "descansam de 4 a 10 dias para o aroma firmar (conta com 10)" },
   { key: "cosmetico", nome: "Cosméticos", emoji: "🫙", producao: 2, cura: 2, explica: "2 dias para fazer e conferir" },
 ];
 
