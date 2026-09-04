@@ -376,6 +376,68 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       para R$ 12,50, "Aplicar" → 47%), editar preço, tirar do PDF (contador 2 → 1),
       apagar com confirmação; PDF 200/application/pdf; insert como aluna sem plano
       → "violates row-level security". Aqui o e-mail da campanha passa a valer
-- [ ] Pedidos e clientes · Rótulos · Estoque · Calendário
+- [x] **Pedidos e clientes** (`/ferramentas/pedidos`, 03/09): quem pediu o que,
+      para quando, quanto falta receber. Tabelas `customers` (nome único por aluna
+      sem diferenciar maiúsculas + WhatsApp), `orders` (status a fazer → pronto →
+      entregue, data de entrega, `paid_amount` = quanto já recebeu; "sinal" e "pago"
+      são derivados, não guardados) e `order_items` (do catálogo ou digitado; nome
+      e preço copiados para pedido antigo não mudar com o catálogo). Tela: resumo
+      "Em aberto N = R$" e "A receber R$" (+ atrasados em vermelho ou entregas até
+      domingo), abas Abertos / Entregues / Clientes, formulário com datalist de
+      clientes (preenche o WhatsApp), itens do catálogo com preço, total ao vivo;
+      no card os atalhos "Ficou pronto", "Entregue", "Recebi tudo" e o link
+      wa.me. Mesmo RLS "congela". Verificado ponta a ponta com a sessão admin:
+      2 velas + 1 sabonete = R$ 111,80 com sinal R$ 30 = faltam R$ 81,80,
+      "Entrega sábado"; pronto → pago → entregue (aba Entregues); pedido atrasado
+      ("Atrasado há 2 dias", 3 × 32 = R$ 96,00, "1 atrasado"); "ana souza" em
+      minúsculas reaproveita a cliente (sem duplicar) e mantém "Ana Souza";
+      apagar com confirmação; insert como aluna sem plano → RLS bloqueia.
+- [ ] Rótulos · Estoque · Calendário
+- [ ] **Validade do produto** (ideia da Jessica, 03/09) — ver seção "Validade" abaixo
 - [ ] Bloco "Meu negócio" no topo de Ferramentas para o Completo (quando houver
       receitas/pedidos para resumir)
+
+### Proposta — Validade do produto (ideia da Jessica, 03/09)
+
+**Dor real:** muita aluna não sabe que validade pôr no rótulo (e o rótulo exige).
+Chutar é arriscado nos dois sentidos: curto demais perde venda, longo demais
+entrega produto rançoso ou, pior, com água sem conservante.
+
+**Como calcular (regra do ingrediente que vence primeiro):**
+1. A validade do produto nunca passa da validade **restante** do ingrediente
+   que vence primeiro (base glicerinada que vence em 6 meses = sabonete vence
+   em 6 meses, mesmo que o resto dure 2 anos).
+2. Produto **com água** (sabonete líquido, hidratante, tônico) e **sem
+   conservante** = 7 dias na geladeira, e a ferramenta avisa em vermelho.
+   Com conservante = o prazo que o fabricante do conservante indica
+   (normalmente 3 a 6 meses).
+3. Ingrediente **fresco** (fruta, leite, ervas in natura) = puxa para 7 dias
+   sem conservante.
+4. **Cold process** conta a partir do fim da cura (4 a 6 semanas); o limite é
+   o óleo que rancifica mais rápido (girassol e uva ≈ 6 meses, oliva/coco ≈
+   12 a 24 meses); vitamina E / extrato de alecrim alongam.
+5. **Glicerinado (melt & pour)**: 6 a 12 meses, embalado (plástico filme evita
+   "suar"); óleo essencial encurta mais que essência sintética.
+6. **Vela**: a cera não vence; o aroma enfraquece ≈ 12 meses → "melhor até".
+7. Guardar em lugar seco, fresco e sem sol — a ferramenta lembra isso no
+   resultado.
+
+**Saída:** "Validade estimada: 6 meses = vence em 03/03/2027", o motivo ("o que
+limita: a base glicerinada"), o texto pronto para o rótulo ("Fabricação
+03/09/2026 | Validade 03/03/2027 | Lote 0926-01") e o aviso honesto: é uma
+estimativa para planejar e etiquetar; para vender em escala ou registrar, o
+teste de estabilidade é que define. Tabela de referência: eu redijo, a
+professora de saboaria valida (é matéria de segurança).
+
+**Onde encaixa (sem picar informação):**
+- Card próprio no hub, aba Calcular ("Validade do produto") — é o que a aluna
+  procura pelo nome.
+- Etapa opcional em "Minha receita" para sabonetes/cosméticos ("Até quando
+  dura?"), com os ingredientes já digitados.
+- Alimenta "Rótulo do sabonete" (validade + lote) e usa "Estoque de insumos"
+  (validade de cada insumo já cadastrada = cálculo automático).
+
+**Tier sugerido:** **aluna** (com curso de Saboaria ou Cosméticos), não
+gratuito: é conhecimento que o curso ensina e tem risco se usado sem base
+(água sem conservante). No **Completo**: guardar a validade por receita, puxar
+do estoque, imprimir no rótulo e avisar "o lote X vence em 15 dias".
