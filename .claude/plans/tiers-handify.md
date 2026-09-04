@@ -283,7 +283,16 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       ferramentas do seu negócio" (Minhas receitas, Catálogo, Pedidos, Estoque,
       Calendário, Meu negócio) e o assunto virou "…de 23 cursos da Handify — e
       agora tem mais". Prévia gerada em `scripts/preview-email-completo.ts`;
-      **aguarda aprovação da Jessica e nada foi enviado**. Ao disparar: respeitar
+      **texto aprovado pela Jessica em 04/09; nada enviado ainda** — o disparo é
+      manual, pelo comando `npx tsx scripts/enviar-email-completo.ts` (padrão é
+      só conferir; `--enviar` manda, `--limite N` faz lote, `--para email` testa
+      em um só). Registra em `email_campaign_sends` para não repetir entre lotes.
+      Botão vai para o checkout do admin com UTM próprio (`utm_source=email`,
+      `utm_content=plano-completo-2026-09`). Segmento conferido: 759 com 4+ cursos,
+      menos 51 que já assinam e 1 opt-out = **707**.
+      **Achado no teste:** a checagem de plano usava `rpc("has_active_membership",
+      { uid })` e o parâmetro é `p_user_id` — falhava calado e as 51 assinantes
+      entrariam na lista. Trocado por uma consulta única em `memberships`. Ao disparar: respeitar
       `email_prefs`, mandar só para quem não tem membership ativa, em lotes.
       Era para enviar só depois das ferramentas exclusivas (fase 6), para o e-mail já
       mostrá-las.** Nada configurado, nada enviado. Ao retomar: filtrar por
