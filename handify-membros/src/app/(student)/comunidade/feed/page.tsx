@@ -1,3 +1,5 @@
+import { getTier } from '@/lib/auth/access'
+import SoParaAlunas from '@/components/access/SoParaAlunas'
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import FeedPostCard, { type FeedPostData } from "@/components/community/FeedPostCard";
@@ -11,6 +13,22 @@ export default async function FeedPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
+  // Não abrimos nem para leitura — exporia projeto e foto das alunas.
+  if ((await getTier()) === 'visitante') {
+    return (
+      <SoParaAlunas
+        titulo="Os Avisos são para alunas"
+        oQueTem="É por aqui que a Handify conta o que é novo: curso lançando, ferramenta nova, dica da professora e aluna em destaque."
+        dentro={[
+          'Novidades da plataforma antes de todo mundo',
+          'Dicas curtas da professora',
+          'A aluna em destaque do mês, com o trabalho dela',
+        ]}
+      />
+    )
+  }
 
   const [postsResult, allLikesResult, userLikesResult, profileResult] = await Promise.all([
     supabase

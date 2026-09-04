@@ -1,3 +1,5 @@
+import { getTier } from '@/lib/auth/access'
+import SoParaAlunas from '@/components/access/SoParaAlunas'
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +13,22 @@ export default async function ForumLandingPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
+  // Não abrimos nem para leitura — exporia projeto e foto das alunas.
+  if ((await getTier()) === 'visitante') {
+    return (
+      <SoParaAlunas
+        titulo="A Comunidade é para alunas"
+        oQueTem="É o lugar de perguntar quando algo dá errado e mostrar o que deu certo. Cada curso tem o seu espaço, e a professora responde por lá."
+        dentro={[
+          'Tirar dúvida com a professora do curso, com foto do que aconteceu',
+          'Ver as dúvidas que outras alunas já resolveram',
+          'Mostrar o seu trabalho para quem entende do assunto',
+        ]}
+      />
+    )
+  }
 
   // Busca os forum_ids vinculados a cursos em que a aluna está matriculada.
   // Não depende de RLS — garante o filtro mesmo que as policies estejam incompletas.

@@ -392,15 +392,29 @@ visitante lendo a comunidade, selo e carteirinha, "Bastidores do negócio",
       também conferida (36/36/720). Sessão do navegador é admin: etapas trancadas
       verificadas por tipo e lógica
 
-### Fase 4 — Porta aberta
-- [ ] Landing pública `/comecar` (proposta do gratuito) + onboarding direto para a
-      ferramenta grátis
-- [ ] Visitante lê comunidade/Avisos sem postar
+### Fase 4 — Porta aberta (feita em 04/09)
+- [x] **Landing pública `/comecar`** — a porta de entrada para quem ainda não é
+      aluna. Mostra três ferramentas grátis com exemplo de número real (Meta de
+      renda "R$ 2.000 por mês = 134 peças = 7 por dia"; Quanto cobrar "custo
+      R$ 6,61 = venda R$ 11,01"; Deu problema? "26 problemas explicados"), o
+      cadastro logo abaixo e um bloco escuro contando o que os cursos ensinam.
+      Cadastro **sem CPF** (`cadastroGratuitoSchema` + `origem=comecar` na action):
+      pedir CPF para experimentar uma calculadora afasta; ele volta a ser exigido
+      quando ela compra. Termina em `/ferramentas`, não em `/cursos`. Rota pública
+      no proxy; quem já está logada é redirecionada.
+- [x] **Comunidade e Inspirações passam a ser só para alunas** (decisão da Jessica
+      em 04/09, invertendo o item original "visitante lê sem postar" — abrir, mesmo
+      só para leitura, exporia projeto e foto das alunas). O item continua no menu e
+      o clique funciona; quem não tem curso vê `SoParaAlunas`: o que existe lá
+      dentro, por que é fechado, botão para os cursos e atalho para as ferramentas
+      grátis. Aplicado em `/inspiracoes`, `/inspiracoes/salvos`,
+      `/comunidade/forum` e `/comunidade/feed`.
 
 ### Fase 5 — Marca e comunidade
 - [ ] Selo "Completo" + "Aluna desde" no fórum/perfil
 - [ ] Carteirinha digital compartilhável (com ™, faixa tricolor)
-- [ ] Espaço "Bastidores do negócio" dentro do fórum
+- [ ] Espaço "Bastidores do negócio" dentro do fórum — **Jessica gostou, mas fica
+      para depois** (04/09)
 - [ ] "Negócio da Semana" no feed
 - [ ] Kit de boas-vindas do Completo; votação do próximo curso; acesso antecipado
 

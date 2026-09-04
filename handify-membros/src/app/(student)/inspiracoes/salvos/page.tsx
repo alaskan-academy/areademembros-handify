@@ -1,3 +1,5 @@
+import { getTier } from '@/lib/auth/access'
+import SoParaAlunas from '@/components/access/SoParaAlunas'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Bookmark, ArrowLeft } from 'lucide-react'
@@ -11,6 +13,21 @@ export default async function InspiracaoSalvosPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
+  // Não abrimos nem para leitura — exporia projeto e foto das alunas.
+  if ((await getTier()) === 'visitante') {
+    return (
+      <SoParaAlunas
+        titulo="Inspirações é para alunas"
+        oQueTem="Aqui ficam as inspirações que você salvou para fazer depois."
+        dentro={[
+          'Fotos dos projetos das alunas, com o passo a passo que elas contam',
+          'Salvar as que você quer copiar depois',
+        ]}
+      />
+    )
+  }
 
   const posts = await getBookmarks(user.id)
 

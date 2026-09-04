@@ -1,3 +1,5 @@
+import { getTier } from '@/lib/auth/access'
+import SoParaAlunas from '@/components/access/SoParaAlunas'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Bookmark } from 'lucide-react'
@@ -14,6 +16,22 @@ export default async function InspiracoesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
+  // Não abrimos nem para leitura — exporia projeto e foto das alunas.
+  if ((await getTier()) === 'visitante') {
+    return (
+      <SoParaAlunas
+        titulo="Inspirações é para alunas"
+        oQueTem="É onde as alunas mostram o que fizeram: sabonete, vela, embalagem, a bancada do ateliê. Serve de ideia e de coragem para tentar."
+        dentro={[
+          'Fotos dos projetos das alunas, com o passo a passo que elas contam',
+          'Filtro por curso e por categoria, para achar o que combina com o que você faz',
+          'Salvar as que você quer copiar depois',
+        ]}
+      />
+    )
+  }
 
   const service = createServiceClient()
   const [page, { data: coursesRaw }, { data: categoriesRaw }, { data: profileData }] = await Promise.all([

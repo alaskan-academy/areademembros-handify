@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   loginSchema,
   cadastroSchema,
+  cadastroGratuitoSchema,
   recuperarSenhaSchema,
   novaSenhaSchema,
 } from "@/lib/validations/auth";
@@ -92,7 +93,10 @@ export async function cadastroAction(
     confirm_password: formData.get("confirm_password"),
   };
 
-  const parsed = cadastroSchema.safeParse(raw);
+  // `origem=comecar`: veio da página das ferramentas grátis — sem CPF, e no fim
+  // cai em Ferramentas, que é o que ela veio buscar.
+  const daPaginaGratuita = formData.get("origem") === "comecar";
+  const parsed = (daPaginaGratuita ? cadastroGratuitoSchema : cadastroSchema).safeParse(raw);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) {
@@ -176,12 +180,14 @@ export async function cadastroAction(
 
     if (parsed.data.phone) profileUpdate.phone = parsed.data.phone;
 
-    const rawCpf = parsed.data.cpf.replace(/\D/g, "");
-    try {
-      profileUpdate.cpf_encrypted = encryptCpf(rawCpf);
-      profileUpdate.cpf_hash = hashCpf(rawCpf);
-    } catch {
-      console.warn("[cadastro] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
+    const rawCpf = (parsed.data.cpf ?? "").replace(/\D/g, "");
+    if (rawCpf.length === 11) {
+      try {
+        profileUpdate.cpf_encrypted = encryptCpf(rawCpf);
+        profileUpdate.cpf_hash = hashCpf(rawCpf);
+      } catch {
+        console.warn("[cadastro] CPF não criptografado — CERTIFICATE_ENCRYPTION_KEY ausente?");
+      }
     }
 
     if (Object.keys(profileUpdate).length > 0) {
@@ -207,7 +213,7 @@ export async function cadastroAction(
     email: emailLower,
     password: parsed.data.password,
   });
-  redirect("/cursos");
+  redirect(daPaginaGratuita ? "/ferramentas" : "/cursos");
 }
 
 /** Verifica se o e-mail está cadastrado (sem expor token de reset). */
