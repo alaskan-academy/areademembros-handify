@@ -1,4 +1,5 @@
 import { assertToolAccess } from '@/lib/ferramentas/access'
+import { listarInsumosComValidade } from '@/lib/estoque/actions'
 import Validade from '@/components/ferramentas/Validade'
 
 export const metadata = {
@@ -8,8 +9,16 @@ export const metadata = {
 
 export default async function ValidadePage({ searchParams }: { searchParams: Promise<{ voltar?: string }> }) {
   // Sem isto o cadeado da lista seria só cosmético — bastava saber a URL.
-  const [dados, { voltar }] = await Promise.all([assertToolAccess('validade-produto'), searchParams])
+  const [dados, { voltar }, insumosEstoque] = await Promise.all([assertToolAccess('validade-produto'), searchParams, listarInsumosComValidade()])
   // Os tipos de produto seguem o curso dela; Completo e admin veem todos.
   // `?voltar=rotulo`: veio do Rótulo e volta com a validade preenchida.
-  return <Validade categorias={dados.categorias} tudoLiberado={dados.tier === 'completo' || dados.tier === 'admin'} voltar={voltar} />
+  // Quem tem estoque com data puxa o insumo de lá — "o que vence primeiro manda".
+  return (
+    <Validade
+      categorias={dados.categorias}
+      tudoLiberado={dados.tier === 'completo' || dados.tier === 'admin'}
+      voltar={voltar}
+      insumosEstoque={insumosEstoque}
+    />
+  )
 }

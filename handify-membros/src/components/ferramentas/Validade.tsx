@@ -73,7 +73,7 @@ function Marcar({ marcado, onChange, titulo, detalhe }: { marcado: boolean; onCh
 
 const ICONE = { perigo: ShieldAlert, atencao: AlertTriangle, dica: Lightbulb } as const
 
-export default function Validade({ categorias, tudoLiberado, voltar }: { categorias: string[]; tudoLiberado: boolean; voltar?: string }) {
+export default function Validade({ categorias, tudoLiberado, voltar, insumosEstoque = [] }: { categorias: string[]; tudoLiberado: boolean; voltar?: string; insumosEstoque?: { nome: string; validade: string }[] }) {
   // Os tipos seguem o curso que ela comprou — os outros ficam visíveis e travados.
   const liberados = useMemo(() => tiposLiberados(categorias, tudoLiberado), [categorias, tudoLiberado])
   const [tipo, setTipo] = useState<TipoProduto>(liberados[0] ?? 'glicerinado')
@@ -235,9 +235,30 @@ export default function Validade({ categorias, tudoLiberado, voltar }: { categor
               </button>
             </div>
           ))}
-          <button type="button" onClick={() => setInsumos(l => [...l, { key: Date.now(), nome: '', validade: null }])} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6699F3] min-h-[44px]">
-            <Plus className="w-4 h-4" /> {insumos.length ? 'Mais um insumo' : 'Adicionar insumo'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setInsumos(l => [...l, { key: Date.now(), nome: '', validade: null }])} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6699F3] min-h-[44px]">
+              <Plus className="w-4 h-4" /> {insumos.length ? 'Mais um insumo' : 'Adicionar insumo'}
+            </button>
+            {insumosEstoque.length > 0 && (
+              <label className="text-xs text-muted-foreground inline-flex items-center gap-2 min-h-[44px]">
+                Puxar do estoque
+                <select
+                  value=""
+                  aria-label="Puxar insumo do estoque"
+                  onChange={e => {
+                    const i = insumosEstoque[Number(e.target.value)]
+                    if (i) setInsumos(l => [...l, { key: Date.now(), nome: i.nome, validade: i.validade }])
+                  }}
+                  className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm min-h-[36px]"
+                >
+                  <option value="">— escolher —</option>
+                  {insumosEstoque.map((i, k) => (
+                    <option key={k} value={k}>{i.nome} — vence {i.validade.split('-').reverse().join('/')}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
         </Secao>
 
         {resultado && (

@@ -416,7 +416,20 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       formulário (`/api/ferramentas/rotulo/pdf`, checa sessão e acesso da
       ferramenta). Verificado: PDF 200 e legível nos 3 tamanhos; ida e volta
       com a Validade mantendo marca e produto digitados.
-- [ ] Estoque · Calendário
+- [x] **Estoque de insumos** (`/ferramentas/estoque`, 04/09, Completo). Tabela
+      `supplies`: nome, categoria (cera, base, óleo, essência, corante, aditivo,
+      embalagem, pavio, outros), quantidade + unidade (g/kg/mL/L/un), mínimo
+      ("avisar abaixo de"), validade da embalagem, "paguei R$ x por y" (custo
+      por 100 g/mL ou por kg/L/un derivado), fornecedor, observação. Tela:
+      resumo Acabando / Vencendo (30 dias ou vencido) que também filtra, chips
+      por categoria, atalhos **Usei** e **Comprei** no card (nunca abaixo de
+      zero), editar, apagar. **Alimenta a Validade**: "Puxar do estoque" lista
+      os insumos com data — o que vence primeiro manda. Mesmo RLS "congela".
+      Verificado: 1200 g = "1,2 kg", R$ 45/1000 g = "R$ 4,50 por 100 g", usei
+      1000 → 200 g "Acabando" (mínimo 300), comprei 1000 → 1,2 kg, item zerado e
+      vencido → "Acabou" + "Venceu há 34 dias", e na Validade o insumo puxado
+      virou o limite (16 dias).
+- [ ] Calendário do artesanato
 - [x] **Validade do produto** (`/ferramentas/validade`, 03/09, tier aluna, aba
       Calcular, categorias Saboaria/Cosméticos/Velas/Aromas; porta "Que validade
       pôr no rótulo?" no hub). Lógica pura em `src/lib/ferramentas/validade.ts`
