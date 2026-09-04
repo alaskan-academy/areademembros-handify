@@ -1,18 +1,10 @@
 import { redirect } from 'next/navigation'
 import { getToolsForViewer } from '@/lib/ferramentas/access'
 import { listarEventos } from '@/lib/calendario/actions'
-import type { Produz } from '@/lib/calendario/datas'
+import { produzPorCategorias } from '@/lib/calendario/datas'
 import Calendario from '@/components/ferramentas/Calendario'
 
 export const metadata = { title: 'Calendário do artesanato | Handify' }
-
-/** Categoria do curso → o que ela faz (ela pode mudar na tela). */
-const PRODUZ_POR_CATEGORIA: Record<string, Produz[]> = {
-  'saboaria-artesanal': ['glicerinado', 'cold_process'],
-  'cosmeticos-artesanais': ['cosmetico'],
-  'velas-artesanais': ['velas'],
-  'aromas-e-casa': ['velas'],
-}
 
 export default async function CalendarioPage() {
   const [dados, { eventos, podeEditar }] = await Promise.all([getToolsForViewer(), listarEventos()])
@@ -24,6 +16,5 @@ export default async function CalendarioPage() {
     redirect('/ferramentas?bloqueada=calendario')
   }
 
-  const produz = [...new Set(dados.categorias.flatMap(c => PRODUZ_POR_CATEGORIA[c] ?? []))]
-  return <Calendario eventos={eventos} podeEditar={podeEditar} planLink={dados.planLink} produzInicial={produz.length ? produz : ['glicerinado', 'velas']} />
+  return <Calendario eventos={eventos} podeEditar={podeEditar} planLink={dados.planLink} produzInicial={produzPorCategorias(dados.categorias)} />
 }

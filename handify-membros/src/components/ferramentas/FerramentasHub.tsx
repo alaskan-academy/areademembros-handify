@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ChevronRight, Search, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ToolSection, ToolView, ViewerTools } from '@/lib/ferramentas/types'
+import type { ResumoNegocio } from '@/lib/negocio/resumo'
+import MeuNegocio from '@/components/ferramentas/MeuNegocio'
 
 /**
  * Área Ferramentas — a mesma tela para todos os tiers; o que muda é o estado de
@@ -36,10 +38,13 @@ const TIER_LABEL: Record<string, string> = {
 export default function FerramentasHub({
   dados,
   bloqueada,
+  negocio = null,
 }: {
   dados: ViewerTools
   /** Slug de uma ferramenta que ela tentou abrir sem ter acesso. */
   bloqueada?: string
+  /** Resumo "Meu negócio" (Completo que já usa as ferramentas). */
+  negocio?: ResumoNegocio | null
 }) {
   const { tools, nichos, planLink, tier } = dados
   const ferramentaBloqueada = bloqueada ? tools.find(t => t.slug === bloqueada) : undefined
@@ -94,6 +99,8 @@ export default function FerramentasHub({
             ))}
           </div>
         )}
+
+        {negocio && <MeuNegocio r={negocio} />}
 
         {/* Aviso: tentou abrir algo que ainda não tem */}
         {ferramentaBloqueada && ferramentaBloqueada.state !== 'aberta' && (

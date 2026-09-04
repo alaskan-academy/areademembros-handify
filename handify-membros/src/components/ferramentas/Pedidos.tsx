@@ -6,6 +6,7 @@ import { ChevronLeft, Plus, Trash2, Pencil, Lock, Sparkles, Check, X, MessageCir
 import { cn } from '@/lib/utils'
 import { reais } from '@/lib/ferramentas/calc'
 import { salvarProduto } from '@/lib/catalogo/actions'
+import { planoDeProducao, type PlanoProducao } from '@/lib/pedidos/producao'
 import {
   salvarPedido,
   atualizarPedido,
@@ -86,7 +87,7 @@ function ordenar(lista: Pedido[]) {
   })
 }
 
-type Aba = 'abertos' | 'entregues' | 'clientes'
+type Aba = 'abertos' | 'entregues' | 'clientes' | 'produzir'
 
 export default function Pedidos({
   pedidos: iniciais,
@@ -115,6 +116,14 @@ export default function Pedidos({
   }
   const [clientesBase, setClientesBase] = useState(clientesIniciais.map(c => ({ id: c.id, name: c.name, whatsapp: c.whatsapp })))
   const [aba, setAba] = useState<Aba>('abertos')
+  // Produzir: soma o que está em aberto, escala a receita e confere o estoque.
+  const [plano, setPlano] = useState<PlanoProducao | null>(null)
+  const [planoCarregando, setPlanoCarregando] = useState(false)
+  function abrirProduzir() {
+    setAba('produzir')
+    setPlanoCarregando(true)
+    planoDeProducao().then(p => { setPlano(p); setPlanoCarregando(false) })
+  }
   const [clienteFiltro, setClienteFiltro] = useState<string | null>(null)
   const [editando, setEditando] = useState<string | 'novo' | null>(null)
   const [confirmando, setConfirmando] = useState<string | null>(null)
@@ -262,10 +271,11 @@ export default function Pedidos({
               ['abertos', `Abertos${abertos.length ? ` ${abertos.length}` : ''}`],
               ['entregues', `Entregues${entregues.length ? ` ${entregues.length}` : ''}`],
               ['clientes', `Clientes${clientes.length ? ` ${clientes.length}` : ''}`],
+              ['produzir', 'Produzir'],
             ] as [Aba, string][]).map(([k, label]) => (
               <button
                 key={k}
-                onClick={() => setAba(k)}
+                onClick={() => (k === 'produzir' ? abrirProduzir() : setAba(k))}
                 className={cn('flex-1 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors min-h-[44px]', aba === k ? 'border-[#6699F3] text-[#6699F3]' : 'border-transparent text-muted-foreground hover:text-foreground')}
               >
                 {label}
@@ -281,8 +291,60 @@ export default function Pedidos({
           </div>
         )}
 
-        {/* Clientes */}
-        {aba === 'clientes' && !clienteFiltro ? (
+        {/* Produzir */}
+        {aba === 'produzir' && !clienteFiltro ? (
+          planoCarregando || !plano ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Somando os pedidos…</p>
+          ) : plano.pedidos === 0 ? (
+            <Vazio emoji="🧾" titulo="Nada a produzir" texto="Quando tiver pedido em A fazer, eu somo o que precisa e confiro o estoque." />
+          ) : (
+            <div className="space-y-3">
+              <div className="bg-white rounded-2xl border border-border/60 p-4 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Para fazer — {plano.pedidos} pedido{plano.pedidos !== 1 ? 's' : ''} em aberto</p>
+                <ul className="text-sm space-y-1">
+                  {plano.produtos.map(p => (
+                    <li key={p.nome} className="flex justify-between gap-3">
+                      <span className="min-w-0 truncate">{p.quantidade}× {p.nome}</span>
+                      {!p.temReceita && <span className="text-[11px] text-muted-foreground shrink-0">sem receita ligada</span>}
+                    </li>
+                  ))}
+                </ul>
+                {plano.semReceita.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Para eu somar os insumos, ligue a receita ao produto no <Link href="/ferramentas/catalogo" className="text-[#6699F3] underline">Catálogo</Link>.
+                  </p>
+                )}
+              </div>
+              {plano.insumos.length > 0 && (
+                <div className="bg-white rounded-2xl border border-border/60 p-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Insumos que isso pede</p>
+                  <ul className="text-sm space-y-1.5">
+                    {plano.insumos.map(i => (
+                      <li key={`${i.nome}-${i.unidade}`} className="flex items-start justify-between gap-3">
+                        <span className="min-w-0">
+                          <span className="font-semibold">{i.nome}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            precisa {i.precisa.toLocaleString('pt-BR')} {i.unidade}
+                            {i.tem != null && <> — tem {i.tem.toLocaleString('pt-BR')} {i.unidade}</>}
+                            {i.tem == null && <> — não está no estoque</>}
+                          </span>
+                        </span>
+                        {i.tem != null && (
+                          <span className={cn('text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0', i.falta > 0 ? 'bg-[#FEC649]/25 text-[#2D2D2D]' : 'bg-[#72CF92]/20 text-[#2D2D2D]')}>
+                            {i.falta > 0 ? `faltam ${i.falta.toLocaleString('pt-BR')} ${i.unidade}` : 'tem'}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-muted-foreground">
+                    A baixa no estoque fica na ficha da receita, na hora que você produzir. Faltou algo? <Link href="/ferramentas/fornecedores" className="text-[#6699F3] underline">Fornecedores</Link>.
+                  </p>
+                </div>
+              )}
+            </div>
+          )
+        ) : aba === 'clientes' && !clienteFiltro ? (
           clientes.length === 0 ? (
             <Vazio emoji="👩" titulo="Nenhuma cliente ainda" texto="Elas aparecem aqui conforme você anota pedidos." />
           ) : (

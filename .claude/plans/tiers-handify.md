@@ -448,9 +448,17 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       ganha "+ catálogo" e vira produto com o preço do pedido). Verificado:
       36 mL pedidos × 20 mL no estoque = "faltam 16 mL"; nicho Velas selecionado;
       "Adicionado ao catálogo" e o botão some.
-- [ ] Pontes — bloco 3 (com "Meu negócio"): Pedidos → Produzir (soma o que está
-      em aberto, escala a receita ligada, confere contra o estoque: "faltam
-      400 g de base").
+- [x] **"Meu negócio" + Pedidos → Produzir** (04/09). No topo de Ferramentas,
+      para o Completo que já usa alguma ferramenta dele (`resumoMeuNegocio`):
+      pedidos em aberto (atrasados / até domingo / total), a receber, estoque
+      (acabando / vencendo), próxima data com "produzir até", e "N receitas = M
+      no catálogo" — cada card leva à ferramenta. Em Pedidos, aba **Produzir**:
+      soma o que está em A fazer por produto, escala a receita ligada pelo
+      catálogo e confere contra o estoque ("precisa 3.600 g — tem 2.000 g —
+      faltam 1.600 g"; "não está no estoque"; "sem receita ligada" com link para
+      ligar no Catálogo). Só leitura: a baixa continua na ficha da receita.
+      Verificado com 40 sabonetes pedidos (receita de 20): base ×2, a receber
+      R$ 333,50 (40 × 7,09 + 69,90 − sinal 20).
 - [x] **Calendário do artesanato** (`/ferramentas/calendario`, 04/09, Completo).
       15 datas que vendem no ano (Dia da Mulher, Dia do Artesão, Páscoa, Dia das
       Mães, Namorados, festas juninas, Dia do Amigo, Avós, Pais, Cliente,
@@ -500,8 +508,8 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
   qualquer curso e lista todos os nichos com conteúdo. Decidir se filtra pelos
   nichos dela (Completo vê todos) e se entra em tool_categories.
 - Catálogo, Pedidos, Minhas receitas: Completo, sem variação por nicho.
-- [ ] Bloco "Meu negócio" no topo de Ferramentas para o Completo (quando houver
-      receitas/pedidos para resumir)
+- [x] Bloco "Meu negócio" no topo de Ferramentas para o Completo — feito (ver
+      "Meu negócio + Pedidos → Produzir")
 
 ### Proposta — Validade do produto (ideia da Jessica, 03/09)
 

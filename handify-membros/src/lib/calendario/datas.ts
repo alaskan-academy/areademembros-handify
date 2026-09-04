@@ -137,3 +137,16 @@ export function proximasDatas(hoje: string, produz: Produz[]): DataVenda[] {
     .sort((a, b) => (a.data < b.data ? -1 : 1))
     .slice(0, 14);
 }
+
+/** Categoria do curso → o que ela faz (ponto de partida; ela ajusta na tela). */
+export const PRODUZ_POR_CATEGORIA: Record<string, Produz[]> = {
+  "saboaria-artesanal": ["glicerinado", "cold_process"],
+  "cosmeticos-artesanais": ["cosmetico"],
+  "velas-artesanais": ["velas"],
+  "aromas-e-casa": ["velas"],
+};
+
+export function produzPorCategorias(categorias: string[]): Produz[] {
+  const lista = [...new Set(categorias.flatMap((c) => PRODUZ_POR_CATEGORIA[c] ?? []))];
+  return lista.length ? lista : ["glicerinado", "velas"];
+}

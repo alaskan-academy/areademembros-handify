@@ -1,6 +1,7 @@
 import FerramentasHub from '@/components/ferramentas/FerramentasHub'
 import { getToolsForViewer } from '@/lib/ferramentas/access'
 import { createClient } from '@/lib/supabase/server'
+import { resumoMeuNegocio } from '@/lib/negocio/resumo'
 import PageTour from "@/components/tour/PageTour"
 import { SECTION_TOURS } from "@/lib/tour/tours"
 
@@ -28,11 +29,14 @@ export default async function FerramentasPage({
 
   const visitedSections = (profileResult?.data?.visited_sections as Record<string, boolean>) ?? {}
 
+  // "Meu negócio": só para quem tem o Completo e já usa alguma ferramenta dele.
+  const negocio = user && (dados.tier === 'completo' || dados.tier === 'admin') ? await resumoMeuNegocio(user.id, dados.categorias) : null
+
   return (
     <div>
       {user && <PageTour sectionId="ferramentas" visited={!!visitedSections['ferramentas']} steps={SECTION_TOURS.ferramentas} />}
       <div id="tour-ferramentas-hub">
-        <FerramentasHub dados={dados} bloqueada={bloqueada} />
+        <FerramentasHub dados={dados} bloqueada={bloqueada} negocio={negocio?.temAlgo ? negocio : null} />
       </div>
     </div>
   )
