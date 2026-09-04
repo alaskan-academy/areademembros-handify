@@ -8,6 +8,10 @@ export interface MediaItem {
   url: string
   alt?: string
   order: number
+  /** 'video' faz o carrossel embutir o player em vez de mostrar imagem. */
+  tipo?: 'imagem' | 'video'
+  /** Proporção do vídeo, ex. "9/16". Padrão 9/16, que é o formato dos tutoriais. */
+  aspect?: string
 }
 
 export interface ContentBlock {

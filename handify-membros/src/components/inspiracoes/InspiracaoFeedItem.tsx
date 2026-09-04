@@ -58,18 +58,39 @@ function getPandaEmbedUrl(videoUrl: string): string | null {
   return null
 }
 
-function Carrossel({ images }: { images: { url: string; alt?: string }[] }) {
+/**
+ * Carrossel de mídia. Aceita foto e vídeo na mesma sequência — o tutorial de
+ * laço, por exemplo, são quatro vídeos curtos que a aluna passa um a um.
+ */
+function Carrossel({ images }: { images: { url: string; alt?: string; tipo?: string; aspect?: string }[] }) {
   const [idx, setIdx] = useState(0)
   if (!images.length) return null
+
+  const atual = images[idx]
+  const ehVideo = atual.tipo === 'video' || /pandavideo|youtube|youtu.be/.test(atual.url)
+  const embed = ehVideo ? getPandaEmbedUrl(atual.url) ?? atual.url : null
 
   return (
     <div className="relative">
       <div className="overflow-hidden bg-white">
-        <img
-          src={images[idx].url}
-          alt={images[idx].alt ?? ''}
-          className="w-full max-h-[480px] object-contain"
-        />
+        {ehVideo ? (
+          <div className="mx-auto bg-black" style={{ aspectRatio: atual.aspect ?? '9/16', maxHeight: 520 }}>
+            <iframe
+              key={embed}
+              src={embed ?? ''}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              className="w-full h-full border-0"
+              title={atual.alt ?? 'Vídeo'}
+            />
+          </div>
+        ) : (
+          <img
+            src={atual.url}
+            alt={atual.alt ?? ''}
+            className="w-full max-h-[480px] object-contain"
+          />
+        )}
       </div>
       {images.length > 1 && (
         <>
