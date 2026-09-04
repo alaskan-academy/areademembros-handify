@@ -348,6 +348,22 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
 - [ ] "Negócio da Semana" no feed
 - [ ] Kit de boas-vindas do Completo; votação do próximo curso; acesso antecipado
 
+### Ferramentas gratuitas (visitante) — feitas em 04/09
+- [x] **Meta de renda** (`/ferramentas/meta-de-renda`): quanto quer ganhar por mês,
+      preço e custo médios (quem tem catálogo entra com a média preenchida),
+      horas por semana e minutos por peça (opcional). Sai "134 peças = 31 por
+      semana = 7 por dia", lucro e margem, faturamento, "cabe / não cabe no seu
+      tempo", cenários com preço +10% e +20%, alertas (preço abaixo do custo,
+      margem apertada, sobra tempo). 5 testes.
+- [x] **Deu problema?** (`/ferramentas/deu-problema`): 26 problemas de velas,
+      glicerinado, cold process e cosméticos (túnel, afundou, rachou, frosting,
+      suou, chama alta/afoga, cheiro fraco, descolou, bolhas, camadas, pontos
+      laranja, soda ash, vulcão, acelerou, separou, zap, granulou, emulsão quebrou,
+      mofo, ranço…), cada um com "por que aconteceu", "dá para corrigir agora?" e
+      "na próxima", e link para a ferramenta que resolve de vez. Busca pelo que ela
+      viu ("afundou", "manchas"); filtro por produto começa no do curso dela. Sem
+      resultado → fórum do curso. **Conteúdo a validar pela professora.**
+
 ### Fase 6 — Ferramentas exclusivas do Completo ("Guardar")
 - [x] **Minhas receitas** (`/ferramentas/minhas-receitas`, 03/09): a ficha de "Minha
       receita" guardada na conta. Tabela `recipes` com resumo (custo, preço, margem,
