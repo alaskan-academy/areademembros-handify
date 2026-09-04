@@ -429,6 +429,23 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       1000 → 200 g "Acabando" (mínimo 300), comprei 1000 → 1,2 kg, item zerado e
       vencido → "Acabou" + "Venceu há 34 dias", e na Validade o insumo puxado
       virou o limite (16 dias).
+- [x] **Pontes entre ferramentas — bloco 1, a ficha da receita como centro**
+      (04/09, pedido da Jessica: "como fizemos com a validade no rótulo"):
+      Ingredientes ← Estoque ("Puxar do estoque" traz nome, unidade e o custo
+      real: paguei R$ x por y); Ficha → "Dar baixa no estoque (N)" desconta o que
+      usou no lote (converte g↔kg, mL↔L); Ficha → "Até quando dura?" abre a
+      Validade com o tipo e os insumos com data, e "Usar na receita" volta com a
+      data na ficha; Ficha → "Fazer o rótulo" leva nome, peso, ingredientes e
+      validade; Ficha → "Pôr no catálogo" (receita guardada) abre o produto com
+      nome e preço sugerido. Verificado ponta a ponta: 1800 g de base a R$ 45/kg
+      = R$ 81,00; baixa 2000 → 200 g; validade limitada pela base (6 meses =
+      01/03/2027); rótulo e catálogo (R$ 7,09) preenchidos.
+- [ ] Pontes — bloco 2 (pequenas): Essências → Estoque ("você tem 20 mL —
+      faltam 16"); Qual pavio → Fornecedores ("onde comprar"); Pedidos →
+      Catálogo (item digitado vira produto).
+- [ ] Pontes — bloco 3 (com "Meu negócio"): Pedidos → Produzir (soma o que está
+      em aberto, escala a receita ligada, confere contra o estoque: "faltam
+      400 g de base").
 - [ ] Calendário do artesanato
 - [x] **Validade do produto** (`/ferramentas/validade`, 03/09, tier aluna, aba
       Calcular, categorias Saboaria/Cosméticos/Velas/Aromas; porta "Que validade

@@ -23,17 +23,20 @@ export default function Catalogo({
   receitas,
   podeEditar,
   planLink,
+  receitaInicial,
 }: {
   marca: Marca
   produtos: Produto[]
   receitas: ReceitaOpcao[]
   podeEditar: boolean
   planLink: string | null
+  /** Veio da ficha da receita: abre "novo produto" com ela escolhida. */
+  receitaInicial?: string
 }) {
   const [marca, setMarca] = useState<Marca>(marcaInicial)
   const [editandoMarca, setEditandoMarca] = useState(!marcaInicial.brand_name)
   const [produtos, setProdutos] = useState<Produto[]>(produtosIniciais)
-  const [editando, setEditando] = useState<string | 'novo' | null>(null)
+  const [editando, setEditando] = useState<string | 'novo' | null>(receitaInicial && podeEditar ? 'novo' : null)
   const [confirmando, setConfirmando] = useState<string | null>(null)
   const [erro, setErro] = useState('')
   const [toast, setToast] = useState('')
@@ -136,6 +139,7 @@ export default function Catalogo({
         {editando === 'novo' && (
           <ProdutoForm
             receitas={receitas}
+            receitaInicialId={receitaInicial}
             onCancel={() => setEditando(null)}
             onSaved={p => { setProdutos(l => [...l, p]); setEditando(null); avisar('Produto adicionado.') }}
           />
@@ -269,11 +273,12 @@ function MarcaForm({ marca, onCancel, onSaved }: { marca: Marca; onCancel: () =>
   )
 }
 
-function ProdutoForm({ produto, receitas, onCancel, onSaved }: { produto?: Produto; receitas: ReceitaOpcao[]; onCancel: () => void; onSaved: (p: Produto) => void }) {
-  const [nome, setNome] = useState(produto?.name ?? '')
+function ProdutoForm({ produto, receitas, receitaInicialId, onCancel, onSaved }: { produto?: Produto; receitas: ReceitaOpcao[]; receitaInicialId?: string; onCancel: () => void; onSaved: (p: Produto) => void }) {
+  const inicial = !produto && receitaInicialId ? receitas.find(r => r.id === receitaInicialId) : undefined
+  const [nome, setNome] = useState(produto?.name ?? inicial?.name ?? '')
   const [desc, setDesc] = useState(produto?.description ?? '')
-  const [preco, setPreco] = useState(produto ? String(produto.price).replace('.', ',') : '')
-  const [receitaId, setReceitaId] = useState<string>(produto?.recipe_id ?? '')
+  const [preco, setPreco] = useState(produto ? String(produto.price).replace('.', ',') : inicial?.price != null ? String(inicial.price).replace('.', ',') : '')
+  const [receitaId, setReceitaId] = useState<string>(produto?.recipe_id ?? inicial?.id ?? '')
   const [ativo, setAtivo] = useState(produto?.active ?? true)
   const [erro, setErro] = useState('')
   const [pending, start] = useTransition()

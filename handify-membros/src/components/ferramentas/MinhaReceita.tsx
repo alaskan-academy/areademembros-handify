@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check, Sparkles, Lock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Trash2, Check, Sparkles, Lock, CalendarClock, Tag, ShoppingBag, PackageMinus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { salvarReceita } from '@/lib/receitas/actions'
+import { moverInsumo, type Insumo as InsumoEstoque } from '@/lib/estoque/actions'
+import { qtdTexto } from '@/lib/estoque/tipos'
 import type { WickRecommendation } from '@/lib/pavio/types'
 import type { ToolState } from '@/lib/ferramentas/types'
 import {
@@ -38,7 +40,7 @@ import {
 
 // ─── Tipos de formulário (strings: o que ela digita) ─────────────────────────
 type Produto = 'sabonetes' | 'velas'
-type InsumoForm = { id: string; nome: string; qtdComprada: string; unidade: string; precoCompra: string; qtdUsadaNoLote: string }
+type InsumoForm = { id: string; nome: string; qtdComprada: string; unidade: string; precoCompra: string; qtdUsadaNoLote: string; estoqueId?: string }
 type EmbForm = InsumoForm & { escopo: 'unidade' | 'lote' }
 type Intensidade = 'suave' | 'moderado' | 'intenso' | 'custom'
 
@@ -56,6 +58,8 @@ export type Receita = {
   aroma: { tipo: TipoAroma | null; intensidade: Intensidade; customPct: string }
   pavio: RespostasPavio
   margem: number
+  /** Calculada na ferramenta de Validade (YYYY-MM-DD). */
+  validade?: string
 }
 
 export type EtapaId = 'produto' | 'ingredientes' | 'essencias' | 'pavio' | 'preco' | 'ficha'
@@ -160,6 +164,8 @@ export default function MinhaReceita({
   produtoPadrao = 'sabonetes',
   receitaInicial = null,
   nova = false,
+  estoque = [],
+  validadeInicial,
 }: {
   acesso: AcessoEtapas
   recomendacoes: WickRecommendation[]
@@ -173,6 +179,10 @@ export default function MinhaReceita({
   receitaInicial?: { id: string; data: Receita } | null
   /** Veio de "Nova receita": ignora o rascunho do aparelho. */
   nova?: boolean
+  /** Insumos do Estoque (Completo): puxam nome, unidade e custo real; permitem dar baixa. */
+  estoque?: InsumoEstoque[]
+  /** Voltou da ferramenta de Validade com a data calculada. */
+  validadeInicial?: string
 }) {
   const [receita, setReceita] = useState<Receita>(
     () => receitaInicial?.data ?? receitaVazia(produtoInicial === 'velas' ? 'velas' : produtoInicial === 'sabonetes' ? 'sabonetes' : produtoPadrao)
@@ -180,6 +190,7 @@ export default function MinhaReceita({
   // Id na conta: existe quando ela abriu uma guardada ou já guardou esta.
   const [receitaId, setReceitaId] = useState<string | null>(receitaInicial?.id ?? null)
   const [guardando, setGuardando] = useState(false)
+  const [baixando, setBaixando] = useState(false)
   const [carregou, setCarregou] = useState(false)
   const [toast, setToast] = useState('')
 
@@ -203,12 +214,15 @@ export default function MinhaReceita({
       const salvo = localStorage.getItem(RASCUNHO_KEY)
       if (salvo && !produtoInicial && !receitaInicial && !nova) {
         const r = JSON.parse(salvo) as Receita
+        // Voltou da Validade: a data calculada entra na receita restaurada.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (r && r.produto) setReceita(r)
+        if (r && r.produto) setReceita(validadeInicial ? { ...r, validade: validadeInicial } : r)
+      } else if (validadeInicial) {
+        setReceita(r => ({ ...r, validade: validadeInicial }))
       }
     } catch {}
     setCarregou(true)
-  }, [produtoInicial, receitaInicial, nova])
+  }, [produtoInicial, receitaInicial, nova, validadeInicial])
   useEffect(() => {
     if (!carregou) return
     try { localStorage.setItem(RASCUNHO_KEY, JSON.stringify(receita)) } catch {}
@@ -266,6 +280,43 @@ export default function MinhaReceita({
     setReceita(receitaVazia(receita.produto))
     setReceitaId(null)
     irPara('produto')
+  }
+
+  // ── Pontes da ficha ──
+  const tipoValidade = receita.produto === 'velas' ? 'vela' : 'glicerinado'
+  const insumosDoEstoque = receita.insumos.filter(i => i.estoqueId && n(i.qtdUsadaNoLote) > 0 && estoque.some(e => e.id === i.estoqueId))
+  const insumosComData = insumosDoEstoque
+    .map(i => estoque.find(e => e.id === i.estoqueId)!)
+    .filter(e => e.expires_at)
+    .map(e => `${e.name}|${e.expires_at}`)
+  const linkValidade = `/ferramentas/validade?voltar=receita&tipo=${tipoValidade}${insumosComData.length ? `&insumos=${encodeURIComponent(insumosComData.join(';'))}` : ''}`
+  const linkRotulo = (() => {
+    const p = new URLSearchParams()
+    p.set('familia', receita.produto === 'velas' ? 'vela' : 'cosmetico')
+    if (receita.nome) p.set('produto', receita.nome)
+    if (receita.pesoPorUnidade) p.set('peso', `${receita.pesoPorUnidade} g`)
+    const ingredientes = receita.insumos.filter(i => i.nome).map(i => i.nome).join(', ')
+    if (ingredientes) p.set('ingredientes', ingredientes)
+    if (receita.validade) p.set('validade', receita.validade)
+    return `/ferramentas/rotulo?${p.toString()}`
+  })()
+
+  // "Usei" no estoque, na unidade em que ela digitou (g ↔ kg, mL ↔ L).
+  async function darBaixa() {
+    setBaixando(true)
+    let feitas = 0
+    try {
+      for (const i of insumosDoEstoque) {
+        const e = estoque.find(x => x.id === i.estoqueId)!
+        const fator = i.unidade === e.unit ? 1 : (i.unidade === 'kg' && e.unit === 'g') || (i.unidade === 'L' && e.unit === 'mL') ? 1000 : (i.unidade === 'g' && e.unit === 'kg') || (i.unidade === 'mL' && e.unit === 'L') ? 0.001 : 1
+        const r = await moverInsumo(e.id, -n(i.qtdUsadaNoLote) * fator)
+        if (r.error) { avisar(r.error); return }
+        feitas++
+      }
+      avisar(`Baixa feita em ${feitas} insumo${feitas !== 1 ? 's' : ''}.`)
+    } finally {
+      setBaixando(false)
+    }
   }
 
   // ── Guardar na conta (Handify Completo) ──
@@ -374,9 +425,38 @@ export default function MinhaReceita({
                   custo={custoInsumo(insumos[k])}
                 />
               ))}
-              <button onClick={() => set({ insumos: [...receita.insumos, novoInsumo()] })} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6699F3] min-h-[44px]">
-                <Plus className="w-4 h-4" /> Adicionar ingrediente
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button onClick={() => set({ insumos: [...receita.insumos, novoInsumo()] })} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#6699F3] min-h-[44px]">
+                  <Plus className="w-4 h-4" /> Adicionar ingrediente
+                </button>
+                {estoque.length > 0 && (
+                  <label className="text-xs text-muted-foreground inline-flex items-center gap-2 min-h-[44px]">
+                    Puxar do estoque
+                    <select
+                      value=""
+                      aria-label="Puxar ingrediente do estoque"
+                      onChange={e => {
+                        const i = estoque.find(x => x.id === e.target.value)
+                        if (!i) return
+                        // Custo real: o que ela pagou por quanto. Sem preço anotado, só o que tem.
+                        const linha: InsumoForm = {
+                          ...novoInsumo(i.name),
+                          unidade: i.unit,
+                          qtdComprada: String(i.cost_quantity ?? i.quantity),
+                          precoCompra: i.cost != null ? String(i.cost) : '',
+                          estoqueId: i.id,
+                        }
+                        const vazias = receita.insumos.filter(x => !x.nome && !x.qtdUsadaNoLote)
+                        set({ insumos: [...receita.insumos.filter(x => !vazias.includes(x)), linha] })
+                      }}
+                      className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm min-h-[36px] max-w-[200px]"
+                    >
+                      <option value="">— escolher —</option>
+                      {estoque.map(i => <option key={i.id} value={i.id}>{i.name} ({qtdTexto(i.quantity, i.unit)})</option>)}
+                    </select>
+                  </label>
+                )}
+              </div>
             </div>
             <div className="rounded-xl bg-[#F5F5F0] p-3 text-sm flex items-center justify-between">
               <span className="text-muted-foreground">Matéria-prima do lote</span>
@@ -554,8 +634,31 @@ export default function MinhaReceita({
                 return alts.length ? `${principal}. Alternativas: ${alts.join(', ')}` : principal
               })()} />
             )}
+            {receita.validade && (
+              <Detalhe rotulo="Validade" valor={`vence em ${receita.validade.split('-').reverse().join('/')}`} />
+            )}
             <div className="text-xs text-muted-foreground">
               {receita.insumos.filter(i => i.nome).map(i => `${i.nome} ${i.qtdUsadaNoLote}${i.unidade}`).join(', ')}
+            </div>
+
+            {/* Pontes: a ficha é o centro — daqui ela vai para a validade, o rótulo, o catálogo e o estoque. */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Link href={linkValidade} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white text-sm font-semibold min-h-[44px] text-center px-2">
+                <CalendarClock className="w-4 h-4 shrink-0" /> {receita.validade ? 'Refazer validade' : 'Até quando dura?'}
+              </Link>
+              <Link href={linkRotulo} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white text-sm font-semibold min-h-[44px] text-center px-2">
+                <Tag className="w-4 h-4 shrink-0" /> Fazer o rótulo
+              </Link>
+              {receitaId && (
+                <Link href={`/ferramentas/catalogo?receita=${receitaId}`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white text-sm font-semibold min-h-[44px] text-center px-2">
+                  <ShoppingBag className="w-4 h-4 shrink-0" /> Pôr no catálogo
+                </Link>
+              )}
+              {insumosDoEstoque.length > 0 && (
+                <button onClick={darBaixa} disabled={baixando} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white text-sm font-semibold min-h-[44px] text-center px-2 disabled:opacity-60">
+                  <PackageMinus className="w-4 h-4 shrink-0" /> {baixando ? 'Dando baixa…' : `Dar baixa no estoque (${insumosDoEstoque.length})`}
+                </button>
+              )}
             </div>
 
             <div className="grid gap-2 pt-2">

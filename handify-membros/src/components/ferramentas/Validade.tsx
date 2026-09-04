@@ -73,10 +73,25 @@ function Marcar({ marcado, onChange, titulo, detalhe }: { marcado: boolean; onCh
 
 const ICONE = { perigo: ShieldAlert, atencao: AlertTriangle, dica: Lightbulb } as const
 
-export default function Validade({ categorias, tudoLiberado, voltar, insumosEstoque = [] }: { categorias: string[]; tudoLiberado: boolean; voltar?: string; insumosEstoque?: { nome: string; validade: string }[] }) {
+export default function Validade({
+  categorias,
+  tudoLiberado,
+  voltar,
+  insumosEstoque = [],
+  tipoInicial,
+  insumosIniciais = [],
+}: {
+  categorias: string[]
+  tudoLiberado: boolean
+  voltar?: string
+  insumosEstoque?: { nome: string; validade: string }[]
+  /** Vindo da receita: o tipo do produto e os insumos com data já entram preenchidos. */
+  tipoInicial?: TipoProduto
+  insumosIniciais?: { nome: string; validade: string }[]
+}) {
   // Os tipos seguem o curso que ela comprou — os outros ficam visíveis e travados.
   const liberados = useMemo(() => tiposLiberados(categorias, tudoLiberado), [categorias, tudoLiberado])
-  const [tipo, setTipo] = useState<TipoProduto>(liberados[0] ?? 'glicerinado')
+  const [tipo, setTipo] = useState<TipoProduto>(tipoInicial && liberados.includes(tipoInicial) ? tipoInicial : liberados[0] ?? 'glicerinado')
   const [fabricacao, setFabricacao] = useState(hojeISO)
   const [conservante, setConservante] = useState<Conservante>('nenhum')
   const [prazoConservante, setPrazoConservante] = useState('')
@@ -85,7 +100,7 @@ export default function Validade({ categorias, tudoLiberado, voltar, insumosEsto
   const [frescos, setFrescos] = useState(false)
   const [aroma, setAroma] = useState<Aroma>('essencia')
   const [embalagem, setEmbalagem] = useState<Embalagem>('fechada')
-  const [insumos, setInsumos] = useState<(Insumo & { key: number })[]>([])
+  const [insumos, setInsumos] = useState<(Insumo & { key: number })[]>(() => insumosIniciais.map((i, k) => ({ key: k + 1, nome: i.nome, validade: i.validade })))
   const [copiado, setCopiado] = useState(false)
 
   const agua = temAgua(tipo)
@@ -274,6 +289,14 @@ export default function Validade({ categorias, tudoLiberado, voltar, insumosEsto
             <div className="rounded-xl bg-white/10 p-3 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-white/60">Para o rótulo</p>
               <p className="text-sm font-semibold break-words">{textoRotulo}</p>
+              {voltar === 'receita' && (
+                <Link
+                  href={`/ferramentas/minha-receita?etapa=ficha&validade=${resultado.vence}`}
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#6699F3] text-white text-sm font-semibold min-h-[44px] hover:bg-[#5580d4] handify-transition"
+                >
+                  <Check className="w-4 h-4" /> Usar na receita
+                </Link>
+              )}
               {voltar === 'rotulo' && (
                 <Link
                   href={`/ferramentas/rotulo?fabricacao=${fabricacao}&validade=${resultado.vence}&lote=${encodeURIComponent(resultado.rotulo.lote)}`}
