@@ -204,7 +204,40 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
 
 ---
 
-## 5. Execução
+## 5. Onde estamos — revisão de 04/09
+
+**Pronto e testado, esperando só o push do projeto:** os tiers (Gratuito, Aluna,
+Handify Completo) com `memberships` e tier derivado; admin de alunas em três
+situações; Completo manual por aluna; 13 ferramentas na área Ferramentas, com as
+opções de dentro seguindo o curso comprado; as pontes entre elas; "Meu negócio"
+no topo do hub; o e-mail da campanha; o disparo de terça 08/09 às 9h para 703
+alunas; a sequência automática de 3 e-mails para quem conclui o primeiro curso.
+Build, 60 testes unitários e 37 do Playwright passando.
+
+**Depende só de decisão sua (não é trabalho de código):**
+1. **Professora de saboaria validar o conteúdo técnico** — a tabela de validade
+   (prazos por tipo de produto), a lista de aditivos com doses e pH, e os 26
+   problemas do "Deu problema?". É matéria de segurança: montei pela prática
+   comum do mercado, mas quem assina isso é quem ensina.
+2. **Revisar Fornecedores** (item aberto desde 03/09, mais abaixo).
+3. **Mapeamento de categoria por ferramenta** em `/admin/ferramentas` — a proposta
+   está no plano; você confirma ou muda no painel, sem deploy.
+
+**Depende de infraestrutura, antes de terça:**
+4. **Push do projeto e deploy** — 31 commits parados. Sem deploy, o disparo de
+   terça não acontece e o push agendado não sai.
+5. **`CRON_SECRET` nas variáveis da Vercel** — sem ele nenhum cron roda.
+6. **Plano da Vercel** — o cron de hora em hora (sequência de conclusão e
+   despacho de push) exige Pro; no Hobby só rodam dois crons diários.
+
+**Combinado para depois do deploy:** publicar o post do feed sobre as ferramentas
+novas (texto aprovado em 04/09) e agendar o push para as 10h do dia seguinte.
+
+**Fora do escopo agora, quando você quiser:** fases 4 e 5 (landing `/comecar`,
+visitante lendo a comunidade, selo e carteirinha, "Bastidores do negócio",
+"Negócio da Semana", kit de boas-vindas).
+
+## 6. Execução
 
 ### Fase 1 — Alicerce (feita em 03/09, aguardando push)
 - [x] Migration `20260903_memberships.sql`: conserta `process_pending_payment_events`
@@ -241,7 +274,7 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
         com o que comprou separado (Saponaria, Lembrancinha; Helena com 4). Sem e-mail
         — reembolso foi semanas atrás, elas sabem.
 
-### Fase 2 — Expor a oferta (em andamento, 03/09)
+### Fase 2 — Expor a oferta (feita em 03–04/09, aguardando push)
 - [x] Card "Você já tem X de 23" no dashboard (`PlanProgressCard`): só para quem
       não tem membership e já tem ≥1 curso do plano (quem tem zero vê a barra do
       header). Copy Handify ("abre os outros N", nunca "faltam"), barra de progresso,
@@ -276,7 +309,8 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       **Um campo de busca só** — o segundo (dentro de Sem cadastro) foi removido.
       Links de paginação preservam aba e filtro. `tab=sem-cadastro` (nome antigo)
       continua funcionando. Verificado com clique nas três abas, na busca e no filtro
-- [~] Campanha segmento 699: template `renderPlanUpgradeEmail` /
+- [x] Campanha segmento 699 — **aprovada e agendada para terça, 08/09, 9h**
+      (ver "Convite ao Completo" abaixo). Template `renderPlanUpgradeEmail` /
       `sendPlanUpgradeEmail` pronto em `src/lib/email/index.ts`, preview gerado por
       `scripts/preview-email-completo.ts` e mostrado à Jessica. **Decisão dela:
       **Pronto em 04/09**: o e-mail ganhou o bloco "E, além dos cursos, as
@@ -298,7 +332,7 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       mostrá-las.** Nada configurado, nada enviado. Ao retomar: filtrar por
       `email_prefs`, segmento 4+ cursos sem membership, e ela aprova o texto final
 
-### Fase 3 — Tiers no banco (em andamento, 03/09)
+### Fase 3 — Tiers no banco (feita em 03–04/09, aguardando push)
 - [x] **`courses.in_plan`** (o `is_subscription_only` renomeado — nenhum curso o
       usava). Backfill: 23 cursos (só "Velas Perfeitas" fica fora). Checkbox no
       admin do curso: "Incluído no Handify Completo".
@@ -329,9 +363,16 @@ array hardcoded em `FerramentasHub.tsx`. Princípio backend-first do CLAUDE.md.
       5 guardar em breve). Verificado com clique (sessão admin): hub, admin e trava.
       **Jessica revisa o mapeamento no painel** — proposta atual: Essências ← Saboaria,
       Velas, Aromas, Cosméticos · Pavio ← Velas · Rótulo ← Saboaria, Cosméticos.
-- [ ] `current_tier()` nas policies do que for exclusivo (quando as ferramentas
-      "Guardar" tiverem tabelas próprias)
-- [ ] Nome da seção: **"Ferramentas"** (mantido); bloco do Completo: **"Meu negócio"**
+- [x] **Exclusividade do Completo no banco** (04/09): as 7 tabelas das ferramentas
+      "Guardar" (`recipes`, `business_profile`, `catalog_items`, `customers`,
+      `orders`, `order_items`, `supplies`, `calendar_events`) têm RLS com
+      `has_active_membership(auth.uid())` no INSERT/UPDATE/DELETE e leitura livre
+      para a dona — a regra "nunca some, só congela". Ficou com
+      `has_active_membership()` em vez de `current_tier()`: é a mesma verificação,
+      e a função já era usada em `is_enrolled`. Testado: insert como aluna sem
+      plano é bloqueado pelo banco, não só pela tela.
+- [x] Nome da seção: **"Ferramentas"** (mantido, decisão da Jessica em 03/09);
+      bloco do Completo no topo do hub: **"Meu negócio"** — feito em 04/09.
 - [x] **"Minha receita" como fluxo** (`/ferramentas/minha-receita`): Produto →
       Ingredientes (com escala de lote) → Essências → Pavio (só velas) → Custo e preço
       → Ficha. Matemática extraída para `src/lib/ferramentas/calc.ts` com **19 testes

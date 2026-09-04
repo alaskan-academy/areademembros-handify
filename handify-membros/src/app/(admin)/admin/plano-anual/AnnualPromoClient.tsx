@@ -148,7 +148,11 @@ export default function AnnualPromoClient({ promo: initial }: Props) {
         <div className="px-5 py-4 space-y-1.5">
           <label htmlFor="promo-product-codes" className="block text-xs font-medium text-foreground/70">
             Product codes do plano completo{" "}
-            <span className="text-muted-foreground">(oculta a barra para quem já assinou)</span>
+            <span className="text-muted-foreground">
+              é por aqui que o sistema reconhece a compra do plano: registra a assinatura, abre os cursos marcados como
+              &quot;entra no plano&quot;, libera as ferramentas do Completo e esconde a barra. Vendeu o plano com um código
+              novo? Acrescente aqui.
+            </span>
           </label>
           <textarea
             id="promo-product-codes"
