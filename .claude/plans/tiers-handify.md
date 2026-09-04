@@ -446,9 +446,13 @@ recorte é por curso e por nicho.
       curso" (checkout do próprio curso) e "Ver o que tem dentro do curso"
       (página do curso). Os cursos dela aparecem primeiro. Quem tem o Completo
       abre tudo que está no plano.
-- [~] **Liberar o conteúdo por curso** (ideia da Jessica, 04/09) — o filtro já
-      está assim; falta decidir se o **feed sem filtro** também esconde o que é
-      de curso que ela não tem.
+- [x] **Feed continua mostrando tudo** — decisão da Jessica em 04/09: o acervo
+      é **vitrine**. Ela vê a receita do curso que não tem, e isso dá vontade de
+      comprar. Só o filtro fica trancado. **Não esconder no feed.**
+      **Observação para quando for mexer:** o card do post não mostra de qual
+      curso ele é. Como vitrine, isso é o que falta para converter — ela vê a
+      receita bonita e não tem caminho. Os dados já estão lá
+      (`course_ids` vem no post), é só um selo no card levando ao curso.
 ### Fase 5 — Marca e comunidade
 - [ ] Selo "Completo" + "Aluna desde" no fórum/perfil
 - [ ] Carteirinha digital compartilhável (com ™, faixa tricolor)
