@@ -5,3 +5,6 @@
 handify-membros/.claude/*
 !handify-membros/.claude/plans
 !handify-membros/.claude/plans/**
+
+# Fotos que a Jessica salva para virar post — nao versionar
+imagens-para-subir/
