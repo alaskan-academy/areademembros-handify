@@ -16,5 +16,8 @@
       "path": "/api/cron/convite-completo",
       "schedule": "20 * * * *"
     }
+  ],
+  "regions": [
+    "gru1"
   ]
 }
