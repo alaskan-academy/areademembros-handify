@@ -111,6 +111,7 @@ export default function StudentNav({ navItems, role, tier, fullName }: StudentNa
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 id={navTourId}
                 target={item.target}
                 rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
@@ -181,6 +182,7 @@ export default function StudentNav({ navItems, role, tier, fullName }: StudentNa
             <Link
               key={href}
               href={href}
+              prefetch={false}
               id={tourId}
               className={cn(
                 "flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors min-h-[52px]",
@@ -238,6 +240,7 @@ export default function StudentNav({ navItems, role, tier, fullName }: StudentNa
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     target={item.target}
                     rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
                     onClick={() => { markDrawerNavigating(); setDrawerOpen(false); }}
