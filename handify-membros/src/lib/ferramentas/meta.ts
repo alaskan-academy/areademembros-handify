@@ -59,7 +59,7 @@ export function calcularMeta(e: EntradaMeta): ResultadoMeta {
   }
 
   if (margemPct < 25) alertas.push(`Margem de ${margemPct}%: apertada. Com pouco lucro por peça, a meta pede muita venda. Subir o preço ou vender kits ajuda mais que produzir mais.`);
-  if (cabe === false) alertas.push(`Não cabe no seu tempo: precisa de ${horasNecessariasSemana.toLocaleString("pt-BR")} h por semana e você tem ${e.horasSemana.toLocaleString("pt-BR")}. Ou sobe o preço, ou vende em kit, ou tira tarefa da rotina (embalagem mais simples, venda em lote).`);
+  if (cabe === false) alertas.push(`Não cabe no seu tempo: precisa de ${(horasNecessariasSemana ?? 0).toLocaleString("pt-BR")} h por semana e você tem ${(e.horasSemana ?? 0).toLocaleString("pt-BR")}. Ou sobe o preço, ou vende em kit, ou tira tarefa da rotina (embalagem mais simples, venda em lote).`);
   if (cabe === true && horasNecessariasSemana != null && e.horasSemana && horasNecessariasSemana < e.horasSemana * 0.5) alertas.push("Sobra tempo: dá para mirar uma meta maior ou investir a folga em divulgar.");
 
   const cenario = (rotulo: string, preco: number): Cenario => {
