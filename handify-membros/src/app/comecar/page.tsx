@@ -69,7 +69,7 @@ export default async function ComecarPage() {
             Descubra <span className="text-[#6699F3]">quanto cobrar</span> pelo que você faz com as mãos
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg">
-            Três ferramentas grátis para quem faz sabonete, vela ou cosmético em casa. Sem cartão, sem prazo, sem pegadinha.
+            Ferramentas GRÁTIS para quem faz sabonete, vela ou cosmético em casa. Sem cartão, sem prazo, sem pegadinha.
           </p>
         </div>
       </header>
