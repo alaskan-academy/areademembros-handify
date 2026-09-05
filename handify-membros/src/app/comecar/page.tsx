@@ -86,7 +86,7 @@ export default async function ComecarPage() {
                   Crie sua conta e use agora
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1.5">
-                  Leva um minuto. As três ferramentas abrem na hora.
+                  Leva um minuto. As ferramentas abrem na hora.
                 </p>
               </div>
               <CadastroGratuito />
