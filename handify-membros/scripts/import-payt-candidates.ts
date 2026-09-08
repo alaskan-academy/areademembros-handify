@@ -270,7 +270,7 @@ void (async () => {
 console.log("\n🔍 Verificando product_codes nos cursos...");
 const { data: courses, error: coursesError } = await supabase
   .from("courses")
-  .select("id, title, product_codes");
+  .select("id, title, checkout_codes");
 
 if (coursesError) {
   console.error("❌ Erro ao buscar cursos:", coursesError.message);
@@ -279,7 +279,7 @@ if (coursesError) {
 
 const codeToCoursId = new Map<string, string>();
 for (const course of courses ?? []) {
-  for (const code of course.product_codes ?? []) {
+  for (const code of course.checkout_codes ?? []) {
     codeToCoursId.set(code, course.id);
   }
 }
@@ -321,7 +321,7 @@ const rows = [...qualified.entries()].map(([email, c]) => ({
   full_name: c.full_name || null,
   cpf_raw: c.cpf_raw || null,
   phone: c.phone || null,
-  product_codes: [...c.product_codes],
+  checkout_codes: [...c.product_codes],
 }));
 
 let inserted = 0;
