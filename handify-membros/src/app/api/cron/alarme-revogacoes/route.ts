@@ -74,22 +74,29 @@ export async function GET(req: NextRequest) {
   const desde = desdeData.toISOString();
   const janelaHoras = Math.max(1, Math.round((Date.now() - desdeData.getTime()) / 3_600_000));
 
-  const { data: revogacoes, error: erroRev } = await service
+  // count: "exact" traz o total de verdade mesmo quando o Supabase corta as
+  // linhas em 1.000 — foi assim que quatro telas de métrica mentiram em 02/09.
+  // As linhas detalhadas são só para o corpo do e-mail; o número vem do count.
+  const { data: revogacoes, error: erroRev, count: totalReal } = await service
     .from("audit_log")
-    .select("created_at, meta")
-    .eq("action", "enrollment.revoked")
+    .select("created_at, meta, action", { count: "exact" })
+    .in("action", ["enrollment.revoked", "membership.revoked"])
+    .is("admin_id", null)
     .gt("created_at", desde)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(500);
 
   if (erroRev) {
     console.error("[alarme-revogacoes] erro ao ler audit_log:", erroRev.message);
     return NextResponse.json({ error: erroRev.message }, { status: 500 });
   }
 
-  // Revogação retroativa é correção feita à mão, não evento de plataforma.
-  const eventos = (revogacoes ?? []).filter(
-    (r) => !(r.meta as Record<string, unknown> | null)?.retroativo
-  );
+  // Revogação retroativa NÃO é filtrada: um backfill que revoga em massa é
+  // exatamente o que precisa ser visto. Foi um backfill meu, em 03/09, que
+  // deixou duas alunas pagantes sem 22 cursos cada por seis dias — e a primeira
+  // versão deste alarme descartava justamente essas linhas.
+  // admin_id null no filtro acima já separa o automático do que a admin fez à mão.
+  const eventos = revogacoes ?? [];
 
   if (eventos.length === 0) {
     return NextResponse.json({ janelaHoras, total: 0, suspeitas: 0, alarme: false });
@@ -105,12 +112,22 @@ export async function GET(req: NextRequest) {
   ];
 
   const pagas = new Set<string>();
-  if (transacoes.length) {
+  // O filtro "in" do PostgREST é montado como texto, então vírgula, parêntese ou
+  // aspas num id quebrariam a consulta. Id de transação é alfanumérico nas duas
+  // plataformas; o que não for, fica de fora e a revogação conta como suspeita —
+  // que é o lado seguro de errar.
+  const transacoesSeguras = transacoes.filter((t) => /^[A-Za-z0-9_-]{1,64}$/.test(t));
+  if (transacoesSeguras.length !== transacoes.length) {
+    console.warn(
+      `[alarme-revogacoes] ${transacoes.length - transacoesSeguras.length} id(s) de transação fora do formato esperado`
+    );
+  }
+  if (transacoesSeguras.length) {
     const { data: pagamentos } = await service
       .from("payment_events")
       .select("payload")
       .in("event_type", EVENTOS_PAGOS)
-      .filter("payload->>transaction_id", "in", `(${transacoes.join(",")})`);
+      .filter("payload->>transaction_id", "in", `(${transacoesSeguras.join(",")})`);
     for (const p of pagamentos ?? []) {
       const id = (p.payload as Record<string, unknown> | null)?.transaction_id;
       if (typeof id === "string") pagas.add(id);
@@ -155,14 +172,19 @@ export async function GET(req: NextRequest) {
       curso: (meta.course_id ? cursoPor.get(meta.course_id) : undefined) ?? "—",
       transacao,
       quando: r.created_at as string,
-      // Sem transação registrada não dá para afirmar que não foi paga — não
-      // conta como suspeita, para o alarme não gritar por falta de dado.
-      transacaoFoiPaga: transacao ? pagas.has(transacao) : true,
+      // Sem transação registrada, NÃO dá para provar que houve estorno — e é
+      // justamente essa a forma do backfill que causou o incidente. Conta como
+      // suspeita. Revogação feita à mão pela admin usa outra ação (revoke_access)
+      // e já ficou de fora pelo filtro de admin_id, então isto não vira ruído.
+      transacaoFoiPaga: transacao ? pagas.has(transacao) : false,
     };
   });
 
   const suspeitas = linhas.filter((l) => !l.transacaoFoiPaga).length;
-  const total = linhas.length;
+  const total = totalReal ?? linhas.length;
+  if (total > linhas.length) {
+    console.warn(`[alarme-revogacoes] ${total} revogações na janela, e-mail lista ${linhas.length}`);
+  }
   const alarme = suspeitas > 0 || total > LIMITE_VOLUME;
 
   if (!alarme) {
@@ -181,13 +203,24 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  await sendRevocationAlarmEmail({
+  const saiu = await sendRevocationAlarmEmail({
     to: destino!,
     janelaHoras,
     total,
     suspeitas,
     linhas,
   });
+
+  // O marcador avança a janela: gravá-lo sem o e-mail ter saído esconderia
+  // estas revogações de toda execução futura. Falhou o envio, não marca — a
+  // próxima rodada tenta de novo com a mesma janela.
+  if (!saiu) {
+    console.error("[alarme-revogacoes] e-mail NÃO saiu — janela mantida para a próxima rodada");
+    return NextResponse.json(
+      { janelaHoras, total, suspeitas, alarme: true, enviado: false },
+      { status: 500 }
+    );
+  }
 
   await service.from("audit_log").insert({
     admin_id: null,

@@ -795,7 +795,7 @@ export async function sendRevocationAlarmEmail({
   total: number;
   suspeitas: number;
   linhas: RevogacaoSuspeita[];
-}): Promise<void> {
+}): Promise<boolean> {
   const grave = suspeitas > 0;
   const assunto = grave
     ? `[Handify] ${suspeitas} revogação(ões) SEM pagamento — verificar agora`
@@ -846,7 +846,11 @@ export async function sendRevocationAlarmEmail({
     `),
   });
 
-  if (error) console.error("[email] alarme de revogacao:", error);
+  if (error) {
+    console.error("[email] alarme de revogacao:", error);
+    return false;
+  }
+  return true;
 }
 
 // ─── Acesso restaurado depois de uma falha nossa ─────────────────────────────
