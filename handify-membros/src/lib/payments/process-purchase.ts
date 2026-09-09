@@ -97,24 +97,32 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   const amountPaid = event.action === "grant" ? event.amountPaid : null;
 
   // "canceled" na Payt é ambíguo: PIX/boleto abandonado antes de pagar (nada a
-  // desfazer) OU reembolso concluído (paid → refund_requested → canceled). Só dá
-  // para saber olhando o histórico: se já houve pagamento aprovado deste e-mail
-  // para algum desses códigos, é estorno e revoga. Achado em 03/09/2026: 6 alunas
-  // cancelaram o Handify Completo (R$327 devolvido) e ficaram com os 23 itens do plano.
+  // desfazer) OU reembolso concluído (paid → refund_requested → canceled).
+  //
+  // A pergunta certa é sobre ESTA transação, não sobre a compradora. A primeira
+  // versão (03/09) perguntava se o e-mail já tivera algum pagamento aprovado
+  // daqueles códigos — e aí quem comprou o curso, gerou um segundo PIX depois e
+  // abandonou tinha o acesso pago revogado pelo PIX que expirou. Em 09/09 isso
+  // atingiu 24 alunas: das 30 transações que revogaram acesso, só 4 eram estorno.
+  //
+  // Um reembolso é sempre o MESMO transaction_id passando por paid e depois por
+  // canceled. PIX abandonado nunca teve um paid com aquele id.
   if (event.action === "revoke_if_paid") {
-    const { data: pagoAntes } = await supabase
+    const { data: mesmaTransacao } = await supabase
       .from("payment_events")
       .select("id")
-      .ilike("buyer_email", event.buyerEmail)
+      .eq("platform", event.platform)
+      .filter("payload->>transaction_id", "eq", event.transactionId)
       .in("event_type", ["paid", "approved", "completed", "confirmed", "order_approved", "subscription_renewed"])
-      .in("product_code", caseVariants(event.productCodes))
       .limit(1)
       .maybeSingle();
-    event = pagoAntes
+    event = mesmaTransacao
       ? { ...event, action: "revoke", isRealRefund: true }
       : { ...event, action: "ignore" };
     console.info(
-      `${log} canceled resolvido como ${event.action} (${pagoAntes ? "havia pagamento" : "sem pagamento anterior"}) para ${event.buyerEmail}`
+      `${log} canceled resolvido como ${event.action} (transação ${event.transactionId} ${
+        mesmaTransacao ? "foi paga" : "nunca foi paga"
+      }) para ${event.buyerEmail}`
     );
   }
 
