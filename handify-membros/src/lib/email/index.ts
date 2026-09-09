@@ -1,10 +1,66 @@
 import { Resend } from "resend";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const FROM = "Handify <noreply@mail.handify.com.br>";
 const REPLY_TO = "contato@handify.com.br";
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
+}
+
+// ─── Lista de nunca-enviar ────────────────────────────────────────────────────
+// Pedido da Jessica em 09/09/2026. A checagem mora AQUI, na camada de envio, e
+// não em cada script — assim vale para campanha, reengajamento, acesso liberado,
+// certificado, alarme e para o que a gente escrever depois. Endereço suprimido
+// é pulado em silêncio: o chamador não precisa saber, e nada quebra.
+//
+// Falha aberta de propósito: se a consulta cair, o e-mail sai. Perder um aviso
+// de acesso liberado por causa de uma indisponibilidade do banco seria pior que
+// mandar um e-mail a mais para quem pediu para sair.
+
+let cacheSupressoes: { valores: Set<string>; em: number } | null = null;
+const CACHE_MS = 60_000;
+
+async function listaDeSupressao(): Promise<Set<string>> {
+  if (cacheSupressoes && Date.now() - cacheSupressoes.em < CACHE_MS) return cacheSupressoes.valores;
+  try {
+    const { data, error } = await createServiceClient().from("email_suppressions").select("email");
+    if (error) throw new Error(error.message);
+    const valores = new Set((data ?? []).map((r) => String(r.email).toLowerCase().trim()));
+    cacheSupressoes = { valores, em: Date.now() };
+    return valores;
+  } catch (e) {
+    console.error("[email] não consegui ler email_suppressions, seguindo com o envio:", e);
+    return cacheSupressoes?.valores ?? new Set();
+  }
+}
+
+/** true quando o endereço está na lista de nunca-enviar. */
+export async function emailSuprimido(email: string): Promise<boolean> {
+  return (await listaDeSupressao()).has(email.toLowerCase().trim());
+}
+
+/** Remove da lista os endereços suprimidos. Usado antes de qualquer lote. */
+export async function filtrarSuprimidos<T extends { to: string }>(itens: T[]): Promise<T[]> {
+  const lista = await listaDeSupressao();
+  const passam = itens.filter((i) => !lista.has(i.to.toLowerCase().trim()));
+  const cortados = itens.length - passam.length;
+  if (cortados > 0) console.info(`[email] ${cortados} endereço(s) na lista de supressão, pulados`);
+  return passam;
+}
+
+type EnvioResend = Parameters<ReturnType<typeof getResend>["emails"]["send"]>[0];
+
+/**
+ * Único caminho de saída de e-mail da plataforma. Toda função de envio passa
+ * por aqui, então a lista de supressão não tem como ser esquecida.
+ */
+async function enviarEmail(params: EnvioResend & { to: string }): Promise<{ error: { message?: string } | null }> {
+  if (await emailSuprimido(params.to)) {
+    console.info(`[email] ${params.to} está na lista de supressão — não enviado`);
+    return { error: null };
+  }
+  return getResend().emails.send(params);
 }
 
 const appUrl = () => process.env.NEXT_PUBLIC_APP_URL ?? "https://membros.handify.com.br";
@@ -153,7 +209,7 @@ export async function sendWelcomeEmail({
 }): Promise<void> {
   const firstName = studentName.split(" ")[0];
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -207,7 +263,7 @@ export async function sendAccessConfirmedEmail({
     ? `Sua compra foi confirmada e todos os <strong>${totalCourses} cursos</strong> já estão disponíveis na sua conta!`
     : `Sua compra foi confirmada e o curso <strong>${courseTitle}</strong> já está disponível para você!`;
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -249,7 +305,7 @@ export async function sendCertificateEmail({
 }): Promise<void> {
   const firstName = studentName.split(" ")[0];
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -324,7 +380,7 @@ export async function sendReengagementEmail({
     ? `Faz alguns dias que você não acessa seus cursos. Dá uma olhada no que está te esperando:`
     : `Faz alguns dias que você não acessa o curso abaixo. Você já está tão perto — continue de onde parou!`;
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -491,8 +547,9 @@ export async function sendPlanUpgradeEmailBatch(
   destinatarias: (PlanUpgradeEmailInput & { to: string })[]
 ): Promise<{ enviados: string[]; erro: string | null }> {
   const enviados: string[] = [];
-  for (let i = 0; i < destinatarias.length; i += 100) {
-    const fatia = destinatarias.slice(i, i + 100);
+  const permitidas = await filtrarSuprimidos(destinatarias);
+  for (let i = 0; i < permitidas.length; i += 100) {
+    const fatia = permitidas.slice(i, i + 100);
     const { error } = await getResend().batch.send(
       fatia.map((d) => {
         const { subject, html } = renderPlanUpgradeEmail(d);
@@ -511,7 +568,7 @@ export async function sendPlanUpgradeEmailBatch(
 export async function sendPlanUpgradeEmail(input: PlanUpgradeEmailInput & { to: string }): Promise<void> {
   if (!input.cursosQueTem.length || input.totalDoPlano === 0) return;
   const { subject, html } = renderPlanUpgradeEmail(input);
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to: input.to,
@@ -546,7 +603,7 @@ export async function sendNewCourseEmail({
     ? `<img src="${thumbnailUrl}" alt="${courseTitle}" width="504" style="width:100%;max-width:504px;border-radius:8px;display:block;margin-bottom:20px;-ms-interpolation-mode:bicubic;" />`
     : "";
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -588,7 +645,7 @@ export async function sendRefundEmail({
   const firstName = studentName.split(" ")[0];
   const vitrineUrl = `${appUrl()}/vitrine`;
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -630,7 +687,7 @@ export async function sendLoginReminderEmail({
   const firstName = studentName.split(" ")[0];
   const loginUrl = `${appUrl()}/login`;
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -685,7 +742,7 @@ export async function sendNewsPostEmail({
       : postBody
     : "";
 
-  const { error } = await getResend().emails.send({
+  const { error } = await enviarEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
@@ -707,5 +764,161 @@ export async function sendNewsPostEmail({
 
   if (error) {
     console.error("[email] news post error:", error);
+  }
+}
+
+// ─── Alarme interno: revogação de acesso em massa ────────────────────────────
+// Existe por causa de 09/09/2026: um PIX abandonado revogava o acesso que a
+// aluna tinha pago, e isso rodou cinco dias sem ninguém perceber. O alarme tem
+// dois gatilhos: volume acima do normal, e — o que importa de verdade — qualquer
+// revogação cuja transação nunca foi paga, que é a assinatura exata daquele bug
+// e depois da correção não deveria acontecer nunca mais.
+
+export type RevogacaoSuspeita = {
+  alunaEmail: string;
+  alunaNome: string | null;
+  curso: string;
+  transacao: string | null;
+  quando: string;
+  transacaoFoiPaga: boolean;
+};
+
+export async function sendRevocationAlarmEmail({
+  to,
+  janelaHoras,
+  total,
+  suspeitas,
+  linhas,
+}: {
+  to: string;
+  janelaHoras: number;
+  total: number;
+  suspeitas: number;
+  linhas: RevogacaoSuspeita[];
+}): Promise<void> {
+  const grave = suspeitas > 0;
+  const assunto = grave
+    ? `[Handify] ${suspeitas} revogação(ões) SEM pagamento — verificar agora`
+    : `[Handify] ${total} revogações de acesso nas últimas ${janelaHoras}h`;
+
+  const linhasHtml = linhas
+    .slice(0, 40)
+    .map(
+      (l) => `<tr>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${
+        l.transacaoFoiPaga ? "estorno" : "<strong style=\"color:#B8443C;\">SEM PAGAMENTO</strong>"
+      }</td>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${l.alunaNome ?? "—"}<br><span style="color:#888888;font-size:12px;">${l.alunaEmail}</span></td>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${l.curso}</td>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#888888;">${l.transacao ?? "—"}</td>
+    </tr>`
+    )
+    .join("");
+
+  const { error } = await enviarEmail({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to,
+    subject: assunto,
+    html: emailWrapper(`
+      <h1 style="color:${grave ? "#B8443C" : "#2D2D2D"};font-size:21px;margin:0 0 14px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+        ${grave ? "Revogação sem pagamento detectada" : "Volume alto de revogações"}
+      </h1>
+      <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Nas últimas <strong>${janelaHoras}h</strong> a plataforma revogou acesso <strong>${total}</strong> vez(es).
+        ${
+          grave
+            ? `<strong style="color:#B8443C;">${suspeitas} delas vieram de uma transação que nunca foi paga</strong> — depois da correção de 09/09 isso não deveria acontecer. Vale conferir a planilha da Payt antes de responder a qualquer aluna.`
+            : "Nenhuma delas veio de transação não paga, então o padrão é de estorno normal — é só o volume que está acima do comum."
+        }
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;margin:0 0 18px;">
+        <tr>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Tipo</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Aluna</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Curso</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Transação</td>
+        </tr>
+        ${linhasHtml}
+      </table>
+      ${linhas.length > 40 ? `<p style="color:#888888;font-size:13px;margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;">e mais ${linhas.length - 40} — a lista completa está no audit_log.</p>` : ""}
+      ${ctaButton(`${appUrl()}/admin/alunos`, "Abrir o painel de alunas")}
+    `),
+  });
+
+  if (error) console.error("[email] alarme de revogacao:", error);
+}
+
+// ─── Acesso restaurado depois de uma falha nossa ─────────────────────────────
+// 09/09/2026: uma regra de revogação tratou PIX abandonado como reembolso e
+// tirou o acesso de 24 alunas que tinham pago. O e-mail assume o erro sem
+// despejar detalhe técnico, e o principal é a primeira linha: já está resolvido.
+
+export function renderAccessRestoredEmail({
+  studentName,
+  courseTitles,
+}: {
+  studentName: string;
+  courseTitles: string[];
+}): { subject: string; html: string } {
+  const firstName = (studentName || "").split(" ")[0] || "tudo bem";
+  const umSo = courseTitles.length === 1;
+  const lista = courseTitles
+    .map(
+      (t) =>
+        `<tr><td style="padding:6px 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#2D2D2D;line-height:1.5;">• ${t}</td></tr>`
+    )
+    .join("");
+
+  return {
+    subject: umSo
+      ? "Seu acesso já está de volta — desculpa pelo susto"
+      : "Seus cursos já estão de volta — desculpa pelo susto",
+    html: emailWrapper(`
+      <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+        Oi, ${firstName}!
+      </h1>
+      <p style="color:#2D2D2D;font-size:16px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        <strong>Seu acesso já está normalizado.</strong> Se nos últimos dias você entrou na plataforma e ${
+          umSo ? "seu curso não estava lá" : "seus cursos não estavam lá"
+        }, o problema foi nosso — e já está resolvido.
+      </p>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Tivemos uma instabilidade no sistema que conversa com a plataforma de pagamento, e ela acabou marcando como encerrado um acesso que estava em dia. Nada a ver com a sua compra: ela sempre esteve certa, e não houve nenhuma cobrança ou estorno.
+      </p>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 10px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        ${umSo ? "Já está liberado de novo:" : "Já estão liberados de novo:"}
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;margin:0 0 20px;background-color:#F5F5F0;border-radius:8px;">
+        <tr><td style="padding:14px 16px;">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;">${lista}</table>
+        </td></tr>
+      </table>
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 26px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Seu progresso, suas aulas concluídas e seus certificados continuam exatamente como estavam. É só entrar e seguir de onde parou.
+      </p>
+      ${ctaButton(`${appUrl()}/dashboard`, umSo ? "Voltar para o meu curso" : "Voltar para os meus cursos")}
+      <p style="color:#555555;font-size:15px;line-height:1.65;margin:26px 0 0;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Desculpa mesmo pelo susto. Se ainda encontrar qualquer coisa fora do lugar, responde este e-mail que a gente resolve na hora.
+      </p>
+      ${supportBlock()}
+    `),
+  };
+}
+
+export async function sendAccessRestoredEmail({
+  to,
+  studentName,
+  courseTitles,
+}: {
+  to: string;
+  studentName: string;
+  courseTitles: string[];
+}): Promise<void> {
+  const { subject, html } = renderAccessRestoredEmail({ studentName, courseTitles });
+  const { error } = await enviarEmail({ from: FROM, replyTo: REPLY_TO, to, subject, html });
+  if (error) {
+    console.error("[email] acesso restaurado:", error);
+    throw new Error(`Falha ao enviar para ${to}: ${error.message ?? "erro desconhecido"}`);
   }
 }
