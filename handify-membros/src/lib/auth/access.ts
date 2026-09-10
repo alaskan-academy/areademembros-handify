@@ -126,3 +126,40 @@ export async function hasCourseAccess(courseId: string): Promise<boolean> {
   if (error) console.error("[access] matrícula do plano no primeiro acesso:", error.message);
   return true;
 }
+
+/**
+ * Todos os cursos que esta pessoa pode abrir — matrícula, plano ou admin.
+ *
+ * Existe porque a regra de acesso mora em três caminhos desde 03/09, e várias
+ * telas conheciam só o primeiro. Em 10/09 os materiais da aula apareciam como
+ * "Indisponível" para a admin e para quem tem o plano sem ter aberto o curso
+ * ainda, porque a consulta de assinatura olhava direto em `enrollments`.
+ *
+ * Sempre que uma tela precisar da LISTA de cursos acessíveis, use isto em vez
+ * de consultar `enrollments` na mão — assim a regra muda num lugar só.
+ */
+export async function getAccessibleCourseIds(): Promise<string[]> {
+  const { userId, isAdmin } = await getViewer();
+  if (!userId) return [];
+
+  const service = createServiceClient();
+
+  if (isAdmin) {
+    const { data } = await service.from("courses").select("id");
+    return (data ?? []).map((c) => c.id as string);
+  }
+
+  const { data: matriculas } = await service
+    .from("enrollments")
+    .select("course_id")
+    .eq("user_id", userId)
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+  const ids = new Set((matriculas ?? []).map((e) => e.course_id as string));
+
+  if (await hasActiveMembership(userId)) {
+    const { data: doPlano } = await service.from("courses").select("id").eq("in_plan", true);
+    for (const c of doPlano ?? []) ids.add(c.id as string);
+  }
+
+  return [...ids];
+}

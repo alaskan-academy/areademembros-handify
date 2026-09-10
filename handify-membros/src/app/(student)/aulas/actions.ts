@@ -173,16 +173,11 @@ export async function getMaterialSignedUrl(
 
   if (!courseId) return null;
 
-  const now = new Date().toISOString();
-  const { data: enrollment } = await supabase
-    .from("enrollments")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("course_id", courseId)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .maybeSingle();
-
-  if (!enrollment) return null;
+  // hasCourseAccess cobre os três caminhos: matrícula, Handify Completo com o
+  // curso no plano, e admin. A checagem direta em `enrollments` que existia aqui
+  // conhecia só o primeiro, então os materiais apareciam como "Indisponível"
+  // para a admin e para quem tem o plano sem ter aberto o curso ainda.
+  if (!(await hasCourseAccess(courseId))) return null;
 
   const { data: signed } = await supabase.storage
     .from("lesson-materials")

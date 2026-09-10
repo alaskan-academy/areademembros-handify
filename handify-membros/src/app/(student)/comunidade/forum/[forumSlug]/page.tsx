@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAccessibleCourseIds } from "@/lib/auth/access";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect, notFound } from "next/navigation";
 import ForumPage from "./ForumPage";
@@ -34,16 +35,13 @@ export default async function ForumSlugPage({ params }: { params: Promise<{ foru
     .from("profiles").select("role").eq("id", user.id).single();
 
   if (profile?.role !== "admin") {
-    const { data: access } = await supabase
-      .from("enrollments")
-      .select("course_id, courses!inner(forum_id)")
-      .eq("user_id", user.id)
-      .or("expires_at.is.null,expires_at.gt.now()");
-
-    type EnrollmentRow = { course_id: string; courses: { forum_id: string | null } };
-    const hasAccess = (access as unknown as EnrollmentRow[] ?? []).some(
-      (e) => e.courses?.forum_id === forum.id
-    );
+    // Mesma correção da lista: acesso pode vir do plano, não só de matrícula.
+    const acessiveis = await getAccessibleCourseIds();
+    const { data: cursosDoForum } = await createServiceClient()
+      .from("courses")
+      .select("id")
+      .eq("forum_id", forum.id);
+    const hasAccess = (cursosDoForum ?? []).some((c) => acessiveis.includes(c.id as string));
     if (!hasAccess) notFound();
   }
 

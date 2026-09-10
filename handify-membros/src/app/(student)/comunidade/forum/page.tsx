@@ -1,4 +1,5 @@
 import { getTier } from '@/lib/auth/access'
+import { getAccessibleCourseIds } from "@/lib/auth/access";
 import SoParaAlunas from '@/components/access/SoParaAlunas'
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -33,13 +34,10 @@ export default async function ForumLandingPage() {
 
   // Busca os forum_ids vinculados a cursos em que a aluna está matriculada.
   // Não depende de RLS — garante o filtro mesmo que as policies estejam incompletas.
-  const { data: enrolledCourses } = await supabase
-    .from("enrollments")
-    .select("course_id")
-    .eq("user_id", user.id)
-    .or("expires_at.is.null,expires_at.gt.now()");
-
-  const courseIds = (enrolledCourses ?? []).map((e) => e.course_id);
+  // getAccessibleCourseIds cobre matrícula, plano e admin de uma vez. Antes só
+  // olhava `enrollments`, então quem tem o Handify Completo e não abriu o curso
+  // ainda não via o fórum dele.
+  const courseIds = await getAccessibleCourseIds();
 
   // Admin acessa todos os cursos, mas nao tem matricula — sem isto a tela
   // mostrava "Nenhum forum disponivel" para a propria equipe.
