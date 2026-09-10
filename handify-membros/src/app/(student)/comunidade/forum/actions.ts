@@ -11,7 +11,17 @@ export type ForumCommentRow = {
   created_at: string;
   user_id: string;
   parent_id: string | null;
+  image_url: string | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
   profiles: { full_name: string; avatar_url: string | null; role: string } | null;
+};
+
+/** Anexos opcionais de uma resposta. Sobem por uploadForumFile antes do envio. */
+export type ForumCommentAnexos = {
+  imageUrl?: string | null;
+  attachmentUrl?: string | null;
+  attachmentName?: string | null;
 };
 
 export async function getForumComments(postId: string): Promise<ForumCommentRow[]> {
@@ -21,7 +31,9 @@ export async function getForumComments(postId: string): Promise<ForumCommentRow[
   const service = createServiceClient();
   const { data } = await service
     .from("forum_comments")
-    .select("id, body, created_at, user_id, parent_id, profiles!user_id(full_name, avatar_url, role)")
+    .select(
+      "id, body, created_at, user_id, parent_id, image_url, attachment_url, attachment_name, profiles!user_id(full_name, avatar_url, role)"
+    )
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
   return (data as unknown as ForumCommentRow[]) ?? [];
@@ -136,28 +148,65 @@ export async function deleteForumPost(
   return {};
 }
 
-const commentSchema = z.object({
-  body: z.string().min(1, "Comentário vazio").max(2000, "Máximo 2000 caracteres"),
+// A URL vem de uploadForumFile, que já validou tipo e tamanho e devolveu um
+// endereço público do nosso bucket. Aqui a gente confere que é isso mesmo: sem
+// esta checagem, a Server Action aceitaria qualquer URL digitada por fora e o
+// comentário viraria um caminho para tirar gente da plataforma.
+// Montado a partir da própria URL do projeto, em vez de uma regex escrita à mão:
+// se o projeto mudar, isto acompanha, e não há padrão para errar.
+function prefixoDoBucket(): string {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return `${base.replace(/\/+$/, "")}/storage/v1/object/public/community/forum/`;
+}
+
+/** URL que a gente mesma gerou no upload, e não um endereço qualquer. */
+function urlDoNossoBucket(valor: string): boolean {
+  return valor.startsWith(prefixoDoBucket());
+}
+
+const anexoSchema = z.object({
+  body: z.string().min(1, "Escreva sua resposta").max(2000, "Máximo 2000 caracteres"),
+  imageUrl: z.string().refine(urlDoNossoBucket, "Imagem inválida").nullish(),
+  attachmentUrl: z.string().refine(urlDoNossoBucket, "Anexo inválido").nullish(),
+  attachmentName: z.string().max(200).nullish(),
 });
 
 export async function addForumComment(
   postId: string,
-  body: string
-): Promise<{ id: string; body: string; created_at: string; user_id: string; parent_id: string | null; profiles: { full_name: string; avatar_url: string | null; role: string } | null } | { error: string }> {
-  const parsed = commentSchema.safeParse({ body });
+  body: string,
+  anexos?: ForumCommentAnexos
+): Promise<ForumCommentRow | { error: string }> {
+  const parsed = anexoSchema.safeParse({
+    body,
+    imageUrl: anexos?.imageUrl || null,
+    attachmentUrl: anexos?.attachmentUrl || null,
+    attachmentName: anexos?.attachmentName || null,
+  });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { supabase, user } = await getAuthUser();
 
   const { data, error } = await supabase
     .from("forum_comments")
-    .insert({ post_id: postId, user_id: user.id, body: parsed.data.body })
-    .select("id, body, created_at, user_id, parent_id, profiles!user_id (full_name, avatar_url, role)")
+    .insert({
+      post_id: postId,
+      user_id: user.id,
+      body: parsed.data.body,
+      image_url: parsed.data.imageUrl ?? null,
+      attachment_url: parsed.data.attachmentUrl ?? null,
+      // Sem arquivo não faz sentido guardar nome; com arquivo e sem nome, um rótulo.
+      attachment_name: parsed.data.attachmentUrl
+        ? parsed.data.attachmentName || "Anexo"
+        : null,
+    })
+    .select(
+      "id, body, created_at, user_id, parent_id, image_url, attachment_url, attachment_name, profiles!user_id (full_name, avatar_url, role)"
+    )
     .single();
 
   if (error) return { error: "Erro ao comentar" };
 
-  return data as unknown as { id: string; body: string; created_at: string; user_id: string; parent_id: string | null; profiles: { full_name: string; avatar_url: string | null; role: string } | null };
+  return data as unknown as ForumCommentRow;
 }
 
 export async function deleteForumComment(commentId: string): Promise<{ error?: string }> {

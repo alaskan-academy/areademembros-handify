@@ -1,13 +1,13 @@
 "use client";
 
 import CommentBox from "@/components/ui/comment-box";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import Image from "next/image";
-import { Heart, MessageCircle, ChevronDown, ChevronUp, Trash2, Pin, Send, Loader2, Paperclip, Clock, ShieldCheck } from "lucide-react";
+import { Heart, MessageCircle, ChevronDown, ChevronUp, Trash2, Pin, Send, Loader2, Paperclip, Clock, ShieldCheck, ImageIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { addForumComment, deleteForumComment, toggleForumLike, getForumComments } from "@/app/(student)/comunidade/forum/actions";
+import { addForumComment, deleteForumComment, toggleForumLike, getForumComments, uploadForumFile } from "@/app/(student)/comunidade/forum/actions";
 import type { ForumCommentRow } from "@/app/(student)/comunidade/forum/actions";
 
 export type ForumComment = ForumCommentRow;
@@ -54,6 +54,15 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
   const [submitting, setSubmitting] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
+  // Anexos da resposta — a URL já vem do bucket, o upload acontece na escolha
+  // do arquivo e não no envio, para a aluna ver a miniatura antes de mandar.
+  const [imagemComentario, setImagemComentario] = useState("");
+  const [anexoComentario, setAnexoComentario] = useState("");
+  const [anexoNome, setAnexoNome] = useState("");
+  const [enviandoAnexo, setEnviandoAnexo] = useState(false);
+  const [erroAnexo, setErroAnexo] = useState<string | null>(null);
+  const inputImagemRef = useRef<HTMLInputElement>(null);
+  const inputArquivoRef = useRef<HTMLInputElement>(null);
 
   const isPending = !post.approved && post.user_id === userId;
   const bodyPreview = post.body.length > 300 && !expanded ? post.body.slice(0, 300) + "…" : post.body;
@@ -78,16 +87,52 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
     startTransition(async () => { await toggleForumLike(post.id); });
   }
 
+  async function handleUploadComentario(
+    e: React.ChangeEvent<HTMLInputElement>,
+    tipo: "image" | "file"
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEnviandoAnexo(true);
+    setErroAnexo(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("file_type", tipo);
+    const r = await uploadForumFile(fd);
+    setEnviandoAnexo(false);
+    // Limpa o input sempre: sem isso, escolher o MESMO arquivo de novo depois de
+    // um erro não dispara change e a aluna acha que a tela travou.
+    e.target.value = "";
+    if (r.error) { setErroAnexo(r.error); return; }
+    if (tipo === "image") setImagemComentario(r.url ?? "");
+    else { setAnexoComentario(r.url ?? ""); setAnexoNome(r.name ?? file.name); }
+  }
+
+  function limparAnexos() {
+    setImagemComentario("");
+    setAnexoComentario("");
+    setAnexoNome("");
+    setErroAnexo(null);
+  }
+
   async function handleComment(e: React.FormEvent) {
     e.preventDefault();
-    if (!commentBody.trim() || submitting) return;
+    // Resposta só com foto é resposta legítima num fórum de artesanato.
+    const temConteudo = commentBody.trim() || imagemComentario || anexoComentario;
+    if (!temConteudo || submitting || enviandoAnexo) return;
     setSubmitting(true);
-    const result = await addForumComment(post.id, commentBody.trim());
+    setErroAnexo(null);
+    const result = await addForumComment(post.id, commentBody.trim() || "📷", {
+      imageUrl: imagemComentario || null,
+      attachmentUrl: anexoComentario || null,
+      attachmentName: anexoNome || null,
+    });
     setSubmitting(false);
-    if ("error" in result) return;
+    if ("error" in result) { setErroAnexo(result.error); return; }
     setComments((prev) => [...(prev ?? []), result]);
     setCommentCount((c) => c + 1);
     setCommentBody("");
+    limparAnexos();
   }
 
   async function handleDeleteComment(commentId: string) {
@@ -231,6 +276,38 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
                         </div>
                       </div>
                       <p className="text-sm text-foreground/80 mt-0.5 whitespace-pre-line">{comment.body}</p>
+
+                      {comment.image_url && (
+                        <a
+                          href={comment.image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block mt-2 rounded-lg overflow-hidden border border-border/60 w-fit max-w-full"
+                        >
+                          <Image
+                            src={comment.image_url}
+                            alt="Foto enviada na resposta"
+                            width={420}
+                            height={420}
+                            sizes="(max-width: 640px) 80vw, 420px"
+                            className="w-auto h-auto max-h-72 object-contain"
+                          />
+                        </a>
+                      )}
+
+                      {comment.attachment_url && (
+                        <a
+                          href={comment.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[#6699F3] hover:underline min-h-[44px] py-2"
+                        >
+                          <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate max-w-[220px]">
+                            {comment.attachment_name || "Ver anexo"}
+                          </span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 );
@@ -240,20 +317,110 @@ export default function ForumPostCard({ post, userId, initialLiked, onDelete }: 
 
           <form onSubmit={handleComment} className="flex gap-2.5">
             <Avatar name="Você" size={7} />
-            <div className="flex-1 flex gap-2">
-              <CommentBox
-                value={commentBody}
-                onChange={setCommentBody}
-                onSubmit={() => handleComment({ preventDefault: () => {} } as React.FormEvent)}
-                placeholder="Escreva sua resposta… (Enter para enviar, Shift+Enter quebra linha)"
-                ariaLabel="Escreva sua resposta"
-                className="bg-white"
-              />
-              <button type="submit" disabled={!commentBody.trim() || submitting}
-                aria-label="Enviar comentário"
-                className="p-2 rounded-lg bg-[#6699F3] text-white disabled:opacity-40 hover:opacity-90 transition-opacity shrink-0 self-end">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex gap-2">
+                <CommentBox
+                  value={commentBody}
+                  onChange={setCommentBody}
+                  onSubmit={() => handleComment({ preventDefault: () => {} } as React.FormEvent)}
+                  placeholder="Escreva sua resposta… (Enter para enviar, Shift+Enter quebra linha)"
+                  ariaLabel="Escreva sua resposta"
+                  className="bg-white"
+                />
+                <button
+                  type="submit"
+                  disabled={
+                    (!commentBody.trim() && !imagemComentario && !anexoComentario) ||
+                    submitting ||
+                    enviandoAnexo
+                  }
+                  aria-label="Enviar resposta"
+                  className="p-2 rounded-lg bg-[#6699F3] text-white disabled:opacity-40 hover:opacity-90 transition-opacity shrink-0 self-end min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Prévias — a aluna confere antes de enviar e pode tirar */}
+              {(imagemComentario || anexoComentario) && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {imagemComentario && (
+                    <div className="relative">
+                      <Image
+                        src={imagemComentario}
+                        alt="Prévia da foto"
+                        width={72}
+                        height={72}
+                        className="w-18 h-18 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImagemComentario("")}
+                        aria-label="Remover foto"
+                        className="absolute -top-1.5 -right-1.5 bg-foreground text-background rounded-full p-1 shadow"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  {anexoComentario && (
+                    <span className="inline-flex items-center gap-1.5 text-xs bg-muted rounded-lg pl-2.5 pr-1 py-1.5 max-w-full">
+                      <Paperclip className="w-3 h-3 shrink-0" />
+                      <span className="truncate max-w-[160px]">{anexoNome}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setAnexoComentario(""); setAnexoNome(""); }}
+                        aria-label="Remover anexo"
+                        className="p-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1">
+                <input
+                  ref={inputImagemRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => handleUploadComentario(e, "image")}
+                />
+                <input
+                  ref={inputArquivoRef}
+                  type="file"
+                  accept=".pdf,.zip,.rar,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,image/*"
+                  className="hidden"
+                  onChange={(e) => handleUploadComentario(e, "file")}
+                />
+                <button
+                  type="button"
+                  onClick={() => inputImagemRef.current?.click()}
+                  disabled={enviandoAnexo}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#6699F3] transition-colors px-2 py-2 min-h-[44px] disabled:opacity-50"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Foto</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => inputArquivoRef.current?.click()}
+                  disabled={enviandoAnexo}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#6699F3] transition-colors px-2 py-2 min-h-[44px] disabled:opacity-50"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  <span>Anexo</span>
+                </button>
+                {enviandoAnexo && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" /> enviando…
+                  </span>
+                )}
+              </div>
+
+              {erroAnexo && <p className="text-xs text-red-600">{erroAnexo}</p>}
             </div>
           </form>
         </div>
