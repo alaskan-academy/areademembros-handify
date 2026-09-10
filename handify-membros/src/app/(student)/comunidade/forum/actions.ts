@@ -152,16 +152,39 @@ export async function deleteForumPost(
 // endereço público do nosso bucket. Aqui a gente confere que é isso mesmo: sem
 // esta checagem, a Server Action aceitaria qualquer URL digitada por fora e o
 // comentário viraria um caminho para tirar gente da plataforma.
-// Montado a partir da própria URL do projeto, em vez de uma regex escrita à mão:
-// se o projeto mudar, isto acompanha, e não há padrão para errar.
-function prefixoDoBucket(): string {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  return `${base.replace(/\/+$/, "")}/storage/v1/object/public/community/forum/`;
-}
+// A primeira versão montava o prefixo com NEXT_PUBLIC_SUPABASE_URL. Em produção
+// essa variável veio vazia neste ponto, o prefixo virou só o caminho, e aí
+// NENHUMA imagem passava — "Imagem inválida" em toda resposta com foto.
+//
+// Agora a checagem olha a forma da URL, que é conhecida e não depende de
+// ambiente: HTTPS, host de storage do Supabase, e o caminho público do nosso
+// bucket. Quando a variável existe, ela entra como conferência extra do projeto.
+const CAMINHO_DO_BUCKET = "/storage/v1/object/public/community/forum/";
 
 /** URL que a gente mesma gerou no upload, e não um endereço qualquer. */
 function urlDoNossoBucket(valor: string): boolean {
-  return valor.startsWith(prefixoDoBucket());
+  let u: URL;
+  try {
+    u = new URL(valor);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "https:") return false;
+  if (!u.hostname.endsWith(".supabase.co")) return false;
+  if (!u.pathname.startsWith(CAMINHO_DO_BUCKET)) return false;
+
+  // Se soubermos qual é o projeto, exigimos que seja ele. Se a variável não
+  // estiver disponível aqui, as três checagens acima já seguram — e a aluna
+  // não fica sem enviar por causa de configuração.
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (base) {
+    try {
+      if (new URL(base).hostname !== u.hostname) return false;
+    } catch {
+      /* variável malformada não invalida o envio */
+    }
+  }
+  return true;
 }
 
 const anexoSchema = z.object({
