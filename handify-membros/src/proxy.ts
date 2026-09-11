@@ -12,6 +12,22 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
+/** Marca que já mandamos esta visita de /login para /dashboard uma vez. */
+const COOKIE_QUEBRA_LOOP = "hf-auth-bounce";
+
+/**
+ * Apaga os cookies de sessão do Supabase. O nome é `sb-<ref>-auth-token`, e
+ * quando o token é grande ele vem partido em `.0`, `.1` — por isso o teste é
+ * por prefixo e não por nome exato.
+ */
+function limpaCookiesDeSessao(request: NextRequest, response: NextResponse) {
+  for (const { name } of request.cookies.getAll()) {
+    if (name.startsWith("sb-") && name.includes("-auth-token")) {
+      response.cookies.set(name, "", { maxAge: 0, path: "/" });
+    }
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -60,7 +76,30 @@ export async function proxy(request: NextRequest) {
 
   if (isPublicRoute(pathname)) {
     if (authenticated && (pathname === "/login" || pathname === "/cadastro")) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      // Quebra-loop. O middleware usa getSession(), que só decodifica o JWT
+      // localmente; as páginas usam getUser(), que pergunta ao Supabase. Quando
+      // a sessão é revogada no servidor (troca de senha, logout em outro
+      // aparelho), o token continua decodificando aqui por até uma hora — então
+      // o middleware diz "logada" e manda para /dashboard, o layout diz "não
+      // logada" e manda para /login, e o navegador morre em
+      // ERR_TOO_MANY_REDIRECTS. A aluna fica fora do ar, não só sem sessão.
+      //
+      // Na segunda passagem seguida, deixamos /login renderizar e apagamos os
+      // cookies de sessão — assim ela entra de novo e o estado fica limpo.
+      if (request.cookies.get(COOKIE_QUEBRA_LOOP)) {
+        response.cookies.delete(COOKIE_QUEBRA_LOOP);
+        limpaCookiesDeSessao(request, response);
+        return response;
+      }
+      const paraDashboard = NextResponse.redirect(new URL("/dashboard", request.url));
+      paraDashboard.cookies.set(COOKIE_QUEBRA_LOOP, "1", {
+        maxAge: 10,
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+      return paraDashboard;
     }
     return response;
   }
