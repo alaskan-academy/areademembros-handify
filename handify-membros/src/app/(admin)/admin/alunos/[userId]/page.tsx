@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import AlunaDetail from "./aluna-detail";
 import type { ActivityItem } from "@/components/admin/alunos/ActivityTab";
 import { decryptCpf, formatCpf } from "@/lib/cpf-crypto";
+import { telefoneComparavel } from "@/lib/auth/vincular-compra";
 
 export default async function AlunaDetailPage({
   params,
@@ -343,6 +344,35 @@ export default async function AlunaDetailPage({
       ])
   );
 
+  // Outra conta da mesma pessoa. 18 alunas estão nessa situação — e o padrão é
+  // ruim: os cursos ficam de um lado e ela entra do outro. Sem este aviso, a
+  // única forma de descobrir era ela reclamar.
+  const telefoneDela = (profile as { phone?: string | null }).phone;
+  const outrasContas: { id: string; email: string | null; full_name: string | null; cursos: number }[] =
+    [];
+  if (telefoneDela) {
+    const { data: mesmasPessoas } = await service
+      .from("profiles")
+      .select("id, email, full_name, phone_norm")
+      .eq("phone_norm", telefoneComparavel(telefoneDela) ?? "__sem__")
+      .neq("id", userId)
+      .neq("role", "admin")
+      .limit(5);
+
+    for (const outra of mesmasPessoas ?? []) {
+      const { count } = await service
+        .from("enrollments")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", outra.id);
+      outrasContas.push({
+        id: outra.id,
+        email: outra.email,
+        full_name: outra.full_name,
+        cursos: count ?? 0,
+      });
+    }
+  }
+
   const courseEntries: CourseEntry[] = coursesWithCodes.map((c) => ({
     id: c.id,
     title: c.title,
@@ -378,6 +408,7 @@ export default async function AlunaDetailPage({
           cpf_masked: cpfMasked,
           hasPushEnabled,
         }}
+        outrasContas={outrasContas}
         courses={courseEntries}
         paytEnrollments={paytEnrollments}
         certificates={(certificates ?? []) as unknown as {

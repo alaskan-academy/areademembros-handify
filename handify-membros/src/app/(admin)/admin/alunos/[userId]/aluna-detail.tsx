@@ -110,6 +110,8 @@ interface Props {
     cpf_masked: string | null;
     hasPushEnabled: boolean;
   };
+  /** Outras contas com o mesmo telefone — a aluna cadastrada duas vezes. */
+  outrasContas?: { id: string; email: string | null; full_name: string | null; cursos: number }[];
   courses: CourseEntry[];
   certificates: Certificate[];
   auditLog: AuditEntry[];
@@ -133,7 +135,7 @@ const ACTION_LABELS: Record<string, string> = {
   delete_forum_post: "Post do fórum deletado",
 };
 
-export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, paytEnrollments, memberships, defaultTab = "perfil" }: Props) {
+export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, paytEnrollments, memberships, outrasContas = [], defaultTab = "perfil" }: Props) {
   const initial = profile.full_name?.charAt(0)?.toUpperCase() ?? "?";
   const temCompleto = memberships.some(membershipAtiva);
   const [activeTab, setActiveTab] = useState<"perfil" | "atividade">(defaultTab);
@@ -215,8 +217,44 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
     });
   }
 
+  const cursosDaAluna = courses.filter((c) => c.enrollment !== null).length;
+
   return (
     <div className="space-y-6">
+      {/* Conta duplicada — a mesma pessoa cadastrada duas vezes, quase sempre por
+          erro de digitação no próprio e-mail. O risco é os cursos ficarem de um
+          lado e ela entrar do outro. */}
+      {outrasContas.length > 0 && (
+        <div className="rounded-xl border-2 border-[#FEC649] bg-[#FEC649]/10 p-4">
+          <p className="text-sm font-semibold text-[#2D2D2D]">
+            {outrasContas.length === 1
+              ? "Existe outra conta com este mesmo telefone"
+              : `Existem ${outrasContas.length} outras contas com este mesmo telefone`}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Provavelmente é a mesma aluna cadastrada duas vezes. Confira de que lado estão
+            os cursos antes de liberar acesso — esta conta tem{" "}
+            <strong>{cursosDaAluna}</strong>.
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            {outrasContas.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/admin/alunos/${c.id}`}
+                  className="inline-flex flex-wrap items-center gap-2 text-sm text-[#6699F3] hover:underline"
+                >
+                  <span className="font-medium">{c.full_name ?? "Sem nome"}</span>
+                  <span className="text-muted-foreground">{c.email ?? "sem e-mail"}</span>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-[#2D2D2D]">
+                    {c.cursos === 1 ? "1 curso" : `${c.cursos} cursos`}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Perfil header */}
       <div className="handify-card p-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <div
