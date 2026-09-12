@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { sendAccessConfirmedEmail, sendRefundEmail } from "@/lib/email";
+import { contaDaMesmaPessoa } from "@/lib/auth/vincular-compra";
 
 /**
  * Evento de compra normalizado — qualquer plataforma (Payt, Kiwify) traduz seu
@@ -154,10 +155,50 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   // (evita a limitação de 50 usuários do listUsers)
   const { data: profileRow } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, email")
     .ilike("email", event.buyerEmail)
     .maybeSingle();
-  const user = profileRow ? { id: profileRow.id } : null;
+
+  // Nenhuma conta com este e-mail. Antes de mandar o link de ativação para um
+  // endereço que pode não existir, procura a conta da mesma pessoa pelo telefone
+  // (exigindo o mesmo primeiro nome). É comum a aluna já ter conta e comprar
+  // digitando o e-mail errado: a Ana Tonetti tinha conta desde 20/07 e ficou 35
+  // dias sem os 5 livros que comprou em 08/08 escrevendo outro endereço.
+  //
+  // A conjunção telefone + primeiro nome é o que impede o acerto errado: no caso
+  // real de hzpdp@gmail.com o telefone é o mesmo da conta de outra pessoa da
+  // família, e o nome diferente barra a vinculação.
+  const contaPorTelefone =
+    !profileRow && event.action === "grant"
+      ? await contaDaMesmaPessoa(supabase, {
+          telefone: event.buyerPhone,
+          nomeDoComprador: event.buyerName,
+        })
+      : null;
+
+  if (contaPorTelefone) {
+    console.warn(
+      `${log} e-mail ${event.buyerEmail} sem conta; matriculando em ${contaPorTelefone.email} (mesmo telefone e primeiro nome)`
+    );
+    await supabase.from("audit_log").insert({
+      admin_id: null,
+      action: "enrollment.linked_by_phone",
+      target_type: "user",
+      target_id: contaPorTelefone.id,
+      meta: {
+        email_da_compra: event.buyerEmail.toLowerCase(),
+        email_da_conta: contaPorTelefone.email,
+        transaction_id: event.transactionId,
+        origem: "webhook",
+      },
+    });
+  }
+
+  const user = profileRow
+    ? { id: profileRow.id, email: profileRow.email as string | null }
+    : contaPorTelefone
+      ? { id: contaPorTelefone.id, email: contaPorTelefone.email }
+      : null;
 
   // Sem conta ainda — cria token de ativação por curso e envia 1 único e-mail
   if (!user) {
@@ -297,7 +338,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
             .eq("id", user.id)
             .maybeSingle();
           await sendRefundEmail({
-            to: event.buyerEmail,
+            to: user.email ?? event.buyerEmail,
             studentName: profile?.full_name ?? event.buyerName ?? event.buyerEmail,
             courseTitle: course.title,
           });
@@ -437,7 +478,10 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         .eq("id", user.id)
         .maybeSingle();
       await sendAccessConfirmedEmail({
-        to: event.buyerEmail,
+        // Endereço da CONTA, não o da compra: quando a matrícula foi ligada pelo
+        // telefone, o e-mail da compra é justamente o que estava escrito errado —
+        // mandar para ele seria mandar para o vazio.
+        to: user.email ?? event.buyerEmail,
         studentName: profile?.full_name ?? event.buyerName ?? event.buyerEmail,
         courseTitle: mainCourse.title,
         courseSlug: mainCourse.slug,

@@ -13,21 +13,47 @@ import {
 import { sendWelcomeEmail } from "@/lib/email";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { createServiceClient } from "@/lib/supabase/service";
+import { compraDeOutroEmail } from "@/lib/auth/vincular-compra";
 
-async function grantPendingEnrollments(email: string, userId: string) {
+async function grantPendingEnrollments(
+  email: string,
+  userId: string,
+  dadosDoCadastro?: { nome: string; telefone: string | null }
+) {
   const service = createServiceClient();
   // Sem filtro de expires_at: se a aluna comprou e criou conta com o mesmo e-mail,
   // a compra é válida independente do prazo do link de ativação.
   const { data: tokens } = await service
     .from("activation_tokens")
-    .select("token, course_id")
+    .select("token, course_id, email")
     .eq("email", email.toLowerCase())
     .eq("used", false)
     .not("course_id", "is", null);
 
-  if (!tokens?.length) return;
+  const pendentes = [...(tokens ?? [])];
 
-  for (const t of tokens) {
+  // A aluna erra o próprio e-mail com frequência ("hormail", um "n" a mais,
+  // ".com.com"). Quando isso acontece a busca acima devolve nada e ela entra sem
+  // curso nenhum — foi o que aconteceu com a Germana em 10/09/2026. Aqui a gente
+  // também procura a compra pelo telefone, exigindo que o primeiro nome bata.
+  //
+  // Roda SEMPRE, inclusive quando o e-mail já achou alguma coisa: a Vilma tinha
+  // uma compra no e-mail certo e outras 23 no e-mail com "hormail" — parar no
+  // primeiro acerto deixaria as 23 presas.
+  let porTelefone = 0;
+  if (dadosDoCadastro) {
+    const achados = await compraDeOutroEmail(service, {
+      telefone: dadosDoCadastro.telefone,
+      nomeDaConta: dadosDoCadastro.nome,
+      emailDaConta: email,
+    });
+    porTelefone = achados.length;
+    pendentes.push(...achados.map((t) => ({ token: t.token, course_id: t.course_id, email: t.email })));
+  }
+
+  if (!pendentes.length) return;
+
+  for (const t of pendentes) {
     if (!t.course_id) continue;
     await service.from("enrollments").upsert(
       { user_id: userId, course_id: t.course_id, source: "payt", granted_at: new Date().toISOString(), expires_at: null },
@@ -35,7 +61,34 @@ async function grantPendingEnrollments(email: string, userId: string) {
     );
     await service.from("activation_tokens").update({ used: true }).eq("token", t.token);
   }
-  console.info(`[cadastro] ${tokens.length} matrícula(s) pendente(s) concedida(s) para ${email}`);
+  console.info(`[cadastro] ${pendentes.length} matrícula(s) pendente(s) concedida(s) para ${email}`);
+
+  // Fica registrado porque é uma concessão por identidade deduzida, não pelo
+  // e-mail da compra — se algum dia liberar para a pessoa errada, é por aqui que
+  // se descobre.
+  if (porTelefone > 0) {
+    const outrosEmails = [
+      ...new Set(
+        pendentes
+          .map((t) => t.email?.toLowerCase())
+          .filter((e): e is string => !!e && e !== email.toLowerCase())
+      ),
+    ];
+    console.warn(
+      `[cadastro] ${porTelefone} matrícula(s) ligadas por telefone: ${email} ← ${outrosEmails.join(", ")}`
+    );
+    await service.from("audit_log").insert({
+      admin_id: null,
+      action: "enrollment.linked_by_phone",
+      target_type: "user",
+      target_id: userId,
+      meta: {
+        email_do_cadastro: email,
+        emails_da_compra: outrosEmails,
+        matriculas: porTelefone,
+      },
+    });
+  }
 }
 
 export type ActionResult = {
@@ -197,7 +250,10 @@ export async function cadastroAction(
     // Concede matrículas pendentes de compras feitas antes do cadastro
     // DEVE ser aguardado antes do redirect — no Vercel serverless a função é
     // congelada ao retornar, matando o loop de tokens se for fire-and-forget.
-    await grantPendingEnrollments(emailLower, userId);
+    await grantPendingEnrollments(emailLower, userId, {
+      nome: parsed.data.full_name,
+      telefone: parsed.data.phone || null,
+    });
   }
 
   // Envia boas-vindas apenas para quem não tinha compra prévia

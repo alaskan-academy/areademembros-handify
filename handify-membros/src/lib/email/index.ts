@@ -926,3 +926,82 @@ export async function sendAccessRestoredEmail({
     throw new Error(`Falha ao enviar para ${to}: ${error.message ?? "erro desconhecido"}`);
   }
 }
+
+// ─── Compra paga que não virou acesso ────────────────────────────────────────
+// Rede de segurança para o erro de digitação no próprio e-mail. Em 12/09/2026 a
+// varredura achou 7 alunas pagantes sem curso, a mais antiga parada havia 41
+// dias — e nada no sistema tinha avisado. O cadastro e o webhook agora ligam a
+// compra pelo telefone, mas o que escapar da regra precisa chegar a alguém.
+export type CompraSemAcesso = {
+  emailDaCompra: string;
+  emailDaConta: string | null;
+  nome: string | null;
+  vinculo: "email" | "telefone" | "sem conta";
+  cursos: string[];
+  compradoEm: string;
+  diasParado: number;
+};
+
+export async function sendComprasSemAcessoEmail({
+  to,
+  casos,
+}: {
+  to: string;
+  casos: CompraSemAcesso[];
+}): Promise<boolean> {
+  const totalCursos = casos.reduce((soma, c) => soma + c.cursos.length, 0);
+  const maisAntigo = Math.max(...casos.map((c) => c.diasParado));
+
+  const linhasHtml = casos
+    .slice(0, 40)
+    .map(
+      (c) => `<tr>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${c.nome ?? "—"}<br><span style="color:#888888;font-size:12px;">pagou como ${c.emailDaCompra}</span></td>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${
+        c.emailDaConta
+          ? `${c.emailDaConta}<br><span style="color:#888888;font-size:12px;">achada pelo ${c.vinculo}</span>`
+          : '<span style="color:#888888;">sem conta na plataforma</span>'
+      }</td>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${c.cursos.length}<br><span style="color:#888888;font-size:12px;">${c.cursos.slice(0, 3).join(", ")}${c.cursos.length > 3 ? "…" : ""}</span></td>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:${c.diasParado >= 7 ? "#B8443C" : "#2D2D2D"};">${c.diasParado}d</td>
+    </tr>`
+    )
+    .join("");
+
+  const { error } = await enviarEmail({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to,
+    subject: `[Handify] ${casos.length} aluna(s) pagaram e estao sem o curso`,
+    html: emailWrapper(`
+      <h1 style="color:#B8443C;font-size:21px;margin:0 0 14px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+        Compra paga sem acesso liberado
+      </h1>
+      <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        <strong>${casos.length}</strong> pessoa(s) pagaram e nao estao com <strong>${totalCursos}</strong> curso(s) que compraram.
+        A mais antiga esta parada ha <strong>${maisAntigo} dia(s)</strong>.
+      </p>
+      <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 18px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        A causa quase sempre e a aluna ter digitado o proprio e-mail errado na compra ou no cadastro.
+        Quando a coluna "conta na plataforma" esta preenchida, e so liberar os cursos nessa conta.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;margin:0 0 18px;">
+        <tr>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Quem pagou</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Conta na plataforma</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Cursos</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Parado</td>
+        </tr>
+        ${linhasHtml}
+      </table>
+      ${casos.length > 40 ? `<p style="color:#888888;font-size:13px;margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;">e mais ${casos.length - 40}.</p>` : ""}
+      ${ctaButton(`${appUrl()}/admin/alunos`, "Abrir o painel de alunas")}
+    `),
+  });
+
+  if (error) {
+    console.error("[email] compras sem acesso:", error);
+    return false;
+  }
+  return true;
+}

@@ -512,27 +512,62 @@ export async function updateStudentEmailAction(
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const { user_id, email } = parsed.data;
+  const emailLower = email.toLowerCase();
   const service = createServiceClient();
+
+  const { data: atual } = await service
+    .from("profiles")
+    .select("email")
+    .eq("id", user_id)
+    .maybeSingle();
+
+  // Outra conta já usa este endereço. Sem esta checagem, o Supabase devolve um
+  // erro técnico em inglês que não diz o essencial: que existe uma segunda conta
+  // da mesma aluna, provavelmente com os cursos dela do outro lado. A admin lia
+  // "erro" e resolvia criando conta nova — foi assim que 18 pessoas ficaram com
+  // conta duplicada, várias com 6 ou 7 cursos numa e zero na outra.
+  const { data: jaExiste } = await service
+    .from("profiles")
+    .select("id, full_name")
+    .ilike("email", emailLower)
+    .neq("id", user_id)
+    .maybeSingle();
+
+  if (jaExiste) {
+    const { count: cursosLa } = await service
+      .from("enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", jaExiste.id);
+    const nome = jaExiste.full_name || "sem nome";
+    const quantos =
+      cursosLa === 1 ? "1 curso" : `${cursosLa ?? 0} cursos`;
+    return {
+      error:
+        `Já existe outra conta com ${emailLower} (${nome}, ${quantos}). ` +
+        `Trocar o e-mail aqui não junta as duas — a aluna continuaria com os cursos divididos. ` +
+        `Abra a outra conta e transfira os cursos antes, ou use esta conta e ignore a outra.`,
+    };
+  }
 
   // Atualiza no Auth (sem exigir confirmação de e-mail)
   const { error: authErr } = await service.auth.admin.updateUserById(user_id, {
-    email,
+    email: emailLower,
     email_confirm: true,
   });
   if (authErr) {
     console.error("[updateEmail] auth error:", authErr);
-    return { error: `Erro ao atualizar e-mail: ${authErr.message}` };
+    return { error: traduzErroAuth(authErr.message, `Erro ao atualizar e-mail: ${authErr.message}`) };
   }
 
   // Sincroniza no profiles
-  await service.from("profiles").update({ email }).eq("id", user_id);
+  await service.from("profiles").update({ email: emailLower }).eq("id", user_id);
 
   await service.from("audit_log").insert({
     admin_id: adminId,
     action: "update_email",
     target_type: "user",
     target_id: user_id,
-    meta: { new_email: email },
+    meta: { email_anterior: atual?.email ?? null, new_email: emailLower },
   });
 
   revalidatePath(`/admin/alunos/${user_id}`);
