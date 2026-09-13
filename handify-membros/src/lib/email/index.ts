@@ -940,6 +940,8 @@ export type CompraSemAcesso = {
   cursos: string[];
   compradoEm: string;
   diasParado: number;
+  /** Compra paga e depois estornada: NÃO liberar sem conferir na Payt. */
+  temEstorno: boolean;
 };
 
 export async function sendComprasSemAcessoEmail({
@@ -949,14 +951,20 @@ export async function sendComprasSemAcessoEmail({
   to: string;
   casos: CompraSemAcesso[];
 }): Promise<boolean> {
-  const totalCursos = casos.reduce((soma, c) => soma + c.cursos.length, 0);
-  const maisAntigo = Math.max(...casos.map((c) => c.diasParado));
+  const comEstorno = casos.filter((c) => c.temEstorno);
+  const liberaveis = casos.filter((c) => !c.temEstorno);
+  const totalCursos = liberaveis.reduce((soma, c) => soma + c.cursos.length, 0);
+  const maisAntigo = liberaveis.length ? Math.max(...liberaveis.map((c) => c.diasParado)) : 0;
 
   const linhasHtml = casos
     .slice(0, 40)
     .map(
       (c) => `<tr>
-      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${c.nome ?? "—"}<br><span style="color:#888888;font-size:12px;">pagou como ${c.emailDaCompra}</span></td>
+      <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${
+        c.temEstorno
+          ? '<strong style="color:#B8443C;">ESTORNO — não liberar</strong><br>'
+          : ""
+      }${c.nome ?? "—"}<br><span style="color:#888888;font-size:12px;">pagou como ${c.emailDaCompra}</span></td>
       <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${
         c.emailDaConta
           ? `${c.emailDaConta}<br><span style="color:#888888;font-size:12px;">achada pelo ${c.vinculo}</span>`
@@ -972,19 +980,28 @@ export async function sendComprasSemAcessoEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
-    subject: `[Handify] ${casos.length} aluna(s) pagaram e estao sem o curso`,
+    subject: `[Handify] ${liberaveis.length} aluna(s) pagaram e estao sem o curso`,
     html: emailWrapper(`
       <h1 style="color:#B8443C;font-size:21px;margin:0 0 14px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
         Compra paga sem acesso liberado
       </h1>
       <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        <strong>${casos.length}</strong> pessoa(s) pagaram e nao estao com <strong>${totalCursos}</strong> curso(s) que compraram.
+        <strong>${liberaveis.length}</strong> pessoa(s) pagaram e nao estao com <strong>${totalCursos}</strong> curso(s) que compraram.
         A mais antiga esta parada ha <strong>${maisAntigo} dia(s)</strong>.
       </p>
       <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 18px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
         A causa quase sempre e a aluna ter digitado o proprio e-mail errado na compra ou no cadastro.
         Quando a coluna "conta na plataforma" esta preenchida, e so liberar os cursos nessa conta.
       </p>
+      ${
+        comEstorno.length
+          ? `<p style="color:#B8443C;font-size:15px;line-height:1.65;margin:0 0 18px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        <strong>${comEstorno.length} linha(s) marcada(s) como ESTORNO nao entram nessa conta.</strong>
+        Nessas, a transacao foi paga e depois estornada — liberar seria dar acesso a quem ja recebeu o
+        dinheiro de volta. Confira na Payt antes de fazer qualquer coisa.
+      </p>`
+          : ""
+      }
       <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;margin:0 0 18px;">
         <tr>
           <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Quem pagou</td>

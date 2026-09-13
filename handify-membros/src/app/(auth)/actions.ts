@@ -13,7 +13,11 @@ import {
 import { sendWelcomeEmail } from "@/lib/email";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { createServiceClient } from "@/lib/supabase/service";
-import { compraDeOutroEmail } from "@/lib/auth/vincular-compra";
+import {
+  compraDeOutroEmail,
+  semCompraEstornada,
+  type TokenPendente,
+} from "@/lib/auth/vincular-compra";
 
 async function grantPendingEnrollments(
   email: string,
@@ -25,12 +29,15 @@ async function grantPendingEnrollments(
   // a compra é válida independente do prazo do link de ativação.
   const { data: tokens } = await service
     .from("activation_tokens")
-    .select("token, course_id, email")
+    .select("token, course_id, email, buyer_name, transaction_id")
     .eq("email", email.toLowerCase())
     .eq("used", false)
     .not("course_id", "is", null);
 
-  const pendentes = [...(tokens ?? [])];
+  // Compra estornada não vira acesso. Até 13/09/2026 virava: a busca acima
+  // devolvia todo token com used=false, e havia 42 pendentes de e-mails que
+  // tinham pedido reembolso — bastava a pessoa criar conta.
+  const pendentes = await semCompraEstornada(service, (tokens ?? []) as TokenPendente[]);
 
   // A aluna erra o próprio e-mail com frequência ("hormail", um "n" a mais,
   // ".com.com"). Quando isso acontece a busca acima devolve nada e ela entra sem
@@ -48,7 +55,8 @@ async function grantPendingEnrollments(
       emailDaConta: email,
     });
     porTelefone = achados.length;
-    pendentes.push(...achados.map((t) => ({ token: t.token, course_id: t.course_id, email: t.email })));
+    // compraDeOutroEmail já passou pelo filtro de estorno.
+    pendentes.push(...achados);
   }
 
   if (!pendentes.length) return;

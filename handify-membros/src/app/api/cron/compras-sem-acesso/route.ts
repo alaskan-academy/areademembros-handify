@@ -33,6 +33,7 @@ type LinhaRpc = {
   user_id: string;
   curso: string;
   comprado_em: string;
+  tem_estorno: boolean;
 };
 
 export async function GET(req: NextRequest) {
@@ -90,10 +91,17 @@ export async function GET(req: NextRequest) {
       cursos: [l.curso],
       compradoEm: l.comprado_em,
       diasParado: Math.max(0, Math.floor((Date.now() - comprado.getTime()) / 86_400_000)),
+      // Compra com estorno na história NÃO é "aluna pagante sem acesso" — é o
+      // contrário. Sem esta marca, o e-mail convidaria a admin a liberar curso
+      // de quem pediu reembolso.
+      temEstorno: l.tem_estorno === true,
     });
   }
 
-  const casos = [...porCompra.values()].sort((a, b) => b.diasParado - a.diasParado);
+  // Estorno primeiro: é o caso em que agir errado custa dinheiro.
+  const casos = [...porCompra.values()].sort(
+    (a, b) => Number(b.temEstorno) - Number(a.temEstorno) || b.diasParado - a.diasParado
+  );
 
   if (casos.length === 0) {
     return NextResponse.json({ casos: 0, enviado: false });

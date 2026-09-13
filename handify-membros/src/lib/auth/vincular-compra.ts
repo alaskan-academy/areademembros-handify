@@ -64,7 +64,66 @@ export type TokenPendente = {
   course_id: string | null;
   email: string;
   buyer_name: string | null;
+  transaction_id?: string | null;
 };
+
+/**
+ * Tira da lista o que veio de compra estornada.
+ *
+ * `grantPendingEnrollments` sempre concedeu todo token com used=false sem
+ * perguntar se o dinheiro continuou na conta. Em 13/09/2026 havia 42 tokens
+ * pendentes de e-mails com estorno — bastava a pessoa criar conta para entrar
+ * com acesso a uma compra reembolsada. O buraco é antigo, mas ficou maior
+ * quando o cadastro passou a achar a compra também pelo telefone.
+ *
+ * A pergunta é sobre a TRANSAÇÃO: "paid" seguido de estorno na mesma. Um
+ * "canceled" de transação que nunca foi paga é PIX abandonado e não conta.
+ * Tokens anteriores a 13/09 não guardam a transação, e nesses a checagem olha
+ * todas as do e-mail — segura compra boa de vez em quando, e é o lado certo de
+ * errar, porque o caso segurado aparece no relatório de compras sem acesso.
+ */
+export async function semCompraEstornada<T extends TokenPendente>(
+  service: SupabaseClient,
+  tokens: T[]
+): Promise<T[]> {
+  if (!tokens.length) return tokens;
+
+  // Uma consulta por par (e-mail, transação) — normalmente um ou dois.
+  const pares = new Map<string, { email: string; transacao: string | null }>();
+  for (const t of tokens) {
+    const email = t.email.toLowerCase();
+    const transacao = t.transaction_id ?? null;
+    pares.set(`${email}|${transacao ?? ""}`, { email, transacao });
+  }
+
+  const estornados = new Set<string>();
+  await Promise.all(
+    [...pares.entries()].map(async ([chave, { email, transacao }]) => {
+      const { data, error } = await service.rpc("compra_estornada", {
+        p_email: email,
+        p_transaction_id: transacao,
+      });
+      if (error) {
+        // Falha de consulta não pode liberar acesso de compra estornada: na
+        // dúvida, segura. O relatório diário levanta o caso.
+        console.error("[vincular-compra] compra_estornada falhou:", error.message);
+        estornados.add(chave);
+        return;
+      }
+      if (data === true) estornados.add(chave);
+    })
+  );
+
+  if (!estornados.size) return tokens;
+
+  const mantidos = tokens.filter(
+    (t) => !estornados.has(`${t.email.toLowerCase()}|${t.transaction_id ?? ""}`)
+  );
+  console.warn(
+    `[vincular-compra] ${tokens.length - mantidos.length} token(s) retidos por estorno na compra`
+  );
+  return mantidos;
+}
 
 /**
  * Tokens de compra de OUTROS e-mails que pertencem a esta mesma pessoa.
@@ -81,7 +140,7 @@ export async function compraDeOutroEmail(
 
   const { data, error } = await service
     .from("activation_tokens")
-    .select("token, course_id, email, buyer_name")
+    .select("token, course_id, email, buyer_name, transaction_id")
     .eq("buyer_phone_norm", telefone)
     .eq("used", false)
     .not("course_id", "is", null);
@@ -93,11 +152,13 @@ export async function compraDeOutroEmail(
   }
 
   const emailDaConta = params.emailDaConta.toLowerCase();
-  return (data ?? []).filter(
+  const daMesmaPessoa = (data ?? []).filter(
     (t) =>
       t.email?.toLowerCase() !== emailDaConta &&
       mesmoPrimeiroNome(t.buyer_name, params.nomeDaConta)
   ) as TokenPendente[];
+
+  return semCompraEstornada(service, daMesmaPessoa);
 }
 
 /**

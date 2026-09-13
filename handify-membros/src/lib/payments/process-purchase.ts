@@ -212,6 +212,10 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
               course_id: course.id,
               buyer_name: event.buyerName ?? null,
               buyer_phone: event.buyerPhone ?? null,
+              // Sem a transação, a checagem de estorno no cadastro precisa olhar
+              // TODAS as compras do e-mail e acaba segurando compra boa. Com ela,
+              // a pergunta fica exata: esta transação foi paga e depois estornada?
+              transaction_id: event.transactionId,
             })
             .select("token")
             .single()
