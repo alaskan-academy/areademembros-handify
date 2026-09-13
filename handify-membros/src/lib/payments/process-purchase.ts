@@ -168,11 +168,13 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   // A conjunção telefone + primeiro nome é o que impede o acerto errado: no caso
   // real de hzpdp@gmail.com o telefone é o mesmo da conta de outra pessoa da
   // família, e o nome diferente barra a vinculação.
+  const docDoComprador = event.buyerDoc?.replace(/\D/g, "");
   const contaPorTelefone =
     !profileRow && event.action === "grant"
       ? await contaDaMesmaPessoa(supabase, {
           telefone: event.buyerPhone,
           nomeDoComprador: event.buyerName,
+          cpfHash: docDoComprador?.length === 11 ? hashCpf(docDoComprador) : null,
         })
       : null;
 

@@ -170,8 +170,36 @@ export async function compraDeOutroEmail(
  */
 export async function contaDaMesmaPessoa(
   service: SupabaseClient,
-  params: { telefone: string | null | undefined; nomeDoComprador: string | null | undefined }
+  params: {
+    telefone: string | null | undefined;
+    nomeDoComprador: string | null | undefined;
+    /** Hash do CPF do comprador. Identifica melhor que telefone — use quando houver. */
+    cpfHash?: string | null;
+  }
 ): Promise<{ id: string; email: string; full_name: string | null } | null> {
+  // CPF primeiro: é o único campo que identifica uma pessoa sozinho. Telefone
+  // erra dos dois lados — a Sandra Meireles tinha o número salvo no perfil com
+  // um dígito a menos que o da compra, e por isso ficou de fora do cruzamento e
+  // acabou pagando o Curso Saponaria Brasil duas vezes sem receber nenhuma.
+  //
+  // Com CPF não exigimos que o nome bata: o documento já é a prova. É comum a
+  // aluna comprar em nome do marido ou digitar o nome de outro jeito.
+  if (params.cpfHash) {
+    const { data: porCpf, error: erroCpf } = await service
+      .from("profiles")
+      .select("id, email, full_name, role")
+      .eq("cpf_hash", params.cpfHash)
+      .neq("role", "admin")
+      .limit(2);
+
+    if (erroCpf) {
+      console.error("[vincular-compra] erro ao buscar conta por CPF:", erroCpf.message);
+    } else if (porCpf?.length === 1) {
+      const { id, email, full_name } = porCpf[0];
+      return { id, email, full_name };
+    }
+  }
+
   const telefone = telefoneComparavel(params.telefone);
   if (!telefoneUtilizavel(telefone)) return null;
   if (!params.nomeDoComprador) return null;
