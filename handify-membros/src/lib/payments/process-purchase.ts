@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { sendAccessConfirmedEmail, sendRefundEmail } from "@/lib/email";
 import { contaDaMesmaPessoa } from "@/lib/auth/vincular-compra";
+import { dinheiroVoltou, statusDaTransacao } from "./estorno";
 
 /**
  * Evento de compra normalizado — qualquer plataforma (Payt, Kiwify) traduz seu
@@ -117,13 +118,20 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
       .in("event_type", ["paid", "approved", "completed", "confirmed", "order_approved", "subscription_renewed"])
       .limit(1)
       .maybeSingle();
-    event = mesmaTransacao
-      ? { ...event, action: "revoke", isRealRefund: true }
-      : { ...event, action: "ignore" };
+
+    // Ter sido paga não basta — ver `dinheiroVoltou` para o porquê. Resumo:
+    // existem 4 transações no histórico que tiveram "paid" e depois um "canceled"
+    // de PIX EXPIRADO, e a regra anterior revogaria as quatro.
+    const voltou = dinheiroVoltou(event.rawPayload, event.eventType);
+
+    event =
+      mesmaTransacao && voltou
+        ? { ...event, action: "revoke", isRealRefund: true }
+        : { ...event, action: "ignore" };
     console.info(
-      `${log} canceled resolvido como ${event.action} (transação ${event.transactionId} ${
+      `${log} canceled resolvido como ${event.action} (transação ${event.transactionId}: ${
         mesmaTransacao ? "foi paga" : "nunca foi paga"
-      }) para ${event.buyerEmail}`
+      }, payment_status=${statusDaTransacao(event.rawPayload) ?? "ausente"}) para ${event.buyerEmail}`
     );
   }
 
