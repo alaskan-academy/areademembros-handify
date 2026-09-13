@@ -944,12 +944,23 @@ export type CompraSemAcesso = {
   temEstorno: boolean;
 };
 
+/** Código vendido que não corresponde a nenhum curso cadastrado. */
+export type CodigoSemCurso = {
+  codigo: string;
+  nome_produto: string | null;
+  compras: number;
+  primeira: string;
+  ultima: string;
+};
+
 export async function sendComprasSemAcessoEmail({
   to,
   casos,
+  orfaos = [],
 }: {
   to: string;
   casos: CompraSemAcesso[];
+  orfaos?: CodigoSemCurso[];
 }): Promise<boolean> {
   const comEstorno = casos.filter((c) => c.temEstorno);
   const liberaveis = casos.filter((c) => !c.temEstorno);
@@ -1012,6 +1023,36 @@ export async function sendComprasSemAcessoEmail({
         ${linhasHtml}
       </table>
       ${casos.length > 40 ? `<p style="color:#888888;font-size:13px;margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;">e mais ${casos.length - 40}.</p>` : ""}
+      ${
+        orfaos.length
+          ? `<h2 style="color:#B8443C;font-size:17px;margin:26px 0 10px;font-weight:700;font-family:Arial,Helvetica,sans-serif;">
+        Codigo vendido que a plataforma nao conhece
+      </h2>
+      <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        Estes codigos aparecem em compras pagas e nao estao em nenhum curso. Enquanto ficarem assim,
+        quem compra nao recebe — e a compra e gravada como processada, sem erro em lugar nenhum.
+        Cadastre o codigo no curso certo, ou marque como entregue por fora na tabela
+        <code>checkout_codes_ignorados</code>.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;margin:0 0 18px;">
+        <tr>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Codigo</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Produto</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Compras</td>
+        </tr>
+        ${orfaos
+          .slice(0, 20)
+          .map(
+            (o) => `<tr>
+          <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;"><strong>${o.codigo}</strong></td>
+          <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${o.nome_produto ?? "—"}</td>
+          <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${o.compras}<br><span style="color:#888888;font-size:12px;">desde ${o.primeira}</span></td>
+        </tr>`
+          )
+          .join("")}
+      </table>`
+          : ""
+      }
       ${ctaButton(`${appUrl()}/admin/alunos`, "Abrir o painel de alunas")}
     `),
   });

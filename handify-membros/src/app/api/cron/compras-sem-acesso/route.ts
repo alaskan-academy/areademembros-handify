@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendComprasSemAcessoEmail, type CompraSemAcesso } from "@/lib/email";
+import {
+  sendComprasSemAcessoEmail,
+  type CompraSemAcesso,
+  type CodigoSemCurso,
+} from "@/lib/email";
 import { mesmoPrimeiroNome } from "@/lib/auth/vincular-compra";
 
 /**
@@ -103,8 +107,24 @@ export async function GET(req: NextRequest) {
     (a, b) => Number(b.temEstorno) - Number(a.temEstorno) || b.diasParado - a.diasParado
   );
 
-  if (casos.length === 0) {
-    return NextResponse.json({ casos: 0, enviado: false });
+  // Segunda fonte: código vendido que a plataforma não conhece.
+  //
+  // O webhook só reclama quando não acha curso NENHUM. Achando alguns e não
+  // achando outros, ele matricula o que achou e grava a compra como processada —
+  // e a aluna fica sem um item sem que nada fique vermelho. Entre 11/07 e
+  // 05/08/2026 isso deixou 46 matrículas em 40 alunas: o mesmo produto era
+  // vendido em variantes com códigos diferentes e só uma estava cadastrada.
+  const { data: codigosOrfaos, error: erroCodigos } = await service.rpc(
+    "codigos_vendidos_sem_curso",
+    { dias: 30 }
+  );
+  if (erroCodigos) {
+    console.error("[compras-sem-acesso] erro ao buscar códigos órfãos:", erroCodigos.message);
+  }
+  const orfaos = (codigosOrfaos ?? []) as CodigoSemCurso[];
+
+  if (casos.length === 0 && orfaos.length === 0) {
+    return NextResponse.json({ casos: 0, orfaos: 0, enviado: false });
   }
 
   // Já avisamos sobre exatamente estas compras? Só repete se apareceu caso novo
@@ -125,7 +145,15 @@ export async function GET(req: NextRequest) {
     ? (Date.now() - new Date(ultimo.created_at as string).getTime()) / 86_400_000
     : Infinity;
 
-  const deveAvisar = novos.length > 0 || diasDesdeUltimo >= DIAS_ENTRE_REPETICOES;
+  // Código novo sem curso é urgente: cada dia sem cadastrar é mais gente pagando
+  // por algo que a plataforma não entrega.
+  const codigosJaAvisados = new Set<string>(
+    ((ultimo?.meta as Record<string, unknown> | null)?.codigos_sem_curso as string[] | undefined) ?? []
+  );
+  const codigosNovos = orfaos.filter((o) => !codigosJaAvisados.has(o.codigo));
+
+  const deveAvisar =
+    novos.length > 0 || codigosNovos.length > 0 || diasDesdeUltimo >= DIAS_ENTRE_REPETICOES;
 
   if (simular) {
     return NextResponse.json({
@@ -135,6 +163,7 @@ export async function GET(req: NextRequest) {
       novos: novos.length,
       deveAvisar,
       lista: casos,
+      orfaos,
     });
   }
 
@@ -142,7 +171,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ casos: casos.length, novos: 0, enviado: false });
   }
 
-  const saiu = await sendComprasSemAcessoEmail({ to: destino!, casos });
+  const saiu = await sendComprasSemAcessoEmail({ to: destino!, casos, orfaos });
 
   // O marcador guarda a lista avisada. Gravá-lo sem o e-mail ter saído faria a
   // próxima rodada achar que já avisou — e essas alunas sumiriam do radar. Mesmo
@@ -161,6 +190,7 @@ export async function GET(req: NextRequest) {
       casos: casos.length,
       cursos: casos.reduce((s, c) => s + c.cursos.length, 0),
       emails: casos.map((c) => c.emailDaCompra),
+      codigos_sem_curso: orfaos.map((o) => o.codigo),
       destino,
     },
   });
