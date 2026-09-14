@@ -373,6 +373,56 @@ Migration: `supabase/migrations/20260625_push_subscriptions.sql`.
 - Se dispensado sem ativar → guarda timestamp em `localStorage` (`handify_push_prompt_dismissed_at`) e reexibe após 15 dias
 - Se permission === "denied" → nunca aparece
 
+## Disparos de e-mail recorrentes (set/2026)
+
+Todos passam por `enviarEmail()` / `filtrarSuprimidos()` em `src/lib/email/index.ts`,
+então a lista de supressão nunca é esquecida.
+
+### Vão para a aluna
+
+| Cron | Quando | Quem recebe | Trava |
+|------|--------|-------------|-------|
+| `convite-completo` | de hora em hora, 8h–21h BRT | quem concluiu o 1º curso | 3 e-mails, 1 por mês, para no 3º ou ao assinar |
+| `campanha-completo` | terças, 12h UTC | base com 4+ cursos | 1 vez por pessoa, para sempre |
+| `reengagement` | **quinta 21h30 BRT** (`30 0 * * 5`) | inativa 7+ dias, curso incompleto | 4 e-mails no total, 7 dias entre eles |
+
+**Prioridade — não inverter:**
+
+```
+Convite Completo (conclusão)  >  Campanha Completo (base)  >  Reengajamento
+```
+
+Os dois primeiros mandam sempre. **O reengajamento é o único que se abstém**:
+não envia para quem está no meio da sequência de conclusão, nem para quem
+recebeu qualquer e-mail do Completo nos últimos 7 dias. Hoje isso barra ~550 de
+~2.450 inativas.
+
+**Por que o reengajamento roda às 21h30 e não de manhã:** a janela do
+convite-completo é 8h–21h BRT *todo dia*. Qualquer horário comercial pode
+colidir — o reengajamento sairia de manhã e o convite para a mesma aluna à
+tarde. Rodando depois que a janela fecha, a colisão no mesmo dia é impossível,
+sem precisar duplicar a regra da sequência dentro do reengajamento. Quinta
+também evita a terça, dia do disparo da base.
+
+Toda a elegibilidade do reengajamento mora em `public.alunas_para_reengajar()`,
+não no TypeScript — é uma consulta no lugar das 4.000 do laço antigo.
+
+**Regra ao mexer em qualquer um dos três:** o envio precisa ser registrado em
+`email_campaign_sends` (`campaign`, `user_id` — PK composta, uma linha por
+ciclo, no padrão `reengajamento-1..4` e `plano-completo-conclusao-1..3`). Sem o
+registro não existe trava de repetição, e o cron volta a mandar o mesmo e-mail
+toda vez que rodar.
+
+### Vão só para a admin (`ADMIN_ALERT_EMAIL`)
+
+| Cron | Quando | Dispara quando |
+|------|--------|----------------|
+| `alarme-revogacoes` | de hora em hora | revogação sem pagamento, ou volume acima de 8 |
+| `compras-sem-acesso` | diário, 12h40 UTC | compra paga sem matrícula, ou código vendido sem curso |
+
+`/api/notifications/dispatch` (de hora em hora) é in-app/push, **não e-mail** —
+só entrega campanha que a admin agendou.
+
 ## Segurança — checklist por PR
 
 - [ ] Toda nova tabela Supabase tem RLS ativo
