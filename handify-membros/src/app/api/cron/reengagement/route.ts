@@ -47,11 +47,17 @@ const MAX_CICLOS = 4;
 /** Intervalo mínimo entre dois e-mails para a mesma aluna. */
 const DIAS_ENTRE_CICLOS = 7;
 /**
- * Teto por execução. A fila inicial tem ~1.900 alunas; em lotes de 100 isso
- * seria uma corrida contra os 60s. O que sobrar sai na semana seguinte, e a
- * fila só encolhe — quem voltou a assistir sai dela sozinha.
+ * Teto por execução, aplicado DENTRO do banco.
+ *
+ * Não é só para caber nos 60s: o PostgREST corta qualquer resposta em 1.000
+ * linhas, RPC incluído. Sem ordenar e cortar no SQL, o cron receberia 1.000
+ * alunas arbitrárias das ~1.900 — a mesma armadilha que quebrava a versão
+ * antiga, só que do outro lado. Com a ordem no banco, as que vêm são as que
+ * esperam há mais tempo, e o resto sai na semana seguinte.
+ *
+ * 900 deixa folga abaixo do corte: em lotes de 100 são 9 chamadas à Resend.
  */
-const MAX_POR_EXECUCAO = 1200;
+const MAX_POR_EXECUCAO = 900;
 
 type LinhaElegivel = {
   user_id: string;
@@ -79,6 +85,7 @@ export async function GET(req: NextRequest) {
     dias_inatividade: DIAS_DE_INATIVIDADE,
     max_ciclos: MAX_CICLOS,
     dias_entre_ciclos: DIAS_ENTRE_CICLOS,
+    limite: MAX_POR_EXECUCAO,
   });
 
   if (error) {
@@ -86,21 +93,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const elegiveis = (data ?? []) as LinhaElegivel[];
-  // Quem nunca recebeu vai primeiro; entre iguais, quem tem mais curso parado.
-  const fila = elegiveis
-    .sort((a, b) => a.proximo_ciclo - b.proximo_ciclo || b.cursos.length - a.cursos.length)
-    .slice(0, MAX_POR_EXECUCAO);
+  // Já vem ordenada e cortada do banco — quem espera há mais tempo primeiro.
+  const fila = (data ?? []) as LinhaElegivel[];
 
   if (simular) {
     return NextResponse.json({
       simulacao: true,
-      elegiveis: elegiveis.length,
       nesta_execucao: fila.length,
-      ficam_para_a_proxima: Math.max(0, elegiveis.length - fila.length),
+      atingiu_o_teto: fila.length === MAX_POR_EXECUCAO,
       por_ciclo: [1, 2, 3, 4].map((c) => ({
         ciclo: c,
-        alunas: elegiveis.filter((e) => e.proximo_ciclo === c).length,
+        alunas: fila.filter((e) => e.proximo_ciclo === c).length,
       })),
       amostra: fila.slice(0, 5).map((f) => ({
         email: f.email,
@@ -111,7 +114,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!fila.length) {
-    return NextResponse.json({ elegiveis: 0, enviados: 0 });
+    return NextResponse.json({ nesta_execucao: 0, enviados: 0 });
   }
 
   const { enviados, erro } = await sendReengagementEmailBatch(
@@ -154,7 +157,7 @@ export async function GET(req: NextRequest) {
   );
 
   return NextResponse.json({
-    elegiveis: elegiveis.length,
+    nesta_execucao: fila.length,
     enviados: enviados.length,
     registrados: registros.length,
     erro,

@@ -20,10 +20,16 @@
 --   Convite Completo (conclusão)  >  Campanha Completo (base)  >  Reengajamento
 --
 -- O reengajamento é o único que se abstém. Os outros dois mandam sempre.
+-- `limite` não é enfeite: o PostgREST corta QUALQUER resposta em 1.000 linhas,
+-- inclusive a de um RPC. Sem ordenar e cortar aqui dentro, o cron receberia
+-- 1.000 alunas arbitrárias das 1.900 — a mesma armadilha que quebrava a versão
+-- antiga, agora do outro lado. Ordenando no banco, as 1.000 que vêm são as
+-- 1.000 certas, e o resto sai na semana seguinte.
 create or replace function public.alunas_para_reengajar(
   dias_inatividade int default 7,
   max_ciclos       int default 4,
-  dias_entre_ciclos int default 7
+  dias_entre_ciclos int default 7,
+  limite           int default 900
 )
 returns table (
   user_id     uuid,
@@ -122,7 +128,11 @@ as $$
         and s.campaign like 'plano-completo%'
         and s.sent_at > now() - interval '7 days'
     )
-  group by pr.id, pr.email, pr.full_name, c.recebidos;
+  group by pr.id, pr.email, pr.full_name, c.recebidos
+  -- Quem nunca recebeu vai primeiro; entre iguais, quem está parado há mais
+  -- tempo. Sem esta ordem o corte de 1.000 pegaria gente ao acaso.
+  order by (coalesce(c.recebidos, 0) + 1), min(c.ultimo_envio) nulls first, pr.id
+  limit limite;
 $$;
 
 comment on function public.alunas_para_reengajar(int, int, int) is
