@@ -1,114 +1,162 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendReengagementEmail, type ReengagementCourse } from "@/lib/email";
+import { sendReengagementEmailBatch, type ReengagementCourse } from "@/lib/email";
 
-// Vercel Cron: roda diariamente às 10h BRT (13h UTC)
-// vercel.json crons: [{ "path": "/api/cron/reengagement", "schedule": "0 13 * * *" }]
+/**
+ * Reengajamento — "você parou no meio, volta lá".
+ *
+ * Semanal, no máximo 4 vezes por aluna, e sempre atrás das campanhas do
+ * Handify Completo. A ordem de prioridade é:
+ *
+ *   Convite Completo (conclusão)  >  Campanha Completo (base)  >  Reengajamento
+ *
+ * Os dois primeiros mandam sempre; este é o único que se abstém.
+ *
+ * ── Por que roda às 21h30 de quinta ─────────────────────────────────────────
+ *
+ * A janela do convite-completo é 8h–21h BRT, TODO dia. Qualquer horário
+ * comercial pode colidir: o reengajamento sairia de manhã e o convite para a
+ * mesma aluna à tarde, no mesmo dia. Rodando às 21h30, a janela do dia já
+ * fechou e a do dia seguinte ainda não abriu — a colisão deixa de ser
+ * improvável e passa a ser impossível, sem precisar duplicar a regra da
+ * sequência de conclusão aqui dentro.
+ *
+ * Quinta também evita a terça, dia do disparo da base.
+ *
+ * ── O que estava errado antes ───────────────────────────────────────────────
+ *
+ * 1. Nenhuma trava de repetição: nada era registrado, então quem ficasse 30
+ *    dias sem entrar receberia o mesmo e-mail 30 vezes.
+ * 2. A busca de matrículas não tinha limite e o PostgREST corta em 1.000 —
+ *    via 1.000 das 10.005, sempre as mesmas.
+ * 3. Quatro consultas por matrícula dentro do laço, sem maxDuration: 4.000
+ *    consultas em sequência, que estouravam o tempo antes de mandar nada.
+ *
+ * O item 3 escondia o item 1. Consertar só o desempenho teria virado spam
+ * diário para ~2.500 alunas.
+ *
+ * vercel.json: { "path": "/api/cron/reengagement", "schedule": "30 0 * * 5" }
+ */
+
+export const maxDuration = 60;
+
+/** Dias sem abrir o curso para a aluna entrar na fila. */
+const DIAS_DE_INATIVIDADE = 7;
+/** Teto de e-mails por aluna, para sempre. Depois do 4º, nunca mais. */
+const MAX_CICLOS = 4;
+/** Intervalo mínimo entre dois e-mails para a mesma aluna. */
+const DIAS_ENTRE_CICLOS = 7;
+/**
+ * Teto por execução. A fila inicial tem ~1.900 alunas; em lotes de 100 isso
+ * seria uma corrida contra os 60s. O que sobrar sai na semana seguinte, e a
+ * fila só encolhe — quem voltou a assistir sai dela sozinha.
+ */
+const MAX_POR_EXECUCAO = 1200;
+
+type LinhaElegivel = {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  proximo_ciclo: number;
+  cursos: ReengagementCourse[];
+};
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = req.headers.get("x-cron-secret");
+  const autorizado =
+    authHeader === `Bearer ${process.env.CRON_SECRET}` || cronSecret === process.env.CRON_SECRET;
+  if (!autorizado) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const service = createServiceClient();
-    const now = new Date().toISOString();
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const simular = req.nextUrl.searchParams.get("simular") === "1";
+  const service = createServiceClient();
 
-    // Matrículas ativas
-    const { data: enrollments } = await service
-      .from("enrollments")
-      .select("user_id, course_id")
-      .or(`expires_at.is.null,expires_at.gt.${now}`);
+  // Toda a elegibilidade mora no banco: opt-out, teto de ciclos, intervalo e a
+  // prioridade das campanhas do Completo. Uma consulta no lugar de 4.000.
+  const { data, error } = await service.rpc("alunas_para_reengajar", {
+    dias_inatividade: DIAS_DE_INATIVIDADE,
+    max_ciclos: MAX_CICLOS,
+    dias_entre_ciclos: DIAS_ENTRE_CICLOS,
+  });
 
-    if (!enrollments?.length) return NextResponse.json({ sent: 0 });
-
-    // Acumula cursos elegíveis por aluna para enviar um único e-mail por pessoa
-    const byUser = new Map<string, ReengagementCourse[]>();
-
-    for (const { user_id, course_id } of enrollments) {
-      // Aulas do curso
-      const { data: modules } = await service
-        .from("modules")
-        .select("id")
-        .eq("course_id", course_id);
-
-      if (!modules?.length) continue;
-
-      const { data: lessons } = await service
-        .from("lessons")
-        .select("id")
-        .in("module_id", modules.map((m) => m.id));
-
-      if (!lessons?.length) continue;
-
-      const lessonIds = lessons.map((l) => l.id);
-
-      // Progresso da aluna neste curso
-      const { data: progress } = await service
-        .from("lesson_progress")
-        .select("lesson_id, completed, updated_at")
-        .eq("user_id", user_id)
-        .in("lesson_id", lessonIds);
-
-      if (!progress?.length) continue; // nunca acessou
-
-      // Ignorar se acessou nos últimos 7 dias
-      const recentAccess = progress.some((p) => p.updated_at >= sevenDaysAgo);
-      if (recentAccess) continue;
-
-      // Ignorar se já concluiu
-      const completedCount = progress.filter((p) => p.completed).length;
-      const pct = (completedCount / lessonIds.length) * 100;
-      if (pct >= 100) continue;
-
-      // Dados do curso
-      const { data: course } = await service
-        .from("courses")
-        .select("title, slug")
-        .eq("id", course_id)
-        .maybeSingle();
-
-      if (!course) continue;
-
-      const list = byUser.get(user_id) ?? [];
-      list.push({ title: course.title, slug: course.slug, progressPercent: pct });
-      byUser.set(user_id, list);
-    }
-
-    if (!byUser.size) return NextResponse.json({ sent: 0 });
-
-    // Busca perfis de todas as alunas elegíveis de uma vez
-    const userIds = [...byUser.keys()];
-    const { data: profiles } = await service
-      .from("profiles")
-      .select("id, full_name, email, email_prefs")
-      .in("id", userIds);
-
-    let sent = 0;
-
-    for (const profile of profiles ?? []) {
-      if (!profile.email) continue;
-      const prefs = profile.email_prefs as Record<string, boolean> | null;
-      if (prefs?.reengagement === false) continue;
-
-      const courses = byUser.get(profile.id);
-      if (!courses?.length) continue;
-
-      await sendReengagementEmail({
-        to: profile.email,
-        studentName: profile.full_name ?? "Aluna",
-        courses,
-      });
-
-      sent++;
-    }
-
-    console.info(`[cron/reengagement] ${sent} e-mails enviados`);
-    return NextResponse.json({ sent });
-  } catch (e) {
-    console.error("[cron/reengagement]", e);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  if (error) {
+    console.error("[cron/reengagement] erro na consulta:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const elegiveis = (data ?? []) as LinhaElegivel[];
+  // Quem nunca recebeu vai primeiro; entre iguais, quem tem mais curso parado.
+  const fila = elegiveis
+    .sort((a, b) => a.proximo_ciclo - b.proximo_ciclo || b.cursos.length - a.cursos.length)
+    .slice(0, MAX_POR_EXECUCAO);
+
+  if (simular) {
+    return NextResponse.json({
+      simulacao: true,
+      elegiveis: elegiveis.length,
+      nesta_execucao: fila.length,
+      ficam_para_a_proxima: Math.max(0, elegiveis.length - fila.length),
+      por_ciclo: [1, 2, 3, 4].map((c) => ({
+        ciclo: c,
+        alunas: elegiveis.filter((e) => e.proximo_ciclo === c).length,
+      })),
+      amostra: fila.slice(0, 5).map((f) => ({
+        email: f.email,
+        ciclo: f.proximo_ciclo,
+        cursos: f.cursos.map((c) => `${c.title} (${c.progressPercent}%)`),
+      })),
+    });
+  }
+
+  if (!fila.length) {
+    return NextResponse.json({ elegiveis: 0, enviados: 0 });
+  }
+
+  const { enviados, erro } = await sendReengagementEmailBatch(
+    fila.map((f) => ({
+      to: f.email,
+      studentName: f.full_name ?? "Aluna",
+      courses: f.cursos,
+    }))
+  );
+
+  // Só registra quem a Resend aceitou. Registrar antes do envio gastaria um
+  // ciclo da aluna sem ela receber nada — e são só 4 na vida dela.
+  const enviadosSet = new Set(enviados.map((e: string) => e.toLowerCase()));
+  const registros = fila
+    .filter((f) => enviadosSet.has(f.email.toLowerCase()))
+    .map((f) => ({
+      campaign: `reengajamento-${f.proximo_ciclo}`,
+      user_id: f.user_id,
+      email: f.email,
+    }));
+
+  if (registros.length) {
+    const { error: erroRegistro } = await service
+      .from("email_campaign_sends")
+      .upsert(registros, { onConflict: "campaign,user_id" });
+    if (erroRegistro) {
+      // Sem o registro a aluna receberia de novo na semana seguinte. É o tipo de
+      // falha que precisa aparecer, não ficar num console.
+      console.error("[cron/reengagement] FALHA AO REGISTRAR ENVIO:", erroRegistro.message);
+      return NextResponse.json(
+        { enviados: enviados.length, registrados: 0, erro: erroRegistro.message },
+        { status: 500 }
+      );
+    }
+  }
+
+  console.info(
+    `[cron/reengagement] ${enviados.length} e-mail(s) enviados, ${registros.length} registrados` +
+      (erro ? ` — interrompido: ${erro}` : "")
+  );
+
+  return NextResponse.json({
+    elegiveis: elegiveis.length,
+    enviados: enviados.length,
+    registrados: registros.length,
+    erro,
+  });
 }

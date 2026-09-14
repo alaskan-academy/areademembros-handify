@@ -338,17 +338,20 @@ export type ReengagementCourse = {
   progressPercent: number;
 };
 
-export async function sendReengagementEmail({
-  to,
-  studentName,
-  courses,
-}: {
-  to: string;
+export type ReengagementInput = {
   studentName: string;
   courses: ReengagementCourse[];
-}): Promise<void> {
-  if (!courses.length) return;
+};
 
+/**
+ * Monta assunto e corpo sem enviar. Existe separado porque o disparo semanal
+ * manda em lote pela Resend (fatias de 100) e precisa do HTML pronto por
+ * destinatária — mesmo caminho que a campanha do Handify Completo já usava.
+ */
+export function renderReengagementEmail({
+  studentName,
+  courses,
+}: ReengagementInput): { subject: string; html: string } {
   const firstName = studentName.split(" ")[0];
   const base = appUrl();
   const isMultiple = courses.length > 1;
@@ -380,10 +383,7 @@ export async function sendReengagementEmail({
     ? `Faz alguns dias que você não acessa seus cursos. Dá uma olhada no que está te esperando:`
     : `Faz alguns dias que você não acessa o curso abaixo. Você já está tão perto — continue de onde parou!`;
 
-  const { error } = await enviarEmail({
-    from: FROM,
-    replyTo: REPLY_TO,
-    to,
+  return {
     subject,
     html: emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
@@ -395,11 +395,51 @@ export async function sendReengagementEmail({
       ${coursesBlock}
       ${supportBlock()}
     `),
-  });
+  };
+}
 
+/** Envio unitário — fora do disparo semanal. */
+export async function sendReengagementEmail({
+  to,
+  studentName,
+  courses,
+}: ReengagementInput & { to: string }): Promise<void> {
+  if (!courses.length) return;
+  const { subject, html } = renderReengagementEmail({ studentName, courses });
+  const { error } = await enviarEmail({ from: FROM, replyTo: REPLY_TO, to, subject, html });
   if (error) {
     console.error("[email] reengagement error:", error);
   }
+}
+
+/**
+ * Disparo semanal, em lotes de 100 pela Resend.
+ *
+ * Devolve quem a Resend aceitou, para o cron registrar o ciclo só de quem
+ * realmente recebeu. São 4 na vida da aluna: gastar um sem entregar nada
+ * seria perder a conversa em silêncio.
+ */
+export async function sendReengagementEmailBatch(
+  destinatarias: (ReengagementInput & { to: string })[]
+): Promise<{ enviados: string[]; erro: string | null }> {
+  const enviados: string[] = [];
+  const permitidas = (await filtrarSuprimidos(destinatarias)).filter((d) => d.courses.length > 0);
+
+  for (let i = 0; i < permitidas.length; i += 100) {
+    const fatia = permitidas.slice(i, i + 100);
+    const { error } = await getResend().batch.send(
+      fatia.map((d) => {
+        const { subject, html } = renderReengagementEmail(d);
+        return { from: FROM, replyTo: REPLY_TO, to: d.to, subject, html };
+      })
+    );
+    if (error) {
+      console.error("[email] reengagement batch error:", error);
+      return { enviados, erro: error.message ?? "erro no lote" };
+    }
+    enviados.push(...fatia.map((d) => d.to));
+  }
+  return { enviados, erro: null };
 }
 
 // ─── Convite ao Handify Completo ("você já tem X de N") ─────────────────────
