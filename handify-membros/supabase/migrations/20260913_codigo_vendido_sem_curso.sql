@@ -107,3 +107,9 @@ comment on function public.codigos_vendidos_sem_curso(int) is
   'Códigos vendidos que não mapeiam para nenhum curso. Cada um é uma aluna pagando por algo que a plataforma não entrega.';
 
 revoke all on function public.codigos_vendidos_sem_curso(int) from anon, authenticated;
+
+-- Confirmado pela Jessica em 13/09/2026: este curso não existe na plataforma.
+-- A única compra (19/08, R$46,53) é caso de suporte, não de cadastro.
+insert into public.checkout_codes_ignorados (codigo, motivo)
+values ('LGBA36', 'Curso Cosmética Natural — não existe na plataforma (confirmado pela Jessica em 13/09/2026)')
+on conflict (codigo) do nothing;
