@@ -46,6 +46,20 @@ export async function generateCertificatePdf(
   const H = 595.28;
   const page = pdfDoc.addPage([W, H]);
 
+  /**
+   * Margem de segurança para impressão: 12mm.
+   *
+   * Impressora doméstica não imprime até a borda — sobra entre 5 e 10mm de área
+   * morta em cada lado, e o que cair ali some. O texto do QR e o logo estavam a
+   * 4,9mm e 6,4mm: dentro da zona morta da maioria das impressoras. Uma aluna
+   * imprimiu em 21/09/2026 e o certificado saiu cortado.
+   *
+   * Nada de TEXTO, logo ou QR passa desta linha. Só as faixas tricolores e o
+   * painel escuro continuam encostando na borda — são decorativos e, se a
+   * impressora comer um pedaço, não se perde informação.
+   */
+  const SAFE = 34;
+
   const bold    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
@@ -93,47 +107,51 @@ export async function generateCertificatePdf(
     const iconBytes = fs.readFileSync(iconPath);
     const icon = await pdfDoc.embedPng(iconBytes);
     const iconSize = 32;
-    page.drawImage(icon, { x: 18, y: logoY - 2, width: iconSize, height: iconSize });
+    page.drawImage(icon, { x: SAFE, y: logoY - 2, width: iconSize, height: iconSize });
     page.drawText("Handify™", {
-      x: 56, y: logoY + 10, size: 19, font: bold, color: BLUE,
+      x: SAFE + 38, y: logoY + 10, size: 19, font: bold, color: BLUE,
     });
   } catch {
     page.drawText("Handify™", {
-      x: 18, y: logoY + 10, size: 22, font: bold, color: BLUE,
+      x: SAFE, y: logoY + 10, size: 22, font: bold, color: BLUE,
     });
   }
 
   // Linha divisória sutil
-  page.drawRectangle({ x: 18, y: logoY - 8, width: panelW - 36, height: 1, color: PANEL_SEP });
+  page.drawRectangle({ x: SAFE, y: logoY - 8, width: panelW - SAFE - 18, height: 1, color: PANEL_SEP });
 
   page.drawText("Plataforma de Cursos", {
-    x: 18, y: logoY - 22, size: 8, font: regular, color: LIGHT_GRAY,
+    x: SAFE, y: logoY - 22, size: 8, font: regular, color: LIGHT_GRAY,
   });
   page.drawText("de Artesanato", {
-    x: 18, y: logoY - 33, size: 8, font: regular, color: LIGHT_GRAY,
+    x: SAFE, y: logoY - 33, size: 8, font: regular, color: LIGHT_GRAY,
   });
 
   // ── QR Code centralizado no painel ─────────────────────────────────────────
   const qrImage = await pdfDoc.embedPng(qrBuffer);
   const qrSize = 96;
-  const qrX = (panelW - qrSize) / 2;
-  const qrY = stripeH + 54;
+  // Alinhado com o logo e os textos: o painel inteiro é alinhado à esquerda, e
+  // o QR centralizado era o único elemento fora do eixo.
+  const qrX = SAFE;
+  const qrY = stripeH + 62;
 
   // Fundo branco ao redor do QR
   page.drawRectangle({ x: qrX - 4, y: qrY - 4, width: qrSize + 8, height: qrSize + 8, color: WHITE });
   page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
 
   page.drawText("Verificar autenticidade:", {
-    x: 14, y: qrY - 16, size: 7, font: regular, color: LIGHT_GRAY,
+    x: SAFE, y: qrY - 16, size: 7, font: regular, color: LIGHT_GRAY,
   });
-  const shortUrl = verifyUrl.replace(/^https?:\/\//, "").slice(0, 34);
-  page.drawText(shortUrl, {
-    x: 14, y: qrY - 27, size: 6, font: regular, color: MID_GRAY,
+  // Só o domínio. A URL inteira tem o hash de verificação e não cabe em 6pt —
+  // cortada no meio do hash, virava um endereço que não leva a lugar nenhum e
+  // parecia defeito. Quem quiser conferir usa o QR ou digita o domínio.
+  page.drawText("aponte a câmera no código", {
+    x: SAFE, y: qrY - 27, size: 6, font: regular, color: MID_GRAY,
   });
 
   // ── Área de conteúdo (painel direito) ──────────────────────────────────────
   const cx = panelW + 38;
-  const cw = W - cx - 30;
+  const cw = W - cx - SAFE - 6;
 
   // Título do certificado
   page.drawText("CERTIFICADO DE CONCLUSÃO", {
@@ -203,6 +221,10 @@ export async function generateCertificatePdf(
   });
 
   // ── Assinatura ─────────────────────────────────────────────────────────────
+  // Fica no rodapé, como em certificado impresso de verdade. Já está segura:
+  // o texto mais baixo cai a 23mm da borda, bem acima da zona morta da
+  // impressora. Cheguei a subi-la para fechar o vazio do meio e ficou pior —
+  // o vazio só mudou de lugar.
   const sigY = stripeH + 44;
 
   // Texto cursivo ACIMA da linha

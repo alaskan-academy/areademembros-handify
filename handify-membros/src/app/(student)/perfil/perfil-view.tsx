@@ -614,6 +614,16 @@ function CertificatesSection({
           {certificates.map((cert) => (
             <CertificateCard key={cert.id} cert={cert} />
           ))}
+
+          {/* O certificado é deitado (paisagem). Quem imprime com a folha em pé
+              perde metade dele — foi o que aconteceu com uma aluna em 21/09/2026.
+              A margem de segurança do PDF resolve o corte das bordas, mas a
+              orientação é escolha de quem imprime. */}
+          <p className="text-xs text-muted-foreground leading-relaxed px-1">
+            Na hora de imprimir, escolha <strong className="font-semibold">Paisagem</strong> (folha
+            deitada) e marque <strong className="font-semibold">Ajustar à página</strong>. Assim o
+            certificado sai inteiro.
+          </p>
         </div>
       )}
     </section>
