@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, Copy, Check, FileDown, CalendarClock, ShieldAlert, CheckCircle2, Circle, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -56,6 +56,19 @@ function Campo({ rotulo, children, dica }: { rotulo: string; children: React.Rea
       {dica && <span className="block text-[11px] font-normal mt-1">{dica}</span>}
     </label>
   )
+}
+
+/** Nome do arquivo salvo: o que o servidor mandou; se não vier, monta pelo produto. */
+function nomeDoArquivo(contentDisposition: string | null, produto: string): string {
+  const doServidor = contentDisposition?.match(/filename="([^"]+)"/)?.[1]
+  if (doServidor) return doServidor
+  const slug = produto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
+  return `rotulos-${slug || 'produto'}.pdf`
 }
 
 function Opcao({ ativo, onClick, children, className }: { ativo: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
@@ -154,7 +167,7 @@ export default function Rotulo({ marca, inicial, familias }: { marca: Partial<Da
   const [carregou, setCarregou] = useState(false)
   const [erro, setErro] = useState('')
   const [copiado, setCopiado] = useState(false)
-  const formRef = useRef<HTMLFormElement>(null)
+  const [baixando, setBaixando] = useState(false)
 
   // Rascunho no aparelho: sobrevive à ida até a Validade e à volta.
   useEffect(() => {
@@ -245,11 +258,50 @@ export default function Rotulo({ marca, inicial, familias }: { marca: Partial<Da
     [d]
   )
 
-  function baixar() {
+  /**
+   * Antes isto era um formulário escondido com method="post" e target="_blank":
+   * o PDF abria noutra aba e a aluna salvava dali. Só que o visualizador do
+   * celular, ao salvar, pede a MESMA URL de novo — por GET. A rota só aceita
+   * POST, então o navegador mostrava "Esta página não está funcionando — HTTP
+   * ERROR 405", depois de ela ter preenchido o rótulo inteiro. Foi o que
+   * aconteceu em 22/09/2026.
+   *
+   * Agora o arquivo é buscado aqui e salvo direto: não sobra URL para
+   * ninguém pedir de novo. De quebra, erro de acesso vira recado na tela em
+   * vez de um JSON cru numa aba nova.
+   */
+  async function baixar() {
     const parsed = rotuloSchema.safeParse(d)
     if (!parsed.success) { setErro(parsed.error.issues[0].message); return }
     setErro('')
-    formRef.current?.submit()
+    setBaixando(true)
+    try {
+      const corpo = new FormData()
+      corpo.append('dados', JSON.stringify(parsed.data))
+      const r = await fetch('/api/ferramentas/rotulo/pdf', { method: 'POST', body: corpo })
+
+      if (!r.ok) {
+        const recado = await r.json().then((j) => (typeof j?.error === 'string' ? j.error : null)).catch(() => null)
+        setErro(recado ?? 'Não consegui gerar o PDF agora. Tente de novo em instantes.')
+        return
+      }
+
+      const blob = await r.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nomeDoArquivo(r.headers.get('Content-Disposition'), d.produto)
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      // O Safari ainda está lendo o blob quando o clique volta; soltar na hora
+      // deixa o arquivo pela metade.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch {
+      setErro('Não consegui gerar o PDF agora. Confira a conexão e tente de novo.')
+    } finally {
+      setBaixando(false)
+    }
   }
 
   async function copiar() {
@@ -404,18 +456,14 @@ export default function Rotulo({ marca, inicial, familias }: { marca: Partial<Da
         {erro && <p className="text-sm text-red-600">{erro}</p>}
 
         <div className="space-y-2">
-          <button type="button" onClick={baixar} className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#6699F3] text-white text-sm font-semibold min-h-[48px] hover:bg-[#5580d4] handify-transition">
-            <FileDown className="w-4 h-4" /> Baixar folha de rótulos (PDF)
+          <button type="button" onClick={baixar} disabled={baixando} className="inline-flex items-center justify-center gap-2 w-full rounded-lg bg-[#6699F3] text-white text-sm font-semibold min-h-[48px] hover:bg-[#5580d4] disabled:opacity-60 handify-transition">
+            <FileDown className="w-4 h-4" /> {baixando ? 'Preparando o PDF…' : 'Baixar folha de rótulos (PDF)'}
           </button>
           <button type="button" onClick={copiar} className="inline-flex items-center justify-center gap-2 w-full rounded-lg border border-border bg-white text-sm font-semibold min-h-[44px]">
             {copiado ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copiado ? 'Copiado' : 'Copiar o texto do rótulo'}
           </button>
-          <p className="text-[11px] text-muted-foreground text-center">A4, com borda fina para recortar. Abre em outra aba — imprima ou salve.</p>
+          <p className="text-xs text-muted-foreground text-center">A4, com borda fina para recortar. O arquivo vai para os downloads do seu aparelho — é de lá que você imprime.</p>
         </div>
-
-        <form ref={formRef} method="post" action="/api/ferramentas/rotulo/pdf" target="_blank" className="hidden">
-          <input type="hidden" name="dados" value={JSON.stringify(d)} readOnly />
-        </form>
 
         <Secao titulo={d.familia === 'vela' ? 'O que precisa constar' : 'O que a ANVISA pede no rótulo'}>
           <ul className="space-y-1.5">
