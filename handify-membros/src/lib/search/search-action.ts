@@ -2,11 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-
-/** `%` e `_` são curingas no ilike — escapados para valerem como texto. */
-function escaparCuringas(termo: string): string {
-  return termo.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
+import { padraoContem } from "@/lib/db/like";
 
 export type SearchResult = {
   type: "course" | "lesson" | "news";
@@ -38,7 +34,7 @@ export async function searchPlatform(query: string): Promise<SearchResults> {
   if (!user) return { courses: [], lessons: [], news: [], total: 0 };
 
   const service = createServiceClient();
-  const pattern = `%${escaparCuringas(q)}%`;
+  const pattern = padraoContem(q);
 
   const [{ data: courses }, { data: lessonRows }, { data: newsPosts }] =
     await Promise.all([

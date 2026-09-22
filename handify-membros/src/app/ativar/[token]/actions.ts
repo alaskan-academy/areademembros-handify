@@ -5,6 +5,7 @@ import { matricularTokensPendentes } from "@/lib/auth/matricular-tokens";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendWelcomeEmail } from "@/lib/email";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
+import { escaparCuringas } from "@/lib/db/like";
 import { z } from "zod";
 
 const ActivateSchema = z.object({
@@ -77,7 +78,7 @@ export async function activateAccount(
   const { data: existingProfile } = await service
     .from("profiles")
     .select("id")
-    .ilike("email", emailLower)
+    .ilike("email", escaparCuringas(emailLower))
     .maybeSingle();
 
   if (existingProfile) {

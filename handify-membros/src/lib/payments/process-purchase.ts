@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
 import { sendAccessConfirmedEmail, sendRefundEmail } from "@/lib/email";
 import { contaDaMesmaPessoa } from "@/lib/auth/vincular-compra";
+import { escaparCuringas } from "@/lib/db/like";
 import { dinheiroVoltou, statusDaTransacao } from "./estorno";
 
 /**
@@ -164,7 +165,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   const { data: profileRow } = await supabase
     .from("profiles")
     .select("id, email")
-    .ilike("email", event.buyerEmail)
+    .ilike("email", escaparCuringas(event.buyerEmail))
     .maybeSingle();
 
   // Nenhuma conta com este e-mail. Antes de mandar o link de ativação para um

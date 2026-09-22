@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer, hasActiveMembership } from "@/lib/auth/access";
+import { escaparCuringas } from "@/lib/db/like";
 
 /**
  * Pedidos e clientes — quem pediu o que, para quando, e quanto falta receber.
@@ -158,8 +159,7 @@ export async function listarPedidos(): Promise<{
 
 /** Acha (sem diferenciar maiúsculas) ou cria a cliente; atualiza o WhatsApp se veio um novo. */
 async function garantirCliente(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, name: string, whatsapp: string) {
-  const escapado = name.replace(/[\\%_]/g, (m) => `\\${m}`);
-  const { data: existente } = await supabase.from("customers").select("id, name, whatsapp").eq("user_id", userId).ilike("name", escapado).maybeSingle();
+  const { data: existente } = await supabase.from("customers").select("id, name, whatsapp").eq("user_id", userId).ilike("name", escaparCuringas(name)).maybeSingle();
   if (existente) {
     if (whatsapp && whatsapp !== existente.whatsapp) {
       await supabase.from("customers").update({ whatsapp, updated_at: new Date().toISOString() }).eq("id", existente.id);

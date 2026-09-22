@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { sendAccessConfirmedEmail } from "@/lib/email";
+import { escaparCuringas } from "@/lib/db/like";
 
 export async function resendActivationAction(
   email: string
@@ -234,7 +235,7 @@ export async function correctEmailAction(
   const { data: existingProfile } = await service
     .from("profiles")
     .select("id")
-    .ilike("email", normalizedNew)
+    .ilike("email", escaparCuringas(normalizedNew))
     .maybeSingle();
   if (existingProfile)
     return { error: "Já existe uma conta com este e-mail." };
@@ -268,7 +269,7 @@ export async function correctEmailAction(
   await service
     .from("payment_events")
     .update({ buyer_email: normalizedNew })
-    .ilike("buyer_email", normalizedOld);
+    .ilike("buyer_email", escaparCuringas(normalizedOld));
 
   // Reenvia e-mails para o endereço correto
   const buyerName =

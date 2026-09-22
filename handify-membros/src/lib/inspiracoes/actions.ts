@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasActiveMembership } from '@/lib/auth/access'
+import { filtroOrIlike } from '@/lib/db/like'
 import { revalidatePath } from 'next/cache'
 import type {
   InspiracaoPost,
@@ -101,7 +102,7 @@ export async function getInspiracoesFeed(
   if (filtros.busca) {
     const q = filtros.busca.toLowerCase()
     // Usar ilike no banco para performance
-    query = query.or(`title.ilike.%${q}%,body.ilike.%${q}%`)
+    query = query.or(`${filtroOrIlike('title', q)},${filtroOrIlike('body', q)}`)
   }
 
   // Paginação por cursor
@@ -345,7 +346,7 @@ export async function adminListPosts(opts: {
   if (opts.published !== undefined) query = query.eq('published', opts.published)
   if (opts.archived !== undefined) query = query.eq('archived', opts.archived)
   if (opts.tipo) query = query.eq('type', opts.tipo)
-  if (opts.busca) query = query.or(`title.ilike.%${opts.busca}%`)
+  if (opts.busca) query = query.or(filtroOrIlike('title', opts.busca))
 
   const { data, error } = await query
   if (error) throw error

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { z } from "zod";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
+import { escaparCuringas } from "@/lib/db/like";
 import { sendAccessConfirmedEmail, sendLoginReminderEmail } from "@/lib/email";
 
 export async function getAdminId(): Promise<string> {
@@ -523,7 +524,7 @@ async function contaJaUsaEsteEmail(
   const { data: jaExiste } = await service
     .from("profiles")
     .select("id, full_name")
-    .ilike("email", email.toLowerCase())
+    .ilike("email", escaparCuringas(email.toLowerCase()))
     .neq("id", ignorarUserId)
     .maybeSingle();
 

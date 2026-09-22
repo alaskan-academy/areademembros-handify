@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { escaparCuringas } from "@/lib/db/like";
 
 /**
  * Link direto de login com e-mail embutido: `/login/aluna@email.com`.
@@ -43,7 +44,7 @@ export default async function LoginComEmailPage({
   const { data: existing } = await service
     .from("profiles")
     .select("id")
-    .ilike("email", email)
+    .ilike("email", escaparCuringas(email))
     .maybeSingle();
 
   // Sem conta ainda → cadastro, senão cairia numa tela de login inútil

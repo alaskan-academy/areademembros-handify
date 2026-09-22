@@ -1,4 +1,5 @@
 import { fetchAll } from "@/lib/supabase/fetch-all";
+import { filtroOrIlike } from "@/lib/db/like";
 import { createServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -305,7 +306,7 @@ export default async function AlunosPage({
       // para achar uma pessoa, as abas são para ver os grupos.
       if (!q) query = query.eq("tem_curso", activeTab !== "sem-cursos");
       if (soCompleto) query = query.eq("tem_completo", true);
-      if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
+      if (q) query = query.or(`${filtroOrIlike("full_name", q)},${filtroOrIlike("email", q)}`);
       const { data, count: c } = await query;
       profiles = (data ?? []) as ProfileRow[];
       count = c ?? 0;
