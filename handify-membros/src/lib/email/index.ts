@@ -993,14 +993,26 @@ export type CodigoSemCurso = {
   ultima: string;
 };
 
+/** Curso revogado que uma compra paga e não estornada ainda cobre. */
+export type AcessoRevogadoMasPago = {
+  email: string;
+  nome: string | null;
+  user_id: string;
+  curso: string;
+  course_id: string;
+  revogado_em: string;
+};
+
 export async function sendComprasSemAcessoEmail({
   to,
   casos,
   orfaos = [],
+  revogados = [],
 }: {
   to: string;
   casos: CompraSemAcesso[];
   orfaos?: CodigoSemCurso[];
+  revogados?: AcessoRevogadoMasPago[];
 }): Promise<boolean> {
   const comEstorno = casos.filter((c) => c.temEstorno);
   const liberaveis = casos.filter((c) => !c.temEstorno);
@@ -1031,8 +1043,40 @@ export async function sendComprasSemAcessoEmail({
     from: FROM,
     replyTo: REPLY_TO,
     to,
-    subject: `[Handify] ${liberaveis.length} aluna(s) pagaram e estao sem o curso`,
+    subject: revogados.length
+      ? `[Handify] ${new Set(revogados.map((r) => r.email)).size} aluna(s) com acesso revogado que ja pagaram`
+      : `[Handify] ${liberaveis.length} aluna(s) pagaram e estao sem o curso`,
     html: emailWrapper(`
+      ${
+        revogados.length
+          ? `<h1 style="color:#B8443C;font-size:21px;margin:0 0 14px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
+        Acesso revogado de quem pagou
+      </h1>
+      <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        <strong>${new Set(revogados.map((r) => r.email)).size}</strong> pessoa(s) estao sem
+        <strong>${revogados.length}</strong> curso(s) que uma compra em pe ainda cobre — o dinheiro
+        dessa compra NAO voltou. Acontece quando a aluna compra duas coisas e pede reembolso de uma so.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;margin:0 0 22px;">
+        <tr>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Aluna</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Curso revogado</td>
+          <td style="padding:7px 10px;background-color:#F5F5F0;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">Quando</td>
+        </tr>
+        ${revogados
+          .slice(0, 30)
+          .map(
+            (r) => `<tr>
+          <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${r.nome ?? "—"}<br><span style="color:#888888;font-size:12px;">${r.email}</span></td>
+          <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#2D2D2D;">${r.curso}</td>
+          <td style="padding:7px 10px;border-top:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#888888;">${String(r.revogado_em).slice(0, 10)}</td>
+        </tr>`
+          )
+          .join("")}
+      </table>
+      ${revogados.length > 30 ? `<p style="color:#888888;font-size:13px;margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;">e mais ${revogados.length - 30}.</p>` : ""}`
+          : ""
+      }
       <h1 style="color:#B8443C;font-size:21px;margin:0 0 14px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
         Compra paga sem acesso liberado
       </h1>

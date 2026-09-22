@@ -307,7 +307,41 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         return true;
       }
 
-      // revoke — marca matrícula como expirada agora
+      // revoke — marca matrícula como expirada agora.
+      //
+      // Antes, um curso pago DUAS vezes caía quando uma das compras era
+      // estornada. Isadora comprou o curso Fábrica das Velas por R$93,45 e o
+      // Handify Completo dez minutos depois; pediu reembolso só do Completo e
+      // ficou com zero cursos, porque o código do plano está cadastrado nos 23
+      // e a revogação derrubou todos. A mesma coisa tinha acontecido com o
+      // Amilton e com a Carla — esta última comprou o Completo duas vezes por
+      // engano, estornou uma, e perdeu R$480,39 de acesso válido.
+      //
+      // A correção de 09/09 resolveu "revoga ou não". Esta resolve "revoga o
+      // quê": um curso só perde o acesso quando NENHUMA compra em pé o cobre.
+      const { data: protegido, error: erroProtecao } = await supabase.rpc(
+        "curso_coberto_por_outra_compra",
+        { p_email: event.buyerEmail, p_course_id: course.id, p_transacao: event.transactionId }
+      );
+
+      if (erroProtecao) {
+        // Não dá para afirmar que o acesso é indevido. Segurar a revogação é o
+        // lado certo de errar: acesso a mais a admin tira num clique, acesso
+        // tirado de quem pagou só aparece quando a aluna reclama.
+        console.error(
+          `${log} não consegui checar outras compras de ${course.id}, revogação segurada:`,
+          erroProtecao.message
+        );
+        return true;
+      }
+
+      if (protegido === true) {
+        console.info(
+          `${log} Revoke ignorado (curso pago em outra compra que segue válida): user=${user.id} curso=${course.id}`
+        );
+        return true;
+      }
+
       const { data: revoked, error } = await supabase
         .from("enrollments")
         .update({ expires_at: now })
@@ -430,20 +464,56 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         else console.info(`${log} +${faltando.length} curso(s) do plano sem código: user=${user.id}`);
       }
     } else if (current) {
-      await supabase.from("memberships").update({ revoked_at: now }).eq("id", current.id);
-      await supabase.from("audit_log").insert({
-        admin_id: null,
-        action: "membership.revoked",
-        target_type: "membership",
-        target_id: current.id,
-        meta: {
-          user_id: user.id,
-          reason: event.eventType,
-          platform: event.platform,
-          transaction_id: event.transactionId,
-        },
-      });
-      console.info(`${log} Handify Completo revogado: user=${user.id} motivo=${event.eventType}`);
+      // Mesma regra das matrículas: quem comprou o plano duas vezes e estornou
+      // uma continua com o plano. Foi o que aconteceu com a Carla em 19/09 —
+      // comprou o Completo às 15:37 e de novo às 15:44 por engano, pediu
+      // reembolso do segundo, e perdeu o plano inteiro que já tinha pago.
+      //
+      // Basta olhar um curso exclusivo do plano: se outra compra em pé o cobre,
+      // é porque o plano foi pago mais de uma vez.
+      const { data: amostraDoPlano } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("in_plan", true)
+        .limit(1)
+        .maybeSingle();
+
+      const cursoDoPlano = amostraDoPlano?.id ?? null;
+      let planoPagoDeNovo = false;
+      if (cursoDoPlano) {
+        const { data, error: erroPlano } = await supabase.rpc("curso_coberto_por_outra_compra", {
+          p_email: event.buyerEmail,
+          p_course_id: cursoDoPlano,
+          p_transacao: event.transactionId,
+        });
+        // Falha de consulta segura a revogação: tirar plano de quem pagou é o
+        // erro caro; deixar um plano a mais a admin resolve num clique.
+        planoPagoDeNovo = erroPlano ? true : data === true;
+        if (erroPlano) {
+          console.error(`${log} não consegui checar outras compras do plano:`, erroPlano.message);
+        }
+      }
+
+      if (planoPagoDeNovo) {
+        console.info(
+          `${log} Revoke do Completo ignorado (plano pago em outra compra válida): user=${user.id}`
+        );
+      } else {
+        await supabase.from("memberships").update({ revoked_at: now }).eq("id", current.id);
+        await supabase.from("audit_log").insert({
+          admin_id: null,
+          action: "membership.revoked",
+          target_type: "membership",
+          target_id: current.id,
+          meta: {
+            user_id: user.id,
+            reason: event.eventType,
+            platform: event.platform,
+            transaction_id: event.transactionId,
+          },
+        });
+        console.info(`${log} Handify Completo revogado: user=${user.id} motivo=${event.eventType}`);
+      }
     }
   }
 

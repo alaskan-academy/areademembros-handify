@@ -4,6 +4,7 @@ import {
   sendComprasSemAcessoEmail,
   type CompraSemAcesso,
   type CodigoSemCurso,
+  type AcessoRevogadoMasPago,
 } from "@/lib/email";
 import { mesmoPrimeiroNome } from "@/lib/auth/vincular-compra";
 
@@ -123,8 +124,23 @@ export async function GET(req: NextRequest) {
   }
   const orfaos = (codigosOrfaos ?? []) as CodigoSemCurso[];
 
-  if (casos.length === 0 && orfaos.length === 0) {
-    return NextResponse.json({ casos: 0, orfaos: 0, enviado: false });
+  // Terceira fonte: curso revogado que uma compra em pé ainda cobre.
+  //
+  // Estornar UMA compra derrubava o que OUTRA tinha pago — a Isadora comprou um
+  // curso à parte e o Handify Completo, pediu reembolso só do plano e ficou com
+  // zero cursos. O webhook já não faz mais isso, mas uma revogação manual por
+  // engano cai no mesmo lugar, e ninguém descobre até a aluna escrever.
+  const { data: revogadosIndevidos, error: erroRevogados } = await service.rpc(
+    "acesso_revogado_mas_pago",
+    { dias: 90 }
+  );
+  if (erroRevogados) {
+    console.error("[compras-sem-acesso] erro ao buscar revogados indevidos:", erroRevogados.message);
+  }
+  const revogados = (revogadosIndevidos ?? []) as AcessoRevogadoMasPago[];
+
+  if (casos.length === 0 && orfaos.length === 0 && revogados.length === 0) {
+    return NextResponse.json({ casos: 0, orfaos: 0, revogados: 0, enviado: false });
   }
 
   // Já avisamos sobre exatamente estas compras? Só repete se apareceu caso novo
@@ -152,8 +168,12 @@ export async function GET(req: NextRequest) {
   );
   const codigosNovos = orfaos.filter((o) => !codigosJaAvisados.has(o.codigo));
 
+  // Revogado indevido é sempre urgente: alguém pagou e está sem acesso agora.
   const deveAvisar =
-    novos.length > 0 || codigosNovos.length > 0 || diasDesdeUltimo >= DIAS_ENTRE_REPETICOES;
+    novos.length > 0 ||
+    codigosNovos.length > 0 ||
+    revogados.length > 0 ||
+    diasDesdeUltimo >= DIAS_ENTRE_REPETICOES;
 
   if (simular) {
     return NextResponse.json({
@@ -164,6 +184,7 @@ export async function GET(req: NextRequest) {
       deveAvisar,
       lista: casos,
       orfaos,
+      revogados,
     });
   }
 
@@ -171,7 +192,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ casos: casos.length, novos: 0, enviado: false });
   }
 
-  const saiu = await sendComprasSemAcessoEmail({ to: destino!, casos, orfaos });
+  const saiu = await sendComprasSemAcessoEmail({ to: destino!, casos, orfaos, revogados });
 
   // O marcador guarda a lista avisada. Gravá-lo sem o e-mail ter saído faria a
   // próxima rodada achar que já avisou — e essas alunas sumiriam do radar. Mesmo
@@ -191,6 +212,7 @@ export async function GET(req: NextRequest) {
       cursos: casos.reduce((s, c) => s + c.cursos.length, 0),
       emails: casos.map((c) => c.emailDaCompra),
       codigos_sem_curso: orfaos.map((o) => o.codigo),
+      revogados_indevidos: revogados.length,
       destino,
     },
   });
