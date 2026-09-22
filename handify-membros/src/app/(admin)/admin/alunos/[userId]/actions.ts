@@ -262,11 +262,23 @@ export async function updateProfileAction(
   const emailChanged = current?.email?.toLowerCase() !== email.toLowerCase();
 
   if (emailChanged) {
+    // Esta é a ação que a tela de perfil da aluna usa de verdade. A checagem de
+    // duplicata tinha sido escrita em 12/09 dentro de updateStudentEmailAction,
+    // que não tem chamador nenhum — ou seja, estava num caminho morto e a troca
+    // pela tela continuava sem guarda. Foi assim que 18 pessoas ficaram com
+    // conta duplicada, e é por isso que não existe nenhum `update_email` no
+    // audit_log: quem registra aqui é `update_profile`.
+    const conflito = await contaJaUsaEsteEmail(service, email, user_id);
+    if (conflito) return { error: conflito };
+
     const { error: authErr } = await service.auth.admin.updateUserById(user_id, {
       email,
       email_confirm: true,
     });
-    if (authErr) return { error: `Erro ao atualizar e-mail: ${authErr.message}` };
+    if (authErr) {
+      console.error("[updateProfile] auth error:", authErr);
+      return { error: traduzErroAuth(authErr.message, `Erro ao atualizar e-mail: ${authErr.message}`) };
+    }
   }
 
   const updateData: Record<string, unknown> = {
@@ -486,90 +498,47 @@ export async function setStudentPasswordAction(
 
   return {};
 }
+// ─── E-mail duplicado ────────────────────────────────────────────────────────
 
-// ─── Atualizar e-mail ─────────────────────────────────────────────────────────
-
-const emailSchema = z.object({
-  user_id: z.string().uuid(),
-  email: z.string().email("E-mail inválido"),
-});
-
-export async function updateStudentEmailAction(
-  _prev: { error?: string; success?: string },
-  formData: FormData
-): Promise<{ error?: string; success?: string }> {
-  let adminId: string;
-  try {
-    adminId = await getAdminId();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
-
-  const parsed = emailSchema.safeParse({
-    user_id: formData.get("user_id"),
-    email: formData.get("email"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-
-  const { user_id, email } = parsed.data;
-  const emailLower = email.toLowerCase();
-  const service = createServiceClient();
-
-  const { data: atual } = await service
-    .from("profiles")
-    .select("email")
-    .eq("id", user_id)
-    .maybeSingle();
-
-  // Outra conta já usa este endereço. Sem esta checagem, o Supabase devolve um
-  // erro técnico em inglês que não diz o essencial: que existe uma segunda conta
-  // da mesma aluna, provavelmente com os cursos dela do outro lado. A admin lia
-  // "erro" e resolvia criando conta nova — foi assim que 18 pessoas ficaram com
-  // conta duplicada, várias com 6 ou 7 cursos numa e zero na outra.
+/**
+ * Mensagem de erro quando outro perfil já usa este endereço, ou null quando
+ * está livre. Usada por `updateProfileAction`, que é a ação da tela de perfil.
+ *
+ * Sem isto, o Supabase devolve um erro técnico em inglês que não diz o
+ * essencial: que existe uma segunda conta da mesma aluna, provavelmente com os
+ * cursos dela do outro lado. A saída costumava ser criar conta nova — foi assim
+ * que 18 pessoas ficaram duplicadas.
+ *
+ * Havia aqui uma segunda função, `updateStudentEmailAction`, com esta mesma
+ * guarda dentro. Ela não tinha chamador nenhum: a guarda foi escrita em 12/09
+ * num caminho morto, e a troca de e-mail pela tela seguiu sem proteção. Removida
+ * para não haver de novo duas funções fazendo a mesma coisa, com a correção na
+ * errada.
+ */
+async function contaJaUsaEsteEmail(
+  service: ReturnType<typeof createServiceClient>,
+  email: string,
+  ignorarUserId: string
+): Promise<string | null> {
   const { data: jaExiste } = await service
     .from("profiles")
     .select("id, full_name")
-    .ilike("email", emailLower)
-    .neq("id", user_id)
+    .ilike("email", email.toLowerCase())
+    .neq("id", ignorarUserId)
     .maybeSingle();
 
-  if (jaExiste) {
-    const { count: cursosLa } = await service
-      .from("enrollments")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", jaExiste.id);
-    const nome = jaExiste.full_name || "sem nome";
-    const quantos =
-      cursosLa === 1 ? "1 curso" : `${cursosLa ?? 0} cursos`;
-    return {
-      error:
-        `Já existe outra conta com ${emailLower} (${nome}, ${quantos}). ` +
-        `Trocar o e-mail aqui não junta as duas — a aluna continuaria com os cursos divididos. ` +
-        `Abra a outra conta e transfira os cursos antes, ou use esta conta e ignore a outra.`,
-    };
-  }
+  if (!jaExiste) return null;
 
-  // Atualiza no Auth (sem exigir confirmação de e-mail)
-  const { error: authErr } = await service.auth.admin.updateUserById(user_id, {
-    email: emailLower,
-    email_confirm: true,
-  });
-  if (authErr) {
-    console.error("[updateEmail] auth error:", authErr);
-    return { error: traduzErroAuth(authErr.message, `Erro ao atualizar e-mail: ${authErr.message}`) };
-  }
+  const { count } = await service
+    .from("enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", jaExiste.id);
 
-  // Sincroniza no profiles
-  await service.from("profiles").update({ email: emailLower }).eq("id", user_id);
-
-  await service.from("audit_log").insert({
-    admin_id: adminId,
-    action: "update_email",
-    target_type: "user",
-    target_id: user_id,
-    meta: { email_anterior: atual?.email ?? null, new_email: emailLower },
-  });
-
-  revalidatePath(`/admin/alunos/${user_id}`);
-  return { success: "E-mail atualizado com sucesso." };
+  const nome = jaExiste.full_name || "sem nome";
+  const quantos = count === 1 ? "1 curso" : `${count ?? 0} cursos`;
+  return (
+    `Já existe outra conta com ${email.toLowerCase()} (${nome}, ${quantos}). ` +
+    `Trocar o e-mail aqui não junta as duas — a aluna continuaria com os cursos divididos. ` +
+    `Abra a outra conta e transfira os cursos antes, ou use esta conta e ignore a outra.`
+  );
 }
