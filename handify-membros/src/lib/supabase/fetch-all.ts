@@ -29,8 +29,13 @@ export async function fetchAll<T>(
     const { data, error } = await consulta(de, de + tamanhoDaPagina - 1);
 
     if (error) {
-      console.error("[fetchAll] falhou na página que começa em", de, error);
-      break;
+      // Antes isto era um `break`: uma página que falhasse devolvia o que já
+      // tinha vindo como se fosse a lista inteira. É o mesmo mal que a função
+      // existe para curar — um recorte passando por total — só que mais difícil
+      // de ver, porque o número não fica redondo em 1.000. Quem chama precisa
+      // saber que não deu para ler tudo.
+      const mensagem = error instanceof Error ? error.message : String(error);
+      throw new Error(`[fetchAll] falhou na página que começa em ${de}: ${mensagem}`);
     }
     if (!data?.length) break;
 
@@ -38,6 +43,14 @@ export async function fetchAll<T>(
 
     // Página incompleta = acabou. Evita uma requisição extra sempre.
     if (data.length < tamanhoDaPagina) break;
+  }
+
+  if (linhas.length >= maximo) {
+    // Bater no teto também é resultado parcial. Silenciar aqui seria repetir o
+    // problema um zero adiante.
+    throw new Error(
+      `[fetchAll] parei no limite de ${maximo} linhas — a consulta devolve mais do que isso`
+    );
   }
 
   return linhas;

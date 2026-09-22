@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Award } from "lucide-react";
@@ -12,7 +12,16 @@ export async function generateMetadata({
   params: Promise<{ hash: string }>;
 }): Promise<Metadata> {
   const { hash } = await params;
-  const supabase = await createClient();
+  // Service client, sempre filtrado pelo hash.
+  //
+  // Antes era o client da aluna, e a leitura dependia de uma policy
+  // "auth.uid() IS NOT NULL" na tabela certificates — que, sendo permissiva,
+  // deixava qualquer aluna logada listar os 249 certificados inteiros (de quem,
+  // de qual curso, quando, e o hash). O hash é UUID v4 justamente para não ser
+  // adivinhável; a policy entregava a lista pronta.
+  //
+  // Aqui só sai a linha daquele hash, e a policy aberta pôde ser removida.
+  const supabase = createServiceClient();
 
   const { data } = await supabase
     .from("certificates")
@@ -35,7 +44,7 @@ export default async function VerificarPage({
   params: Promise<{ hash: string }>;
 }) {
   const { hash } = await params;
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
   const { data: cert } = await supabase
     .from("certificates")
