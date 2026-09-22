@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import CourseManager from "./course-manager";
 
+// Server Action herda o `maxDuration` do segmento de onde foi invocada, e é
+// esta página que renderiza o CourseManager. O anúncio de curso novo são ~46
+// chamadas em lote para 4.555 alunas — não cabe no default, e o `after()` seria
+// cortado no meio. É teto, não custo: só afeta quem realmente demorar.
+export const maxDuration = 300;
+
 export default async function AdminCoursesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

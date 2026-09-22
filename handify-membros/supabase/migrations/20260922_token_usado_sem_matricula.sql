@@ -1,0 +1,64 @@
+-- ─── NÃO APLICAR. Escrita, revisada e recusada em 22/09/2026 ───────────────
+--
+-- Esta migration reabriria 82 tokens de ativação (`used = true` → `false`) por
+-- um predicado que varre a tabela. Duas revisões independentes a derrubaram, e
+-- os dois achados graves foram medidos no banco, não deduzidos.
+--
+-- 1. A PREMISSA ESTÁ ERRADA EM 63 DAS 82 LINHAS (77%).
+--
+--    O `not exists` procurava matrícula só por `lower(p.email) = lower(t.email)`.
+--    Ele não enxerga o vínculo por telefone + primeiro nome
+--    (`contaDaMesmaPessoa`, src/lib/auth/vincular-compra.ts) — que foi
+--    exatamente quem queimou esses tokens, CORRETAMENTE. Em 14 dos 18
+--    endereços o token é de um e-mail digitado errado, e o curso já está
+--    entregue na conta certa da aluna:
+--
+--      vilma.m.melo@hormail.com  (24 tokens) → vilma.m.melo@hotmail.com
+--      cmoraesmaria0@globomail.com (8)       → cmoraesmaria0@gmail.com
+--      elisabethsantos2713@gmail.com (6)     → ...2712@gmail.com
+--      anatonetti593@gmail.com (6)           → anatonetti@icloud.com
+--
+-- 2. REABRIR ESSES TOKENS ENTREGA CURSO PAGO PARA ESTRANHO.
+--
+--    O endereço do token É o erro de digitação, e alguns são caixas reais de
+--    outra pessoa: `acai@gmail.com` (a compradora é gertrudesacai@gmail.com),
+--    `danielarsantos81@mail.com` (a compradora é @gmail.com). Quem tiver essa
+--    caixa — e já recebeu o e-mail de ativação na época — cria conta e leva os
+--    cursos. No caso da Vilma são 23 cursos numa conta só. O vencimento não
+--    protege: `grantPendingEnrollments` ignora `expires_at` de propósito, e o
+--    caminho do telefone (`compraDeOutroEmail`) nem consulta esse campo.
+--
+-- 3. E ELA NEM TERMINARIA.
+--
+--    O planejador avalia `compra_estornada(...)` ANTES do `not exists`, ou seja
+--    10.662 vezes em vez de 82. Medido: ~170 ms e 22.435 buffers por chamada
+--    (seq scan de payment_events, que não tem índice em lower(buyer_email)) =
+--    ~30 minutos. O `statement_timeout` é 2 min: abortaria com rollback. Numa
+--    conexão sem timeout, seguraria a CPU do banco por meia hora.
+--
+-- 4. E NÃO TERIA VOLTA: nenhum id capturado, nada em `audit_log`. Depois de
+--    aplicada, as 82 ficariam indistinguíveis das 2.247 que já estão
+--    `used = false`.
+--
+-- ── O que sobra de verdade: 19 tokens, 4 endereços ─────────────────────────
+--
+--    bandalargadanadia@gmail.com    6
+--    contatoleovinhedo@gmail.com    6
+--    kate.sarto@gmail.com           5   ← NÃO reabrir: são os 5 cursos que a
+--                                         Jessica revogou de propósito em
+--                                         17/09 ("queria velas de
+--                                         lembrancinha"). Reabrir desfaria a
+--                                         decisão dela.
+--    sandrajmeireles@yahoo.com.br   2
+--
+--    Ou seja, 14 tokens em 2 endereços é o universo real a resolver — e ainda
+--    assim por `update ... where id in (<lista conferida uma a uma>)`, dentro
+--    de transação que primeiro grave a lista e registre em `audit_log`, nunca
+--    por predicado que varra a tabela.
+--
+--    Fica esperando decisão da Jessica. O defeito que CRIAVA tokens queimados
+--    sem matrícula já está corrigido no código (matricular-tokens.ts), então a
+--    fila não cresce mais — isto aqui é só o passivo antigo.
+--
+-- Nada é executado por este arquivo. É registro do que foi investigado, para
+-- ninguém reescrever a mesma migration daqui a um mês.

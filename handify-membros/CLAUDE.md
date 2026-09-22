@@ -137,7 +137,7 @@ Todos os dados do comprador vindos do Payt são capturados em múltiplas camadas
 - Nunca exige que a aluna redigite dados que o Payt já enviou
 
 **Export CSV** (`/api/admin/alunos/export`):
-Colunas: Nome, E-mail, Telefone, Nascimento, Qtd. Cursos, Cursos, Fonte, Data da 1ª Matrícula, Aulas Concluídas, Progresso Médio (%), Certificados, Última Atividade, Data de Cadastro, Status
+Colunas: Nome, E-mail, Telefone, Nascimento, Qtd. Cursos, Cursos, Fonte, Data da 1ª Matrícula, Aulas Concluídas, Progresso Médio (%), Certificados, Última Atividade, Data de Cadastro, Handify Completo, Status
 
 ## Política de acesso — 100% fechado sem login
 

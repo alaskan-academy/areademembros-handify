@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendPlanUpgradeEmailBatch } from "@/lib/email";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import {
   CAMPANHA_CONCLUSAO,
   ETAPAS_CONCLUSAO,
@@ -10,7 +11,8 @@ import {
   jaConvidadas,
   linkComUtm,
   linkDoPlano,
-  registrarEnvios,
+  reservarEnvios,
+  desfazerReservas,
 } from "@/lib/campanhas/completo";
 
 /**
@@ -60,18 +62,31 @@ export async function GET(req: NextRequest) {
     const seteDias = new Date(agora - 7 * 24 * 60 * 60 * 1000).toISOString();
     const umMes = new Date(agora - DIAS_ENTRE_ETAPAS * 24 * 60 * 60 * 1000).toISOString();
 
-    const [linkBase, titulos, comPlano, { data: enviosSeq }] = await Promise.all([
+    // Esta leitura é quem sabe em que etapa cada aluna está. Era um select
+    // único, cortado em 1.000 linhas pelo Supabase e com o erro descartado:
+    // aluna que ficasse de fora do recorte aparecia como nova e voltava a
+    // receber a etapa 1, um e-mail que ela já tinha recebido. Pagina até o fim
+    // e, na falha, joga — o catch lá embaixo devolve 500 e nada sai.
+    const [linkBase, titulos, comPlano, enviosSeq] = await Promise.all([
       linkDoPlano(service),
       cursosDoPlano(service),
       comPlanoAtivo(service),
-      service.from("email_campaign_sends").select("campaign, user_id, sent_at").like("campaign", `${CAMPANHA_CONCLUSAO}%`),
+      fetchAll<{ campaign: string; user_id: string; sent_at: string }>((de, ate) =>
+        service
+          .from("email_campaign_sends")
+          .select("campaign, user_id, sent_at")
+          .like("campaign", `${CAMPANHA_CONCLUSAO}%`)
+          .order("campaign")
+          .order("user_id")
+          .range(de, ate)
+      ),
     ]);
     if (!linkBase) return NextResponse.json({ error: "Sem link do plano ativo em annual_promo" }, { status: 500 });
     const totalDoPlano = titulos.size;
 
     // Em que etapa cada aluna está, e quando recebeu a última.
     const etapaDe = new Map<string, { etapa: number; em: string }>();
-    for (const e of (enviosSeq ?? []) as { campaign: string; user_id: string; sent_at: string }[]) {
+    for (const e of enviosSeq) {
       const etapa = Number(e.campaign.split("-").pop());
       const atual = etapaDe.get(e.user_id);
       if (!atual || etapa > atual.etapa) etapaDe.set(e.user_id, { etapa, em: e.sent_at });
@@ -144,20 +159,47 @@ export async function GET(req: NextRequest) {
 
     let total = 0;
     const detalhe: Record<string, number> = {};
+    const falhas: string[] = [];
     for (const [etapa, fila] of porEtapa) {
-      const { enviados, erro } = await sendPlanUpgradeEmailBatch(fila);
-      const ok = new Set(enviados.map((e) => e.toLowerCase()));
-      await registrarEnvios(
+      const campanha = `${CAMPANHA_CONCLUSAO}-${etapa}`;
+
+      // Reserva primeiro: se o banco falhar aqui, nada saiu e nada se repete.
+      const reservados = await reservarEnvios(
         service,
-        `${CAMPANHA_CONCLUSAO}-${etapa}`,
-        fila.filter((f) => ok.has(f.to.toLowerCase())).map((f) => ({ user_id: f.user_id, email: f.to }))
+        campanha,
+        fila.map((f) => ({ user_id: f.user_id, email: f.to }))
       );
+      const paraEnviar = fila.filter((f) => reservados.has(f.user_id));
+      if (!paraEnviar.length) continue;
+
+      const { enviados, erro } = await sendPlanUpgradeEmailBatch(paraEnviar);
+      const ok = new Set(enviados.map((e) => e.toLowerCase()));
+
+      if (erro) {
+        // O lote parou no meio. Devolve a vez SÓ de quem não chegou a receber.
+        // Sem erro, quem ficou de fora foi a lista de supressão — essa fica
+        // reservada de propósito, senão volta à fila de hora em hora para
+        // sempre, e a Resend nunca entregou nada nesse endereço mesmo.
+        await desfazerReservas(
+          service,
+          campanha,
+          paraEnviar.filter((f) => !ok.has(f.to.toLowerCase())).map((f) => f.user_id)
+        );
+        console.error(`[convite-completo] etapa ${etapa}: ${erro}`);
+        falhas.push(`etapa ${etapa}: ${erro}`);
+      }
+
       total += enviados.length;
       detalhe[`etapa${etapa}`] = enviados.length;
-      if (erro) console.error(`[convite-completo] etapa ${etapa}: ${erro}`);
     }
 
     console.log(`[convite-completo] enviados ${total}`, detalhe);
+    // 500 de propósito: antes a rota devolvia 200 mesmo com o lote quebrado, e
+    // o cron ficava verde com aluna sem receber. Mesma escolha do
+    // alarme-revogacoes.
+    if (falhas.length) {
+      return NextResponse.json({ enviados: total, ...detalhe, erro: falhas.join("; ") }, { status: 500 });
+    }
     return NextResponse.json({ enviados: total, ...detalhe });
   } catch (e) {
     console.error("[convite-completo]", e);

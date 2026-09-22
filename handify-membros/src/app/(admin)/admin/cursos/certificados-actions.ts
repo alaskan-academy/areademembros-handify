@@ -93,6 +93,15 @@ async function alunasSemCertificado(courseId: string): Promise<string[]> {
 
   const limiar = Math.ceil(lessonIds.length * 0.95);
 
+  // Ordem estável é obrigatória aqui: `fetchAll` pagina com LIMIT/OFFSET, e
+  // OFFSET sem ORDER BY não garante ordem nenhuma no Postgres — a mesma linha
+  // pode vir em duas páginas ou em nenhuma. Neste ponto isso decide quem entra
+  // na lista: o progresso é contado somando as linhas recebidas, então linha
+  // repetida inflaciona a contagem de quem está a uma aula do limiar, e linha
+  // pulada apaga quem já concluiu de verdade — sem erro nenhum aparecer. Em
+  // Saponária Brasil são 21 páginas de progresso e 73 alunas exatamente uma
+  // aula abaixo do limiar. `id` é PK única nas três tabelas; coluna não-única
+  // deixa empate, e empate reabre o mesmo buraco.
   const [matriculas, progresso, certificados] = await Promise.all([
     fetchAll<{ user_id: string }>((de, ate) =>
       service
@@ -100,6 +109,7 @@ async function alunasSemCertificado(courseId: string): Promise<string[]> {
         .select("user_id")
         .eq("course_id", courseId)
         .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+        .order("id", { ascending: true })
         .range(de, ate)
     ),
     fetchAll<{ user_id: string }>((de, ate) =>
@@ -108,10 +118,16 @@ async function alunasSemCertificado(courseId: string): Promise<string[]> {
         .select("user_id")
         .eq("completed", true)
         .in("lesson_id", lessonIds)
+        .order("id", { ascending: true })
         .range(de, ate)
     ),
     fetchAll<{ user_id: string }>((de, ate) =>
-      service.from("certificates").select("user_id").eq("course_id", courseId).range(de, ate)
+      service
+        .from("certificates")
+        .select("user_id")
+        .eq("course_id", courseId)
+        .order("id", { ascending: true })
+        .range(de, ate)
     ),
   ]);
 

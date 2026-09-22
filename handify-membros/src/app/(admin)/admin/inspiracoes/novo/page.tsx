@@ -22,7 +22,7 @@ export default async function NovoInspiracaoPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <InspiracaoForm adminId={user.id} courses={courses ?? []} categories={categories} />
+      <InspiracaoForm courses={courses ?? []} categories={categories} />
     </div>
   )
 }

@@ -35,7 +35,7 @@ export default async function EditInspiracaoPage({
 
   return (
     <div className="max-w-3xl mx-auto">
-      <InspiracaoForm post={post as any} adminId={user.id} courses={courses ?? []} categories={categories} />
+      <InspiracaoForm post={post as any} courses={courses ?? []} categories={categories} />
     </div>
   )
 }

@@ -38,6 +38,11 @@ export type PurchaseEvent = {
   transactionId: string;
   /** true apenas em estorno real de dinheiro — dispara e-mail de reembolso. */
   isRealRefund: boolean;
+  /**
+   * Revogação agendada: a plataforma afirma que o acesso segue pago até esta
+   * data (ISO). Só a Kiwify preenche. Ausente/null = revoga na hora, como antes.
+   */
+  accessUntil?: string | null;
   /** Payload bruto preservado para auditoria. */
   rawPayload: Record<string, unknown>;
 };
@@ -214,32 +219,72 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   // Sem conta ainda — cria token de ativação por curso e envia 1 único e-mail
   if (!user) {
     if (event.action === "grant") {
-      const tokenResults = await Promise.all(
-        courses.map((course) =>
-          supabase
-            .from("activation_tokens")
-            .insert({
-              email: event.buyerEmail.toLowerCase(),
-              course_id: course.id,
-              buyer_name: event.buyerName ?? null,
-              buyer_phone: event.buyerPhone ?? null,
-              // Sem a transação, a checagem de estorno no cadastro precisa olhar
-              // TODAS as compras do e-mail e acaba segurando compra boa. Com ela,
-              // a pergunta fica exata: esta transação foi paga e depois estornada?
-              transaction_id: event.transactionId,
-            })
-            .select("token")
-            .single()
-            .then(({ data }) => ({ course, token: data?.token ?? null }))
-        )
-      );
+      // Cada insert é conferido. O `.then(({ data }) => ...)` antigo jogava
+      // `error` fora, e token que não entrou some de todo alarme: o relatório
+      // de compras sem acesso parte de `activation_tokens where not used`, e o
+      // que não existe não aparece lá. Mesmo raciocínio de
+      // `matricularTokensPendentes`.
+      const criarToken = async (course: NonNullable<typeof courses>[number]) => {
+        const { data, error } = await supabase
+          .from("activation_tokens")
+          .insert({
+            email: event.buyerEmail.toLowerCase(),
+            course_id: course.id,
+            buyer_name: event.buyerName ?? null,
+            buyer_phone: event.buyerPhone ?? null,
+            // Sem a transação, a checagem de estorno no cadastro precisa olhar
+            // TODAS as compras do e-mail e acaba segurando compra boa. Com ela,
+            // a pergunta fica exata: esta transação foi paga e depois estornada?
+            transaction_id: event.transactionId,
+          })
+          .select("token")
+          .single();
+        const token = (data?.token as string | undefined) ?? null;
+        return {
+          course,
+          token,
+          error: error?.message ?? (token ? null : "insert não devolveu token"),
+        };
+      };
 
-      // Usa o token do curso principal (ou o primeiro disponível) no e-mail
+      const tokenResults = await Promise.all(courses.map(criarToken));
+
+      // Segunda tentativa, em série, só para o que falhou: a falha provável é
+      // timeout/queda momentânea e recriar é barato. Não há unicidade em
+      // (email, course_id), por isso só reinserimos o que não entrou.
+      for (let i = 0; i < tokenResults.length; i++) {
+        if (tokenResults[i].token) continue;
+        console.warn(
+          `${log} token de ativação falhou (curso=${tokenResults[i].course.slug}), tentando de novo: ${tokenResults[i].error}`
+        );
+        tokenResults[i] = await criarToken(tokenResults[i].course);
+      }
+
+      const semToken = tokenResults.filter((r) => !r.token);
+      for (const f of semToken) {
+        console.error(
+          `${log} token de ativação NÃO criado: curso=${f.course.slug} (${f.course.id}) email=${event.buyerEmail} motivo=${f.error}`
+        );
+      }
+      const tokenError = semToken.length
+        ? `${semToken.length} de ${courses.length} token(s) de ativação não criados (${semToken
+            .map((f) => f.course.slug)
+            .join(", ")}): ${semToken[0].error}`
+        : undefined;
+
+      // Usa o token do curso principal (ou o primeiro que entrou) no e-mail
       const mainCourse =
         courses.find((c) => hasCode(c.checkout_codes as string[], event.mainProductCode)) ??
         courses[0];
       const mainTokenResult = tokenResults.find((r) => r.course.id === mainCourse.id);
-      const activationToken = mainTokenResult?.token ?? tokenResults.find((r) => r.token)?.token;
+      const primeiroComToken = tokenResults.find((r) => r.token);
+      // O e-mail tem que falar de um curso que ela vai receber de fato: se o
+      // token do principal não entrou, o link abre a conta sem aquele curso.
+      const cursoDoEmail = mainTokenResult?.token
+        ? mainCourse
+        : (primeiroComToken?.course ?? mainCourse);
+      const activationToken = mainTokenResult?.token ?? primeiroComToken?.token;
+      const tokensCriados = tokenResults.length - semToken.length;
 
       // A compradora ainda não tem conta: sem esse e-mail ela não tem como
       // entrar. Se o envio falhar, o evento fica marcado como não processado
@@ -253,13 +298,13 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
           await sendAccessConfirmedEmail({
             to: event.buyerEmail,
             studentName: event.buyerName || event.buyerEmail,
-            courseTitle: mainCourse.title,
-            courseSlug: mainCourse.slug,
+            courseTitle: cursoDoEmail.title,
+            courseSlug: cursoDoEmail.slug,
             activationToken,
-            totalCourses: courses.length,
+            totalCourses: tokensCriados,
           });
           console.info(
-            `${log} ${courses.length} token(s) criados, 1 e-mail enviado para ${event.buyerEmail}`
+            `${log} ${tokensCriados}/${courses.length} token(s) criados, 1 e-mail enviado para ${event.buyerEmail}`
           );
         } catch (err) {
           emailError = `Token criado, mas o e-mail de acesso falhou: ${
@@ -270,8 +315,8 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
       }
 
       await logPaymentEvent(supabase, event, {
-        processed: !emailError,
-        error: emailError,
+        processed: !emailError && !tokenError,
+        error: [tokenError, emailError].filter(Boolean).join(" | ") || undefined,
         amountPaid,
       });
       return NextResponse.json({ received: true });
@@ -320,6 +365,11 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
       //
       // A correção de 09/09 resolveu "revoga ou não". Esta resolve "revoga o
       // quê": um curso só perde o acesso quando NENHUMA compra em pé o cobre.
+      //
+      // A pergunta é sobre a PESSOA, não sobre o e-mail da compra: quem comprou
+      // com dois endereços tem as compras espalhadas, e o webhook já liga as
+      // duas na mesma conta pelo CPF ou pelo telefone. `emails_da_pessoa`
+      // (no banco) expande o e-mail para o conjunto dela antes de procurar.
       const { data: protegido, error: erroProtecao } = await supabase.rpc(
         "curso_coberto_por_outra_compra",
         { p_email: event.buyerEmail, p_course_id: course.id, p_transacao: event.transactionId }
@@ -343,26 +393,50 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         return true;
       }
 
-      const { data: revoked, error } = await supabase
+      // A assinatura cancelada continua paga até o fim do ciclo. Terminar em
+      // `now` cobra da aluna um mês que ela já pagou.
+      const fimPago = event.accessUntil ?? null;
+
+      const { data: atual } = await supabase
         .from("enrollments")
-        .update({ expires_at: now })
+        .select("id, expires_at")
         .eq("user_id", user.id)
         .eq("course_id", course.id)
-        .select("id");
+        .maybeSingle();
+
+      if (!atual) {
+        console.info(
+          `${log} Revoke ignorado (sem matrícula): user=${user.id} curso=${course.id} motivo=${event.eventType}`
+        );
+        return true;
+      }
+
+      // Nunca encurtar o que já está marcado para durar menos/igual.
+      if (fimPago && atual.expires_at && new Date(atual.expires_at) <= new Date(fimPago)) {
+        console.info(
+          `${log} Agendamento dispensado (matrícula já termina em ${atual.expires_at}): user=${user.id} curso=${course.id}`
+        );
+        return true;
+      }
+
+      const novoFim = fimPago ?? now;
+
+      const { error } = await supabase
+        .from("enrollments")
+        .update({ expires_at: novoFim })
+        .eq("user_id", user.id)
+        .eq("course_id", course.id);
 
       if (error) {
         console.error(`${log} Erro ao revogar ${course.id}:`, error.message);
         return false;
       }
-      if (!revoked?.length) {
-        console.info(
-          `${log} Revoke ignorado (sem matrícula ativa): user=${user.id} curso=${course.id} motivo=${event.eventType}`
-        );
-        return true;
-      }
+
       await supabase.from("audit_log").insert({
         admin_id: null,
-        action: "enrollment.revoked",
+        // Ação distinta: o alarme de revogações filtra por "enrollment.revoked"
+        // e não pode contar agendamento como corte indevido.
+        action: fimPago ? "enrollment.expiry_scheduled" : "enrollment.revoked",
         target_type: "enrollment",
         target_id: course.id,
         meta: {
@@ -371,10 +445,11 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
           reason: event.eventType,
           platform: event.platform,
           transaction_id: event.transactionId,
+          expires_at: novoFim,
         },
       });
       console.info(
-        `${log} Matrícula revogada: user=${user.id} curso=${course.id} motivo=${event.eventType}`
+        `${log} ${fimPago ? `Fim de acesso agendado para ${novoFim}` : "Matrícula revogada"}: user=${user.id} curso=${course.id} motivo=${event.eventType}`
       );
 
       // E-mail de reembolso só para estorno real
@@ -405,10 +480,28 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   // pelos checkout_codes; aqui registramos o plano em si. Se a compradora ainda
   // não tem conta, quem cria a membership é `process_pending_payment_events`
   // (SQL) quando a conta nasce. Contexto em .claude/plans/tiers-handify.md.
-  const { data: promo } = await supabase
+  //
+  // Nada daqui para baixo entrava na conta de sucesso do evento: o bloco do
+  // plano podia falhar inteiro e `payment_events` ficava verde. A compradora
+  // do produto mais caro da casa ficava sem membership e sem ninguém saber.
+  const falhasDoPlano: string[] = [];
+
+  const { data: promo, error: erroPromo } = await supabase
     .from("annual_promo")
     .select("subscription_product_codes")
     .maybeSingle();
+
+  // Sem ler a configuração não dá para saber se esta compra é do plano. Deixar
+  // passar como sucesso é o erro caro: a aluna pagou o produto mais caro da casa
+  // e fica sem membership, sem os cursos in_plan e sem ninguém saber.
+  // Não filtrar por `active`: isso é o banner de venda, não o produto —
+  // `public.is_plan_code` (SQL) também não filtra.
+  if (erroPromo || !promo) {
+    falhasDoPlano.push(
+      `não consegui ler annual_promo (${erroPromo?.message ?? "nenhuma linha"}) — se esta compra era do Handify Completo, a membership NÃO foi criada`
+    );
+  }
+
   const planCodes = (promo?.subscription_product_codes as string[] | null) ?? [];
   const isPlanEvent = event.productCodes.some((c) => hasCode(planCodes, c));
 
@@ -428,7 +521,14 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         // Vencida mas não revogada: fecha antes de abrir a nova (índice único
         // permite uma ativa por plano).
         if (current) {
-          await supabase.from("memberships").update({ revoked_at: now }).eq("id", current.id);
+          const { error: erroFechar } = await supabase
+            .from("memberships")
+            .update({ revoked_at: now })
+            .eq("id", current.id);
+          if (erroFechar) {
+            console.error(`${log} Erro ao fechar membership vencida:`, erroFechar.message);
+            falhasDoPlano.push(`membership vencida não foi fechada: ${erroFechar.message}`);
+          }
         }
         const { error } = await supabase.from("memberships").insert({
           user_id: user.id,
@@ -437,8 +537,10 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
           granted_at: now,
           reason: `compra via ${event.platform} (${event.transactionId})`,
         });
-        if (error) console.error(`${log} Erro ao registrar Handify Completo:`, error.message);
-        else console.info(`${log} Handify Completo concedido: user=${user.id}`);
+        if (error) {
+          console.error(`${log} Erro ao registrar Handify Completo:`, error.message);
+          falhasDoPlano.push(`membership do Completo não criada: ${error.message}`);
+        } else console.info(`${log} Handify Completo concedido: user=${user.id}`);
       }
 
       // Todo curso marcado `in_plan` entra na compra do plano — inclusive os que
@@ -461,8 +563,12 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
           })),
           { onConflict: "user_id,course_id" }
         );
-        if (error) console.error(`${log} Erro nos cursos do plano sem código:`, error.message);
-        else console.info(`${log} +${faltando.length} curso(s) do plano sem código: user=${user.id}`);
+        if (error) {
+          console.error(`${log} Erro nos cursos do plano sem código:`, error.message);
+          falhasDoPlano.push(
+            `${faltando.length} curso(s) in_plan sem código não matriculados: ${error.message}`
+          );
+        } else console.info(`${log} +${faltando.length} curso(s) do plano sem código: user=${user.id}`);
       }
     } else if (current) {
       // Mesma regra das matrículas: quem comprou o plano duas vezes e estornou
@@ -500,20 +606,61 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
           `${log} Revoke do Completo ignorado (plano pago em outra compra válida): user=${user.id}`
         );
       } else {
-        await supabase.from("memberships").update({ revoked_at: now }).eq("id", current.id);
-        await supabase.from("audit_log").insert({
-          admin_id: null,
-          action: "membership.revoked",
-          target_type: "membership",
-          target_id: current.id,
-          meta: {
-            user_id: user.id,
-            reason: event.eventType,
-            platform: event.platform,
-            transaction_id: event.transactionId,
-          },
-        });
-        console.info(`${log} Handify Completo revogado: user=${user.id} motivo=${event.eventType}`);
+        // Assinatura cancelada/atrasada não é estorno: a aluna pagou o ciclo e
+        // tem direito a ele até o fim. Matar o plano na hora tira os 23 cursos
+        // de quem já pagou o mês. A Kiwify manda a data do fim do ciclo no
+        // próprio payload do cancelamento e ela chega aqui em `event.accessUntil`;
+        // estorno de verdade (order_refunded/chargeback) e a Payt inteira não
+        // preenchem nada e seguem cortando na hora, como antes.
+        const fimPagoPlano = event.accessUntil ?? null;
+        const agendar =
+          !!fimPagoPlano &&
+          (!current.expires_at || new Date(current.expires_at) > new Date(fimPagoPlano));
+
+        // O update solto não olhava o erro: o plano continuava de pé depois do
+        // estorno E o audit_log gravava "membership.revoked" assim mesmo —
+        // trilha de auditoria mentindo sobre o que aconteceu.
+        const { error: erroRevogar } = await supabase
+          .from("memberships")
+          // CRÍTICO: agendar NÃO pode gravar `revoked_at`. `hasActiveMembership`
+          // (src/lib/auth/access.ts) exige `revoked_at is null`, então gravar a
+          // data mataria o plano neste instante — que é exatamente o defeito
+          // que estamos fechando. O agendamento mora só em `expires_at`.
+          .update(agendar ? { expires_at: fimPagoPlano } : { revoked_at: now })
+          .eq("id", current.id);
+        if (erroRevogar) {
+          console.error(`${log} Erro ao revogar Handify Completo:`, erroRevogar.message);
+          falhasDoPlano.push(
+            agendar
+              ? `fim do Handify Completo não agendado: ${erroRevogar.message}`
+              : `membership do Completo não revogada: ${erroRevogar.message}`
+          );
+        } else {
+          await supabase.from("audit_log").insert({
+            admin_id: null,
+            // Ação distinta: o alarme de revogações (cron alarme-revogacoes)
+            // filtra por "membership.revoked" e não pode contar cancelamento
+            // normal de assinatura como corte indevido — viraria alarme falso
+            // e treinaria a admin a ignorar o alarme que importa.
+            action: agendar ? "membership.expiry_scheduled" : "membership.revoked",
+            target_type: "membership",
+            target_id: current.id,
+            meta: {
+              user_id: user.id,
+              reason: event.eventType,
+              platform: event.platform,
+              transaction_id: event.transactionId,
+              expires_at: agendar ? fimPagoPlano : null,
+            },
+          });
+          console.info(
+            `${log} ${
+              agendar
+                ? `Handify Completo termina em ${fimPagoPlano} (fim do ciclo pago)`
+                : "Handify Completo revogado"
+            }: user=${user.id} motivo=${event.eventType}`
+          );
+        }
       }
     }
   }
@@ -575,10 +722,15 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
     })().catch((e) => console.error(`${log} access email:`, e));
   }
 
+  const cursosFalhos = courses.length - processed;
+  const motivos = [
+    cursosFalhos > 0 ? `${cursosFalhos} curso(s) falharam` : null,
+    ...falhasDoPlano,
+  ].filter(Boolean) as string[];
+
   await logPaymentEvent(supabase, event, {
-    processed: processed === courses.length,
-    error:
-      processed < courses.length ? `${courses.length - processed} curso(s) falharam` : undefined,
+    processed: motivos.length === 0,
+    error: motivos.length ? motivos.join("; ") : undefined,
     amountPaid,
   });
 

@@ -39,6 +39,15 @@ const KiwifySubscriptionSchema = z
   .object({
     id: z.string().optional(),
     status: z.string().optional(),
+    next_payment: z.string().nullable().optional(),
+    customer_access: z
+      .object({
+        has_access: z.boolean().optional(),
+        access_until: z.string().nullable().optional(),
+        active_period: z.boolean().optional(),
+      })
+      .passthrough()
+      .optional(),
     plan: z
       .object({
         id: z.string().optional(),
@@ -196,4 +205,28 @@ export function extractKiwifyPhone(payload: KiwifyPayload): string | undefined {
 /** CPF do comprador, só dígitos. */
 export function extractKiwifyDoc(payload: KiwifyPayload): string | undefined {
   return payload.Customer.CPF ?? payload.Customer.cpf ?? undefined;
+}
+
+/**
+ * Até quando a assinatura cancelada/atrasada continua paga.
+ *
+ * `subscription_canceled` e `subscription_late` cortavam o acesso na hora, como
+ * se fossem estorno. Quem cancela no dia 2 pagou o mês inteiro e perdia os 28
+ * dias restantes — e no Handify Completo isso são 23 cursos de uma vez.
+ *
+ * A Kiwify manda a data no próprio payload do cancelamento, em
+ * `Subscription.customer_access.access_until` (com `next_payment` de reserva).
+ * null = não há período pago em pé, corta na hora.
+ */
+export function extractKiwifyAccessUntil(payload: KiwifyPayload): string | null {
+  const acesso = payload.Subscription?.customer_access;
+  if (acesso?.has_access === false) return null;
+
+  const raw = acesso?.access_until ?? payload.Subscription?.next_payment ?? null;
+  if (!raw) return null;
+
+  const data = new Date(raw);
+  if (Number.isNaN(data.getTime())) return null;
+  // Data no passado não agenda nada — é corte imediato.
+  return data.getTime() > Date.now() ? data.toISOString() : null;
 }

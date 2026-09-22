@@ -5,8 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { broadcastPush } from "@/lib/push";
-import { fetchAll } from "@/lib/supabase/fetch-all";
+import { dispararCampanha } from "./dispatch";
 
 // ── Auth helpers ──────────────────────────────────────────────────
 
@@ -84,7 +83,9 @@ export async function getCampaigns() {
   const service = createServiceClient();
   const { data } = await service
     .from("notification_campaigns")
-    .select("id, title, body, link, target, scheduled_at, sent_at, sent_count, status, created_at")
+    // target_count entra aqui porque sem ele o painel não sabe dizer "1.000 de
+    // 4.557" — só o número solto, que a admin lê como se fosse a base inteira.
+    .select("id, title, body, link, target, scheduled_at, sent_at, sent_count, target_count, status, created_at")
     .order("created_at", { ascending: false });
   return data ?? [];
 }
@@ -133,9 +134,11 @@ export async function createCampaign(formData: FormData) {
 
   if (error) return { error: "Erro ao criar campanha." };
 
-  // Disparo imediato se não agendado
+  // Disparo imediato se não agendado. Chama o interno: o requireAdmin() já
+  // aconteceu no começo desta função, e o invólucro só repetiria a consulta de
+  // role.
   if (!scheduledAt && data?.id) {
-    await dispatchCampaign(data.id);
+    await dispararCampanha(data.id);
   }
 
   revalidatePath("/admin/notificacoes");
@@ -160,104 +163,34 @@ export async function cancelCampaign(id: string) {
   revalidatePath("/admin/notificacoes");
 }
 
-// ── Dispatcher: envia notificações para as alunas ─────────────────
+// ── Disparo manual (Server Action pública — precisa de guarda) ────
 
+/**
+ * Invólucro do botão "Enviar agora". O corpo do disparo mora em `./dispatch`.
+ *
+ * Esta era a única ação de campanha sem `requireAdmin()` — e "use server"
+ * publica toda função exportada daqui como endpoint: qualquer visitante que
+ * forjasse o POST mandava notificação e push para as 4.557 alunas. A guarda de
+ * `(admin)/layout.tsx` não cobre isso, porque ela roda na renderização da
+ * página e a Server Action é um POST que pode sair de qualquer rota (não há
+ * middleware no repo).
+ *
+ * A guarda não pode descer para `dispararCampanha`: o cron chama o mesmo código
+ * sem sessão, e o `redirect("/login")` do requireAdmin mataria o Route Handler —
+ * nenhuma campanha agendada voltaria a sair, em silêncio.
+ */
 export async function dispatchCampaign(campaignId: string) {
+  const { userId } = await requireAdmin();
+  await dispararCampanha(campaignId);
+
+  // Regra 12 do CLAUDE.md: ação de admin vai para o audit_log. Esta é a única
+  // que fala com a base inteira de uma vez.
   const service = createServiceClient();
-
-  const { data: campaign } = await service
-    .from("notification_campaigns")
-    .select("*")
-    .eq("id", campaignId)
-    .single();
-
-  if (!campaign || campaign.status === "sent" || campaign.status === "cancelled") return;
-
-  await service
-    .from("notification_campaigns")
-    .update({ status: "sending" })
-    .eq("id", campaignId);
-
-  // Busca usuárias alvo
-  let userIds: string[] = [];
-
-  // Paginado: o Supabase corta em 1.000 linhas sem avisar. A campanha
-  // "Ferramentas novas na Handify" de 05/09/2026 foi para 1.000 alunas de 3.474
-  // e ficou gravada como "enviada" — 2.474 nunca souberam do aviso, e o painel
-  // mostrava o 1.000 redondo como se fosse a base inteira.
-  if (campaign.target === "all") {
-    const profiles = await fetchAll<{ id: string }>((de, ate) =>
-      service
-        .from("profiles")
-        .select("id")
-        .eq("role", "student")
-        .eq("banned", false)
-        .range(de, ate)
-    );
-    userIds = profiles.map((p) => p.id);
-  } else if (campaign.target.startsWith("course:")) {
-    const courseId = campaign.target.replace("course:", "");
-    const now = new Date().toISOString();
-    const enrollments = await fetchAll<{ user_id: string }>((de, ate) =>
-      service
-        .from("enrollments")
-        .select("user_id")
-        .eq("course_id", courseId)
-        .or(`expires_at.is.null,expires_at.gte.${now}`)
-        .range(de, ate)
-    );
-    userIds = enrollments.map((e) => e.user_id);
-  }
-
-  if (userIds.length === 0) {
-    await service
-      .from("notification_campaigns")
-      .update({ status: "sent", sent_at: new Date().toISOString(), sent_count: 0 })
-      .eq("id", campaignId);
-    return;
-  }
-
-  // Insere notificações in-app em batch (máx 500 por vez)
-  const BATCH = 500;
-  let totalSent = 0;
-  let houveFalha = false;
-  for (let i = 0; i < userIds.length; i += BATCH) {
-    const batch = userIds.slice(i, i + BATCH).map((userId) => ({
-      user_id: userId,
-      type: "admin_broadcast",
-      title: campaign.title,
-      body: campaign.body,
-      link: campaign.link ?? null,
-      read: false,
-    }));
-    const { error: erroLote } = await service.from("notifications").insert(batch);
-    if (erroLote) {
-      // Somar o tamanho do lote sem olhar o retorno era contar o que a gente
-      // tentou, não o que entrou. Campanha com falha parcial agora fica
-      // marcada como tal, em vez de virar um "enviada" que ninguém confere.
-      console.error("[dispatch] lote falhou:", erroLote.message);
-      houveFalha = true;
-      continue;
-    }
-    totalSent += batch.length;
-  }
-
-  // Dispara push para usuárias com subscription ativa (fire-and-forget)
-  broadcastPush(
-    { title: campaign.title, body: campaign.body, link: campaign.link ?? undefined },
-    userIds
-  ).catch((e) => console.error("[dispatch] push error:", e));
-
-  await service
-    .from("notification_campaigns")
-    .update({
-      // "parcial" quando faltou gente: o número no painel precisa dizer a
-      // verdade, senão a admin acha que falou com a base inteira.
-      status: houveFalha || totalSent < userIds.length ? "parcial" : "sent",
-      sent_at: new Date().toISOString(),
-      sent_count: totalSent,
-    })
-    .eq("id", campaignId);
-
-  revalidatePath("/admin/notificacoes");
+  await service.from("audit_log").insert({
+    admin_id: userId,
+    action: "notification_campaign.dispatched",
+    target_type: "notification_campaign",
+    target_id: campaignId,
+    meta: { origem: "manual" },
+  });
 }

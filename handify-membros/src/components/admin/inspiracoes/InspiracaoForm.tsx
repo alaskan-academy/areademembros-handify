@@ -39,7 +39,6 @@ const LABEL_CLS = "block text-xs font-medium text-foreground mb-1"
 
 interface Props {
   post?: InspiracaoPostRow
-  adminId: string
   courses: { id: string; title: string }[]
   categories?: { id: string; name: string; slug: string }[]
 }
@@ -53,7 +52,7 @@ function getYouTubeId(url: string) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function InspiracaoForm({ post, adminId, courses, categories = [] }: Props) {
+export function InspiracaoForm({ post, courses, categories = [] }: Props) {
   const router = useRouter()
   const isEdit = !!post
 
@@ -200,7 +199,8 @@ export function InspiracaoForm({ post, adminId, courses, categories = [] }: Prop
         blocks = [{ type: 'video_meta', content: videoAspect, position: 0 }]
       }
 
-      await adminUpsertPost(adminId, {
+      // Sem adminId: a autoria agora sai da sessão, dentro da action.
+      await adminUpsertPost({
         id: post?.id,
         type,
         title: title.trim(),

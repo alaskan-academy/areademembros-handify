@@ -11,7 +11,8 @@ import {
   linkDoPlano,
   matriculasPorAluna,
   podeReceber,
-  registrarEnvios,
+  reservarEnvios,
+  desfazerReservas,
 } from "@/lib/campanhas/completo";
 
 /**
@@ -76,16 +77,36 @@ export async function GET(req: NextRequest) {
 
     if (simular) return NextResponse.json({ simulacao: true, enviados: 0, naFila: fila.length, exemplo: fila[0]?.to });
 
-    const { enviados, erro } = await sendPlanUpgradeEmailBatch(fila);
-    const ok = new Set(enviados.map((e) => e.toLowerCase()));
-    await registrarEnvios(
+    // Reserva antes de enviar: a gravação depois do envio podia falhar calada,
+    // e aí a base inteira (752 alunas) receberia o convite de novo na terça
+    // seguinte. Quem já tem linha não volta em `reservados`, então não recebe.
+    const reservados = await reservarEnvios(
       service,
       CAMPANHA_BASE,
-      fila.filter((f) => ok.has(f.to.toLowerCase())).map((f) => ({ user_id: f.user_id, email: f.to }))
+      fila.map((f) => ({ user_id: f.user_id, email: f.to }))
     );
+    const paraEnviar = fila.filter((f) => reservados.has(f.user_id));
+    if (!paraEnviar.length) {
+      return NextResponse.json({ enviados: 0, naFila: fila.length, motivo: "todas já reservadas" });
+    }
 
-    console.log(`[campanha-completo] enviados ${enviados.length} de ${fila.length}${erro ? ` — parou em: ${erro}` : ""}`);
-    return NextResponse.json({ enviados: enviados.length, naFila: fila.length, erro });
+    const { enviados, erro } = await sendPlanUpgradeEmailBatch(paraEnviar);
+    const ok = new Set(enviados.map((e) => e.toLowerCase()));
+
+    if (erro) {
+      // Devolve a vez só de quem o lote não chegou a alcançar — a próxima
+      // rodada tenta de novo com ela, sem repetir com quem já recebeu.
+      await desfazerReservas(
+        service,
+        CAMPANHA_BASE,
+        paraEnviar.filter((f) => !ok.has(f.to.toLowerCase())).map((f) => f.user_id)
+      );
+      console.error(`[campanha-completo] lote parou em: ${erro} — ${enviados.length} de ${paraEnviar.length}`);
+      return NextResponse.json({ enviados: enviados.length, naFila: fila.length, erro }, { status: 500 });
+    }
+
+    console.log(`[campanha-completo] enviados ${enviados.length} de ${fila.length}`);
+    return NextResponse.json({ enviados: enviados.length, naFila: fila.length, erro: null });
   } catch (e) {
     console.error("[campanha-completo]", e);
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

@@ -10,6 +10,7 @@ import {
   extractKiwifyBuyerName,
   extractKiwifyPhone,
   extractKiwifyDoc,
+  extractKiwifyAccessUntil,
   type KiwifyPayload,
 } from "@/lib/payments/kiwify";
 import { processPurchaseEvent } from "@/lib/payments/process-purchase";
@@ -65,6 +66,7 @@ export async function POST(req: NextRequest) {
     amountPaid: extractKiwifyAmount(payload),
     transactionId: payload.order_id ?? payload.order_ref ?? "",
     isRealRefund: isKiwifyRealRefund(payload),
+    accessUntil: extractKiwifyAccessUntil(payload),
     rawPayload: rawJson,
   });
 }

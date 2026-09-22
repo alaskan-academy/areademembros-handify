@@ -17,6 +17,39 @@ import type {
 
 const PAGE_SIZE = 12
 
+/**
+ * Prova que quem chamou é admin, antes de qualquer ação de admin deste arquivo.
+ *
+ * Estava faltando nas 10 funções `admin*` daqui: todas abriam direto o service
+ * client, que usa a service role e ignora RLS. E este é um módulo 'use server':
+ * o InspiracaoForm é 'use client' e importa `adminUpsertPost` e
+ * `adminDeletePost`, então o Next publica o ID dessas actions num chunk estático
+ * que qualquer pessoa logada baixa.
+ *
+ * A única guarda de role que existia rodava ao RENDERIZAR a página do admin — e
+ * render não acontece no POST de uma Server Action. Ou seja: uma aluna comum
+ * lia o ID no chunk, postava de dentro de uma tela que ela já acessa e criava,
+ * sobrescrevia, publicava ou apagava qualquer post do acervo de Inspirações.
+ * RLS não segurava nada, porque o service client passa por cima dela.
+ *
+ * Lê o próprio perfil com o client de sessão de propósito: com service client a
+ * consulta traria o role de qualquer id que viesse do cliente e a guarda não
+ * valeria nada. (A regra "profiles sempre com service client" vale para ler o
+ * perfil de OUTRAS alunas, não a própria linha.)
+ */
+async function assertAdmin() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Não autorizado')
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  if (profile?.role !== 'admin') throw new Error('Não autorizado')
+  return { supabase, user }
+}
+
 // ── Feed (alunas) ─────────────────────────────────────────────────────────────
 
 /**
@@ -336,6 +369,7 @@ export async function adminListPosts(opts: {
   tipo?: string
   busca?: string
 } = {}) {
+  await assertAdmin()
   const supabase = createServiceClient()
 
   let query = supabase
@@ -354,6 +388,7 @@ export async function adminListPosts(opts: {
 }
 
 export async function adminGetPost(id: string) {
+  await assertAdmin()
   const supabase = createServiceClient()
 
   const { data, error } = await supabase
@@ -366,16 +401,19 @@ export async function adminGetPost(id: string) {
   return data
 }
 
+// A autoria vinha do cliente (`adminId` no primeiro argumento) e ia direta para
+// `author_id`: dava para assinar um post em nome de outra pessoa. Agora vem da
+// sessão provada pelo assertAdmin.
 export async function adminUpsertPost(
-  adminId: string,
   payload: UpsertInspiracaoPayload
 ): Promise<{ id: string }> {
+  const { user } = await assertAdmin()
   const supabase = createServiceClient()
   const { id, ...fields } = payload
 
   const record = {
     ...fields,
-    author_id: adminId,
+    author_id: user.id,
     media: fields.media ?? [],
     blocks: fields.blocks ?? [],
     tags: fields.tags ?? [],
@@ -394,6 +432,7 @@ export async function adminUpsertPost(
 }
 
 export async function adminDeletePost(id: string): Promise<void> {
+  await assertAdmin()
   const supabase = createServiceClient()
   await supabase.from('inspiration_posts').delete().eq('id', id)
   revalidatePath('/inspiracoes')
@@ -401,6 +440,7 @@ export async function adminDeletePost(id: string): Promise<void> {
 }
 
 export async function adminArchivePost(id: string, archived: boolean): Promise<void> {
+  await assertAdmin()
   const supabase = createServiceClient()
   await supabase.from('inspiration_posts').update({ archived }).eq('id', id)
   revalidatePath('/inspiracoes')
@@ -408,6 +448,7 @@ export async function adminArchivePost(id: string, archived: boolean): Promise<v
 }
 
 export async function adminPublishPost(id: string, published: boolean): Promise<void> {
+  await assertAdmin()
   const supabase = createServiceClient()
   await supabase.from('inspiration_posts').update({ published }).eq('id', id)
   revalidatePath('/inspiracoes')
@@ -417,6 +458,7 @@ export async function adminPublishPost(id: string, published: boolean): Promise<
 // ── Admin — Moderação de comentários ─────────────────────────────────────────
 
 export async function adminGetPendingComments() {
+  await assertAdmin()
   const supabase = createServiceClient()
 
   const { data, error } = await supabase
@@ -434,6 +476,7 @@ export async function adminGetPendingComments() {
 }
 
 export async function adminGetPendingCommentsCount(): Promise<number> {
+  await assertAdmin()
   const supabase = createServiceClient()
 
   const { count, error } = await supabase
@@ -446,6 +489,7 @@ export async function adminGetPendingCommentsCount(): Promise<number> {
 }
 
 export async function adminApproveComment(id: string, approved: boolean): Promise<void> {
+  await assertAdmin()
   const supabase = createServiceClient()
 
   const { data: comment } = await supabase
@@ -481,6 +525,7 @@ export async function adminApproveComment(id: string, approved: boolean): Promis
 }
 
 export async function adminDeleteComment(id: string): Promise<void> {
+  await assertAdmin()
   const supabase = createServiceClient()
   await supabase.from('inspiration_comments').delete().eq('id', id)
   revalidatePath('/inspiracoes')

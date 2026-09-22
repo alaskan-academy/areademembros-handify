@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Eye, EyeOff, X, Save, Upload, Loader2, Settings2, Check, GripVertical, BookOpen, FileText } from "lucide-react";
 import { upsertShowcaseCourse, removeShowcaseCourse } from "@/app/(admin)/admin/vitrine/actions";
 import {
-  createCourse, updateCourse, togglePublished, deleteCourse,
+  createCourse, updateCourse, togglePublished, deleteCourse, getCourseDeletionImpact,
   uploadCourseThumbnail, createCategory, updateCategory, deleteCategory,
   createNiche, updateNiche, deleteNiche,
   reorderCourses, retroactiveEnroll,
@@ -949,10 +949,36 @@ export default function CourseManager({
     });
   }
 
+  // O aviso antigo dizia só "Esta ação é irreversível" — não citava matrícula,
+  // certificado nem progresso de aula, que é o que a cascata do banco leva
+  // junto. Agora a conta vem antes da pergunta, e curso com aluna dentro não
+  // chega a perguntar: despublicar já tira o curso do ar sem destruir nada.
   function handleDelete(courseId: string, title: string) {
-    if (!confirm(`Excluir o curso "${title}"? Esta ação é irreversível.`)) return;
     startTransition(async () => {
-      await deleteCourse(courseId);
+      const impacto = await getCourseDeletionImpact(courseId);
+      if (impacto.error) { alert(impacto.error); return; }
+
+      if (impacto.enrollments > 0 || impacto.certificates > 0) {
+        alert(
+          `Não dá para excluir "${title}".\n\n` +
+          `${impacto.enrollments} matrícula(s) e ${impacto.certificates} certificado(s) ` +
+          `seriam apagados junto, com o progresso das aulas. Não tem volta.\n\n` +
+          `Para tirar do ar sem perder nada, use o botão do olho para despublicar.`
+        );
+        return;
+      }
+
+      const confirmado = confirm(
+        `Excluir o curso "${title}"?\n\n` +
+        `Vai junto: ${impacto.modules} módulo(s) e ${impacto.lessons} aula(s).\n` +
+        `Nenhuma matrícula ou certificado será afetado.\n\n` +
+        `Esta ação é irreversível.`
+      );
+      if (!confirmado) return;
+
+      const res = await deleteCourse(courseId);
+      if (res?.error) { alert(res.error); return; }
+      router.refresh();
     });
   }
 

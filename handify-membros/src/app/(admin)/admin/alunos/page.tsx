@@ -279,9 +279,16 @@ export default async function AlunosPage({
           .select("buyer_email")
           .filter("payload->customer->>doc", "eq", cpfDigits)
           .limit(10);
+        // buyer_email vem cru da plataforma: 720 linhas com maiuscula.
+        // profiles.email e sempre minusculo (trigger profiles_email_minusculo)
+        // e o .in do PostgREST compara byte a byte — sem o lower() aqui a busca
+        // por CPF dizia "CPF nao encontrado" para quem comprou com e-mail
+        // maiusculo e nao tem cpf_hash no perfil: 76 alunas invisiveis no painel.
         const emails = [
           ...new Set(
-            (events ?? []).map((e) => e.buyer_email).filter(Boolean)
+            (events ?? [])
+              .map((e) => (e.buyer_email as string | null)?.toLowerCase())
+              .filter(Boolean) as string[]
           ),
         ];
         if (emails.length > 0) {

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
-import { Bell, Send, Clock, CheckCircle2, XCircle, Users, BookOpen, Loader2 } from "lucide-react";
+import { Bell, Send, Clock, CheckCircle2, XCircle, Users, BookOpen, Loader2, AlertTriangle } from "lucide-react";
 import { getCampaigns } from "@/lib/notifications/actions";
 import NovaCampanhaForm from "./NovaCampanhaForm";
 import { DeleteButton, CancelButton, SendNowButton } from "./CampaignActions";
@@ -19,6 +19,10 @@ const STATUS_META: Record<string, { label: string; color: string; icon: React.El
   scheduled: { label: "Agendada",  color: "#FEC649", icon: Clock },
   sending:   { label: "Enviando",  color: "#6699F3", icon: Loader2 },
   sent:      { label: "Enviada",   color: "#72CF92", icon: CheckCircle2 },
+  // Sem esta linha a campanha que saiu pela metade caía no fallback da lista
+  // abaixo e aparecia como "Rascunho" — a de 05/09/2026 falou com 1.000 de
+  // 3.474 alunas e o painel dizia que ela nem tinha saído.
+  parcial:   { label: "Parcial",   color: "#FEC649", icon: AlertTriangle },
   cancelled: { label: "Cancelada", color: "#9ca3af", icon: XCircle },
 };
 
@@ -115,10 +119,13 @@ export default async function NotificacoesAdminPage() {
                           {" "}(Brasília)
                         </span>
                       )}
-                      {c.status === "sent" && (
+                      {(c.status === "sent" || c.status === "parcial") && (
                         <span className="flex items-center gap-1">
                           <Send className="w-3 h-3" />
-                          {c.sent_count} enviadas ·{" "}
+                          {/* "de quantas" é o que faltava: 1.000 sozinho parece
+                              a base inteira. Campanha antiga não tem alvo
+                              gravado, então cai no próprio sent_count. */}
+                          {c.sent_count} de {c.target_count ?? c.sent_count} enviadas ·{" "}
                           {new Date(c.sent_at!).toLocaleString("pt-BR", {
                             day: "2-digit", month: "2-digit",
                             hour: "2-digit", minute: "2-digit",
@@ -136,7 +143,11 @@ export default async function NotificacoesAdminPage() {
                         <CancelButton id={c.id} />
                       </>
                     )}
-                    {(c.status === "draft" || c.status === "cancelled" || c.status === "sent") && (
+                    {/* "parcial" também ganha o excluir — antes ela ficava sem
+                        ação nenhuma. Sem "Enviar agora": reenviar insere a
+                        notificação de novo para quem já recebeu, porque
+                        `notifications` não tem dedupe. */}
+                    {(c.status === "draft" || c.status === "cancelled" || c.status === "sent" || c.status === "parcial") && (
                       <DeleteButton id={c.id} />
                     )}
                   </div>

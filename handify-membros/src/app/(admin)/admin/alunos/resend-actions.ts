@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { sendAccessConfirmedEmail } from "@/lib/email";
 import { escaparCuringas } from "@/lib/db/like";
+import { matricularTokensPendentes } from "@/lib/auth/matricular-tokens";
 
 export async function resendActivationAction(
   email: string
@@ -171,24 +172,22 @@ export async function createAccountAndSetPasswordAction(
     await service.from("profiles").update(profileUpdate).eq("id", userId);
   }
 
-  // Concede matrículas e marca tokens como usados
+  // Concede matrículas e marca tokens como usados. O helper queima o token SÓ
+  // quando a matrícula entrou — aqui o retorno do upsert era descartado e o
+  // token era queimado do mesmo jeito. Token preservado mantém o link válido
+  // para a aluna e mantém o caso visível na aba "Sem cadastro" e no relatório
+  // diário, que partem de `used = false`; queimado sem matrícula, ela fica sem
+  // o curso e sem saída.
   let enrollmentsGranted = 0;
+  let enrollmentsFailed: string[] = [];
   if (tokens?.length) {
-    for (const t of tokens) {
-      if (!t.course_id) continue;
-      await service.from("enrollments").upsert(
-        {
-          user_id: userId,
-          course_id: t.course_id,
-          source: "payt",
-          granted_at: new Date().toISOString(),
-          expires_at: null,
-        },
-        { onConflict: "user_id,course_id" }
-      );
-      await service.from("activation_tokens").update({ used: true }).eq("token", t.token);
-      enrollmentsGranted++;
-    }
+    const resultado = await matricularTokensPendentes(
+      service,
+      userId,
+      tokens.map((t) => ({ token: t.token, course_id: t.course_id }))
+    );
+    enrollmentsGranted = resultado.concedidas;
+    enrollmentsFailed = resultado.falharam;
   }
 
   await service.from("audit_log").insert({
@@ -199,6 +198,7 @@ export async function createAccountAndSetPasswordAction(
     meta: {
       email: normalizedEmail,
       enrollments_granted: enrollmentsGranted,
+      enrollments_failed: enrollmentsFailed,
       admin_name: me?.full_name ?? null,
     },
   });
@@ -265,11 +265,44 @@ export async function correctEmailAction(
     })
     .in("id", ids);
 
-  // Atualiza payment_events para manter dados limpos
-  await service
+  // `payment_events` é o registro do que aconteceu, não um cadastro. Reescrever
+  // apagava a prova: 40 linhas ficaram sem nenhum vestígio do endereço de
+  // origem na coluna consultável, e duas delas em cascata — endereço já
+  // corrigido virando outro, dois saltos de distância da verdade. E nem toda
+  // correção é typo da mesma pessoa: uma delas trocou o titular do pagamento.
+  // Agora o endereço de entrada fica guardado em `buyer_email_original`,
+  // preenchido uma única vez.
+  //
+  // O UPDATE também não vai mais por padrão: mesmo escapado, um `ilike` é um
+  // padrão, e um erro de escape aqui arrastaria o pagamento de outra
+  // compradora. Busca os candidatos, confere igualdade exata em JS, atualiza
+  // por id.
+  const { data: candidatos } = await service
     .from("payment_events")
-    .update({ buyer_email: normalizedNew })
+    .select("id, buyer_email, buyer_email_original")
     .ilike("buyer_email", escaparCuringas(normalizedOld));
+
+  const alvos = (candidatos ?? []).filter(
+    (e) => ((e.buyer_email as string | null) ?? "").toLowerCase().trim() === normalizedOld
+  );
+
+  for (const e of alvos) {
+    await service
+      .from("payment_events")
+      .update({
+        buyer_email: normalizedNew,
+        // set-once: numa segunda correção do mesmo evento, preserva o 1º endereço
+        buyer_email_original: e.buyer_email_original ?? e.buyer_email,
+      })
+      .eq("id", e.id);
+  }
+
+  await service.from("buyer_email_corrections").insert({
+    old_email: normalizedOld,
+    new_email: normalizedNew,
+    admin_id: user.id,
+    payment_event_ids: alvos.map((e) => e.id as string),
+  });
 
   // Reenvia e-mails para o endereço correto
   const buyerName =
@@ -304,6 +337,7 @@ export async function correctEmailAction(
       old_email: normalizedOld,
       new_email: normalizedNew,
       tokens_updated: ids.length,
+      payment_events_updated: alvos.length,
       emails_sent: sent,
       admin_name: me?.full_name ?? null,
     },

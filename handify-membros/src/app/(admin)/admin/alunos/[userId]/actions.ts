@@ -150,24 +150,49 @@ export async function revokeAccessAction(
 
   const { user_id, enrollment_id, course_id, reason } = parsed.data;
   const service = createServiceClient();
+  const now = new Date().toISOString();
 
-  const { error: delErr } = await service
+  // Expira, não apaga. A rede `acesso_revogado_mas_pago` (migration
+  // 20260922_estorno_nao_derruba_outra_compra.sql) acha "curso revogado que uma
+  // compra em pé ainda cobre" com join em enrollments exigindo
+  // `expires_at is not null and expires_at <= now()`. Linha apagada não existe
+  // para ela, e o alarme de volume também não olha para cá (filtra admin_id is
+  // null). Apagando, uma revogação manual por engano só aparece quando a aluna
+  // escreve. Mesmo padrão de revokeMembershipAction (membership-actions.ts:221)
+  // e do webhook (process-purchase.ts:346).
+  const { data: revogadas, error: revErr } = await service
     .from("enrollments")
-    .delete()
+    .update({ expires_at: now })
     .eq("id", enrollment_id)
-    .eq("user_id", user_id);
+    .eq("user_id", user_id)
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
+    .select("id, granted_at, source");
 
-  if (delErr) {
-    console.error("[revokeAccess] delete error:", delErr);
+  if (revErr) {
+    console.error("[revokeAccess] update error:", revErr);
     return { error: "Erro ao revogar acesso. Tente novamente." };
   }
+
+  // Zero linhas: o delete antigo devolvia "Acesso revogado." calado neste caso.
+  if (!revogadas?.length) {
+    return { error: "Esta matrícula não existe mais ou já estava revogada." };
+  }
+
+  const revogada = revogadas[0];
 
   await service.from("audit_log").insert({
     admin_id: adminId,
     action: "revoke_access",
     target_type: "enrollment",
     target_id: enrollment_id,
-    meta: { user_id, course_id, reason },
+    meta: {
+      user_id,
+      course_id,
+      reason,
+      expires_at: now,
+      granted_at: revogada.granted_at,
+      source: revogada.source,
+    },
   });
 
   revalidatePath(`/admin/alunos/${user_id}`);
@@ -354,21 +379,47 @@ export async function grantMultipleAccessAction(
   const service = createServiceClient();
   const now = new Date().toISOString();
 
+  // Títulos carregados de uma vez para conseguir NOMEAR na tela o curso que
+  // falhou. Sem isto a admin recebe "3 cursos falharam" e não sabe quais tentar
+  // de novo.
+  const { data: cursos } = await service
+    .from("courses")
+    .select("id, title")
+    .in("id", course_ids);
+  const tituloPorId = new Map((cursos ?? []).map((c) => [c.id, c.title]));
+  const nomeDoCurso = (id: string) => tituloPorId.get(id) ?? `curso ${id.slice(0, 8)}`;
+
   let granted = 0;
   let skipped = 0;
+  const falhas: string[] = [];
 
   for (const course_id of course_ids) {
-    const { data: existing } = await service
+    const { data: existing, error: existingErr } = await service
       .from("enrollments")
       .select("id, expires_at")
       .eq("user_id", user_id)
       .eq("course_id", course_id)
       .maybeSingle();
 
+    if (existingErr) {
+      console.error("[grantMultiple] lookup:", course_id, existingErr);
+      falhas.push(`${nomeDoCurso(course_id)} (não deu para checar a matrícula atual)`);
+      continue;
+    }
+
     if (existing) {
       const isActive = !existing.expires_at || new Date(existing.expires_at) > new Date();
       if (isActive) { skipped++; continue; }
-      await service.from("enrollments").delete().eq("id", existing.id);
+
+      const { error: delErr } = await service
+        .from("enrollments")
+        .delete()
+        .eq("id", existing.id);
+      if (delErr) {
+        console.error("[grantMultiple] delete expirada:", course_id, delErr);
+        falhas.push(`${nomeDoCurso(course_id)} (não deu para remover a matrícula expirada)`);
+        continue;
+      }
     }
 
     const { data: enrollment, error: enrollErr } = await service
@@ -383,8 +434,9 @@ export async function grantMultipleAccessAction(
       .select("id")
       .single();
 
-    if (enrollErr) {
-      console.error("[grantMultiple] insert error:", enrollErr);
+    if (enrollErr || !enrollment) {
+      console.error("[grantMultiple] insert:", course_id, enrollErr);
+      falhas.push(`${nomeDoCurso(course_id)} (${enrollErr?.message ?? "sem retorno do banco"})`);
       continue;
     }
 
@@ -416,13 +468,32 @@ export async function grantMultipleAccessAction(
 
   revalidatePath(`/admin/alunos/${user_id}`);
 
-  if (granted === 0) {
+  // O que falhou nunca pode sair só no console: quem está na tela precisa saber
+  // quais cursos tentar de novo. O audit_log só registra sucesso, então a tela é
+  // o único lugar onde essa informação aparece.
+  const erroDasFalhas =
+    falhas.length > 0
+      ? `Não deu para liberar ${falhas.length} curso${falhas.length !== 1 ? "s" : ""}: ` +
+        `${falhas.join("; ")}. Tente de novo só esses — o resto já está valendo.`
+      : undefined;
+
+  if (granted === 0 && falhas.length === 0) {
     return { error: "Nenhum acesso concedido. Todos os cursos selecionados já têm matrícula ativa." };
   }
 
-  return {
-    success: `${granted} curso${granted !== 1 ? "s" : ""} liberado${granted !== 1 ? "s" : ""} com sucesso.${skipped > 0 ? ` (${skipped} já tinham acesso)` : ""}`,
-  };
+  if (granted === 0) {
+    return {
+      error:
+        skipped > 0
+          ? `${erroDasFalhas} (${skipped} já tinha${skipped !== 1 ? "m" : ""} acesso.)`
+          : erroDasFalhas,
+    };
+  }
+
+  const partes = [`${granted} curso${granted !== 1 ? "s" : ""} liberado${granted !== 1 ? "s" : ""}`];
+  if (skipped > 0) partes.push(`${skipped} já tinha${skipped !== 1 ? "m" : ""} acesso`);
+
+  return { success: `${partes.join(", ")}.`, error: erroDasFalhas };
 }
 
 // ─── Reenviar email de acesso (aluna com conta) ───────────────────────────────

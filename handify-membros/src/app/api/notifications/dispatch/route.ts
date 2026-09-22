@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { dispatchCampaign } from "@/lib/notifications/actions";
+import { dispararCampanha } from "@/lib/notifications/dispatch";
 import { NextResponse } from "next/server";
 
 // Vercel Cron — roda de hora em hora (vercel.json: "5 * * * *"), para uma
@@ -30,8 +30,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ dispatched: 0 });
   }
 
+  // Chama o interno, nunca a Server Action `dispatchCampaign`: ela abre com
+  // requireAdmin, e aqui não existe sessão — o redirect("/login") mataria o
+  // handler e todo agendamento pararia de sair sem barulho nenhum.
   for (const campaign of pending) {
-    await dispatchCampaign(campaign.id);
+    await dispararCampanha(campaign.id);
   }
 
   return NextResponse.json({ dispatched: pending.length });

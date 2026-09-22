@@ -99,9 +99,18 @@ export async function grantMembershipAction(
 
   // Matrículas nos cursos do plano. O que a aluna já tinha ativo fica como está
   // (comprou separado — não é do plano e não sai com ele).
+  // Se uma matrícula falha, a falha não pode morrer no console. Antes ela morria:
+  // as 23 podiam falhar e a admin lia "Handify Completo concedido" em verde, sem
+  // saber que a aluna não veria curso nenhum no painel (dashboard e /cursos listam
+  // por enrollments, não pela membership). Pior na matrícula vencida: o delete
+  // abaixo acontece ANTES do insert, então um insert que falha deixa a aluna sem
+  // linha nenhuma para aquele curso — estado pior do que antes da ação rodar.
+  // Agora toda falha vai junto com o nome do curso para o audit_log e para a tela.
   const cursos = await cursosDoPlano(service);
   let liberados = 0;
   let jaTinha = 0;
+  const falhas: { id: string; title: string; erro: string }[] = [];
+  let primeiroLiberado: { slug: string } | null = null;
   for (const curso of cursos) {
     const { data: existing } = await service
       .from("enrollments")
@@ -109,13 +118,20 @@ export async function grantMembershipAction(
       .eq("user_id", user_id)
       .eq("course_id", curso.id)
       .maybeSingle();
+    let apagouVencida = false;
     if (existing) {
       const ativa = !existing.expires_at || new Date(existing.expires_at) > new Date();
       if (ativa) {
         jaTinha++;
         continue;
       }
-      await service.from("enrollments").delete().eq("id", existing.id);
+      const { error: delErr } = await service.from("enrollments").delete().eq("id", existing.id);
+      if (delErr) {
+        console.error("[grantMembership] delete vencida:", curso.id, delErr.message);
+        falhas.push({ id: curso.id, title: curso.title, erro: delErr.message });
+        continue;
+      }
+      apagouVencida = true;
     }
     const { error } = await service.from("enrollments").insert({
       user_id,
@@ -124,8 +140,19 @@ export async function grantMembershipAction(
       granted_at: now,
       expires_at: expiresAt,
     });
-    if (error) console.error("[grantMembership] matrícula:", curso.id, error.message);
-    else liberados++;
+    if (error) {
+      console.error("[grantMembership] matrícula:", curso.id, error.message);
+      falhas.push({
+        id: curso.id,
+        title: curso.title,
+        erro: apagouVencida
+          ? `${error.message} (a matrícula vencida anterior foi apagada)`
+          : error.message,
+      });
+    } else {
+      liberados++;
+      if (!primeiroLiberado) primeiroLiberado = { slug: curso.slug };
+    }
   }
 
   await service.from("audit_log").insert({
@@ -140,11 +167,16 @@ export async function grantMembershipAction(
       expires_at: expiresAt,
       courses_granted: liberados,
       courses_already_had: jaTinha,
+      // Sem isto, reprocessar depois é adivinhar quais cursos ficaram de fora.
+      courses_failed: falhas.length,
+      failed_courses: falhas.map((f) => ({ id: f.id, title: f.title, erro: f.erro })),
     },
   });
 
-  // Um e-mail só, não 23.
-  if (liberados > 0 && cursos[0]) {
+  // Um e-mail só, não 23. O link do e-mail aponta para um curso pelo slug, então
+  // o slug precisa ser de um curso que REALMENTE entrou: com `cursos[0]` a aluna
+  // podia receber o link justo do curso que falhou e bater na porta fechada.
+  if (liberados > 0 && primeiroLiberado) {
     ;(async () => {
       const { data: profile } = await service
         .from("profiles")
@@ -156,14 +188,29 @@ export async function grantMembershipAction(
           to: profile.email,
           studentName: profile.full_name ?? profile.email,
           courseTitle: "Handify Completo",
-          courseSlug: cursos[0].slug,
+          courseSlug: primeiroLiberado.slug,
           totalCourses: liberados,
         });
       }
     })().catch((e) => console.error("[grantMembership] email:", e));
   }
 
+  // O revalidatePath vale para os dois casos: a membership foi criada mesmo quando
+  // alguma matrícula falhou, e a tela precisa recarregar.
   revalidatePath(`/admin/alunos/${user_id}`);
+
+  // Parcial volta como `error`, não como `success`: a tela pinta de vermelho pelo
+  // campo (aluna-detail.tsx), e a admin precisa mesmo agir — sem a matrícula a
+  // aluna não vê o curso no painel dela. O texto abre dizendo que o plano ficou
+  // ativo para ela não tentar dar de novo e esbarrar em "já tem o Completo ativo".
+  if (falhas.length) {
+    const nomes = falhas.map((f) => f.title).join(", ");
+    const plural = falhas.length !== 1;
+    return {
+      error: `Handify Completo concedido (o plano está ativo), mas ${falhas.length} curso${plural ? "s" : ""} não entrou${plural ? "ram" : ""}: ${nomes}. ${liberados} liberado${liberados !== 1 ? "s" : ""}${jaTinha ? `, ${jaTinha} já tinha` : ""}. Libere ${plural ? "esses cursos" : "esse curso"} por "Dar acesso em lote" — a aluna não vê no painel dela sem a matrícula.`,
+    };
+  }
+
   return {
     success: `Handify Completo concedido — ${liberados} curso${liberados !== 1 ? "s" : ""} liberado${liberados !== 1 ? "s" : ""}${
       jaTinha ? `, ${jaTinha} já tinha` : ""

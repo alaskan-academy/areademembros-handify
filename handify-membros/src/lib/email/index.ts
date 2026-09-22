@@ -23,15 +23,60 @@ const CACHE_MS = 60_000;
 
 async function listaDeSupressao(): Promise<Set<string>> {
   if (cacheSupressoes && Date.now() - cacheSupressoes.em < CACHE_MS) return cacheSupressoes.valores;
+
+  // Paginado. O PostgREST devolve no máximo 1.000 linhas e não avisa quando
+  // corta: sem isto, a partir da linha 1.001 quem pediu para sair volta a
+  // receber, e em silêncio — que é o pior jeito de um defeito desses aparecer.
+  // Hoje a tabela tem 5 linhas, então isto é a bomba desarmada antes de estourar.
+  //
+  // Laço na mão em vez de fetchAll() de propósito: fetch-all.ts começa com
+  // `import "server-only"`, e este arquivo é importado por scripts que rodam no
+  // tsx (scripts/enviar-email-completo.ts e companhia), onde esse import quebra.
+  // Mesmo padrão de matriculasPorAluna() em src/lib/campanhas/completo.ts.
+  const PAGINA = 1000;
+  const TETO = 100_000;
+  const valores = new Set<string>();
+
   try {
-    const { data, error } = await createServiceClient().from("email_suppressions").select("email");
-    if (error) throw new Error(error.message);
-    const valores = new Set((data ?? []).map((r) => String(r.email).toLowerCase().trim()));
+    const service = createServiceClient();
+    let completo = false;
+
+    for (let de = 0; de < TETO; de += PAGINA) {
+      const { data, error } = await service
+        .from("email_suppressions")
+        .select("email")
+        // ORDER BY obrigatório: sem ele o .range() pagina sobre uma ordem que o
+        // Postgres não garante entre requisições — páginas se repetem e pulam
+        // linhas, e o resultado fica pior que o corte original. `email` é a PK.
+        .order("email", { ascending: true })
+        .range(de, de + PAGINA - 1);
+      if (error) throw new Error(error.message);
+
+      const linhas = data ?? [];
+      for (const r of linhas) valores.add(String(r.email).toLowerCase().trim());
+
+      // Página incompleta = acabou. Evita uma requisição extra sempre.
+      if (linhas.length < PAGINA) {
+        completo = true;
+        break;
+      }
+    }
+
+    if (!completo) {
+      // Nunca deve acontecer com 5 linhas na tabela. Se acontecer, uma lista
+      // cortada ainda suprime mais gente que uma lista vazia — fica com o que
+      // veio, mas gritando no log.
+      console.error(`[email] email_suppressions passou de ${TETO} linhas — lista lida só em parte`);
+    }
+
     cacheSupressoes = { valores, em: Date.now() };
     return valores;
   } catch (e) {
     console.error("[email] não consegui ler email_suppressions, seguindo com o envio:", e);
-    return cacheSupressoes?.valores ?? new Set();
+    // Não cacheia: a próxima chamada tenta de novo. Devolve o que deu para ler
+    // somado ao cache velho — suprimir a mais é o lado seguro do erro.
+    for (const v of cacheSupressoes?.valores ?? []) valores.add(v);
+    return valores;
   }
 }
 
@@ -622,31 +667,28 @@ export async function sendPlanUpgradeEmail(input: PlanUpgradeEmailInput & { to: 
 
 // ─── Novo curso disponível ────────────────────────────────────────────────────
 
-export async function sendNewCourseEmail({
-  to,
-  studentName,
-  courseTitle,
-  courseSlug,
-  courseDescription,
-  thumbnailUrl,
-}: {
-  to: string;
+export type NewCourseEmailInput = {
   studentName: string;
   courseTitle: string;
   courseSlug: string;
   courseDescription?: string;
   thumbnailUrl?: string | null;
-}): Promise<void> {
+};
+
+export function renderNewCourseEmail({
+  studentName,
+  courseTitle,
+  courseSlug,
+  courseDescription,
+  thumbnailUrl,
+}: NewCourseEmailInput): { subject: string; html: string } {
   const firstName = studentName.split(" ")[0];
   const courseUrl = `${appUrl()}/cursos/${courseSlug}`;
   const imgBlock = thumbnailUrl
     ? `<img src="${thumbnailUrl}" alt="${courseTitle}" width="504" style="width:100%;max-width:504px;border-radius:8px;display:block;margin-bottom:20px;-ms-interpolation-mode:bicubic;" />`
     : "";
 
-  const { error } = await enviarEmail({
-    from: FROM,
-    replyTo: REPLY_TO,
-    to,
+  return {
     subject: `Novo curso na Handify: ${courseTitle}`,
     html: emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
@@ -664,11 +706,56 @@ export async function sendNewCourseEmail({
       </p>
       ${supportBlock()}
     `),
-  });
+  };
+}
 
+export async function sendNewCourseEmail(
+  input: NewCourseEmailInput & { to: string }
+): Promise<void> {
+  const { subject, html } = renderNewCourseEmail(input);
+  const { error } = await enviarEmail({
+    from: FROM,
+    replyTo: REPLY_TO,
+    to: input.to,
+    subject,
+    html,
+  });
   if (error) {
     console.error("[email] new course error:", error);
   }
+}
+
+/**
+ * Manda o anúncio de curso novo para várias alunas de uma vez (lotes de 100, o
+ * limite do Resend).
+ *
+ * Uma a uma eram 4.555 chamadas HTTP em série disparadas com `void` de dentro
+ * de uma Server Action: o runtime congela a função quando a resposta sai, e o
+ * anúncio ia pela metade sem deixar rastro de onde parou.
+ *
+ * Devolve os endereços que a Resend aceitou — é o que o chamador registra em
+ * `email_campaign_sends` para não reenviar.
+ */
+export async function sendNewCourseEmailBatch(
+  destinatarias: (NewCourseEmailInput & { to: string })[]
+): Promise<{ enviados: string[]; erro: string | null }> {
+  const enviados: string[] = [];
+  const permitidas = await filtrarSuprimidos(destinatarias);
+  for (let i = 0; i < permitidas.length; i += 100) {
+    const fatia = permitidas.slice(i, i + 100);
+    const { error } = await getResend().batch.send(
+      fatia.map((d) => {
+        const { subject, html } = renderNewCourseEmail(d);
+        return { from: FROM, replyTo: REPLY_TO, to: d.to, subject, html };
+      })
+    );
+    if (error) {
+      console.error("[email] new course batch error:", error);
+      return { enviados, erro: error.message ?? "erro no lote" };
+    }
+    enviados.push(...fatia.map((d) => d.to));
+  }
+  return { enviados, erro: null };
 }
 
 // ─── Reembolso / cancelamento ────────────────────────────────────────────────
@@ -762,18 +849,22 @@ export async function sendLoginReminderEmail({
 
 // ─── Novo post no feed de notícias ────────────────────────────────────────────
 
-export async function sendNewsPostEmail({
-  to,
-  studentName,
-  postTitle,
-  postBody,
-}: {
-  to: string;
+export type NewsPostEmailInput = {
   studentName: string;
   postTitle: string;
   postBody?: string;
-  postId: string;
-}): Promise<void> {
+};
+
+/**
+ * O HTML é o mesmo de sempre, só saiu de dentro do envio unitário para poder
+ * ser usado também pelo lote. Não mexer no conteúdo: o rodapé aponta para
+ * /perfil, que é onde a aluna desliga este e-mail.
+ */
+export function renderNewsPostEmail({
+  studentName,
+  postTitle,
+  postBody,
+}: NewsPostEmailInput): { subject: string; html: string } {
   const firstName = studentName.split(" ")[0];
   const postUrl = `${appUrl()}/comunidade/feed`;
   const excerpt = postBody
@@ -782,10 +873,7 @@ export async function sendNewsPostEmail({
       : postBody
     : "";
 
-  const { error } = await enviarEmail({
-    from: FROM,
-    replyTo: REPLY_TO,
-    to,
+  return {
     subject: `Novidade na Handify: ${postTitle}`,
     html: emailWrapper(`
       <h1 style="color:#2D2D2D;font-size:22px;margin:0 0 16px;font-weight:700;font-family:Arial,Helvetica,sans-serif;line-height:1.3;mso-line-height-rule:exactly;">
@@ -800,11 +888,61 @@ export async function sendNewsPostEmail({
       </p>
       ${supportBlock()}
     `),
-  });
+  };
+}
+
+/**
+ * Envio unitário. Quem usa é o painel /admin/emails, para mandar o modelo para
+ * um endereço só. Passou a devolver se saiu ou não: quem dispara para a base
+ * precisa saber a quem registrar, senão uma queda no meio do lote obriga a
+ * remandar para todo mundo.
+ *
+ * `postId` continua no input mesmo sem uso — o painel de teste passa esse campo.
+ */
+export async function sendNewsPostEmail({
+  to,
+  studentName,
+  postTitle,
+  postBody,
+}: NewsPostEmailInput & { to: string; postId: string }): Promise<boolean> {
+  const { subject, html } = renderNewsPostEmail({ studentName, postTitle, postBody });
+  const { error } = await enviarEmail({ from: FROM, replyTo: REPLY_TO, to, subject, html });
 
   if (error) {
     console.error("[email] news post error:", error);
+    return false;
   }
+  return true;
+}
+
+/**
+ * Manda o aviso de post novo para várias alunas de uma vez (lotes de 100, o
+ * limite da Resend). Existe porque o caminho antigo era um `await` por aluna em
+ * série dentro de uma Server Action: 4.5 mil chamadas seguidas não cabem no
+ * tempo da função, então o envio nunca terminaria inteiro.
+ *
+ * Devolve os endereços que a Resend aceitou, para quem chama registrar só esses.
+ */
+export async function sendNewsPostEmailBatch(
+  destinatarias: (NewsPostEmailInput & { to: string })[]
+): Promise<{ enviados: string[]; erro: string | null }> {
+  const enviados: string[] = [];
+  const permitidas = await filtrarSuprimidos(destinatarias);
+  for (let i = 0; i < permitidas.length; i += 100) {
+    const fatia = permitidas.slice(i, i + 100);
+    const { error } = await getResend().batch.send(
+      fatia.map((d) => {
+        const { subject, html } = renderNewsPostEmail(d);
+        return { from: FROM, replyTo: REPLY_TO, to: d.to, subject, html };
+      })
+    );
+    if (error) {
+      console.error("[email] news post batch error:", error);
+      return { enviados, erro: error.message ?? "erro no lote" };
+    }
+    enviados.push(...fatia.map((d) => d.to));
+  }
+  return { enviados, erro: null };
 }
 
 // ─── Alarme interno: revogação de acesso em massa ────────────────────────────

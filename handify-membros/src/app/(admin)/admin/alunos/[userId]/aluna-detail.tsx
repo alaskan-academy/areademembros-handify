@@ -125,8 +125,13 @@ const ACTION_LABELS: Record<string, string> = {
   grant_access: "Acesso concedido",
   revoke_access: "Acesso revogado",
   "enrollment.revoked": "Acesso revogado (webhook)",
+  // Assinatura cancelada não corta na hora: o acesso vai até o fim do ciclo já
+  // pago (process-purchase.ts). Sem estes dois rótulos a linha do tempo da
+  // aluna mostraria a ação crua e a admin leria como se nada tivesse acontecido.
+  "enrollment.expiry_scheduled": "Acesso vai até o fim do ciclo pago (webhook)",
   "membership.granted": "Handify Completo concedido",
   "membership.revoked": "Handify Completo revogado",
+  "membership.expiry_scheduled": "Handify Completo até o fim do ciclo pago",
   ban: "Aluna banida",
   unban: "Ban removido",
   update_email: "E-mail atualizado",
@@ -201,7 +206,14 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
   const unenrolledCourses = courses.filter(
     (c) => c.enrollment === null && c.title.toLowerCase().includes(searchLower)
   );
-  const enrolledCount = courses.filter((c) => c.enrollment !== null).length;
+  // A revogação manual passou a expirar a matrícula em vez de apagar a linha
+  // (actions.ts, revokeAccessAction), para a rede `acesso_revogado_mas_pago`
+  // enxergar o caso. Contando só `enrollment !== null`, o número continuaria o
+  // mesmo depois de revogar e a admin acharia que o botão não funcionou.
+  const matriculaAtiva = (c: CourseEntry) =>
+    c.enrollment !== null &&
+    (!c.enrollment.expires_at || new Date(c.enrollment.expires_at) > new Date());
+  const enrolledCount = courses.filter(matriculaAtiva).length;
   const [showUnenrolled, setShowUnenrolled] = useState(false);
 
   function handleToggleBan() {
@@ -217,7 +229,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
     });
   }
 
-  const cursosDaAluna = courses.filter((c) => c.enrollment !== null).length;
+  const cursosDaAluna = courses.filter(matriculaAtiva).length;
 
   return (
     <div className="space-y-6">

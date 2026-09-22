@@ -39,7 +39,7 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   // Comentários por post
   const [commentsOpen, setCommentsOpen] = useState<Record<string, boolean>>({});
@@ -349,9 +349,14 @@ export default function FeedAdminClient({ posts: initialPosts }: Props) {
                 <Edit2 className="w-3.5 h-3.5" /> Editar
               </button>
 
+              {/* disabled enquanto a ação roda: publicar anuncia o post para as
+                  ~4.5 mil alunas, e sem isto o duplo clique da admin chegava
+                  duas vezes no servidor. Quem fecha o defeito de verdade é o
+                  claim atômico em toggleNewsPublished; isto só evita a viagem. */}
               <button
                 onClick={() => handleTogglePublished(post.id, post.published)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                disabled={isPending}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   post.published
                     ? "text-muted-foreground hover:text-foreground hover:bg-muted"
                     : "text-[#6699F3] bg-[#6699F3]/10 hover:bg-[#6699F3]/20"
