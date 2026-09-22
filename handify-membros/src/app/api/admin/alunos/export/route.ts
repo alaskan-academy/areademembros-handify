@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export async function GET() {
   const supabase = await createClient();
@@ -17,32 +18,49 @@ export async function GET() {
   const service = createServiceClient();
 
   // ── 1. Alunas ──────────────────────────────────────────────
-  const { data: profiles } = await service
-    .from("profiles")
-    .select("id, full_name, email, phone, date_of_birth, created_at, banned")
-    .neq("role", "admin")
-    .order("created_at", { ascending: false });
+  // Todas as consultas abaixo sao paginadas. O Supabase corta em 1.000 linhas
+  // sem avisar, e este CSV cruza quatro tabelas em memoria: o corte nao so
+  // sumia com aluna, como fazia as colunas "Qtd. Cursos", "Progresso Medio" e
+  // "Ultima Atividade" mentirem para as que sobravam. Hoje sao 4.552 perfis,
+  // 11.964 matriculas e 31.817 linhas de progresso — todas acima do teto.
+  const profiles = await fetchAll<{
+    id: string; full_name: string | null; email: string | null; phone: string | null;
+    date_of_birth: string | null; created_at: string; banned: boolean;
+  }>((de, ate) =>
+    service
+      .from("profiles")
+      .select("id, full_name, email, phone, date_of_birth, created_at, banned")
+      .neq("role", "admin")
+      .order("created_at", { ascending: false })
+      .range(de, ate)
+  );
 
-  if (!profiles?.length) {
+  if (!profiles.length) {
     return csvResponse("Nome,E-mail,Telefone,Nascimento,Qtd. Cursos,Cursos,Fonte,Data da 1ª Matrícula,Aulas Concluídas,Progresso Médio (%),Certificados,Última Atividade,Data de Cadastro,Handify Completo,Status\n");
   }
 
   const profileIds = profiles.map((p) => p.id);
 
   // Quem tem o Handify Completo ativo (membership, não soma de cursos).
-  const { data: membershipRows } = await service
-    .from("memberships")
-    .select("user_id")
-    .eq("plan", "completo")
-    .is("revoked_at", null)
-    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
-  const temCompleto = new Set((membershipRows ?? []).map((m) => m.user_id as string));
+  const membershipRows = await fetchAll<{ user_id: string }>((de, ate) =>
+    service
+      .from("memberships")
+      .select("user_id")
+      .eq("plan", "completo")
+      .is("revoked_at", null)
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
+      .range(de, ate)
+  );
+  const temCompleto = new Set(membershipRows.map((m) => m.user_id));
 
   // ── 2. Matrículas + cursos ──────────────────────────────────
-  const { data: enrollments } = await service
-    .from("enrollments")
-    .select("user_id, granted_at, course_id, source, course:courses(id, title, price)")
-    .in("user_id", profileIds);
+  const enrollments = await fetchAll((de, ate) =>
+    service
+      .from("enrollments")
+      .select("user_id, granted_at, course_id, source, course:courses(id, title, price)")
+      .in("user_id", profileIds)
+      .range(de, ate)
+  );
 
   type EnrollRow = {
     user_id: string;
@@ -79,16 +97,19 @@ export async function GET() {
 
   // ── 4. Progresso das alunas ─────────────────────────────────
   const allLessonIds = lessonRows.map((l) => l.id);
-  const { data: progress } = allLessonIds.length
-    ? await service
-        .from("lesson_progress")
-        .select("user_id, lesson_id, completed, updated_at")
-        .in("user_id", profileIds)
-        .in("lesson_id", allLessonIds)
-    : { data: [] };
+  const progress = allLessonIds.length
+    ? await fetchAll((de, ate) =>
+        service
+          .from("lesson_progress")
+          .select("user_id, lesson_id, completed, updated_at")
+          .in("user_id", profileIds)
+          .in("lesson_id", allLessonIds)
+          .range(de, ate)
+      )
+    : [];
 
   type ProgressRow = { user_id: string; lesson_id: string; completed: boolean; updated_at: string };
-  const progressRows = (progress ?? []) as unknown as ProgressRow[];
+  const progressRows = progress as unknown as ProgressRow[];
 
   // Agrupa progresso por usuário
   const completedByUser: Record<string, Set<string>> = {};
@@ -104,13 +125,12 @@ export async function GET() {
   }
 
   // ── 5. Certificados ─────────────────────────────────────────
-  const { data: certs } = await service
-    .from("certificates")
-    .select("user_id")
-    .in("user_id", profileIds);
+  const certs = await fetchAll<{ user_id: string }>((de, ate) =>
+    service.from("certificates").select("user_id").in("user_id", profileIds).range(de, ate)
+  );
 
   const certCountByUser: Record<string, number> = {};
-  for (const c of certs ?? []) {
+  for (const c of certs) {
     certCountByUser[c.user_id] = (certCountByUser[c.user_id] ?? 0) + 1;
   }
 

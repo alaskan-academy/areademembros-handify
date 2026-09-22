@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { broadcastPush } from "@/lib/push";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // ── Auth helpers ──────────────────────────────────────────────────
 
@@ -180,22 +181,32 @@ export async function dispatchCampaign(campaignId: string) {
   // Busca usuárias alvo
   let userIds: string[] = [];
 
+  // Paginado: o Supabase corta em 1.000 linhas sem avisar. A campanha
+  // "Ferramentas novas na Handify" de 05/09/2026 foi para 1.000 alunas de 3.474
+  // e ficou gravada como "enviada" — 2.474 nunca souberam do aviso, e o painel
+  // mostrava o 1.000 redondo como se fosse a base inteira.
   if (campaign.target === "all") {
-    const { data: profiles } = await service
-      .from("profiles")
-      .select("id")
-      .eq("role", "student")
-      .eq("banned", false);
-    userIds = (profiles ?? []).map((p) => p.id);
+    const profiles = await fetchAll<{ id: string }>((de, ate) =>
+      service
+        .from("profiles")
+        .select("id")
+        .eq("role", "student")
+        .eq("banned", false)
+        .range(de, ate)
+    );
+    userIds = profiles.map((p) => p.id);
   } else if (campaign.target.startsWith("course:")) {
     const courseId = campaign.target.replace("course:", "");
     const now = new Date().toISOString();
-    const { data: enrollments } = await service
-      .from("enrollments")
-      .select("user_id")
-      .eq("course_id", courseId)
-      .or(`expires_at.is.null,expires_at.gte.${now}`);
-    userIds = (enrollments ?? []).map((e) => e.user_id);
+    const enrollments = await fetchAll<{ user_id: string }>((de, ate) =>
+      service
+        .from("enrollments")
+        .select("user_id")
+        .eq("course_id", courseId)
+        .or(`expires_at.is.null,expires_at.gte.${now}`)
+        .range(de, ate)
+    );
+    userIds = enrollments.map((e) => e.user_id);
   }
 
   if (userIds.length === 0) {
@@ -209,6 +220,7 @@ export async function dispatchCampaign(campaignId: string) {
   // Insere notificações in-app em batch (máx 500 por vez)
   const BATCH = 500;
   let totalSent = 0;
+  let houveFalha = false;
   for (let i = 0; i < userIds.length; i += BATCH) {
     const batch = userIds.slice(i, i + BATCH).map((userId) => ({
       user_id: userId,
@@ -218,7 +230,15 @@ export async function dispatchCampaign(campaignId: string) {
       link: campaign.link ?? null,
       read: false,
     }));
-    await service.from("notifications").insert(batch);
+    const { error: erroLote } = await service.from("notifications").insert(batch);
+    if (erroLote) {
+      // Somar o tamanho do lote sem olhar o retorno era contar o que a gente
+      // tentou, não o que entrou. Campanha com falha parcial agora fica
+      // marcada como tal, em vez de virar um "enviada" que ninguém confere.
+      console.error("[dispatch] lote falhou:", erroLote.message);
+      houveFalha = true;
+      continue;
+    }
     totalSent += batch.length;
   }
 
@@ -231,7 +251,9 @@ export async function dispatchCampaign(campaignId: string) {
   await service
     .from("notification_campaigns")
     .update({
-      status: "sent",
+      // "parcial" quando faltou gente: o número no painel precisa dizer a
+      // verdade, senão a admin acha que falou com a base inteira.
+      status: houveFalha || totalSent < userIds.length ? "parcial" : "sent",
       sent_at: new Date().toISOString(),
       sent_count: totalSent,
     })

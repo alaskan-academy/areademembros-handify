@@ -1,6 +1,7 @@
 "use server";
 
 import { traduzErroAuth } from "@/lib/auth/mensagens-erro";
+import { matricularTokensPendentes } from "@/lib/auth/matricular-tokens";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendWelcomeEmail } from "@/lib/email";
 import { encryptCpf, hashCpf } from "@/lib/cpf-crypto";
@@ -89,20 +90,7 @@ export async function activateAccount(
       .gt("expires_at", new Date().toISOString());
 
     if (pendingTokens?.length) {
-      const now = new Date().toISOString();
-      await Promise.all(
-        pendingTokens.map((t) =>
-          service.from("enrollments").upsert(
-            { user_id: existingProfile.id, course_id: t.course_id, source: "payt", granted_at: now, expires_at: null },
-            { onConflict: "user_id,course_id" }
-          )
-        )
-      );
-      await service
-        .from("activation_tokens")
-        .update({ used: true })
-        .eq("email", emailLower)
-        .eq("used", false);
+      await matricularTokensPendentes(service, existingProfile.id, pendingTokens);
     }
     return { error: "Você já possui uma conta com este e-mail. Faça login para acessar seus cursos." };
   }
@@ -178,20 +166,7 @@ export async function activateAccount(
     .gt("expires_at", new Date().toISOString());
 
   if (pendingTokens?.length) {
-    const now = new Date().toISOString();
-    await Promise.all(
-      pendingTokens.map((t) =>
-        service.from("enrollments").upsert(
-          { user_id: userId, course_id: t.course_id, source: "payt", granted_at: now, expires_at: null },
-          { onConflict: "user_id,course_id" }
-        )
-      )
-    );
-    await service
-      .from("activation_tokens")
-      .update({ used: true })
-      .eq("email", emailLower)
-      .eq("used", false);
+    await matricularTokensPendentes(service, userId, pendingTokens);
   }
 
   // Boas-vindas

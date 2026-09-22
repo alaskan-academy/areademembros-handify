@@ -61,15 +61,39 @@ async function grantPendingEnrollments(
 
   if (!pendentes.length) return;
 
+  // O token só é queimado depois que a matrícula entrou de verdade.
+  //
+  // Antes, o retorno do upsert era descartado e o token virava used=true na
+  // linha seguinte, acontecesse o que acontecesse. Uma matrícula que falhasse
+  // deixava a aluna sem o curso E sem o link de ativação ("já foi utilizado"),
+  // e ela sumia do relatório diário de compras sem acesso — que parte justamente
+  // de `activation_tokens where not used`. Some do único lugar que a pegaria.
+  let concedidas = 0;
+  const falharam: string[] = [];
+
   for (const t of pendentes) {
     if (!t.course_id) continue;
-    await service.from("enrollments").upsert(
+
+    const { error: erroMatricula } = await service.from("enrollments").upsert(
       { user_id: userId, course_id: t.course_id, source: "payt", granted_at: new Date().toISOString(), expires_at: null },
       { onConflict: "user_id,course_id" }
     );
+
+    if (erroMatricula) {
+      // Token intacto: a aluna ainda pode usar o link, e o alarme diário enxerga.
+      falharam.push(t.course_id);
+      console.error(`[cadastro] matrícula falhou (token preservado): curso=${t.course_id}`, erroMatricula.message);
+      continue;
+    }
+
     await service.from("activation_tokens").update({ used: true }).eq("token", t.token);
+    concedidas++;
   }
-  console.info(`[cadastro] ${pendentes.length} matrícula(s) pendente(s) concedida(s) para ${email}`);
+
+  console.info(`[cadastro] ${concedidas} matrícula(s) pendente(s) concedida(s) para ${email}`);
+  if (falharam.length) {
+    console.error(`[cadastro] ${falharam.length} matrícula(s) NÃO concedidas para ${email}: ${falharam.join(", ")}`);
+  }
 
   // Fica registrado porque é uma concessão por identidade deduzida, não pelo
   // e-mail da compra — se algum dia liberar para a pessoa errada, é por aqui que
