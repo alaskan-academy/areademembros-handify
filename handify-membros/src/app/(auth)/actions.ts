@@ -304,15 +304,33 @@ export async function cadastroAction(
   redirect(daPaginaGratuita ? "/ferramentas" : "/cursos");
 }
 
-/** Verifica se o e-mail está cadastrado (sem expor token de reset). */
+/**
+ * Verifica se o e-mail está cadastrado (sem expor token de reset).
+ *
+ * Esta função é a porta da recuperação de senha: quando ela devolve false a
+ * aluna lê "este e-mail não está cadastrado" e não tem mais o que fazer. Por
+ * isso os dois cuidados abaixo, que não existiam:
+ *
+ * - `maybeSingle()` devolvia erro (e `data` nulo) se aparecesse mais de uma
+ *   linha, transformando perfil duplicado em "conta não existe";
+ * - o erro era descartado com o destructuring, então uma falha de rede também
+ *   virava "conta não existe". Diante de dúvida agora deixa passar: um e-mail
+ *   de recuperação enviado à toa é bem menos grave do que trancar do lado de
+ *   fora quem tem conta.
+ *
+ * A comparação continua em minúsculas — o que garante isso é o gatilho
+ * `profiles_email_minusculo` no banco, não a sorte de quem gravou.
+ */
 export async function checkEmailExistsAction(email: string): Promise<boolean> {
   const service = createServiceClient();
-  const { data } = await service
+  const { data, error } = await service
     .from("profiles")
     .select("id")
-    .eq("email", email.toLowerCase())
-    .maybeSingle();
-  return !!data;
+    .eq("email", email.trim().toLowerCase())
+    .limit(1);
+
+  if (error) return true;
+  return !!data?.length;
 }
 
 export async function recuperarSenhaAction(

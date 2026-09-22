@@ -25,6 +25,15 @@ const MSG_BANNERS: Record<string, string> = {
   "ja-tem-conta": "Você já tem uma conta. Faça login normalmente.",
 };
 
+// O callback e a /nova-senha mandam a aluna para cá com ?error=... desde o
+// começo, e nada nunca leu esse parâmetro: ela chegava numa tela de login
+// limpa, sem saber o que tinha acontecido com o link nem o que fazer. É o que
+// está por trás do "fui recuperar a senha e ele me joga no login".
+const ERRO_BANNERS: Record<string, string> = {
+  "link-expirado":
+    "Esse link de recuperação já foi usado ou expirou — ele vale uma vez só. Clique em “Esqueci minha senha” para receber um link novo.",
+};
+
 export default function LoginPage({
   searchParams: _searchParams,
 }: {
@@ -43,6 +52,8 @@ function LoginContent() {
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
   const msgParam = searchParams.get("msg") ?? (searchParams.get("email") ? "ja-tem-conta" : null);
   const msgBanner = msgParam ? (MSG_BANNERS[msgParam] ?? null) : null;
+  const erroParam = searchParams.get("error");
+  const erroBanner = erroParam ? (ERRO_BANNERS[erroParam] ?? null) : null;
 
   return (
     <Card>
@@ -61,6 +72,15 @@ function LoginContent() {
               className="rounded-md bg-[#72CF92]/15 border border-[#72CF92]/30 px-4 py-3 text-sm text-[#2D2D2D]"
             >
               {msgBanner}
+            </div>
+          )}
+
+          {erroBanner && (
+            <div
+              role="alert"
+              className="rounded-md bg-[#FEC649]/15 border border-[#FEC649]/40 px-4 py-3 text-sm text-[#2D2D2D]"
+            >
+              {erroBanner}
             </div>
           )}
 
