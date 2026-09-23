@@ -1,0 +1,672 @@
+[
+  {
+    "titulo": "Notificação para todas as alunas para em 1.000 e registra sucesso",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/lib/notifications/actions.ts:178-186",
+    "veredito": "confirmado",
+    "porque": "Confirmado no código e no banco. `dispatchCampaign` busca o público com profiles.select(\"id\").eq(\"role\",\"student\").eq(\"banned\",false) sem .range() e sem paginação — o PostgREST corta em 1.000 sem erro. O laço de inserção depois roda em lotes de 500 sobre esse recorte e grava sent_count = tamanho do recorte. No banco: a campanha \"Ferramentas novas na Handify\" (04/09) tem sent_count = exatamente 1.000, e a tabela notifications confirma 1.000 linhas para 1.000 alunas distintas. O público elegível hoje é 4.550. As duas campanhas anteriores (52 e 283) não bateram no teto porque a base era menor — ou seja, o defeito só começou a morder agora e vai morder em toda campanha daqui pra frente. É o corte de 1.000 do padrão 4, materializado.",
+    "gravidade": "alta",
+    "quem_se_machuca": "3.550 alunas que não receberam o aviso (nem in-app nem push), e a Jessica, que lê \"1.000 enviadas\" no painel e acha que foi a base inteira.",
+    "ja_afetou_alguem": "sim — 3.550 alunas não avisadas em 04/09; sent_count marcou 1.000",
+    "correcao": "Paginar a busca do público com .range(de, de+999) em laço (o padrão que `matriculasPorAluna` já usa em src/lib/campanhas/completo.ts) e conferir o total com { count: \"exact\" } antes de gravar sent_count."
+  },
+  {
+    "titulo": "Campanha de notificação para \"todas as alunas\" parou em 1.000 e o painel gravou que foi enviada",
+    "arquivo": "src/lib/notifications/actions.ts:184-240",
+    "veredito": "confirmado",
+    "porque": "O select de profiles (linha 186) não tem .range(); o laço soma totalSent += batch.length pelo tamanho do lote, não pelo que o banco aceitou (o insert da linha 221 não tem o erro conferido); e a linha 231 grava status \"sent\" com esse número. A prova está no banco e é exata: a campanha \"Ferramentas novas na Handify\" (05/09/2026, alvo \"all\") tem sent_count = 1000 e exatamente 1.000 linhas em notifications, para 1.000 alunas distintas — havia 3.474 alunas elegíveis naquele momento. O alvo \"course:\" (linha 193) tem o mesmo corte e há cursos com 3.191, 1.081 e 820 matrículas.",
+    "gravidade": "alta",
+    "quem_se_machuca": "Aluna que nunca soube do aviso. E a dona, que lê \"enviada\" no painel e acha que falou com a base inteira.",
+    "ja_afetou_alguem": "Sim: 2.474 alunas não receberam a campanha de 05/09/2026 (1.000 de 3.474 elegíveis). Conferido linha a linha em notifications.",
+    "correcao": "Paginar a busca das destinatárias com fetchAll, conferir o erro de cada insert e somar em sent_count só o que entrou — gravando status \"parcial\" quando faltar alguém."
+  },
+  {
+    "titulo": "CSV de alunas exporta 1.000 de 4.552 e mostra número de cursos e progresso baixos para quem sobra",
+    "arquivo": "src/app/api/admin/alunos/export/route.ts:20-110",
+    "veredito": "confirmado",
+    "porque": "Confirmei consulta por consulta: profiles (linha 20), enrollments (linha 42), lesson_progress (linha 82) e certificates (linha 106) não têm .range() nem count exato. As colunas \"Qtd. Cursos\", \"Cursos\", \"Aulas Concluídas\", \"Progresso Médio\" e \"Última Atividade\" são calculadas cruzando esses arrays em memória (linhas 133-185), então o corte não só perde aluna: mostra número baixo para as que ficaram. Corrigindo o relato: a consulta de lessons (linha 59) e a de certificates estão seguras — são 210 aulas ativas e 249 certificados, bem abaixo do teto. As que mordem de verdade são profiles (4.552), enrollments (11.958) e lesson_progress (31.813).",
+    "gravidade": "alta",
+    "quem_se_machuca": "Ninguém perde acesso, mas é este o arquivo que a dona abre para saber quem comprou o quê — e ele mente em duas camadas ao mesmo tempo: some 3.552 alunas e subestima os cursos das 1.000 restantes.",
+    "ja_afetou_alguem": "Sim, todo export já feito: 4.552 perfis, 11.958 matrículas e 31.813 linhas de progresso contra um teto de 1.000 por consulta.",
+    "correcao": "Trocar as três consultas grandes por fetchAll paginado (o helper já existe em src/lib/supabase/fetch-all.ts) antes do próximo export."
+  },
+  {
+    "titulo": "Token de ativação é marcado como usado mesmo quando a matrícula não entra — e some do único alarme que o pegaria",
+    "arquivo": "src/app/(auth)/actions.ts:66-72",
+    "veredito": "confirmado",
+    "porque": "Verificado nos três lugares. Em (auth)/actions.ts:66 o upsert em enrollments tem o retorno descartado e o token é marcado used=true na linha seguinte, incondicionalmente; a linha 72 loga \"N matrícula(s) concedida(s)\" contando tokens. Em ativar/[token]/actions.ts:93-106 e :182-194 é pior: o Promise.all descarta o erro de cada upsert e o update marca used=true para TODOS os tokens do e-mail de uma vez, inclusive os cursos que falharam. O agravante se confirma no banco: li a definição de compras_sem_acesso e ela parte de `activation_tokens where not t.used` — token queimado sem matrícula não existe para a rede de segurança diária. Também confirmei que resend-actions.ts:178-188 soma enrollmentsGranted++ e grava esse número no audit_log.",
+    "gravidade": "alta",
+    "quem_se_machuca": "Aluna que pagou um pacote, recebeu parte dos cursos e não tem como reclamar pelo link — ele responde \"já foi utilizado\". E ela não aparece no relatório de compras sem acesso.",
+    "ja_afetou_alguem": "Não há como contar: um token queimado indevidamente é indistinguível de um usado direito. Hoje são 12.815 tokens, 2.232 não usados.",
+    "correcao": "Marcar used=true só para os tokens cujo upsert voltou sem erro, um a um, e contar as matrículas de verdade no log e no audit_log."
+  },
+  {
+    "titulo": "Campanha de notificação \"todas as alunas\" alcança 1.000 e grava como entregue",
+    "arquivo": "src/lib/notifications/actions.ts:180-196 (dispatchCampaign)",
+    "veredito": "confirmado",
+    "porque": "Li o código: em dispatchCampaign o alvo \"all\" faz .from(\"profiles\").select(\"id\").eq(\"role\",\"student\").eq(\"banned\",false) sem .limit() nem .range(), e o alvo \"course:<id>\" faz o mesmo em enrollments. Não há guarda nenhuma — o arquivo sequer importa o fetchAll que existe em src/lib/supabase/fetch-all.ts e que é usado corretamente em outros pontos do sistema. O dano está gravado no banco: a campanha \"Ferramentas novas na Handify\" (05/09/2026 13:05) está com status=\"sent\" e sent_count=1000; notifications tem exatamente 1.000 linhas admin_broadcast desse minuto, para 1.000 user_id distintos. Naquele instante havia 3.474 perfis student não banidos. 2.474 alunas não receberam, e o painel diz que a campanha foi entregue. O número redondo é a assinatura do corte. (A ressalva do outro agente sobre o .in() com 1.000 UUIDs em broadcastPush é plausível mas não comprovei — o achado não depende dela.)",
+    "gravidade": "alta",
+    "quem_se_machuca": "A aluna que não fica sabendo do aviso, e a dona, que lê sent_count no painel e acredita ter avisado a base inteira.",
+    "ja_afetou_alguem": "2.474 alunas na campanha de 05/09/2026 (1.000 avisadas de 3.474 elegíveis)",
+    "correcao": "Paginar as duas buscas com o fetchAll que já existe no projeto, e gravar sent_count a partir do total real. Se a contagem de destinatárias divergir do inserido, a campanha não deve terminar com status \"sent\"."
+  },
+  {
+    "titulo": "Exportação CSV de alunas sai com 1.000 de 4.551 — e as colunas de curso e progresso erradas mesmo nas que saem",
+    "arquivo": "src/app/api/admin/alunos/export/route.ts:20-24, 43-46, 84-89, 106-109",
+    "veredito": "confirmado",
+    "porque": "Quatro consultas em sequência e nenhuma tem .limit()/.range(). Confirmei os números no banco: profiles .neq(\"role\",\"admin\") tem 4.551 linhas (volta 1.000). Pior, e o agente acertou: os 1.000 perfis mais novos possuem 2.727 matrículas e 5.709 linhas de lesson_progress — as duas consultas .in(...) também estouram o teto e voltam 1.000 cada. Ou seja, dentro das 1.000 exportadas, ~63% das matrículas e ~82% do progresso somem, e as colunas \"Qtd. Cursos\", \"Cursos\", \"Progresso Médio\", \"Aulas Concluídas\" e \"Última Atividade\" saem de um recorte arbitrário — muita aluna com curso aparece com 0 curso e \"Nunca\". O CSV não traz nenhuma marca de truncamento.",
+    "gravidade": "alta",
+    "quem_se_machuca": "A dona, que usa este CSV para campanha e para conferir acesso: quem ficou de fora some da lista, e quem ficou aparece como inativa sem curso. A aluna que ela deixaria de contatar por causa disso.",
+    "ja_afetou_alguem": "O defeito é determinístico com a base de hoje (4.551 perfis contra teto de 1.000); não há registro de download no banco, então não dá para dizer quantos CSVs já saíram errados",
+    "correcao": "Paginar as quatro consultas com fetchAll. Para as consultas .in(...) derivadas, quebrar os ids em lotes (o cron campanha-completo já faz isso em fatias de 300 — é o padrão a copiar)."
+  },
+  {
+    "titulo": "Matrícula retroativa só enxerga as 1.000 primeiras compras do curso",
+    "arquivo": "src/app/(admin)/admin/cursos/actions.ts:345-355 (retroactiveEnroll)",
+    "veredito": "confirmado",
+    "porque": "A busca de quem pagou — .from(\"payment_events\").select(\"buyer_email\").in(\"product_code\", checkout_codes).in(\"event_type\", grantStatuses).eq(\"processed\", true) — não tem limite. No Curso Saponaria Brasil essa consulta casa com 3.163 eventos pagos e processados, de 3.054 e-mails distintos: chegam 1.000. Tudo o que vem depois é derivado desse recorte, e a função devolve { count } como se tivesse coberto todo mundo. REFUTO uma parte do achado: o agente disse que o insert abortaria inteiro por chave duplicada. Não pode acontecer — profiles .in(\"email\", emails) já volta no máximo 1.000 linhas, então o check de enrollments em :372 nunca consulta mais de 1.000 user_ids e nunca é truncado. A falha real é só a de baixo: a ferramenta ignora dois terços das compradoras do curso maior.",
+    "gravidade": "alta",
+    "quem_se_machuca": "A aluna pagante sem acesso — esta é exatamente a ferramenta que existe para consertar quem pagou e ficou sem curso, e ela cobre um terço do curso maior.",
+    "ja_afetou_alguem": "nao",
+    "correcao": "Paginar a busca de payment_events com fetchAll e percorrer os e-mails em lotes (ex.: 300 por vez) nas consultas .in() seguintes. Devolver também quantas compradoras foram consideradas, para o número no painel bater com a realidade."
+  },
+  {
+    "titulo": "Campanha de notificação em massa entrega para 1.000 e o painel registra como enviada para todas",
+    "arquivo": "src/lib/notifications/actions.ts:183-199, 221-238",
+    "veredito": "confirmado",
+    "porque": "Li dispatchCampaign: o alvo \"all\" faz profiles.select(\"id\").eq(\"role\",\"student\").eq(\"banned\",false) sem range/paginação, e o alvo \"course:\" faz enrollments.select(\"user_id\") igual. Não existe nenhuma guarda de paginação no arquivo. O corte de 1.000 do PostgREST é silencioso, e sent_count grava o tamanho do que o próprio código inseriu. A prova está no banco e é a mesma forma do erro nº4 da lista.",
+    "gravidade": "alta",
+    "quem_se_machuca": "Aluna que fica sem o aviso da plataforma. Hoje são 4.550 alunas ativas; 3 cursos já passam de 1.000 matrículas (Saponaria Brasil 3.191, Difusores 1.209, Buquê de Velas 1.081), então o alvo por curso também está cortado.",
+    "ja_afetou_alguem": "Sim: campanha \"Ferramentas novas na Handify\" (148aca7b-3e11-4945-83f4-6f0f6327b667), target \"all\", enviada em 05/09/2026. A tabela notifications tem exatamente 1.000 linhas dela; notification_campaigns.sent_count = 1000, status \"sent\". A base ativa naquele dia era 3.474 — 2.474 alunas nunca receberam e nada ficou vermelho. Contraprova: a campanha de 14/07, quando a base era 283, gravou 283 (sem corte).",
+    "correcao": "Paginar as duas buscas por range(de, de+999) até vir menos de 1.000, como já é feito em matriculasPorAluna (src/lib/campanhas/completo.ts:78-96), e contar sent_count a partir das linhas efetivamente inseridas."
+  },
+  {
+    "titulo": "Notificação em massa para \"todas\" alcançou 1.000 de 3.474 alunas — e o painel registra como se fossem todas",
+    "arquivo": "src/lib/notifications/actions.ts:184-189 (ramo \"all\") e :193-197 (ramo \"course:\")",
+    "veredito": "confirmado",
+    "porque": "Li o arquivo: em dispatchCampaign a busca das destinatárias é service.from(\"profiles\").select(\"id\").eq(\"role\",\"student\").eq(\"banned\",false), sem .range(), sem .limit() e sem fetchAll. O helper src/lib/supabase/fetch-all.ts existe, é usado em 10 páginas de métricas, e este arquivo não o importa. O corte de 1.000 do PostgREST vale também para o service_role — a própria campanha de 05/09 prova. Números do banco: notification_campaigns \"Ferramentas novas na Handify 🧰\", target=all, sent_at 2026-09-05 13:05:43, sent_count=1000; alunas elegíveis naquele instante (role=student, banned=false, criadas antes) = 3.474; notifications com type=admin_broadcast e esse título = exatamente 1000, todas entre 13:05:43.389 e 13:05:43.512. O ramo course: tem o mesmo defeito e já existem 3 cursos acima do teto (Saponaria Brasil 3.191, Difusores e Aromas 1.209, Buquê de Velas 1.081). É a forma de erro nº 4 (corte de 1.000) somada à nº 3 (sucesso gravado em falha parcial): o painel fica verde.",
+    "gravidade": "alta",
+    "quem_se_machuca": "2.474 alunas não receberam um aviso que a plataforma se propôs a mandar; e a dona lê 1.000 no painel achando que é a base inteira.",
+    "ja_afetou_alguem": "sim — 2.474 alunas ficaram de fora na campanha de 05/09/2026 (1.000 de 3.474)",
+    "correcao": "Trocar as duas buscas por fetchAll((de, ate) => ...range(de, ate)), como já é feito em /admin/metricas. O sent_count deve contar as linhas realmente inseridas."
+  },
+  {
+    "titulo": "A exportação CSV de alunas entrega 1.000 de 4.552 — e com progresso errado para essas 1.000",
+    "arquivo": "src/app/api/admin/alunos/export/route.ts:20, :42, :82",
+    "veredito": "confirmado",
+    "porque": "Li o arquivo inteiro: não há uma única ocorrência de range, limit ou fetchAll. São quatro consultas sobre tabelas acima do teto: profiles (4.552 linhas no banco), enrollments (11.958), lesson_progress (31.813). A de enrollments usa .in(\"user_id\", profileIds) com os ~1.000 ids que sobreviveram — mas o resultado também é cortado em 1.000, e essas 1.000 alunas teriam ~2.600 matrículas. Por isso as colunas \"Qtd. Cursos\", \"Cursos\", \"Fonte\", \"Data da 1ª Matrícula\", \"Aulas Concluídas\" e \"Progresso Médio (%)\" saem subestimadas justamente para quem aparece no arquivo. Nada dá erro. É o botão \"Exportar CSV\" de src/app/(admin)/admin/alunos/page.tsx:353.",
+    "gravidade": "alta",
+    "quem_se_machuca": "A dona: qualquer lista, disparo ou conferência montada a partir desse CSV ignora ~3.500 alunas e mostra as outras com menos curso e menos progresso do que têm.",
+    "ja_afetou_alguem": "nao — a exportação não grava rastro no banco; a prova é aritmética: 4.552 profiles, 11.958 enrollments e 31.813 lesson_progress contra um teto de 1.000 por consulta",
+    "correcao": "Passar as quatro consultas por fetchAll, e quebrar os .in(...) em lotes de ~300 ids para não estourar a URL. Conferir o total do CSV contra um count exato antes de entregar o arquivo."
+  },
+  {
+    "titulo": "Token de ativação marcado como usado sem a matrícula ter entrado — some do alarme para sempre",
+    "arquivo": "handify-membros/src/app/ativar/[token]/actions.ts:88-103 e 167-190; src/app/(auth)/actions.ts:66-71; src/app/(admin)/admin/alunos/resend-actions.ts:174-190",
+    "veredito": "confirmado",
+    "porque": "Li os quatro caminhos: todos fazem upsert em enrollments e descartam o `error`, e logo depois marcam o token como usado. Em ativar/[token] os upserts saem em Promise.all e o UPDATE final é `.eq(\"email\").eq(\"used\", false)` — marca todos os tokens do e-mail, inclusive os que nenhum upsert tocou. A RPC public.compras_sem_acesso só lê `where not t.used`, então o que falha vira invisível. Corrigi o tamanho do agente: varri todos os tokens usados sem matrícula e, tirando quem tem estorno, sobra 1 aluna e 5 cursos — não 3 alunas e 7 pares. mirocadominguez tem evento de estorno e os 2 tokens dela têm matrícula: esse caso cai.",
+    "gravidade": "alta",
+    "quem_se_machuca": "Aluna pagante sem acesso de forma permanente e invisível: nem o painel nem o cron diário de compras_sem_acesso enxergam, porque o token já está marcado como usado.",
+    "ja_afetou_alguem": "kate.sarto@gmail.com, transação 82O78OX de 16/09/2026: 6 activation_tokens criados às 22:17, todos used=true; só 1 matrícula payt entrou (22:21:49, Embalagens que Encantam). Faltam 5 cursos pagos há 6 dias (Saponaria Brasil, Natural Dermatológica, Saboaria Energética, Arte Floral em Sabonetes, Difusores e Aromas). A admin mexeu na conta em 17/09 e não viu o buraco. Total no sistema hoje: 1 aluna, 5 pares aluna×curso.",
+    "correcao": "Só marcar o token como usado depois de confirmar que aquele upsert voltou sem erro, token a token (nunca um UPDATE por e-mail). Quando o upsert falhar, deixar used=false para o cron pegar, e gravar o erro."
+  },
+  {
+    "titulo": "Matrícula retroativa lê 1.000 das 3.163 compras, ignora caixa do código e não registra nada",
+    "arquivo": "handify-membros/src/app/(admin)/admin/cursos/actions.ts:348-416 (retroactiveEnroll)",
+    "veredito": "confirmado",
+    "porque": "Conferi as três consultas: `.in(\"product_code\", checkout_codes)` sem .range() e sem count exact, `.in(\"email\", emails)` e `.in(\"user_id\", userIds)` — as três cortam em 1.000. No banco, Curso Saponaria Brasil (RW2MMP, RKJWA8, LPGKQ8) tem 3.163 eventos pagos e 3.054 compradoras; Fábrica das Velas 1.023 e Buquê de Velas 927. A função devolve `count` como sucesso. A caixa também procede e é pior do que o agente disse: os cursos guardam códigos UUID da Kiwify em MAIÚSCULA e existem 10 payment_events com o UUID em minúscula e nenhum em maiúscula — esses 10 nunca são achados por `.in()`, que compara caixa exata (process-purchase.ts:66 usa caseVariants() justamente por isso). E não há uma linha de audit_log, apesar de ser concessão de acesso em massa.",
+    "gravidade": "alta",
+    "quem_se_machuca": "Aluna sem acesso: a admin clica \"matricular retroativamente\", vê um número verde e dois terços das compradoras ficaram de fora — e não existe registro de quem foi matriculada para reconstruir depois.",
+    "ja_afetou_alguem": "O corte está provado no banco (3.163 > 1.000 em Saponaria Brasil; 3 cursos acima de 900). Não dá para provar se a função já rodou, porque ela não grava audit_log — que é o segundo defeito.",
+    "correcao": "Paginar as três consultas em blocos de 1.000 (como matriculasPorAluna já faz), aplicar caseVariants() nos checkout_codes e gravar uma linha de audit_log com o curso, o total e os user_ids matriculados."
+  },
+  {
+    "titulo": "Campanha de notificação para \"todas as alunas\" para em 1.000 e o painel diz que foi enviada",
+    "arquivo": "src/lib/notifications/actions.ts:184-189 (alvo all), :193-197 (alvo course), :221 (insert)",
+    "veredito": "confirmado",
+    "porque": "Li o código: `service.from(\"profiles\").select(\"id\").eq(\"role\",\"student\").eq(\"banned\",false)` sem .range() e sem fetchAll — e o projeto TEM o helper fetchAll (src/lib/supabase/fetch-all.ts), usado só em src/lib/push/index.ts. O retorno do insert na linha 221 realmente não é lido, e sent_count é a soma dos lotes tentados. O banco fecha o caso: a campanha 148aca7b-3e11-4945-83f4-6f0f6327b667 está com status 'sent' e sent_count = exatamente 1000, e a tabela notifications tem exatamente 1.000 linhas com esse título, todas entre 13:05:43.389 e 13:05:43.512 de 05/09.",
+    "gravidade": "alta",
+    "quem_se_machuca": "A aluna que nunca fica sabendo do aviso. E a dona, que lê \"enviada\" no painel e decide em cima de um número falso.",
+    "ja_afetou_alguem": "2.474 alunas. Em 05/09/2026 havia 3.474 elegíveis (role=student, banned=false, criadas antes do disparo) e só 1.000 receberam. Hoje a base é 4.550 — a próxima campanha alcançaria 22%.",
+    "correcao": "Trocar a busca de destinatárias por fetchAll (as duas: 'all' e 'course:') e somar em sent_count só os lotes cujo insert voltou sem erro, marcando a campanha como 'error' se algum lote falhar."
+  },
+  {
+    "titulo": "O CSV de alunas sai com 1.000 linhas de 4.551 e a coluna de cursos vem errada para quase todo mundo",
+    "arquivo": "src/app/api/admin/alunos/export/route.ts:20-24, :42-45, :59-65, :82-88, :107-110",
+    "veredito": "confirmado",
+    "porque": "Li as cinco consultas: nenhuma usa fetchAll nem .range(). profiles, enrollments, lessons, lesson_progress e certificates todas voltam no máximo 1.000. Os totais por aluna (Qtd. Cursos, Cursos, Aulas Concluídas, Progresso Médio, Certificados) são montados em memória a partir desses 1.000 registros, então a maioria das linhas sai zerada. Um detalhe que o outro agente não viu e que piora o diagnóstico: profiles tem `.order(\"created_at\", desc)`, ou seja, o corte é determinístico — o CSV traz sempre as 1.000 alunas MAIS RECENTES e as 3.551 mais antigas simplesmente não existem no arquivo.",
+    "gravidade": "alta",
+    "quem_se_machuca": "A aluna antiga, que some do arquivo usado para saber quem comprou o quê e quem parou. Quem não aparece no CSV sai da régua de contato.",
+    "ja_afetou_alguem": "Não dá para contar downloads (a rota não registra nada), mas hoje os números são 4.551 perfis, 11.958 matrículas, 31.813 linhas de lesson_progress e 249 certificados — qualquer exportação feita agora já sai truncada em todas as cinco consultas.",
+    "correcao": "Paginar as cinco consultas com fetchAll. Como enrollments/lesson_progress passam de 10 mil linhas, vale trocar o cruzamento em memória por uma RPC no Postgres que já devolva o agregado por aluna."
+  },
+  {
+    "titulo": "Matrícula retroativa enxerga 1.000 compras de 3.163 e não deixa rastro",
+    "arquivo": "src/app/(admin)/admin/cursos/actions.ts:328-416 (consultas em :348, :361, :371)",
+    "veredito": "confirmado",
+    "porque": "Confirmei no código as três consultas sem paginação (payment_events por checkout_codes, profiles por e-mail, enrollments por user_id) e o `return { count: toEnroll.length }` sem nenhum sinal de que a lista foi cortada. Confirmei também que não há insert em audit_log — ao contrário de grantAccessAction/grantMultipleAccessAction, que gravam grant_access (439 linhas no log). O banco confirma o gatilho: \"Curso Saponaria Brasil\" (RW2MMP, RKJWA8, LPGKQ8) tem 3.163 payment_events pagos e processados, e \"Curso Fábrica das Velas de Lembrancinha\" tem 1.023. Nos dois a rota veria 1.000.",
+    "gravidade": "alta",
+    "quem_se_machuca": "A aluna que pagou, ficou fora da fatia de 1.000 e continua sem o curso — enquanto a admin acha que já rodou o conserto e não roda de novo.",
+    "ja_afetou_alguem": "Impossível saber, e é esse o problema: sem audit_log não há como verificar se a rota já foi executada nesses dois cursos. O gatilho está de pé hoje, em 2 dos 24 cursos.",
+    "correcao": "Paginar as três consultas com fetchAll, devolver quantas compras foram vistas e quantas foram matriculadas (e avisar quando bater no teto), e gravar uma linha em audit_log por execução com curso, total visto e total matriculado."
+  },
+  {
+    "titulo": "A tela de perfil que a admin usa troca o e-mail sem a checagem de conta duplicada — a versão com a checagem não tem chamador",
+    "arquivo": "src/app/(admin)/admin/alunos/[userId]/actions.ts:229-310 (usada) e :497-575 (órfã)",
+    "veredito": "confirmado",
+    "porque": "Confirmado com uma correção importante ao relato original. O grep mostra que updateStudentEmailAction (a versão protegida) não é importada em lugar nenhum; o único formulário de perfil do admin (aluna-detail.tsx:145) usa updateProfileAction. E updateProfileAction de fato vai direto no `service.auth.admin.updateUserById` e devolve `Erro ao atualizar e-mail: ${authErr.message}` — a mensagem crua do Supabase, em inglês, sem passar por traduzErroAuth. ONDE O RELATO ERRA: updateProfileAction NÃO é \"sem registro\" — ela grava sim em audit_log (linhas 294-308, action update_profile, com o e-mail novo no meta). O buraco é só a checagem de duplicata e a mensagem de erro, não a auditoria. O log confirma o desvio: 24 update_profile e 0 update_email desde julho — ninguém nunca passou pelo caminho protegido.",
+    "gravidade": "alta",
+    "quem_se_machuca": "A aluna que acaba com os cursos divididos em duas contas. É exatamente o erro em inglês que levou a admin a \"resolver\" criando conta nova.",
+    "ja_afetou_alguem": "Já afetou 18 pessoas na vez anterior. Hoje: 0 duplicatas no banco (0 e-mails repetidos ignorando maiúsculas), então o dano não voltou — mas o caminho seguro continua morto no código.",
+    "correcao": "Ligar o formulário de e-mail a updateStudentEmailAction, ou mover para dentro de updateProfileAction a checagem de duplicata por ilike e a chamada a traduzErroAuth que já existem escritas em :529-560."
+  },
+  {
+    "titulo": "Publicar post no feed ou publicar curso dispara e-mail para a base sem trava de repetição e cortado em 1.000",
+    "arquivo": "src/app/(admin)/admin/comunidade/feed/actions.ts:126-176 (notifyNewsPost) e src/app/(admin)/admin/cursos/actions.ts:265-301 (notifyNewCourse)",
+    "veredito": "confirmado",
+    "porque": "Li os dois: buscam profiles com .eq(\"role\",\"student\") sem paginar (corte em 1.000 de 4.550) e mandam e-mail num laço `for` com await, sem gravar nada em email_campaign_sends — que é justamente a trava que protege as campanhas do Completo. notifyNewsPost é chamada por toggleNewsPublished (feed/actions.ts:122) e notifyNewCourse por togglePublished (cursos/actions.ts:262), as duas com `void`: despublicar e republicar reenvia tudo. E o `void` dentro de Server Action é fire-and-forget — a função serverless pode ser congelada no meio do laço. Pior do que o relato diz: mesmo dentro do teto de 1.000, são 1.000 chamadas sequenciais ao Resend, o que não cabe no tempo de vida da função.",
+    "gravidade": "alta",
+    "quem_se_machuca": "Nos dois sentidos: a aluna que recebe o mesmo e-mail repetido (motivo clássico de marcar spam, o que derruba a entrega de TODOS os e-mails da plataforma) e as ~3.550 que nunca recebem o aviso.",
+    "ja_afetou_alguem": "Parcialmente. O post do feed de 04/09 tem 3.406 notificações in-app gravadas num único segundo (07:47:16) — número que o código NÃO consegue produzir, já que ele para em 1.000. Ou seja, o lote foi inserido por fora, o que indica que o caminho do app já não deu conta na época. O código continua igual.",
+    "correcao": "Paginar profiles com fetchAll, registrar cada envio em email_campaign_sends (ex.: `news-post-<id>` e `novo-curso-<id>`) e pular quem já tem linha, e tirar os envios do `void` dentro da Server Action — passar para uma rota de cron ou fila que sobreviva ao fim do request."
+  },
+  {
+    "titulo": "Revogar o Handify Completo derruba curso comprado avulso, porque o plano sobrescreve o carimbo que os separa",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/app/(admin)/admin/alunos/[userId]/membership-actions.ts:217-232 (causa em src/lib/payments/process-purchase.ts:284-299)",
+    "veredito": "confirmado",
+    "porque": "A premissa de `revokeMembershipAction` — \"curso comprado separado tem outro carimbo de granted_at\" — é falsa, e o próprio webhook é quem a quebra: o upsert com onConflict user_id,course_id manda granted_at: now, então a compra do plano (cujo código LPGKQ8 está nos 23 cursos in_plan) reescreve o granted_at de matrícula que já existia. Achei duas alunas com a condição gravada agora: liacitro3@gmail.com comprou o Curso Fábrica das Velas (código 4MJ9YD) em 11/09 às 18:52 e assinou o plano às 01:48 do dia seguinte; miriamcrespo@uol.com.br comprou o Curso Saponária Brasil (RW2MMP) em 10/09 às 17:52 e assinou o plano 9 minutos depois. As duas matrículas avulsas hoje carregam o granted_at da membership — uma revogação de plano expira as duas junto. A ação manual também não consulta `curso_coberto_por_outra_compra`, ao contrário do webhook. Baixei a gravidade de alta para media por uma razão: como esta ação usa expires_at (não delete), a rede `acesso_revogado_mas_pago` enxerga o estrago e o cron diário compras-sem-acesso te avisa em até 24h.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que comprou um curso avulso e depois assinou o plano: ao revogar o plano, perde também o curso que pagou à parte. É o caso da Isadora por outro caminho.",
+    "ja_afetou_alguem": "nao como revogação — mas a condição já está gravada em 87 matrículas de 4 alunas, 2 delas com compra avulsa anterior comprovada (liacitro3, miriamcrespo)",
+    "correcao": "Parar de decidir por granted_at: antes de expirar cada curso do plano, chamar `curso_coberto_por_outra_compra` com o e-mail da aluna, como o webhook já faz. E o webhook não deveria reescrever granted_at no upsert de conflito."
+  },
+  {
+    "titulo": "A trava que impede derrubar curso pago é cega para compras da Kiwify",
+    "arquivo": "banco: curso_coberto_por_outra_compra e compra_estornada — chamadas em C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/lib/payments/process-purchase.ts:322 e :484",
+    "veredito": "confirmado",
+    "porque": "Li as duas funções no banco. Ambas filtram `pe.payload->>'transaction_id' is not null` e extraem código de `payload->'product'->>'code'`, `product.items[]` e `order_bumps[]` — só campos do formato Payt. Conferido: dos 61 eventos Kiwify, 0 têm transaction_id e 0 têm product.code; os 61 têm order_id, e o produto vem em Product.product_id. Logo `curso_coberto_por_outra_compra` devolve false para toda compra Kiwify e a revogação segue em frente — é o defeito de 22/09 pelo lado da Kiwify. Idem `compra_estornada`, que nunca vê estorno Kiwify e por isso não segura a ativação em vincular-compra.ts:102. Baixei para media porque a exposição hoje é minúscula: dos 61 eventos, 51 são do usuário de teste e2e; sobram 4 compradoras Kiwify reais, nenhuma com compra na Payt. A estrutura está no ar e cresce a cada venda.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que compra em plataformas diferentes: estornar a compra da Payt derruba também o curso que a Kiwify pagou, e vice-versa.",
+    "ja_afetou_alguem": "nao — 4 compradoras Kiwify reais hoje, nenhuma com compra Payt no mesmo e-mail",
+    "correcao": "Nas funções do banco, aceitar também `payload->>'order_id'` como id de transação e `payload->'Product'->>'product_id'` / `payload->'Subscription'->'plan'->>'id'` como código de produto."
+  },
+  {
+    "titulo": "Revogação manual apaga a linha da matrícula, e as duas redes de segurança precisam da linha",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/app/(admin)/admin/alunos/[userId]/actions.ts:153-157",
+    "veredito": "confirmado",
+    "porque": "`revokeAccessAction` faz enrollments.delete(), enquanto o webhook faz update({expires_at: now}). A função `acesso_revogado_mas_pago` — a camada feita justamente para achar \"curso revogado que uma compra em pé ainda cobre\" — dá join em enrollments com `e.expires_at is not null and e.expires_at <= now()`. Sem linha, não há o que achar. E a cegueira é dupla, pior do que o outro agente viu: o alarme de volume filtra `admin_id is null` E `action in ('enrollment.revoked','membership.revoked')`, enquanto esta ação grava admin_id preenchido e action = 'revoke_access' — não bate em nenhum dos dois critérios. O custo disso já apareceu na prática: as 5 revogações da kate.sarto em 17/09 sumiram tão bem que o outro agente as leu como falha de sistema e me trouxe como incidente ativo. Some junto granted_at, source e a história da compra.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna revogada por engano na mão: nenhuma das duas redes a levanta, e só aparece quando ela escreve para o suporte.",
+    "ja_afetou_alguem": "nao (nenhuma queixa associada aos 117 revoke_access), mas a cegueira vale para toda revogação manual já feita",
+    "correcao": "Trocar o delete por update({ expires_at: now }), como o webhook faz, e incluir 'revoke_access' na lista de ações que o alarme de revogações varre."
+  },
+  {
+    "titulo": "A trava de repetição do convite ao Completo encosta no corte de 1.000",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/lib/campanhas/completo.ts:62 e src/app/api/cron/convite-completo/route.ts:67",
+    "veredito": "confirmado",
+    "porque": "`jaConvidadas()` lê email_campaign_sends.select(\"user_id\").like(\"campaign\",\"plano-completo%\") sem .range(); o cron de convite lê a mesma tabela do mesmo jeito para montar o mapa de etapas; `comPlanoAtivo()` idem em memberships. São exatamente as travas que impedem reenviar o convite, e nenhuma pagina — só `matriculasPorAluna()` foi escrita com laço de .range(). Contagem de hoje: 831 linhas com o prefixo plano-completo (752 da base + 79 da conclusão) de um teto de 1.000, em 1.731 linhas no total da tabela. O cron roda de hora em hora e a contagem só sobe. Quando passar de 1.000, quem ficar de fora do recorte volta a parecer \"nunca convidada\" — a mesma forma do reengajamento sem trava de 14/09.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que já recebeu os 3 e-mails da sequência e volta a recebê-los do zero.",
+    "ja_afetou_alguem": "nao — mas falta pouco: 831 de 1.000",
+    "correcao": "Paginar as três leituras com .range() em laço, como `matriculasPorAluna()` já faz; ou trocar por um count exact + consulta por user_id."
+  },
+  {
+    "titulo": "CSV de alunas exporta 1.000 de 4.550, com cursos e progresso truncados",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/app/api/admin/alunos/export/route.ts:20-24, 41-45, 80-87",
+    "veredito": "confirmado",
+    "porque": "Nenhuma das quatro consultas do export tem .range(): profiles (4.552 linhas hoje), enrollments filtrado por .in(\"user_id\", profileIds) (11.958 linhas), lessons e lesson_progress. Cada uma volta cortada em 1.000 sem erro. O CSV sai com as 1.000 alunas mais recentes (a ordenação é created_at desc) e, para essas, as colunas Qtd. Cursos, Cursos, Aulas Concluídas e Progresso Médio saem calculadas sobre um recorte arbitrário de 1.000 das 11.958 matrículas — ou seja, mesmo as 1.000 que aparecem podem sair com cursos faltando. Não é código feio: é a mesma armadilha das métricas de 02/09, num arquivo que serve para decidir.",
+    "gravidade": "media",
+    "quem_se_machuca": "Ninguém perde acesso, mas a Jessica segmenta e-mail, escolhe quem convidar e identifica quem parou em cima de uma lista que mente sem avisar.",
+    "ja_afetou_alguem": "sim, em toda exportação feita desde que a base passou de 1.000 — 4.550 alunas elegíveis, 11.958 matrículas",
+    "correcao": "Paginar as quatro consultas com .range() em laço e, se der, mostrar no topo do CSV o total de linhas lidas para conferência."
+  },
+  {
+    "titulo": "Kiwify: cancelamento e atraso de assinatura revogam na hora, ignorando a data de acesso do próprio payload",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/lib/payments/kiwify.ts:133-138",
+    "veredito": "confirmado",
+    "porque": "REVOKE_EVENTS inclui subscription_canceled e subscription_late, e classifyKiwifyEvent devolve 'revoke' direto, sem olhar o estado da transação. O payload da Kiwify traz Subscription.customer_access.access_until, active_period e Subscription.status, e nada disso é lido em lugar nenhum do arquivo. subscription_late é estado temporário — a Kiwify retenta a cobrança. E como a trava `curso_coberto_por_outra_compra` é cega para Kiwify (achado acima), não há segunda barreira: a revogação passa. Há ainda um efeito colateral que o outro agente não viu: `sync_membership_from_payments` trata subscription_canceled e subscription_late como estorno da transação, então um atraso de cobrança bloqueia para sempre a recriação da membership daquela compra, mesmo depois que a Kiwify cobrar.",
+    "gravidade": "media",
+    "quem_se_machuca": "Assinante que cancela a renovação no dia 2 do ciclo e perde os 28 dias que já pagou; e quem tem uma cobrança atrasada e fica sem acesso até a retentativa passar.",
+    "ja_afetou_alguem": "nao — a única assinatura Kiwify ativa (Clube de Receitas Exclusivas, renovada em 21/09) segue paga",
+    "correcao": "Tratar subscription_late como 'ignore' e, em subscription_canceled, gravar expires_at = Subscription.customer_access.access_until em vez de revogar na hora."
+  },
+  {
+    "titulo": "Botão \"matrícula retroativa\" enxerga só o código principal, só compras já processadas, corta em 1.000 e não grava nada",
+    "arquivo": "src/app/(admin)/admin/cursos/actions.ts:328-416",
+    "veredito": "confirmado",
+    "porque": "Li a função inteira. DERRUBEI as duas partes mais graves do relato: (1) o acesso indevido a quem estornou NÃO acontece — o passo 4 (linha 371) busca matrícula SEM filtro de expires_at, então quem teve o acesso revogado pelo webhook (que marca expires_at=now(), não apaga) já está no enrolledSet e é excluído; consultei o banco e há ZERO pares aluna×curso hoje em que o botão recriaria acesso de compra estornada (73 e-mails com estorno real: payment_status refunded/chargeback). (2) a prova das 694 matrículas é falsa — a função nasceu no commit 0a13f3e de 11/08/2026, depois do lote de 05/08, e ela concede UM curso por clique, enquanto os dois lotes citados tocam 23 cursos cada (é backfill do plano, não este botão). O QUE SOBRA e se sustenta, tudo verificado: linha 349 filtra payment_events.product_code, que guarda só o código principal (process-purchase.ts:53 grava product_code: event.mainProductCode) — item de pacote e order bump ficam invisíveis; linha 353 exige processed=true e hoje existem 23 eventos pagos com processed=false, exatamente as compras que a admin quer consertar; a consulta da linha 349 não pagina e já estoura o corte de 1.000 em dois cursos (Saponaria Brasil: 3.163 eventos pagos; Fábrica das Velas de Lembrancinha: 1.023); e a concessão em massa da linha 393 não grava nada em audit_log.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que comprou o curso dentro de um pacote ou como order bump e continua sem acesso depois do clique. A admin lê \"12 liberados\", acredita que resolveu e fecha o chamado. Não há risco de acesso indevido.",
+    "ja_afetou_alguem": "Sem caso comprovado. Números de hoje: 23 eventos pagos com processed=false que o botão ignora, e 2 cursos acima de 1.000 eventos pagos (3.163 e 1.023) onde o corte já morde.",
+    "correcao": "Buscar os códigos no payload (product.items[] e order_bumps[]) como a RPC acesso_revogado_mas_pago já faz, remover o filtro processed=true, paginar com fetchAll e gravar uma linha em audit_log com a lista de user_id concedidos."
+  },
+  {
+    "titulo": "O e-mail de post novo no feed nunca saiu para ninguém — e a notificação in-app não é cortada, ao contrário do que foi relatado",
+    "arquivo": "src/app/(admin)/admin/comunidade/feed/actions.ts:135-166",
+    "veredito": "confirmado",
+    "porque": "O diagnóstico do relato está errado e o defeito real é maior. DERRUBADO: a notificação in-app não passa por este código — quem faz o leque é o trigger de banco on_news_post_published (migration 005_triggers.sql), em SQL, sem corte: o post de 04/09 gerou 3.406 notificações para 3.409 alunas elegíveis. A prova de que o caminho TypeScript não rodou é o formato das linhas: o trigger grava title 'Nova publicação: '||titulo e body=trecho do corpo, que é o que está no banco; o código da linha 149 gravaria title \"Nova publicação\" e body=título. Nenhuma linha tem esse formato, nos dois posts publicados (04/09 e 14/07). O QUE ISSO SIGNIFICA: notifyNewsPost só é chamada por toggleNewsPublished (linha 123) — quando a admin já cria o post publicado, ela nunca roda, e o e-mail de novo post, que só existe ali (linha 165), nunca foi enviado a ninguém. E se rodar: o select da linha 135 não pagina (corta em 1.000 de 4.550) e o laço da linha 158 envia os e-mails um a um, sequencialmente, dentro de uma Server Action — estoura o tempo muito antes do fim, com o catch da linha 173 só fazendo console.error.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que optou por receber o e-mail de novidade do feed e nunca recebeu nenhum. A notificação do sininho ela recebeu — essa parte funciona.",
+    "ja_afetou_alguem": "Sim, e são todas: 0 e-mails de post novo disparados nos 2 posts publicados (04/09 e 14/07), porque o caminho que os envia nunca foi executado. Do lado da notificação in-app, nada se perdeu: 3.406 de 3.409.",
+    "correcao": "Disparar o e-mail no create e no toggle (ou num cron que olhe posts publicados sem registro de envio), paginar a lista, gravar o que foi enviado numa tabela como email_campaign_sends e enviar em lote fora da Server Action."
+  },
+  {
+    "titulo": "Botão \"Próxima\" engole o erro de concluir a aula e navega assim mesmo",
+    "arquivo": "src/components/player/NextLessonButton.tsx:22",
+    "veredito": "confirmado",
+    "porque": "É um caso isolado, e isso reforça: markLessonComplete foi escrita para LANÇAR quando o upsert falha (aulas/actions.ts:119-122). Os outros dois chamadores tratam certo — LessonCompleteButton.tsx:45 tem try/catch que desfaz o estado otimista e acende o erro, e PandaPlayer.tsx:107-116 solta o autoMarkedRef e pede recarga em vez de dar a aula como concluída. Só o NextLessonButton faz .catch(() => {}) e chama router.push na linha seguinte, e ele é o caminho mais usado para terminar uma aula. É o mesmo engolir que o comentário do PandaPlayer (linhas 15-22) descreve como já corrigido ao lado.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que avança pelo botão, vê a aula seguinte abrir e não tem o progresso gravado. Ela não vê erro nenhum — só o certificado que não sai aos 95%.",
+    "ja_afetou_alguem": "Sem prova: progresso não gravado é indistinguível de aula não assistida. Hoje são 249 certificados para 11.958 matrículas.",
+    "correcao": "Copiar o tratamento do LessonCompleteButton: aguardar a ação, e em caso de erro mostrar o aviso em vez de navegar (ou navegar avisando que o progresso não foi salvo)."
+  },
+  {
+    "titulo": "Compra do Handify Completo pode não virar plano nenhum e mesmo assim gravar processado",
+    "arquivo": "src/lib/payments/process-purchase.ts:407-465 e 577",
+    "veredito": "confirmado",
+    "porque": "Os três buracos existem. (1) A leitura de annual_promo na linha 407 descarta o erro e não filtra active — e a coluna active existe na tabela: src/lib/campanhas/completo.ts:50 filtra .eq(\"active\", true) na mesma tabela, então as duas partes do sistema leem regras diferentes. Pior: é .maybeSingle(), que devolve ERRO se houver uma segunda linha; nesse caso planCodes vira [], isPlanEvent vira false e a compra do plano passa sem membership e sem os cursos in_plan que não carregam o código, em silêncio. (2) O erro do insert da membership (linha 439) e o do upsert dos cursos do plano (linha 463) viram só console.error. (3) Confirmei a linha 577: processed é `processed === courses.length`, calculado apenas com os results do laço de cursos (linhas 286-397) — nada do bloco do plano entra na conta. Falha total do plano = processed true, error null. (Não se aplica o caso de zero cursos: a linha 154 já devolve processed=false com erro.)",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que pagou o produto mais caro da casa e não recebe o plano nem os cursos novos dele. No painel de webhooks a compra aparece verde.",
+    "ja_afetou_alguem": "Não. Hoje annual_promo tem 1 linha só, com os códigos, e há 75 memberships ativas. Basta a dona cadastrar uma segunda promoção para a entrega do plano sumir sem aviso.",
+    "correcao": "Filtrar .eq(\"active\", true), conferir o erro da leitura e abortar com erro registrado se planCodes vier vazio num evento de plano, e somar as falhas do bloco do plano ao processed da linha 577."
+  },
+  {
+    "titulo": "Tokens de ativação criados em paralelo sem conferir quais entraram",
+    "arquivo": "src/lib/payments/process-purchase.ts:216-234",
+    "veredito": "confirmado",
+    "porque": "O Promise.all cria um activation_token por curso e o .then(({ data }) => ...) da linha 231 descarta o campo error de cada insert. Existe UMA guarda, e só cobre o caso total: se nenhum token nascer, a linha 246 grava emailError \"Token de ativação não foi criado\" e o evento fica não processado. Falha parcial não: a linha 241 pega o token do curso principal ou o primeiro que existir, manda o e-mail e a linha 271 grava processed: !emailError, ou seja, true. E como ativar/[token]/actions.ts:173-178 concede apenas os tokens que EXISTEM para aquele e-mail, os cursos sem token estão perdidos e não aparecem em compras_sem_acesso (que só lê tokens existentes e não usados). É a forma exata do incidente de 11/07–05/08.",
+    "gravidade": "media",
+    "quem_se_machuca": "Compradora sem conta que pagou um pacote e vai receber parte dele, sem nenhuma tela mostrando o que faltou.",
+    "ja_afetou_alguem": "Não há registro do que foi tentado, só do que existe — não dá para contar.",
+    "correcao": "Guardar o error de cada insert, e se algum falhar gravar processed=false com a lista dos cursos sem token, para o evento aparecer vermelho no painel de webhooks."
+  },
+  {
+    "titulo": "fetchAll devolve resultado parcial como se fosse completo quando uma página falha",
+    "arquivo": "src/lib/supabase/fetch-all.ts:31-34",
+    "veredito": "confirmado",
+    "porque": "A função que existe justamente para vencer o corte de 1.000 faz console.error + break no erro de página e devolve o array pela metade; quem chama recebe um array normal, sem jeito de distinguir. O pior uso se confirma em certificados-actions.ts:96-116: alunasSemCertificado pagina lesson_progress filtrado pelas aulas do curso, e só no Curso Saponaria Brasil são 20.040 linhas de progresso concluído (21 páginas) para 3.191 matrículas. Se uma página falhar, as alunas dela aparecem com menos aulas que o limiar de 95%, não entram na lista e a tela informa \"0 certificados pendentes\". Mesmo helper em broadcastPush (push/index.ts:66).",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna concluinte que fica sem certificado depois que a admin clicou em \"emitir pendentes\" e leu que não havia nenhum. E push que não chega.",
+    "ja_afetou_alguem": "Não há log guardado de falha de paginação — o defeito é a ausência de sinal, não o erro em si.",
+    "correcao": "Lançar o erro em vez de dar break, ou devolver { linhas, completo: false } e fazer as telas dizerem \"não consegui ler tudo\" em vez de mostrar zero."
+  },
+  {
+    "titulo": "Revogação manual apaga a matrícula, e as duas redes de segurança nunca a veem",
+    "arquivo": "src/app/(admin)/admin/alunos/[userId]/actions.ts:153-157",
+    "veredito": "confirmado",
+    "porque": "Confirmado nos dois lados, código e banco. revokeAccessAction faz DELETE na linha de enrollments (ela grava audit_log, isso está certo); o webhook, no mesmo caso, só marca expires_at=now() (process-purchase.ts:345-350). Li a definição de acesso_revogado_mas_pago no banco: o join exige `e.expires_at is not null and e.expires_at <= now()` — linha apagada não existe para ela. E compras_sem_acesso parte de activation_tokens não usados, que a aluna com conta antiga já não tem. O comentário em compras-sem-acesso/route.ts:130-131 afirma o contrário, com todas as letras: \"uma revogação manual por engano cai no mesmo lugar\". Não cai. E não é hipótese distante: já existem 117 ações revoke_access no audit_log, todas invisíveis para os dois relatórios.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que perde curso pago por um clique errado da admin e só é descoberta quando ela mesma escreve — exatamente o silêncio que o alarme diário foi criado para acabar.",
+    "ja_afetou_alguem": "117 revogações manuais já feitas, nenhuma coberta pelos dois relatórios. Quantas foram por engano não dá para saber justamente porque o alarme não olha para lá.",
+    "correcao": "Fazer a revogação manual marcar expires_at=now() como o webhook (ou fazer as RPCs lerem o audit_log de revoke_access), para as duas ficarem na mesma rede."
+  },
+  {
+    "titulo": "A rotina do banco que roda ao criar conta entrega só o código principal e marca o evento como processado",
+    "arquivo": "banco: public.process_pending_payment_events (via handle_new_user / on_auth_user_created)",
+    "veredito": "confirmado",
+    "porque": "Li a definição no banco e confirmei o caminho: o trigger on_auth_user_created chama handle_new_user(), que chama esta função. Ela procura curso por v_event.product_code, que guarda só o código PRINCIPAL (process-purchase.ts:53) — itens de produto agrupado e order bumps ficam no payload e nunca são consultados. Basta UM curso bater para v_liberou := true e o evento virar processed = true: é o defeito de 11/07–05/08 vivo dentro do banco. E não pergunta por estorno, ao contrário do caminho equivalente em TypeScript (semCompraEstornada). Corrijo o relato num ponto: ela TEM um segundo ramo, `is_plan_code(product_code) and c.in_plan`, que o outro agente não viu — o plano é entregue inteiro; o buraco é só o dos itens e order bumps.",
+    "gravidade": "media",
+    "quem_se_machuca": "Compradora de pacote que cria a conta e recebe um item só, com a compra marcada como processada. E, do outro lado, quem estornou e cria conta depois, recebendo acesso.",
+    "ja_afetou_alguem": "Não hoje: há 0 eventos pagos com processed=false e error nulo na fila, porque o webhook resolve antes. Mas 1.929 eventos pagos têm itens ou order bumps no payload — quando a fila tiver qualquer linha, ela entrega pela metade.",
+    "correcao": "Extrair os códigos do payload (items[] e order_bumps[]) como a RPC acesso_revogado_mas_pago já faz, só marcar processed quando todos os códigos com curso cadastrado virarem matrícula, e checar estorno antes de conceder."
+  },
+  {
+    "titulo": "Paginação sem ORDER BY decide quem recebe certificado",
+    "arquivo": "src/app/(admin)/admin/cursos/certificados-actions.ts:96-116 (alunasSemCertificado)",
+    "veredito": "confirmado",
+    "porque": "As três chamadas de fetchAll usam .range() sem nenhum .order(). Sem ORDER BY o Postgres não garante ordem estável entre páginas, e cada página é uma consulta nova. Confirmei que três cursos com certificado passam de uma página: Saponaria Brasil 20.040 linhas concluídas (21 páginas) e 3.191 matrículas (4 páginas), Fábrica das Velas 4.032, Buquê de Velas 3.346. E lesson_progress é a tabela mais escrita do sistema — 721 linhas mexidas nas últimas 24h, a cada 10s por aluna assistindo. O que torna isto perigoso e não cosmético: o limiar é ceil(n*0.95) e na maioria dos cursos isso dá o total exato de aulas, então há 179 alunas com contagem EXATAMENTE no limiar nesses três cursos (86 em Saponaria, 74 em Buquê, 19 em Fábrica). Para qualquer uma delas, uma única linha perdida entre páginas significa nenhum certificado — e nada registra a ausência. O mesmo .range() sem .order() está em metricas/page.tsx, funil, videos, engajamento, conclusao, alunas e em campanhas/completo.ts (matriculasPorAluna): ali o efeito é número errado em silêncio.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna que concluiu o curso e não recebe o certificado na emissão em lote, sem nada indicando o porquê — 179 estão exatamente na borda hoje.",
+    "ja_afetou_alguem": "nao (nao e provavel pelo banco: certificado que nao foi emitido nao deixa linha)",
+    "correcao": "Acrescentar um .order() por coluna estável (ex.: .order(\"user_id\").order(\"lesson_id\")) em toda consulta paginada com .range(), aqui e nas telas de métrica. É uma linha por consulta."
+  },
+  {
+    "titulo": "Post do feed: a notificação sai pelo gatilho e o e-mail nunca sai; pelo toggle, notificação em dobro",
+    "arquivo": "src/app/(admin)/admin/comunidade/feed/actions.ts:112-175 + gatilho on_news_post_published",
+    "veredito": "confirmado",
+    "porque": "Existem dois caminhos para a mesma coisa. Li a função do banco: notify_on_news_post() dispara em INSERT OR UPDATE quando published vira true e insere a notificação in-app em SQL, com o título 'Nova publicação: ' || new.title. Já notifyNewsPost() no TypeScript grava título 'Nova publicação' (sem o nome) e só é chamado por toggleNewsPublished — createNewsPost com published=true não chama. A prova está no banco: 3.688 notificações news_post com o título do gatilho e ZERO com o título do código. notifyNewsPost() nunca rodou, e é só ele que manda e-mail: nenhum e-mail de novo post no feed jamais saiu. Se a dona publicar pelo toggle, os dois caminhos rodam e a mesma aluna recebe o sino duas vezes. Além disso o select de profiles em :137 não tem limite (4.550 alunas → 1.000), os e-mails saem num for serial com await por aluna, e a chamada é `void notifyNewsPost(id)` dentro de uma Server Action — sem await, a função da Vercel pode encerrar antes de terminar a lista.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna que marcou no perfil que quer novidades por e-mail e nunca recebeu nenhuma; e a dona, que publica achando que avisou por e-mail.",
+    "ja_afetou_alguem": "todos os 2 posts publicados: 3.688 notificacoes in-app e 0 e-mails",
+    "correcao": "Escolher um caminho só. O mais simples: tirar a inserção in-app do gatilho ou do código, chamar a notificação também no createNewsPost, paginar o select de profiles e trocar o for serial por envio em lote (sendPlanUpgradeEmailBatch já existe como modelo), com await de verdade."
+  },
+  {
+    "titulo": "E-mail de curso novo: 1.000 de 4.551 destinatárias, envio serial e sem registro",
+    "arquivo": "src/app/(admin)/admin/cursos/actions.ts:263, 276-299 (notifyNewCourse)",
+    "veredito": "confirmado",
+    "porque": "Confirmado no código: .from(\"profiles\").select(...).eq(\"role\",\"student\").not(\"email\",\"is\",null) sem limite — 4.551 linhas, chegam 1.000 — e o filtro de opt-in (new_course !== false) é aplicado depois, em memória, sobre o recorte. Depois percorre a lista com await por aluna. E nada é gravado: conferi email_campaign_sends e existem só três campanhas (reengajamento-1, plano-completo-base, plano-completo-conclusao-1) — não há registro nenhum de lançamento de curso. Despublicar e republicar dispara tudo de novo para as mesmas pessoas. Some-se que togglePublished chama `void notifyNewCourse(courseId)` sem await, dentro de uma Server Action: na Vercel a função pode ser encerrada no meio da fila serial.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna que não fica sabendo do curso novo; ou, no caminho oposto, a que recebe o mesmo lançamento de novo a cada republicação — é a forma do problema do cron de reengajamento, num lugar que ainda não estourou.",
+    "ja_afetou_alguem": "nao",
+    "correcao": "Paginar o select, filtrar o opt-in no banco, enviar em lote e registrar em email_campaign_sends com uma campanha por curso (ex.: novo-curso-<id>), consultando o registro antes de enviar — o mesmo desenho que já protege o reengajamento."
+  },
+  {
+    "titulo": "Ações admin do acervo de inspirações não verificam role e rodam com service client",
+    "arquivo": "src/lib/inspiracoes/actions.ts:332-489",
+    "veredito": "confirmado",
+    "porque": "Arquivo inteiro é 'use server'. Li as sete funções: adminUpsertPost, adminDeletePost, adminArchivePost, adminPublishPost, adminGetPendingComments, adminApproveComment e adminDeleteComment usam createServiceClient (ignora RLS) e nenhuma chama sessão ou role — não há nenhuma guarda que o outro agente tenha deixado passar. A proteção existente é só de layout (src/app/(admin)/layout.tsx redireciona quem não é admin), e layout não protege Server Action, que é endpoint próprio. Comparação interna: feed (assertAdmin), cursos (assertAdmin) e o resto de notifications (requireAdmin) todos checam — este arquivo é a exceção. Ressalva honesta que baixa a gravidade: para chamar de fora é preciso o action id, que só aparece nos chunks JS do admin; e adminUpsertPost recebe adminId como parâmetro do cliente, então nem a autoria é confiável. Nenhuma das sete grava em audit_log.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que perde o comentário dela, e o acervo que pode ser despublicado ou apagado sem rastro de quem fez.",
+    "ja_afetou_alguem": "nao (não há como provar pelo banco em nenhuma direção, justamente porque nada vai para audit_log)",
+    "correcao": "Criar um assertAdmin() no topo do arquivo e chamá-lo em todas as sete funções admin, pegando o adminId da sessão em vez do parâmetro; registrar publicar/despublicar/apagar em audit_log."
+  },
+  {
+    "titulo": "Despublicar e republicar um post do feed renotifica a base inteira — pelo gatilho do banco, não só pelo TypeScript",
+    "arquivo": "src/app/(admin)/admin/comunidade/feed/actions.ts:111-174 + trigger on_news_post_published",
+    "veredito": "confirmado",
+    "porque": "toggleNewsPublished chama notifyNewsPost sempre que published vira true, sem nenhuma marca de \"já anunciado\". O outro agente parou aqui e concluiu que o caminho nunca rodou porque não existe notification com title exatamente \"Nova publicação\". Isso está certo para o TypeScript e errado para o efeito: existe um trigger no banco, notify_on_news_post em news_posts, que dispara em INSERT e também em UPDATE quando old.published=false e new.published=true, e insere para todas as alunas opt-in em SQL puro (sem corte de 1.000). Foi ele que gravou as 3.406 linhas \"Nova publicação: Chegaram 9 ferramentas novas...\" em 04/09. Ou seja: um re-toggle duplica o aviso para 3.406 pessoas pelo trigger, mais um segundo aviso para 1.000 pelo TypeScript, mais e-mail. O laço de e-mail (164) é um await por pessoa via enviarEmail, dentro de uma função void-ada — morre no meio e não registra onde parou.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna recebe o mesmo aviso duas ou três vezes no sino e um e-mail repetido; e o e-mail sai só para uma fatia arbitrária, sem ninguém saber quem ficou de fora.",
+    "ja_afetou_alguem": "nao (os 3 posts do feed nunca foram despublicados e republicados; o defeito está armado no botão)",
+    "correcao": "Guardar no post a marca de \"já anunciado\" (ex.: news_posts.notified_at) e condicionar tanto o trigger quanto notifyNewsPost a ela; trocar o laço de e-mail por envio em lote, como sendPlanUpgradeEmailBatch."
+  },
+  {
+    "titulo": "Despublicar e republicar um curso reenvia o e-mail de curso novo, sem registro e sem teto",
+    "arquivo": "src/app/(admin)/admin/cursos/actions.ts:254-299",
+    "veredito": "confirmado",
+    "porque": "togglePublished chama notifyNewCourse toda vez que published vira true, e não existe tabela nem coluna que registre que aquele curso já foi anunciado — nada impede o segundo anúncio. Confirmo o defeito, mas corrijo o resumo do outro agente em três pontos: (1) a chamada é void notifyNewCourse(courseId), não awaited, então a Server Action não morre \"no meio do laço\" — quem morre é a função de fundo quando a resposta fecha; (2) não existe nenhuma retentativa automática, então a frase \"a tentativa seguinte recomeça do zero\" não se sustenta, só um novo toggle manual reenvia; (3) o filtro de banned que falta é irrelevante — existe 1 conta banida no banco inteiro. O corte de 1.000 na busca de profiles (277) também é secundário: com um await por aluna via enviarEmail, o laço morre bem antes das 1.000.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna recebe e-mail repetido com a marca da Handify — e, mais grave no dia a dia, o anúncio legítimo de um curso novo já sai pela metade hoje, porque o laço sequencial não chega ao fim.",
+    "ja_afetou_alguem": "nao (não existe tabela de registro desse envio; não há como afirmar pelo banco que aconteceu nem que não aconteceu)",
+    "correcao": "Marcar no curso a data do anúncio (ex.: courses.announced_at) e só notificar se estiver vazia; trocar o laço por envio em lote e paginar a busca de perfis."
+  },
+  {
+    "titulo": "dispatchCampaign é a única ação de campanha sem requireAdmin e não trava disparo concorrente",
+    "arquivo": "src/lib/notifications/actions.ts:164-178",
+    "veredito": "confirmado",
+    "porque": "Conferi as quatro: createCampaign (100), deleteCampaign (145) e cancelCampaign (152) chamam requireAdmin; dispatchCampaign não chama nada. Ela é exportada de arquivo 'use server' e importada por um componente cliente (src/app/(admin)/admin/notificacoes/CampaignActions.tsx:5), então o action id vai para o bundle. Além disso o update para \"sending\" (175-178) não é condicional ao status anterior — diferente de cancelCampaign, que usa .eq(\"status\",\"scheduled\"). Dois disparos ao mesmo tempo (cron das :05 e o botão \"Enviar agora\") passam os dois pela guarda da linha 173 e a base recebe notificação e push em duplicata.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna recebendo aviso e push duplicados; e quem não é admin poderia acionar disparo em massa — para isso precisa do UUID da campanha, que o RLS de notification_campaigns (ativo, confirmei) só entrega a admin.",
+    "ja_afetou_alguem": "nao (não há admin_broadcast duplicado em notifications)",
+    "correcao": "Chamar requireAdmin em dispatchCampaign e tornar a marcação de \"sending\" condicional (.in(\"status\",[\"draft\",\"scheduled\"]) com checagem de linhas afetadas), abortando se outra execução já pegou a campanha."
+  },
+  {
+    "titulo": "A lista de quem já recebeu o convite do Completo corta em 1.000 e está a 169 linhas do corte",
+    "arquivo": "src/lib/campanhas/completo.ts:62",
+    "veredito": "confirmado",
+    "porque": "jaConvidadas faz email_campaign_sends.select(\"user_id\").like(\"campaign\",\"plano-completo%\") sem range — e é exatamente a consulta que decide quem NÃO deve receber de novo. Ela é usada pelo cron convite-completo (route.ts:95), que roda de hora em hora e está vivo. Quando passar de 1.000 linhas, quem cair fora da primeira página volta a contar como \"nunca convidada\" e pode entrar de novo na sequência de conclusão. Duas ressalvas ao resumo do outro agente: o mesmo uso em campanha-completo é inofensivo hoje, porque aquela rota é travada por DATA_DO_DISPARO = 2026-09-08 e não envia mais nada; e o caso de memberships (linha 68, também sem range) está a 925 linhas do corte — são 75 assinantes do Completo, risco distante.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna que já recebeu o convite e recebe de novo.",
+    "ja_afetou_alguem": "nao — mas está perto: 831 de 1.000 (752 plano-completo-base + 79 plano-completo-conclusao-1), e a sequência de conclusão acrescenta linhas toda semana",
+    "correcao": "Paginar jaConvidadas e comPlanoAtivo com range(de, de+999) em laço, no mesmo padrão de matriculasPorAluna logo abaixo no arquivo."
+  },
+  {
+    "titulo": "Erro ao gravar as notificações é descartado e a campanha é marcada como enviada assim mesmo",
+    "arquivo": "src/lib/notifications/actions.ts:221 e 231-238",
+    "veredito": "confirmado",
+    "porque": "A linha 221 é await service.from(\"notifications\").insert(batch) com o retorno jogado fora — o erro não é lido nem testado — e totalSent soma batch.length independentemente do resultado. É a mesma forma do erro de 11/07: sucesso gravado em falha parcial. Do outro lado, se a função morrer antes da linha 231 a campanha fica em \"sending\", e o cron (src/app/api/notifications/dispatch/route.ts:26) só repega status=\"scheduled\" — confirmei no código: nada tenta de novo e ninguém é avisado.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna sem o aviso, com o painel dizendo que recebeu.",
+    "ja_afetou_alguem": "nao nesta forma (as 3 campanhas estão \"sent\", nenhuma presa em \"sending\"; no caso da campanha de 05/09 os inserts funcionaram — o que faltou foram as destinatárias, que é o achado nº1)",
+    "correcao": "Ler o erro de cada insert, somar só o que entrou, e gravar status=\"partial\"/\"error\" com a mensagem quando algum lote falhar; fazer o cron repescar campanhas presas em \"sending\" há mais de X minutos."
+  },
+  {
+    "titulo": "Despublicar e republicar um post do feed reenvia a notificação para as ~4.550 alunas, quantas vezes a admin clicar",
+    "arquivo": "banco: trigger on_news_post_published + src/app/(admin)/admin/comunidade/feed/actions.ts:122",
+    "veredito": "confirmado",
+    "porque": "O mecanismo não é o que o outro agente descreveu, mas a conclusão fica de pé — e piora. Quem realmente manda a notificação é um trigger no banco: on_news_post_published AFTER INSERT OR UPDATE ON news_posts, função notify_on_news_post, que insere uma linha em notifications para cada aluna quando new.published = true and (old is null or old.published = false). A guarda existe só para a transição, não para a repetição: despublicar (true→false) e republicar (false→true) faz o trigger disparar de novo, do zero, sem consultar nada do que já foi enviado. Não há coluna de marcação em news_posts nem registro em email_campaign_sends ou audit_log. Em cima disso, toggleNewsPublished ainda chama void notifyNewsPost(id), que insere uma SEGUNDA notificação (com outro formato de título) e roda um laço serial de sendNewsPostEmail por aluna, também sem trava. É a forma de erro nº 5 (ação em massa sem trava de repetição). A escala está medida no banco: o post de 04/09/2026 gerou 3.406 notificações num único instante.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna recebe o mesmo aviso (e possivelmente o mesmo e-mail) repetido a cada ciclo de edição; o domínio da Handify paga em reputação de envio e ela clica em descadastrar.",
+    "ja_afetou_alguem": "nao — os 2 posts publicados até hoje saíram uma vez cada (282 notificações em 14/07 e 3.406 em 04/09), porque nenhum passou pelo botão Despublicar/Publicar",
+    "correcao": "Gravar a marca de envio (coluna notified_at em news_posts, ou uma linha em email_campaign_sends) e checá-la no trigger e em notifyNewsPost antes de inserir. Enquanto isso não existir, a duplicidade do trigger e a do TypeScript se somam — decidir também qual dos dois caminhos fica."
+  },
+  {
+    "titulo": "A trava que impede a aluna de receber o convite do Completo duas vezes lê no máximo 1.000 linhas",
+    "arquivo": "src/lib/campanhas/completo.ts:62 (jaConvidadas)",
+    "veredito": "confirmado",
+    "porque": "jaConvidadas() faz .from(\"email_campaign_sends\").select(\"user_id\").like(\"campaign\", \"plano-completo%\") sem .range(). É essa Set que sustenta a regra escrita no topo do arquivo (\"cada aluna entra por um caminho só\") e que filtra quem entra na etapa 1 em /api/cron/convite-completo:94. Passando de 1.000 linhas com esse prefixo, quem recebeu o convite pela base volta a parecer nunca convidada. Hoje: email_campaign_sends tem 1.731 linhas no total, 831 com o prefixo plano-completo (752 de plano-completo-base + 79 de plano-completo-conclusao-1). Faltam 169 e o cron roda de hora em hora. A inconsistência é dentro do mesmo arquivo: matriculasPorAluna (linha 79) está paginada com comentário explicando esse mesmo risco. Corrijo duas partes do achado original: comPlanoAtivo() (linha 67) NÃO é risco — memberships tem 78 linhas no total; e o select de convite-completo/route.ts:67 só alcança 79 linhas hoje, mesmo defeito mas longe do teto.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna recebe o mesmo convite de venda duas vezes; e-mail repetido para quem já disse não é o caminho mais curto para o descadastro.",
+    "ja_afetou_alguem": "nao — 831 das 1.000 linhas do teto",
+    "correcao": "Paginar jaConvidadas() com fetchAll ou com o mesmo laço .range() que matriculasPorAluna já usa logo abaixo."
+  },
+  {
+    "titulo": "O gatilho que libera acesso no cadastro só entende o código principal e marca a compra como processada com 1 de 6 entregues",
+    "arquivo": "banco: public.process_pending_payment_events (trigger on_auth_user_created)",
+    "veredito": "confirmado",
+    "porque": "Li a definição: ela percorre payment_events.product_code (só o mainProductCode) e não abre payload->product->items nem payload->order_bumps, ao contrário de compras_sem_acesso, acesso_revogado_mas_pago e curso_coberto_por_outra_compra, que já expandem. E basta v_liberou=true em um curso para dar `update payment_events set processed = true`. O trigger está ativo. Baixei a gravidade porque a fila que ela lê (processed=false e error is null) tem 0 linhas hoje, e os dois casos que o agente citou não passaram por aqui: os 6 tokens da kate foram criados pelo webhook, que expandiu os bumps corretamente.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna sem acesso ao item de combo ou order bump, com o evento marcado processed=true — não aparece como erro no painel de webhooks. O volume exposto é grande: 1.894 compras pagas têm order_bumps e 46 são produto agrupado.",
+    "ja_afetou_alguem": "nao",
+    "correcao": "Expandir items e order_bumps no laço de cursos (mesmo SQL que as três funções irmãs já usam) e só marcar processed=true quando TODOS os códigos da compra tiverem virado matrícula; caso contrário gravar o que faltou em `error`."
+  },
+  {
+    "titulo": "A trava que impede revogar curso pago pergunta pelo e-mail da compra, não pela pessoa",
+    "arquivo": "banco: public.curso_coberto_por_outra_compra(p_email, p_course_id, p_transacao); chamada em handify-membros/src/lib/payments/process-purchase.ts:322 e 476",
+    "veredito": "confirmado",
+    "porque": "A função filtra `lower(pe.buyer_email) = lower(p_email)` — só e-mail. A concessão, no mesmo arquivo linhas 167-200, acha a conta por e-mail OU por telefone+primeiro nome (contaDaMesmaPessoa), de propósito. Confirmei a assimetria: quem recebeu acesso por telefone pode ter a outra compra sob o e-mail errado, e a trava não a enxerga, devolve false e a revogação passa. É a forma do erro nº2 um nível abaixo da correção de 22/09.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna pagante perde acesso a um curso que outra compra dela cobre, porque essa outra compra está sob o e-mail que ela digitou errado.",
+    "ja_afetou_alguem": "nao — só 1 conta foi ligada por telefone até hoje (audit_log action='enrollment.linked_by_phone', 13/09), e o cron compras_sem_acesso lista 8 casos abertos. O caminho por telefone é o que está crescendo.",
+    "correcao": "Passar para a função o conjunto de e-mails da mesma pessoa (o da compra mais os dos payment_events ligados por telefone+primeiro nome), ou receber o user_id e resolver os e-mails dentro dela."
+  },
+  {
+    "titulo": "Busca por CPF compara buyer_email cru com profiles.email e não acha quem comprou com e-mail em maiúscula",
+    "arquivo": "handify-membros/src/app/(admin)/admin/alunos/page.tsx:278-288; src/app/ativar/[token]/actions.ts:139-146",
+    "veredito": "confirmado",
+    "porque": "Em alunos/page.tsx o fallback por CPF lê buyer_email e joga cru em `.in(\"email\", emails)`, sem toLowerCase() — o mesmo arquivo lowercaseia na linha 108 e cursos/actions.ts:358 também. profiles guarda tudo em minúscula. Em ativar/[token]:143 é o espelho: `.eq(\"buyer_email\", email)` com o e-mail do token (minúsculo), então a compra gravada em maiúscula não é achada e o CPF/telefone da Payt não entram no perfil novo. Reduzi o número do agente: o fallback só roda quando a busca por cpf_hash falha, então quem se machuca é quem está sem cpf_hash — 75 pessoas, não 228.",
+    "gravidade": "media",
+    "quem_se_machuca": "Aluna sem acesso por via indireta: a admin busca pelo CPF, não acha, conclui que não tem conta e cria uma segunda — foi assim que nasceram as 18 duplicadas.",
+    "ja_afetou_alguem": "722 payment_events têm buyer_email com maiúscula e 228 desses endereços têm conta; destes, 75 perfis estão sem cpf_hash e com doc na compra, ou seja 75 pessoas que a busca por CPF não encontra hoje (140 eventos).",
+    "correcao": "Aplicar toLowerCase() nos buyer_email antes do `.in(\"email\", ...)` e trocar o `.eq(\"buyer_email\", email)` de ativar/[token] por `.ilike()` com o e-mail escapado (ou normalizar buyer_email na escrita)."
+  },
+  {
+    "titulo": "A trava que impede convidar a mesma aluna duas vezes lê no máximo 1.000 envios",
+    "arquivo": "handify-membros/src/lib/campanhas/completo.ts:62-66 e 68; src/app/api/cron/convite-completo/route.ts:70",
+    "veredito": "confirmado",
+    "porque": "jaConvidadas() faz `.select(\"user_id\").like(\"campaign\", 'plano-completo%')` sem .range(), e é exatamente ela que impede o convite repetido. No mesmo arquivo, matriculasPorAluna() PAGINA em blocos de 1.000 — quem escreveu sabia do corte e cobriu uma consulta e não esta. Derrubei duas partes do achado: comPlanoAtivo() lê 75 linhas de memberships e o select do cron lê 79, nenhum dos dois perto do corte; e a RPC compras_sem_acesso devolve 8 linhas hoje, longe de 1.000.",
+    "gravidade": "media",
+    "quem_se_machuca": "Ninguém ainda. Passando de 1.000, a aluna volta a receber o mesmo convite do plano — o erro nº5, ação em massa sem trava de repetição.",
+    "ja_afetou_alguem": "nao — email_campaign_sends tem 1.731 linhas, 831 com o prefixo 'plano-completo'. Faltam 169 para o corte.",
+    "correcao": "Paginar jaConvidadas() em blocos de 1.000 como matriculasPorAluna() já faz, ou trocar por um count/consulta por user_id."
+  },
+  {
+    "titulo": "A trava que impede reenviar o convite do Handify Completo está a 169 linhas de parar de funcionar",
+    "arquivo": "src/lib/campanhas/completo.ts:61-64 (jaConvidadas) e src/app/api/cron/convite-completo/route.ts:67",
+    "veredito": "confirmado",
+    "porque": "Confirmado no código e agravado por um contraste que fecha o argumento: jaConvidadas lê email_campaign_sends com .like(\"campaign\", \"plano-completo%\") sem .range(), enquanto matriculasPorAluna, 15 linhas abaixo no MESMO arquivo (:79-96), é paginada à mão com o comentário \"são milhares de linhas\". Quem escreveu conhecia a armadilha e deixou justo a trava de fora. A consulta de etapas em convite-completo/route.ts:67 tem o mesmo problema. Nenhuma das duas tem ORDER BY, então a fatia que volta acima de 1.000 é arbitrária e muda a cada execução.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna que recebe de novo um e-mail de venda que já ignorou — e, por não haver ordenação, quem \"some\" da lista muda a cada rodada, então o reenvio fica aleatório.",
+    "ja_afetou_alguem": "Ainda não, mas está perto: email_campaign_sends com prefixo plano-completo tem 831 linhas hoje (de 1.731 no total da tabela). Faltam 169, e o cron roda de hora em hora somando linhas novas.",
+    "correcao": "Trocar as duas consultas por fetchAll (ou, melhor, por uma checagem por user_id em vez de trazer a lista inteira para a memória)."
+  },
+  {
+    "titulo": "Apagar um curso leva junto matrícula, certificado e progresso de todas as alunas, sem registrar nada",
+    "arquivo": "src/app/(admin)/admin/cursos/actions.ts:313-320 (deleteCourse)",
+    "veredito": "confirmado",
+    "porque": "O delete é direto e não grava audit_log. Confirmei as FKs no information_schema: enrollments.course_id, certificates.course_id, modules.course_id e forum_posts.course_id são todas ON DELETE CASCADE, e lessons→modules e lesson_progress→lessons também, então o estrago desce até o progresso. A policy \"Admin gerencia cursos\" (ALL, is_admin()) permite o delete de verdade — não é um delete que falha calado. GUARDA QUE EXISTE E O RELATO NÃO CITOU: a UI pede confirmação (course-manager.tsx:953, \"Excluir o curso ... Esta ação é irreversível\"). Mas ela não diz quantas matrículas e certificados vão junto, e não existe audit_log nem alternativa de arquivar no nível do curso — só no de módulo e aula.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna perde acesso pago, certificado emitido e progresso de uma vez, sem registro de quem apagou nem do que havia lá — não dá nem para montar a lista de quem precisa ser remendada.",
+    "ja_afetou_alguem": "Não. Os 24 cursos estão de pé. Mas \"Curso Saponaria Brasil\" sozinho responde por milhares de matrículas e o botão fica na mesma tela do resto.",
+    "correcao": "Antes do delete, contar matrículas e certificados do curso, mostrar os números na confirmação e gravar audit_log com esse retrato (incluindo a lista de user_id). Melhor ainda: dar ao curso o mesmo `archived` que módulo e aula já têm e reservar o delete para curso sem matrícula."
+  },
+  {
+    "titulo": "Dar o Handify Completo conta as matrículas que falharam apenas no console e devolve sucesso",
+    "arquivo": "src/app/(admin)/admin/alunos/[userId]/membership-actions.ts:120-129 (laço) e :167-172 (mensagem)",
+    "veredito": "confirmado",
+    "porque": "É literalmente a forma do erro nº 3 da lista: `if (error) console.error(...)` e segue; o audit_log grava courses_granted e courses_already_had mas não courses_failed; a mensagem diz \"Handify Completo concedido — N cursos liberados\" sem mencionar falha. Fui checar se a membership salvava a aluna mesmo assim, já que is_enrolled() tem o caminho da membership para curso in_plan — e não salva: o dashboard dela (src/app/(student)/dashboard/page.tsx:35) e a tela /cursos (:74) listam por enrollments, não por is_enrolled. Sem a linha em enrollments o curso simplesmente não aparece para ela, mesmo com o plano ativo.",
+    "gravidade": "media",
+    "quem_se_machuca": "A aluna que pagou o plano e não vê parte dos cursos no painel, com a admin convencida de que liberou tudo — a membership está lá, a matrícula não.",
+    "ja_afetou_alguem": "não de forma visível: há 78 memberships (75 ativas) mas o audit_log tem 0 `membership.granted` e 4 `membership.revoked`, o que indica que as memberships vieram do webhook e este caminho do admin quase não foi usado.",
+    "correcao": "Contar as falhas no laço, incluir courses_failed no meta do audit_log e dizer na mensagem de retorno quantas não entraram — com os ids, para dar para reprocessar."
+  },
+  {
+    "titulo": "Troca de e-mail pela aba de perfil não tem a checagem de conta duplicada — e a tela que tem é código morto",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/app/(admin)/admin/alunos/[userId]/actions.ts:262-270",
+    "veredito": "confirmado",
+    "porque": "Confirmado, e pior do que o relato. `updateStudentEmailAction` (linha 497) é a versão que aprendeu a lição das 18 contas duplicadas — procura a outra conta, conta os cursos dela e explica à admin que trocar não junta as duas. Só que ela não está ligada a nada: grep no repositório inteiro devolve só a própria definição, nenhum import, nenhum componente. O botão que a admin usa de verdade é `updateProfileAction`, chamado em aluna-detail.tsx:145, com campo name=\"email\" no formulário — e essa chama auth.admin.updateUserById direto e devolve `Erro ao atualizar e-mail: <mensagem técnica em inglês>`. Dois pontos que amenizam: o Supabase barra o duplicado (não cria conta dupla sozinho), e `updateProfileAction` grava sim em audit_log, inclusive o e-mail novo. O estrago é o caminho humano: é exatamente a tela de erro que levava a admin a resolver criando conta nova.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna que fica com os cursos divididos entre duas contas — em várias das 18 anteriores, 6 ou 7 cursos de um lado e zero do outro.",
+    "ja_afetou_alguem": "nao desde a correção (9 update_profile com troca de e-mail no audit_log, nenhum com colisão)",
+    "correcao": "Ligar a tela certa ou copiar a checagem: em updateProfileAction, antes de chamar o Auth, procurar outra conta com o e-mail e devolver a mesma mensagem explicativa de updateStudentEmailAction."
+  },
+  {
+    "titulo": "Correção de e-mail reescreve todo o histórico de pagamentos do endereço antigo",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/app/(admin)/admin/alunos/resend-actions.ts:268-271",
+    "veredito": "confirmado",
+    "porque": "O mecanismo existe: os tokens são corrigidos por .in(\"id\", ids) — precisos — mas logo depois vem payment_events.update({buyer_email}).ilike(\"buyer_email\", antigo), sem filtro de transação, de data ou de produto. Duas correções ao relato do outro agente, e as duas derrubam a gravidade de alta para baixa. Primeira: o audit_log REGISTRA old_email e new_email (li as 24 linhas de correct_buyer_email — todas têm os dois), então dá para desfazer; o que ele viu foi só o campo tokens_updated. Segunda: nas 24 correções feitas até hoje, nenhum dos endereços antigos era conta de aluna — são erros de digitação do tipo nealves@hotmial.com e liurdesatie@terra.com.br, que por definição não têm dono. O risco de verdade é o .ilike: o `_` é curinga no LIKE, e 269 endereços de comprador têm `_`; um endereço antigo com `_` pode casar com a linha de pagamento de outra pessoa e mover a compra dela junto.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna cuja compra passa a ser contada na conta de outra pessoa — e as funções de estorno e revogação decidem por buyer_email.",
+    "ja_afetou_alguem": "nao — 24 correções, 0 com endereço antigo pertencente a uma conta real",
+    "correcao": "Filtrar o update de payment_events pela transação dos tokens corrigidos, e escapar `_` e `%` no valor antes de usar .ilike (ou trocar .ilike por comparação exata em lower())."
+  },
+  {
+    "titulo": "E-mail da compra é usado como padrão LIKE ao procurar a conta da aluna",
+    "arquivo": "C:/Users/Jessica Veiga/Desktop/Sync/Claude/Projetos Alaskan/Área de Membros/handify-membros/src/lib/payments/process-purchase.ts:167 (e src/app/ativar/[token]/actions.ts:79)",
+    "veredito": "confirmado",
+    "porque": "`profiles.select(...).ilike(\"email\", event.buyerEmail).maybeSingle()` trata o endereço vindo da plataforma de pagamento como padrão LIKE, e `_` é caractere válido em e-mail que no LIKE casa com qualquer caractere. Se o padrão casar com uma conta diferente da compradora, o maybeSingle devolve essa conta e a matrícula é gravada nela; se casar com duas, dá erro, profileRow fica nulo e o código segue como \"aluna sem conta\", criando token de ativação para quem já tem conta. O mecanismo é real, mas confirmei no banco que ainda não tem vítima: cruzei todos os perfis procurando um par em que o e-mail de um case com o do outro como padrão — 0 pares. 232 perfis têm `_` no endereço. Depende de uma compradora nova cujo endereço case com uma conta existente.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Acesso indevido na conta errada, ou aluna com conta que recebe link de ativação em vez de acesso.",
+    "ja_afetou_alguem": "nao — 0 pares colidentes entre os 4.552 perfis",
+    "correcao": "Trocar .ilike por .eq sobre o e-mail já normalizado em minúsculas (ou escapar `_` e `%`), nos dois arquivos."
+  },
+  {
+    "titulo": "A trava \"já convidei esta aluna\" corta em 1.000 e está a 169 linhas de estourar",
+    "arquivo": "src/lib/campanhas/completo.ts:62",
+    "veredito": "confirmado",
+    "porque": "jaConvidadas faz .select(\"user_id\").like(\"campaign\", \"plano-completo%\") sem paginação — o Set que impede o reenvio para de crescer em 1.000. Hoje o prefixo tem 831 linhas (plano-completo-base 752 + plano-completo-conclusao-1 79), faltam 169. Que o autor conhece o corte está provado no mesmo arquivo: matriculasPorAluna (linha 78) pagina de 1.000 em 1.000 de propósito. Corrijo uma parte do relato: a consulta do cron (convite-completo/route.ts:67) usa o prefixo plano-completo-conclusao, que tem 79 linhas — está longe do teto, não a 169. O risco imediato é só o da trava geral.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna que recebe o mesmo convite de upsell de novo depois que a tabela passar de 1.000 linhas. Ainda não aconteceu.",
+    "ja_afetou_alguem": "Não: 831 de 1.000. O cron roda de hora em hora (vercel.json \"20 * * * *\"), então a margem se consome sozinha.",
+    "correcao": "Trocar por fetchAll paginado, ou virar a pergunta para dentro do banco (um exists por user_id) como já foi feito em alunas_para_reengajar()."
+  },
+  {
+    "titulo": "O fórum não conhece o Handify Completo, e a policy dos comentários não conhece o caminho legado dos posts",
+    "arquivo": "banco: public.is_forum_member e policy \"Matriculada vê comentários do fórum\"",
+    "veredito": "confirmado",
+    "porque": "Li as duas definições no banco. is_forum_member(forum_id) resolve só por enrollments join courses on c.forum_id; não tem o ramo has_active_membership() + courses.in_plan que a irmã is_enrolled() tem — as duas estão lado a lado e divergem. E a assimetria das policies é real: \"Aluna lê post do fórum\" aceita dois caminhos ((forum_id not null and is_forum_member) OR (forum_id null and course_id not null and is_enrolled)), enquanto \"Matriculada vê comentários do fórum\" depende só de is_forum_member(fp.forum_id) — post pelo ramo legado fica legível com os comentários invisíveis. É a mesma forma do bug de 03/07–10/09, com a coluna trocada.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Ninguém hoje. Quando acontecer: aluna do plano que entra no fórum do curso e vê a porta fechada sem explicação, e discussão que parece morta porque os comentários não aparecem.",
+    "ja_afetou_alguem": "Não: os 120 posts têm forum_id preenchido (0 nulos) e não há nenhum par membership × curso do plano sem matrícula (0), porque o webhook matricula tudo na compra. O primeiro curso novo marcado in_plan reabre o buraco.",
+    "correcao": "Dar a is_forum_member o mesmo ramo de membership+in_plan que is_enrolled já tem, e fazer a policy de comentários aceitar o mesmo par de caminhos da policy de posts."
+  },
+  {
+    "titulo": "Liberação de vários cursos de uma vez esconde os que falharam",
+    "arquivo": "src/app/(admin)/admin/alunos/[userId]/actions.ts:373-376",
+    "veredito": "confirmado",
+    "porque": "Em grantMultipleAccessAction o insert que falha cai em console.error + continue (linhas 374-377), sem contador de falha; a mensagem final (linha 410) informa só granted e skipped. Corrijo o relato: cada concessão bem-sucedida GRAVA audit_log (linha 379), então não é uma ação em massa sem rastro — o que some é só o que falhou, que não deixa nenhuma linha em lugar nenhum.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna que continua sem os cursos que a admin acredita ter liberado, e que não aparece em relatório nenhum porque a liberação manual não gera token nem matrícula expirada.",
+    "ja_afetou_alguem": "As falhas não deixam registro, então não há como contá-las no banco.",
+    "correcao": "Contar as falhas e dizer na mensagem: \"3 liberados, 2 falharam\", com o nome dos cursos."
+  },
+  {
+    "titulo": "Trava de repetição da campanha do Handify Completo a 169 linhas do corte",
+    "arquivo": "src/lib/campanhas/completo.ts:62 (jaConvidadas)",
+    "veredito": "confirmado",
+    "porque": "jaConvidadas() lê email_campaign_sends com .like(\"campaign\",\"plano-completo%\") sem .range(), e é o conjunto que impede reenviar o convite para quem já recebeu. Hoje são 831 linhas (752 de plano-completo-base + 79 de conclusao-1) contra um teto de 1.000. Mas CORRIJO o achado em dois pontos: (a) o disparo da base tem trava de data fixa (DATA_DO_DISPARO = 2026-09-08, já passada), então a leva em massa só reenviaria se alguém mudasse a constante de propósito; (b) a linha 67 do cron convite-completo NÃO faz a aluna recomeçar a sequência — para entrar na etapa 1 ela precisa de um certificado emitido nos últimos 7 dias e de ter só um certificado, o que quem está na etapa 2 ou 3 nunca tem. O efeito real de um corte ali é a aluna parar de receber as etapas 2 e 3, não recebê-las de novo. Sobra um risco real e estreito: quem recebeu o convite da base e conclui o primeiro curso pode levar o convite de novo quando o Set truncar.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna recebendo o mesmo convite de venda duas vezes — hoje, ninguém.",
+    "ja_afetou_alguem": "nao (831 de 1.000)",
+    "correcao": "Paginar jaConvidadas() com fetchAll, uma linha. Vale aplicar o mesmo em comPlanoAtivo() (memberships, 78 linhas hoje) pelo mesmo motivo."
+  },
+  {
+    "titulo": "Se o registro do envio falhar, o convite do Completo volta a ser enviado na hora seguinte sem nada ficar vermelho",
+    "arquivo": "src/lib/campanhas/completo.ts:115-122",
+    "veredito": "confirmado",
+    "porque": "registrarEnvios trata a falha do upsert em email_campaign_sends com console.error e segue; a rota convite-completo (route.ts:150) devolve 200 com \"enviados: N\". Sem a linha gravada, a aluna volta a ser elegível — e esse cron roda de hora em hora, das 8h às 21h. O contraste com reengagement é real: lá (route.ts:141-151) a falha de registro devolve 500 de propósito, com comentário explicando por quê. Correção ao resumo do outro agente: campanha-completo não entra nessa conta, a rota está travada em DATA_DO_DISPARO = 2026-09-08 e hoje é 22/09 — ela retorna cedo em toda execução. O gatilho também é estreito: só dispara se o próprio banco recusar a gravação.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna recebendo o mesmo convite de hora em hora, sem nada aparecer como erro.",
+    "ja_afetou_alguem": "nao (email_campaign_sends não tem nenhum par campaign+user_id repetido; são 752 + 79 + 900 linhas, todas únicas)",
+    "correcao": "Fazer registrarEnvios devolver o erro e a rota convite-completo responder 500 quando o registro falhar, igual ao reengagement."
+  },
+  {
+    "titulo": "Notificação em massa grava \"enviada\" sem olhar se o insert deu certo",
+    "arquivo": "src/lib/notifications/actions.ts:221 e :236 (e feed/actions.ts:156)",
+    "veredito": "confirmado",
+    "porque": "Confirmei no código: `await service.from(\"notifications\").insert(batch)` sem desestruturar nem checar `error`, e logo abaixo `totalSent += batch.length` incrementa independentemente do resultado. No fim, a campanha é marcada status:\"sent\" com esse total. Um lote de 500 que falhe desaparece sem deixar linha vermelha no painel. É a forma de erro nº 3. Mantenho como defeito real de código, mas com gravidade baixa: não há evidência de lote perdido no banco, e o caso conhecido de 05/09 foi corte de 1.000, não falha de insert.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "A aluna do lote que falhar não recebe nada e ninguém fica sabendo — não há onde procurar.",
+    "ja_afetou_alguem": "nao",
+    "correcao": "Checar o `error` de cada insert, somar em totalSent só o que entrou, e marcar a campanha como \"partial\"/erro quando algum lote falhar."
+  },
+  {
+    "titulo": "Qualquer aluna logada consegue ler a tabela de certificados inteira",
+    "arquivo": "banco: policy \"Verificação exige autenticação\" em public.certificates",
+    "veredito": "confirmado",
+    "porque": "A policy de SELECT é literalmente auth.uid() IS NOT NULL, sem amarrar ao verify_hash apresentado nem ao próprio user_id — confirmado em pg_policy. Com a anon key (pública) e a sessão dela, qualquer conta autenticada lista as 249 linhas. Mas o estrago é bem menor do que o achado original diz, e corrijo: a tabela tem só id, user_id, course_id, verify_hash, issued_at e pdf_path — não há nome nem CPF; o join com profiles não ajuda porque a RLS de profiles só libera o próprio perfil; e o bucket certificates é privado (storage.buckets.public = false), então pdf_path sozinho não abre o PDF. O que de fato vaza é o conjunto de verify_hash, o que quebra a regra nº 11 do projeto (hash não enumerável). Também corrijo o \"anula as duas outras policies\": esta policy é carregada — /verificar/[hash] usa createClient com a sessão da aluna, então removê-la simplesmente quebra a verificação de certificado de terceiros.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna logada consegue enumerar todos os certificados emitidos (curso + data + hash). Sem nome e sem PDF, o dano prático é pequeno, mas é acesso indevido e contraria a regra do hash não enumerável.",
+    "ja_afetou_alguem": "nao — não há log de leitura no banco; a policy está ativa agora sobre 249 certificados",
+    "correcao": "Trocar a policy por uma função SECURITY DEFINER que recebe o hash e devolve só aquele certificado (ou fazer a página /verificar usar service client com filtro pelo hash), e apagar a policy aberta."
+  },
+  {
+    "titulo": "Busca de perfil por e-mail usa ilike sem escapar curingas — o \"_\" do endereço vira \"qualquer caractere\"",
+    "arquivo": "handify-membros/src/lib/payments/process-purchase.ts:167; src/app/ativar/[token]/actions.ts:79; src/app/(admin)/admin/alunos/[userId]/actions.ts:532; src/app/(admin)/admin/alunos/resend-actions.ts:237 e 271",
+    "veredito": "confirmado",
+    "porque": "O endereço inteiro é passado como PADRÃO de LIKE e `_` é curinga no Postgres. O caso mais afiado é resend-actions.ts:271, `.update({buyer_email: novo}).ilike(\"buyer_email\", antigo)` — UPDATE em massa guiado por padrão. O repositório já sabe escapar em search-action.ts:7 e pedidos/actions.ts:161; os caminhos de identidade não. Mas testei a colisão no banco e ela é hoje inexistente, então baixei a gravidade de media para baixa: para dar errado é preciso dois endereços iguais em tudo menos no caractere do \"_\".",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Em teoria: compra caindo na conta de outra pessoa, ou aluna tratada como \"sem conta\" e mandada criar uma segunda. Hoje, ninguém.",
+    "ja_afetou_alguem": "nao — 232 perfis, 569 activation_tokens e 608 payment_events têm \"_\" no e-mail; testei profiles×profiles, payment_events×profiles e payment_events×payment_events: zero colisões.",
+    "correcao": "Escapar `\\ % _` antes de qualquer .ilike() de identidade, reusando o replace que search-action.ts já faz — e trocar o UPDATE de resend-actions.ts:271 por um filtro que compare o e-mail exato."
+  },
+  {
+    "titulo": "is_forum_member não conhece o Handify Completo, mas is_enrolled conhece",
+    "arquivo": "banco: public.is_forum_member (policies de forums, forum_posts, forum_comments)",
+    "veredito": "confirmado",
+    "porque": "Li as duas: is_enrolled() libera por admin, matrícula OU has_active_membership + courses.in_plan; is_forum_member() só olha enrollments. As policies de lessons e lesson_comments usam a primeira, as do fórum usam a segunda. É a mesma forma do erro nº6 — duas definições de \"tem acesso\", com a policy apoiada na mais antiga. Deixei em baixa porque hoje não há nenhuma aluna nessa situação.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Aluna do Completo que assiste a aula e comenta nela, mas no fórum do mesmo curso não vê nem consegue postar, sem mensagem de erro — e a admin lê o número baixo como falta de engajamento.",
+    "ja_afetou_alguem": "nao — 75 membros do Completo, 5 cursos do plano com fórum, e 0 pares aluna×curso em que o acesso venha só do plano (a matrícula sempre é criada junto). Materializa quando um curso in_plan novo entrar sem backfill de matrículas.",
+    "correcao": "Fazer is_forum_member() aceitar o mesmo terceiro caminho de is_enrolled() (has_active_membership + in_plan pelo forum_id), ou reescrevê-la chamando is_enrolled()."
+  },
+  {
+    "titulo": "Qualquer aluna logada lê a tabela inteira de certificados",
+    "arquivo": "banco: policy \"Verificação exige autenticação\" em public.certificates (SELECT, qual = auth.uid() IS NOT NULL)",
+    "veredito": "confirmado",
+    "porque": "Confirmei em pg_policies: além de \"Ver próprios certificados\" e \"Admin vê todos\", existe a terceira com qual `auth.uid() IS NOT NULL`. Policies permissivas somam por OR, então toda aluna autenticada lista os 249 certificados com user_id, course_id, verify_hash e pdf_path. O verify_hash é UUID v4 para não ser enumerável e a policy entrega a lista pronta. E /verificar/[hash]/page.tsx usa o client anônimo: quem não está logado não passa por nenhuma das três — ou seja, a policy nem serve à verificação pública que ela deveria cobrir.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Dado de outras alunas (quem concluiu o quê e quando) exposto a qualquer aluna logada. Não é acesso a curso.",
+    "ja_afetou_alguem": "nao dá para saber pelo banco quem já leu; a policy está ativa e a tabela tem 249 linhas.",
+    "correcao": "Trocar a policy por uma que só devolva a linha do hash consultado (ou mover a verificação para uma RPC SECURITY DEFINER que recebe o hash e devolve uma linha), e checar de quebra se a verificação pública deslogada ainda funciona."
+  },
+  {
+    "titulo": "Duas policies SELECT permissivas em banners anulam a vigência configurada",
+    "arquivo": "banco: policies \"Banners ativos visíveis\" e \"Banners visíveis\" na tabela public.banners",
+    "veredito": "confirmado",
+    "porque": "Confirmado em pg_policies: a nova checa active + starts_at/ends_at, a antiga checa só `active = true`, ambas permissivas e para o role public. Somadas por OR, a antiga apaga o filtro de data.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Ruído: promoção vencida na tela da aluna ou campanha aparecendo antes do lançamento.",
+    "ja_afetou_alguem": "nao — dos 3 banners ativos hoje, nenhum está fora da vigência. Dispara no primeiro banner com data que for deixado ativo.",
+    "correcao": "Dropar a policy antiga \"Banners visíveis\" e deixar só \"Banners ativos visíveis\"."
+  },
+  {
+    "titulo": "dispatchCampaign é uma Server Action pública, sem checagem de admin",
+    "arquivo": "src/lib/notifications/actions.ts:164",
+    "veredito": "confirmado",
+    "porque": "Verdade: o arquivo tem \"use server\" no topo, dispatchCampaign é exportada e não chama requireAdmin, enquanto createCampaign, deleteCampaign e cancelCampaign começam todas com ele. Mas encontrei a razão, que o relato não viu: dispatchCampaign também é chamada pelo cron em src/app/api/notifications/dispatch/route.ts:34, que tem a própria checagem por CRON_SECRET. Um requireAdmin lá dentro quebraria o cron. Então não é esquecimento puro — é um desenho que juntou o caminho da admin e o do cron na mesma função exportada, e deixou o endpoint aberto de lambuja.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "A aluna que receberia notificação e push de uma campanha ainda agendada. Exige conhecer o UUID da campanha E o id da Server Action, e só antecipa um envio que a admin já escreveu — não cria conteúdo novo.",
+    "ja_afetou_alguem": "não — as 3 campanhas existentes estão com status 'sent' e a função retorna cedo nesse caso (:173).",
+    "correcao": "Separar em duas: uma função interna (sem \"use server\") que o cron importa, e uma Server Action fina com requireAdmin que chama a interna."
+  },
+  {
+    "titulo": "Apagar o perfil de um admin apaga o histórico de auditoria dele",
+    "arquivo": "banco: FK audit_log.admin_id → profiles.id, ON DELETE CASCADE",
+    "veredito": "confirmado",
+    "porque": "Confirmado direto no information_schema: audit_log.admin_id → profiles com delete_rule = CASCADE, enquanto memberships.granted_by, notification_campaigns.created_by e email_suppressions.created_by são todas SET NULL. A assimetria é real. Agravante que o relato não mediu: existe UM único perfil com role=admin, então apagá-lo levaria praticamente todas as 1.155 linhas do audit_log (439 grant_access, 366 enrollment.revoked, 117 revoke_access, 24 update_profile...).",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Ninguém na hora. Some a única forma de reconstruir quem mexeu no acesso de quem — e é justamente esse histórico que resolveu os incidentes de estorno.",
+    "ja_afetou_alguem": "não — nenhum perfil admin foi apagado, e o único que existe é a conta da própria dona.",
+    "correcao": "Migration trocando a FK para ON DELETE SET NULL, igual às irmãs (admin_id já é nullable desde a migration 028)."
+  },
+  {
+    "titulo": "A lista de \"nunca enviar\" também é lida sem paginação",
+    "arquivo": "src/lib/email/index.ts:24-36 (listaDeSupressao)",
+    "veredito": "confirmado",
+    "porque": "Verdade no código: `from(\"email_suppressions\").select(\"email\")` sem .range(). E o comentário acima da função (:17-19) diz que ela falha aberta de propósito — envia na dúvida — então o corte em 1.000 passaria sem nenhum sinal. Mas é o achado mais distante de virar problema da lista: a tabela tem 5 linhas hoje, todas de 09/09/2026, e é a única porta de saída de e-mail da plataforma (toda função passa por enviarEmail).",
+    "gravidade": "baixa",
+    "quem_se_machuca": "Acima de 1.000 endereços: quem pediu para sair volta a receber, e endereço com bounce duro continua sendo usado — o que derruba a reputação de envio de toda a plataforma.",
+    "ja_afetou_alguem": "não — 5 linhas de 1.000.",
+    "correcao": "Uma linha: trocar o select por fetchAll. Barato de fazer agora, para não depender de lembrar quando a tabela crescer."
+  },
+  {
+    "titulo": "O acesso ao fórum ignora o Handify Completo; is_enrolled não ignora",
+    "arquivo": "banco: função public.is_forum_member(uuid)",
+    "veredito": "confirmado",
+    "porque": "Li as duas definições no pg_proc e a diferença é exata: is_enrolled() tem três caminhos (is_admin, matrícula ativa, OU has_active_membership + courses.in_plan), e is_forum_member() tem só dois (is_admin OU join enrollments→courses por forum_id). É a mesma forma do erro nº 6 — a regra do fórum apoiada numa premissa diferente da do resto do sistema. Checei no banco quem já estaria de fora: das 75 memberships ativas, 0 estão sem matrícula ativa em algum dos 6 cursos com fórum, porque grantMembershipAction e o webhook criam as matrículas junto.",
+    "gravidade": "baixa",
+    "quem_se_machuca": "A aluna com o plano ativo mas sem linha em enrollments ficaria fora do fórum sem mensagem de erro — só um fórum que não aparece. Note que o achado da membership parcial (membership-actions.ts) é exatamente o jeito de isso acontecer: matrícula que falhou calada tira o fórum junto.",
+    "ja_afetou_alguem": "não — 0 de 75 memberships ativas estão nessa situação hoje.",
+    "correcao": "Acrescentar a is_forum_member o mesmo terceiro caminho de is_enrolled: has_active_membership(auth.uid()) AND exists(courses where forum_id = p_forum_id and in_plan)."
+  }
+]
