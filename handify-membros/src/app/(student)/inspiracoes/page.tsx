@@ -4,22 +4,28 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Bookmark } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { getInspiracoesFeed, cursosComAcervo } from '@/lib/inspiracoes/actions'
+import { getInspiracoesFeed, cursosComAcervo, getInspiracaoById } from '@/lib/inspiracoes/actions'
 import { InspiracaoFeed } from '@/components/inspiracoes/InspiracaoFeed'
+import { lerDeepLink, type ParamsDaUrl } from '@/components/inspiracoes/deep-link'
 import PageTour from "@/components/tour/PageTour"
 import { SECTION_TOURS } from "@/lib/tour/tours"
 
 export const metadata = { title: 'Inspirações — Handify' }
 
-export default async function InspiracoesPage() {
+export default async function InspiracoesPage({
+  searchParams,
+}: {
+  searchParams: Promise<ParamsDaUrl>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
   // O acervo (receitas, dicas, vídeos) acompanha o curso — quem publica é a equipe.
-  if ((await getTier()) === 'visitante') {
+  const tier = await getTier()
+
+  if (tier === 'visitante') {
     return (
       <SoParaAlunas
         titulo="Inspirações é para alunas"
@@ -35,11 +41,21 @@ export default async function InspiracoesPage() {
     )
   }
 
-  const service = createServiceClient()
-  const [page, cursosRaw, { data: profileData }] = await Promise.all([
+  // `/inspiracoes?post=<postId>&comentario=<commentId>` — contrato com a
+  // moderação e com a notificação de resposta, que geram este link.
+  //
+  // O post é buscado por id aqui no servidor, junto do resto da página: chega
+  // pronto no primeiro render, sem piscar, e sem depender de a rolagem
+  // infinita alcançar a página em que ele está. `getInspiracaoById` devolve
+  // null quando o post não existe, foi despublicado ou arquivado — aí a tela é
+  // o feed normal, com um aviso.
+  const deepLink = lerDeepLink(await searchParams)
+
+  const [page, cursosRaw, { data: profileData }, postDoLink] = await Promise.all([
     getInspiracoesFeed(user.id),
     cursosComAcervo(user.id),
     supabase.from('profiles').select('visited_sections').eq('id', user.id).single(),
+    deepLink ? getInspiracaoById(deepLink.postId, user.id) : Promise.resolve(null),
   ])
 
   const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {}
@@ -75,6 +91,10 @@ export default async function InspiracoesPage() {
           initialCursor={page.next_cursor}
           initialHasMore={page.has_more}
           courses={courses}
+          postDoLink={postDoLink}
+          comentarioDoLink={deepLink?.comentarioId ?? null}
+          linkPerdido={!!deepLink && !postDoLink}
+          ignorarCadeadoDoCurso={tier === 'admin'}
         />
       </div>
     </div>

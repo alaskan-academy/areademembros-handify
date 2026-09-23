@@ -1,16 +1,14 @@
-import ConfirmSubmitButton from "@/components/admin/ConfirmSubmitButton";
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import {
-  adminGetPendingComments,
-  adminApproveComment,
-  adminDeleteComment,
-} from '@/lib/inspiracoes/actions'
-import { ArrowLeft, Check, Trash2 } from 'lucide-react'
+import { adminListComments, adminApproveComment, adminDeleteComment } from '@/lib/inspiracoes/actions'
+import ComentarioFilaCard from '@/components/admin/inspiracoes/ComentarioFilaCard'
+import { ArrowLeft } from 'lucide-react'
 
 export const metadata = { title: 'Admin — Comentários de Inspirações | Handify' }
+
+/** Quantos comentários já publicados a tela mostra abaixo da fila. */
+const APROVADOS_NA_TELA = 30
 
 export default async function AdminInspComentariosPage() {
   const supabase = await createClient()
@@ -20,105 +18,77 @@ export default async function AdminInspComentariosPage() {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'admin') redirect('/dashboard')
 
-  const pending = await adminGetPendingComments()
+  // As duas listas saem da mesma action: ela é quem confere o role de novo (o
+  // redirect acima só vale no render, não no POST) e quem monta o contexto —
+  // título do post, comentário respondido e link profundo.
+  const [pendentes, publicados] = await Promise.all([
+    adminListComments({ aprovados: false }),
+    adminListComments({ aprovados: true, limite: APROVADOS_NA_TELA }),
+  ])
 
-  const service = createServiceClient()
-  const { data: approved } = await service
-    .from('inspiration_comments')
-    .select('*, profiles(full_name, avatar_url), inspiration_posts(title)')
-    .eq('approved', true)
-    .order('created_at', { ascending: false })
-    .limit(30)
-
-  async function approve(id: string) {
+  async function aprovar(id: string) {
     'use server'
     await adminApproveComment(id, true)
   }
-  async function reject(id: string) {
+  async function excluir(id: string) {
     'use server'
     await adminDeleteComment(id)
-  }
-
-  function CommentRow({ c, showApprove }: { c: any; showApprove: boolean }) {
-    const postTitle = c.inspiration_posts?.title ?? '—'
-    return (
-      <div className="bg-white rounded-lg border border-border/60 p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-xs font-medium">{c.profiles?.full_name ?? 'Aluna'}</span>
-              <span className="text-[10px] text-muted-foreground">→</span>
-              <span className="text-xs text-[#6699F3] truncate max-w-[160px]">{postTitle}</span>
-              <span className="text-[10px] text-muted-foreground ml-auto whitespace-nowrap">
-                {new Date(c.created_at).toLocaleDateString('pt-BR')}
-              </span>
-            </div>
-            <p className="text-xs text-foreground/80 leading-relaxed">{c.body}</p>
-          </div>
-          <div className="flex gap-1.5 shrink-0">
-            {showApprove && (
-              <form action={approve.bind(null, c.id)}>
-                <button title="Aprovar" className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
-                  <Check className="w-3.5 h-3.5" />
-                </button>
-              </form>
-            )}
-            <form action={reject.bind(null, c.id)}>
-              <ConfirmSubmitButton
-                  pergunta="Excluir este comentário? A aluna perde o que escreveu e não dá para desfazer."
-                  title="Excluir"
-                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-              </ConfirmSubmitButton>
-            </form>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/admin/inspiracoes" className="p-2 rounded-lg hover:bg-muted transition-colors">
+        <Link
+          href="/admin/inspiracoes"
+          aria-label="Voltar para Inspirações"
+          className="p-2 rounded-lg hover:bg-muted handify-transition"
+        >
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div>
           <h1 className="text-xl font-bold">Comentários de Inspirações</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Aprove ou exclua comentários das alunas</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Clique no comentário para abrir o post e ver onde ela escreveu — a resposta é lá mesmo, depois de aprovar.
+          </p>
         </div>
       </div>
 
-      {/* Pendentes */}
+      {/* Fila */}
       <section>
         <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
           Aguardando aprovação
-          {pending.length > 0 && (
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#6699F3] text-white text-[10px] font-bold">
-              {pending.length}
+          {pendentes.length > 0 && (
+            <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#6699F3] text-white text-xs font-bold">
+              {pendentes.length}
             </span>
           )}
         </h2>
-        {pending.length === 0 ? (
+        {pendentes.length === 0 ? (
           <p className="text-xs text-muted-foreground">Nenhum comentário pendente. Ótimo!</p>
         ) : (
           <div className="space-y-2">
-            {pending.map((c: any) => <CommentRow key={c.id} c={c} showApprove={true} />)}
+            {pendentes.map((c) => (
+              <ComentarioFilaCard
+                key={c.id}
+                comentario={c}
+                aprovar={aprovar.bind(null, c.id)}
+                excluir={excluir.bind(null, c.id)}
+              />
+            ))}
           </div>
         )}
       </section>
 
-      {/* Aprovados */}
+      {/* Já publicados */}
       <section>
-        <h2 className="text-sm font-semibold mb-3">
-          Aprovados ({approved?.length ?? 0})
-        </h2>
-        {!approved?.length ? (
+        <h2 className="text-sm font-semibold mb-3">Publicados ({publicados.length})</h2>
+        {publicados.length === 0 ? (
           <p className="text-xs text-muted-foreground">Nenhum comentário aprovado ainda.</p>
         ) : (
           <div className="space-y-2">
-            {approved.map((c: any) => <CommentRow key={c.id} c={c} showApprove={false} />)}
+            {publicados.map((c) => (
+              <ComentarioFilaCard key={c.id} comentario={c} excluir={excluir.bind(null, c.id)} />
+            ))}
           </div>
         )}
       </section>

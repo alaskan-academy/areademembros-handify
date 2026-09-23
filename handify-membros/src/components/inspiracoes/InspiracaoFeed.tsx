@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef, useTransition } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useTransition } from 'react'
 import { Search, SlidersHorizontal, Loader2, ChevronDown, X, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getInspiracoesFeed } from '@/lib/inspiracoes/actions'
 import type { InspiracaoPost, InspiracaoType, InspiracaoCursor, CursoDoFiltro } from '@/lib/inspiracoes/types'
 import { InspiracaoFeedItem } from './InspiracaoFeedItem'
 import { CursoBloqueadoModal } from './CursoBloqueadoModal'
+import { InspiracaoModal } from './InspiracaoModal'
+import { cursoBloqueadoDoPost, limparParametrosDoDeepLink } from './deep-link'
 
 const TIPOS: { value: InspiracaoType | ''; label: string }[] = [
   { value: '',          label: 'Todos' },
@@ -18,18 +20,79 @@ const TIPOS: { value: InspiracaoType | ''; label: string }[] = [
   { value: 'destaque',  label: 'Destaques' },
 ]
 
+/**
+ * useLayoutEffect no navegador; no servidor cai no useEffect só para o React
+ * não avisar (nenhum dos dois roda lá).
+ */
+const useEfeitoDeLayout = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 interface Props {
   userId: string
   initialPosts: InspiracaoPost[]
   initialCursor: InspiracaoCursor | null
   initialHasMore: boolean
   courses?: CursoDoFiltro[]
+  /**
+   * Post pedido por `/inspiracoes?post=…`, já buscado POR ID no servidor.
+   *
+   * Buscado por id, e não procurado entre os posts já carregados, porque o
+   * feed é paginado por cursor: a inspiração da notificação pode estar na
+   * página 7 e a aluna nunca chegaria nela rolando.
+   */
+  postDoLink?: InspiracaoPost | null
+  /** Comentário pedido por `&comentario=…` — o painel rola até ele. */
+  comentarioDoLink?: string | null
+  /** true quando veio `?post=` mas o post não existe mais (ou foi arquivado). */
+  linkPerdido?: boolean
+  /**
+   * Admin abrindo o link da fila de moderação.
+   *
+   * A Jessica não tem matrícula nos cursos, então o cadeado do curso a barraria
+   * justamente no caminho que ela pediu: clicar no comentário da fila, chegar
+   * ao post e ver onde a aluna comentou. Ela veria o convite de compra.
+   */
+  ignorarCadeadoDoCurso?: boolean
 }
 
-export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHasMore, courses = [] }: Props) {
+export function InspiracaoFeed({
+  userId,
+  initialPosts,
+  initialCursor,
+  initialHasMore,
+  courses = [],
+  postDoLink = null,
+  comentarioDoLink = null,
+  linkPerdido = false,
+  ignorarCadeadoDoCurso = false,
+}: Props) {
   const [tipo, setTipo] = useState<InspiracaoType | ''>('')
   const [courseId, setCourseId] = useState('')
-  const [cursoBloqueado, setCursoBloqueado] = useState<CursoDoFiltro | null>(null)
+
+  // O link profundo tem três destinos possíveis, decididos uma vez só, no
+  // primeiro render: abrir o post, abrir o convite do curso que ela não tem,
+  // ou nada (o feed normal, com um aviso).
+  const bloqueioDoLink = postDoLink && !ignorarCadeadoDoCurso
+    ? cursoBloqueadoDoPost(postDoLink, courses)
+    : null
+
+  const [postAberto, setPostAberto] = useState<InspiracaoPost | null>(
+    postDoLink && !bloqueioDoLink ? postDoLink : null
+  )
+  const [cursoBloqueado, setCursoBloqueado] = useState<CursoDoFiltro | null>(bloqueioDoLink)
+  const [avisoLinkPerdido, setAvisoLinkPerdido] = useState(linkPerdido)
+
+  // Tira `?post=` e `?comentario=` da barra de endereço assim que o link foi
+  // lido — antes de a aluna fechar o modal. O useModalBackGuard empilha uma
+  // entrada ao abrir e chama history.back() ao fechar: se os parâmetros ainda
+  // estivessem lá, o voltar (e o F5) reabririam o modal que ela acabou de
+  // fechar. Ver o comentário em deep-link.ts.
+  //
+  // Precisa ser efeito de LAYOUT: os efeitos do filho rodam antes dos do pai, e
+  // o useModalBackGuard (que é do modal, filho daqui) guarda a URL do instante
+  // em que abriu. Efeito de layout do pai roda antes de qualquer efeito comum
+  // de filho, então o guard já encontra a URL limpa.
+  useEfeitoDeLayout(() => { limparParametrosDoDeepLink() }, [])
+
   const [busca, setBusca] = useState('')
   const [debouncedBusca, setDebouncedBusca] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -87,6 +150,28 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
 
   return (
     <>
+      {/* O link da notificação apontava para um post que saiu do ar. Sem este
+          aviso ela toca na notificação, cai no topo do feed e conclui que a
+          plataforma está quebrada. */}
+      {avisoLinkPerdido && (
+        <div
+          role="status"
+          className="mb-4 flex items-start gap-2 rounded-xl border border-[#FEC649]/50 bg-[#FEC649]/10 px-4 py-3"
+        >
+          <p className="flex-1 text-xs leading-relaxed text-[#2D2D2D]">
+            Esta inspiração saiu do ar — a equipe pode ter arquivado o post. O resto do acervo
+            continua aqui embaixo.
+          </p>
+          <button
+            onClick={() => setAvisoLinkPerdido(false)}
+            aria-label="Fechar aviso"
+            className="-my-2 -mr-2 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg text-foreground/40 hover:text-foreground handify-transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Filtros */}
       <div id="tour-inspiracoes-filtros" className="mb-5 space-y-2">
         {/* Linha: busca + botão filtros */}
@@ -253,9 +338,18 @@ export function InspiracaoFeed({ userId, initialPosts, initialCursor, initialHas
         </>
       )}
 
-      {cursoBloqueado && (
+      {/* Um modal de cada vez: dois useModalBackGuard abertos juntos empilhariam
+          duas entradas no histórico e o botão voltar precisaria de dois toques. */}
+      {postAberto ? (
+        <InspiracaoModal
+          post={postAberto}
+          userId={userId}
+          comentarioId={comentarioDoLink}
+          onClose={() => setPostAberto(null)}
+        />
+      ) : cursoBloqueado ? (
         <CursoBloqueadoModal curso={cursoBloqueado} onClose={() => setCursoBloqueado(null)} />
-      )}
+      ) : null}
     </>
   )
 }

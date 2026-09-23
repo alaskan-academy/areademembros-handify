@@ -13,7 +13,11 @@ export type NotificationType =
   | "comment_reply"
   | "new_lesson"
   | "course_complete"
-  | "certificate_ready";
+  | "certificate_ready"
+  // Post ou resposta nova no fórum, só para a equipe. O valor também existe no
+  // enum `notification_type` do banco (20260923_forum_avisa_admin.sql) — sem os
+  // dois lados o insert é recusado com "invalid input value for enum".
+  | "forum_activity";
 
 export type ReportTargetType =
   | "forum_post"

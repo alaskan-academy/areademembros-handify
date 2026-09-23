@@ -70,7 +70,7 @@ const CHAMADAS: Record<string, () => Promise<unknown>> = {
   adminDeletePost: () => actions.adminDeletePost("post-1"),
   adminArchivePost: () => actions.adminArchivePost("post-1", true),
   adminPublishPost: () => actions.adminPublishPost("post-1", true),
-  adminGetPendingComments: () => actions.adminGetPendingComments(),
+  adminListComments: () => actions.adminListComments({ aprovados: false }),
   adminGetPendingCommentsCount: () => actions.adminGetPendingCommentsCount(),
   adminApproveComment: () => actions.adminApproveComment("c-1", true),
   adminDeleteComment: () => actions.adminDeleteComment("c-1"),

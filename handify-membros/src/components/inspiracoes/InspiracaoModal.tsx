@@ -67,9 +67,18 @@ interface Props {
   post: InspiracaoPost
   userId: string
   onClose: () => void
+  /**
+   * Comentário do link profundo (`/inspiracoes?post=…&comentario=…`).
+   *
+   * Só é passado quando a aluna chega pela notificação de resposta ou quando a
+   * admin abre o post a partir da fila de moderação. O painel de comentários
+   * rola até ele e o realça. Opcional: a tela de salvos abre o mesmo modal sem
+   * comentário nenhum em vista.
+   */
+  comentarioId?: string | null
 }
 
-export function InspiracaoModal({ post, userId, onClose }: Props) {
+export function InspiracaoModal({ post, userId, onClose, comentarioId = null }: Props) {
   useModalBackGuard(true, onClose)
 
   useEffect(() => {
@@ -360,7 +369,7 @@ export function InspiracaoModal({ post, userId, onClose }: Props) {
 
             {/* Comentários */}
             <div className="border-t border-border/60 pt-4">
-              <ComentariosPanel postId={post.id} userId={userId} />
+              <ComentariosPanel postId={post.id} userId={userId} destacarComentarioId={comentarioId} />
             </div>
           </div>
 

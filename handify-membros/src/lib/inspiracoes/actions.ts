@@ -4,6 +4,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasActiveMembership } from '@/lib/auth/access'
 import { filtroOrIlike } from '@/lib/db/like'
+// Uma regra, um lugar. Duas frentes escreveram este mesmo link em arquivos
+// diferentes; a versão que fica é a de `deep-link.ts`, que também é quem LÊ os
+// parâmetros do outro lado — gerar e ler pelo mesmo módulo é o que impede os
+// dois de divergirem sem ninguém notar. O arquivo é puro (sem 'use client'),
+// então importar daqui, de um módulo 'use server', é seguro.
+import { montarDeepLink } from '@/components/inspiracoes/deep-link'
 import { revalidatePath } from 'next/cache'
 import type {
   InspiracaoPost,
@@ -335,30 +341,129 @@ export async function getComments(postId: string): Promise<InspiracaoComment[]> 
   return topLevel.map(c => ({ ...c, replies: repliesMap[c.id] ?? [] }))
 }
 
+/**
+ * Avisa a autora do comentário pai que alguém respondeu.
+ *
+ * O link vinha fixo em '/inspiracoes': a aluna clicava no sino e caía no acervo
+ * inteiro, sem saber em qual post estava a resposta — e o acervo já passa de uma
+ * página, então na prática ela não achava. Agora vai o link profundo do
+ * contrato, que abre o post e rola até a resposta.
+ *
+ * Service client de propósito: a notificação é gravada na linha de OUTRA pessoa
+ * (a dona do comentário pai) e a leitura do pai atravessa a RLS que só mostra
+ * comentário aprovado — com o client de sessão as duas voltariam vazias.
+ */
+async function notificarRespostaNoComentario(opts: {
+  commentId: string
+  parentId: string
+  postId: string
+  autorId: string
+  body: string
+}): Promise<void> {
+  const service = createServiceClient()
+
+  const { data: pai } = await service
+    .from('inspiration_comments')
+    .select('user_id')
+    .eq('id', opts.parentId)
+    .single()
+
+  // Ninguém recebe aviso de responder a si mesma.
+  if (!pai || pai.user_id === opts.autorId) return
+
+  const preview = opts.body.slice(0, 80)
+  await service.from('notifications').insert({
+    user_id: pai.user_id,
+    type: 'comment_reply',
+    title: 'Alguém respondeu ao seu comentário',
+    body: preview.length < opts.body.length ? `${preview}...` : preview,
+    link: montarDeepLink(opts.postId, opts.commentId),
+    read: false,
+  })
+}
+
+/**
+ * Comentário da aluna entra na fila de moderação; o da admin já nasce aprovado.
+ *
+ * Antes gravava `approved: false` para todo mundo, inclusive admin: a Jessica
+ * respondia uma dúvida dentro do acervo e a própria resposta sumia da tela até
+ * ela ir em /admin/inspiracoes/comentarios e aprovar a si mesma. Os 12
+ * comentários de admin que existem hoje passaram todos por essa volta.
+ *
+ * `userId` chega como parâmetro porque o painel de comentários é 'use client' —
+ * e por isso mesmo não dá para confiar nele para decidir quem é admin. Quem
+ * manda é a sessão lida aqui no servidor: o insert grava o id da sessão e o role
+ * vem do perfil desse id. Se decidisse pelo parâmetro, bastava a aluna mandar o
+ * id de uma admin para publicar sem passar por moderação.
+ *
+ * O perfil é lido com o client de sessão de propósito — é a própria linha dela.
+ * (A regra "profiles sempre com service client" vale para ler o perfil de OUTRAS
+ * alunas; com service client aqui a consulta aceitaria qualquer id do cliente.)
+ */
 export async function submitComment(
   userId: string,
   postId: string,
   body: string,
   parentId?: string
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; approved?: boolean }> {
   const supabase = await createClient()
 
   const trimmed = body.trim()
   if (trimmed.length < 2) return { error: 'Comentário muito curto.' }
   if (trimmed.length > 2000) return { error: 'Comentário muito longo.' }
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Sua sessão expirou. Entre de novo para comentar.' }
+
+  const { data: perfil } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  const ehAdmin = perfil?.role === 'admin'
+
   const record: Record<string, unknown> = {
     post_id: postId,
-    user_id: userId,
+    user_id: user.id,
     body: trimmed,
-    approved: false,
+    approved: ehAdmin,
   }
   if (parentId) record.parent_id = parentId
 
-  const { error } = await supabase.from('inspiration_comments').insert(record)
+  if (!ehAdmin) {
+    // Sem `.select()` de propósito. Pedir a linha de volta faz o Postgres passar
+    // o RETURNING pela policy de leitura, que só mostra comentário aprovado — o
+    // comentário recém-criado da aluna não passa por ela e a gravação inteira
+    // voltaria como erro. Aqui não precisamos do id: nada é notificado enquanto
+    // o comentário está na fila.
+    const { error } = await supabase.from('inspiration_comments').insert(record)
+    if (error) return { error: error.message }
+    return { approved: false }
+  }
+
+  const { data: criado, error } = await supabase
+    .from('inspiration_comments')
+    .insert(record)
+    .select('id')
+    .single()
 
   if (error) return { error: error.message }
-  return {}
+
+  // A notificação de resposta saía na aprovação. Como o comentário da admin não
+  // passa mais por lá, a resposta dela chegaria muda para a aluna.
+  if (parentId && criado) {
+    await notificarRespostaNoComentario({
+      commentId: criado.id,
+      parentId,
+      postId,
+      autorId: user.id,
+      body: trimmed,
+    })
+  }
+
+  // Já está visível para todo mundo: a contagem de comentários do feed muda.
+  revalidatePath('/inspiracoes')
+  return { approved: true }
 }
 
 // ── Admin — CRUD de posts ─────────────────────────────────────────────────────
@@ -457,22 +562,119 @@ export async function adminPublishPost(id: string, published: boolean): Promise<
 
 // ── Admin — Moderação de comentários ─────────────────────────────────────────
 
-export async function adminGetPendingComments() {
+/** Comentário com o contexto que falta para moderar sem adivinhar. */
+interface ComentarioModerado {
+  id: string
+  postId: string
+  postTitulo: string
+  autorNome: string | null
+  body: string
+  createdAt: string
+  aprovado: boolean
+  /** Nome de quem escreveu o comentário respondido, quando este é resposta. */
+  paiNome: string | null
+  /** Trecho do comentário respondido — o que dá sentido à resposta. */
+  paiTexto: string | null
+  /** Link profundo: abre o post no acervo e rola até este comentário. */
+  href: string
+}
+
+/** Quanto do comentário pai cabe no card sem empurrar os botões para fora. */
+const PREVIA_PAI = 160
+
+/** Linha crua do PostgREST na consulta da fila (o service client não é tipado). */
+interface LinhaDeComentario {
+  id: string
+  post_id: string
+  parent_id: string | null
+  body: string
+  approved: boolean
+  created_at: string
+  profiles: { full_name: string | null } | null
+  inspiration_posts: { title: string } | null
+}
+
+interface LinhaDePai {
+  id: string
+  body: string
+  profiles: { full_name: string | null } | null
+}
+
+/**
+ * Fila de moderação de comentários, com o contexto junto.
+ *
+ * Antes a tela mostrava só o texto solto do comentário: a Jessica aprovava
+ * "ficou lindo, qual essência você usou?" sem saber em que post isso foi escrito
+ * nem a que pergunta respondia. Agora vêm o título do post, o trecho do
+ * comentário respondido e o link que abre o post com o comentário em destaque.
+ *
+ * Service client porque `profiles` e `inspiration_posts` aqui são de OUTRAS
+ * pessoas — com o client de sessão a RLS devolve null e o nome da aluna some —
+ * e porque a RLS de `inspiration_comments` só mostra o que já está aprovado, ou
+ * seja, esconderia justamente a fila.
+ */
+export async function adminListComments(
+  opts: { aprovados: boolean; limite?: number } = { aprovados: false }
+): Promise<ComentarioModerado[]> {
   await assertAdmin()
   const supabase = createServiceClient()
 
-  const { data, error } = await supabase
+  // Pendentes: mais antigo primeiro, que é a ordem de quem está esperando.
+  // Aprovados: mais recente primeiro, que é o que ela quer conferir.
+  let query = supabase
     .from('inspiration_comments')
     .select(`
-      *,
-      profiles(full_name, avatar_url),
+      id, post_id, parent_id, body, approved, created_at,
+      profiles(full_name),
       inspiration_posts(title)
     `)
-    .eq('approved', false)
-    .order('created_at', { ascending: true })
+    .eq('approved', opts.aprovados)
+    .order('created_at', { ascending: !opts.aprovados })
 
+  if (opts.limite) query = query.limit(opts.limite)
+
+  const { data, error } = await query
   if (error) throw error
-  return data ?? []
+
+  // Passa por `unknown` porque o supabase-js, sem tipos gerados, adivinha que
+  // todo embed é lista. Em tempo de execução `profiles` e `inspiration_posts`
+  // vêm como objeto — são FKs de muitos-para-um, e é assim que a tela já lê hoje.
+  const linhas = (data ?? []) as unknown as LinhaDeComentario[]
+
+  // O comentário pai vem numa segunda consulta em vez de auto-join: o embed de
+  // uma tabela nela mesma depende do nome exato da FK, que já quebrou por aqui.
+  const idsDosPais = [
+    ...new Set(linhas.map((c) => c.parent_id).filter((id): id is string => !!id)),
+  ]
+  const pais: Record<string, { nome: string | null; texto: string }> = {}
+  if (idsDosPais.length > 0) {
+    const { data: linhasPai } = await supabase
+      .from('inspiration_comments')
+      .select('id, body, profiles(full_name)')
+      .in('id', idsDosPais)
+    for (const p of (linhasPai ?? []) as unknown as LinhaDePai[]) {
+      pais[p.id] = { nome: p.profiles?.full_name ?? null, texto: p.body }
+    }
+  }
+
+  return linhas.map((c) => {
+    const pai = c.parent_id ? pais[c.parent_id] : undefined
+    const texto = pai?.texto ?? null
+    return {
+      id: c.id,
+      postId: c.post_id,
+      // Post apagado com comentário ainda na fila: a tela não pode quebrar por isso.
+      postTitulo: c.inspiration_posts?.title ?? 'Post removido',
+      autorNome: c.profiles?.full_name ?? null,
+      body: c.body,
+      createdAt: c.created_at,
+      aprovado: Boolean(c.approved),
+      paiNome: pai?.nome ?? null,
+      paiTexto:
+        texto && texto.length > PREVIA_PAI ? `${texto.slice(0, PREVIA_PAI)}...` : texto,
+      href: montarDeepLink(c.post_id, c.id),
+    }
+  })
 }
 
 export async function adminGetPendingCommentsCount(): Promise<number> {
@@ -494,30 +696,20 @@ export async function adminApproveComment(id: string, approved: boolean): Promis
 
   const { data: comment } = await supabase
     .from('inspiration_comments')
-    .select('parent_id, user_id, body')
+    .select('parent_id, user_id, body, post_id')
     .eq('id', id)
     .single()
 
   await supabase.from('inspiration_comments').update({ approved }).eq('id', id)
 
   if (approved && comment?.parent_id) {
-    const { data: parent } = await supabase
-      .from('inspiration_comments')
-      .select('user_id')
-      .eq('id', comment.parent_id)
-      .single()
-
-    if (parent && parent.user_id !== comment.user_id) {
-      const preview = comment.body.slice(0, 80)
-      await supabase.from('notifications').insert({
-        user_id: parent.user_id,
-        type: 'comment_reply',
-        title: 'Alguém respondeu ao seu comentário',
-        body: preview.length < comment.body.length ? `${preview}...` : preview,
-        link: '/inspiracoes',
-        read: false,
-      })
-    }
+    await notificarRespostaNoComentario({
+      commentId: id,
+      parentId: comment.parent_id,
+      postId: comment.post_id,
+      autorId: comment.user_id,
+      body: comment.body,
+    })
   }
 
   revalidatePath('/inspiracoes')

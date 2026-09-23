@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { MessageSquare, Plus, X, ArrowLeft, Loader2, ImageIcon, Paperclip } from "lucide-react";
 import ForumPostCard, { type ForumPostData } from "@/components/community/ForumPostCard";
 import { createForumPost, deleteForumPost, uploadForumFile } from "@/app/(student)/comunidade/forum/actions";
@@ -27,6 +28,22 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const likedSet = new Set(likedIds);
+
+  // Link profundo do aviso: /comunidade/forum/<slug>?post=…&comentario=…
+  // É o que o sino e o push da equipe mandam. Sem isto o clique parava na
+  // lista de posts e ninguém achava o comentário que acabara de chegar.
+  const params = useSearchParams();
+  const postAlvo = params.get("post");
+  const comentarioAlvo = params.get("comentario");
+
+  useEffect(() => {
+    if (!postAlvo) return;
+    // Espera o post existir na tela: quando ele vem depois (carregamento,
+    // filtro), rolar antes não leva a lugar nenhum.
+    const alvo = document.getElementById(`post-${postAlvo}`);
+    if (!alvo) return;
+    alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [postAlvo]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>, type: "image" | "file") {
     const file = e.target.files?.[0];
@@ -206,6 +223,8 @@ export default function ForumPage({ forum, posts: initialPosts, userId, likedIds
               userId={userId}
               initialLiked={likedSet.has(post.id)}
               onDelete={handleDeletePost}
+              abrirComentarios={postAlvo === post.id}
+              destacarComentarioId={postAlvo === post.id ? comentarioAlvo : null}
             />
           ))}
         </div>
