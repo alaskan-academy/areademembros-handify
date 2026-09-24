@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { sendNewsPostEmailBatch } from "@/lib/email";
 import { fetchAll } from "@/lib/supabase/fetch-all";
@@ -57,18 +58,47 @@ export async function createNewsPost(formData: FormData): Promise<{ error?: stri
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("news_posts").insert({
-    author_id: user.id,
-    title: parsed.data.title,
-    body: parsed.data.body,
-    image_url: parsed.data.image_url || null,
-    published: parsed.data.published,
-    pinned: parsed.data.pinned,
-  });
+  const { data: criado, error } = await supabase
+    .from("news_posts")
+    .insert({
+      author_id: user.id,
+      title: parsed.data.title,
+      body: parsed.data.body,
+      image_url: parsed.data.image_url || null,
+      published: parsed.data.published,
+      pinned: parsed.data.pinned,
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: "Erro ao criar post" };
   revalidatePath("/admin/comunidade/feed");
   revalidatePath("/comunidade/feed");
+
+  // É AQUI que o e-mail de post novo sai, e é o ponto que faltava.
+  //
+  // Antes só `toggleNewsPublished` chamava o envio — mas o formulário cria o
+  // post JÁ publicado, e o gatilho do banco carimba `notified_at` no próprio
+  // insert. Resultado: o claim de `notified_at` daquela função nunca casava
+  // para post criado pelo formulário, e o e-mail não saía para post novo
+  // nenhum. O interruptor podia estar ligado que não mudava nada.
+  //
+  // `after()` porque o envio é um lote para milhares e não pode segurar a
+  // resposta do formulário; a admin vê o post criado na hora. Quem impede
+  // envio repetido é o claim de `emailed_at` dentro de `notifyNewsPost`, não
+  // este caminho — então rechamar daqui é inofensivo.
+  if (criado?.id && parsed.data.published) {
+    const id = criado.id;
+    after(async () => {
+      try {
+        const r = await notifyNewsPost(id);
+        if (r.error) console.error(`[feed] e-mail do post ${id}:`, r.error);
+      } catch (e) {
+        console.error(`[feed] e-mail do post ${id}:`, e);
+      }
+    });
+  }
+
   return {};
 }
 
@@ -110,19 +140,24 @@ export async function deleteNewsPost(id: string): Promise<{ error?: string }> {
 }
 
 /**
- * Interruptor do e-mail de "post novo no feed". Fica DESLIGADO de propósito.
+ * Interruptor do e-mail de "post novo no feed". LIGADO desde 24/09/2026, a
+ * pedido da Jessica: "ligue mas não dispare, dispare apenas para os novos posts
+ * que vierem".
  *
- * Esse e-mail nunca saiu para ninguém na vida da plataforma: o único gatilho
- * era o botão "Publicar", e a admin nunca precisou dele porque o formulário já
- * nasce publicado. O caminho abaixo está consertado (lote da Resend, público
- * paginado, registro por aluna), mas ligar isto significa ~4.550 e-mails no
- * próximo post — decisão da Jessica, não de quem mexe no código.
+ * O "não dispare" não mora aqui — mora em `news_posts.emailed_at`, que a
+ * migration 20260924_email_de_post_novo_ligado.sql carimbou em TODOS os posts
+ * que existiam naquele momento. Nenhum deles consegue mandar e-mail, nem
+ * publicado agora, nem republicado daqui a seis meses. Só post criado a partir
+ * dali nasce com `emailed_at` nulo.
  *
- * Para ligar: trocar para `true`, avisar antes, e publicar um post de teste
- * fora do horário de pico. O sino não depende disto: quem toca o sino é o
- * gatilho `on_news_post_published` no banco.
+ * Desligar de novo é trocar para `false` — e aí o caminho inteiro para na
+ * primeira linha de `notifyNewsPost`, sem carimbar nada.
+ *
+ * O sino não depende disto: quem toca o sino é o gatilho
+ * `on_news_post_published` no banco, por `notified_at`. São duas perguntas
+ * diferentes e dois carimbos diferentes.
  */
-const ENVIAR_EMAIL_DE_POST_NOVO = false;
+const ENVIAR_EMAIL_DE_POST_NOVO = true;
 
 export async function toggleNewsPublished(
   id: string,
@@ -208,13 +243,42 @@ async function notifyNewsPost(postId: string): Promise<{ enviados: number; error
 
   const service = createServiceClient();
 
-  const { data: post } = await service
+  // Reivindicação atômica, no mesmo padrão do anúncio de curso: o WHERE é
+  // avaliado na linha ANTIGA, então só a primeira chamada casa com
+  // `emailed_at is null`. Segundo clique, republish meses depois, ou dois
+  // caminhos chamando ao mesmo tempo voltam 0 linhas e saem sem mandar nada.
+  //
+  // É esta linha que garante o "dispare apenas para os novos posts": todos os
+  // posts anteriores a 24/09/2026 foram carimbados na migration, então nenhum
+  // deles passa daqui.
+  //
+  // Carimbar ANTES de enviar é de propósito. O contrário — enviar e depois
+  // carimbar — deixa a janela em que uma segunda chamada manda tudo de novo
+  // para as 4.550 alunas enquanto a primeira ainda está no meio do lote.
+  const { data: reivindicado, error: erroClaim } = await service
     .from("news_posts")
-    .select("id, title, body, published")
+    .update({ emailed_at: new Date().toISOString() })
     .eq("id", postId)
-    .single();
-  if (!post) return { enviados: 0, error: "Post não encontrado" };
-  if (!post.published) return { enviados: 0, error: "Publique o post antes de enviar o e-mail" };
+    .is("emailed_at", null)
+    .select("id, title, body, published");
+
+  if (erroClaim) return { enviados: 0, error: `claim de emailed_at: ${erroClaim.message}` };
+
+  const post = reivindicado?.[0];
+  if (!post) {
+    console.info(`[feed] post ${postId}: e-mail já enviado antes, nada a fazer`);
+    return { enviados: 0 };
+  }
+
+  /** Devolve o post para "não enviado" quando nada saiu — senão ele fica marcado sem ter ido. */
+  const soltarClaim = async () => {
+    await service.from("news_posts").update({ emailed_at: null }).eq("id", postId);
+  };
+
+  if (!post.published) {
+    await soltarClaim();
+    return { enviados: 0, error: "Publique o post antes de enviar o e-mail" };
+  }
 
   // Idempotência por aluna, na tabela que já existe (20260904_email_campaign_sends).
   // É o que permite retomar um lote interrompido sem repetir para quem já recebeu.
@@ -259,6 +323,20 @@ async function notifyNewsPost(postId: string): Promise<{ enviados: number; error
     await service
       .from("email_campaign_sends")
       .upsert(linhas.slice(i, i + 500), { onConflict: "campaign,user_id" });
+  }
+
+  // Nada saiu: solta a reivindicação. Um post marcado como enviado que nunca
+  // foi enviado é pior do que o defeito original — a admin publica, ninguém
+  // recebe, e não há caminho de volta porque a trava já está fechada.
+  //
+  // Envio PARCIAL mantém a marca de propósito: `email_campaign_sends` já guarda
+  // quem recebeu, então rechamar continua de onde parou sem remandar para
+  // ninguém. Soltar aqui é só para o caso em que nem um e-mail saiu.
+  if (enviados.length === 0) {
+    await soltarClaim();
+    console.error(
+      `[feed] post ${postId}: nenhum e-mail saiu (${erro ?? "sem erro relatado"}); marca desfeita para poder tentar de novo`
+    );
   }
 
   return { enviados: enviados.length, ...(erro ? { error: erro } : {}) };
