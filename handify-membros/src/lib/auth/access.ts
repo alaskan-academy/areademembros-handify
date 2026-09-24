@@ -56,11 +56,57 @@ export async function hasActiveMembership(userId: string): Promise<boolean> {
   return !!data;
 }
 
+const TIERS = ["visitante", "aluna", "completo", "admin"] as const;
+
+/**
+ * O tier tem de ser um dos quatro, sempre. Não é higiene de tipo: o valor é
+ * portão de acesso, e `createClient()` não tem o genérico `Database`, então o
+ * `.rpc()` devolve `any`. Escrever `data as Tier` sem conferir deixaria um
+ * `null` passar por tier — e aí `tier === 'visitante'` dá false em
+ * `comunidade/forum`, `inspiracoes` e `inspiracoes/salvos`, o muro "só para
+ * alunas" não aparece, e a página abre para quem não devia. Falha ABERTA.
+ */
+function ehTier(v: unknown): v is Tier {
+  return typeof v === "string" && (TIERS as readonly string[]).includes(v);
+}
+
 /**
  * Tier da pessoa logada — derivado, nunca armazenado, para não desatualizar
- * quando o plano vence. Espelha `public.current_tier()` no banco.
+ * quando o plano vence.
+ *
+ * Uma ida ao banco, não quatro. `public.current_tier()` já fazia exatamente
+ * esta conta em SQL desde `20260903_memberships.sql:64` — era só ninguém estar
+ * chamando. Medido em 24/09/2026: o trabalho de cada consulta é de 0 a 6 ms; o
+ * que pesava era o número de IDAS, e cada ida custa uma latência inteira.
+ * Provado antes de trocar: rodei `current_tier()` com o JWT de cada um dos
+ * 4.723 perfis reais e comparei com a árvore do TypeScript abaixo — 4.538
+ * `aluna`, 106 `visitante`, 78 `completo`, 1 `admin`, zero divergência.
+ *
+ * `.rpc()` NUNCA lança: devolve `{ data, error }` em todo modo de falha. Por
+ * isso o erro cai no caminho antigo em vez de virar 'visitante' mudo — um
+ * 'visitante' errado no layout tira os itens do menu, devolve a oferta do plano
+ * a quem já pagou e troca três páginas pelo muro, em toda navegação.
+ *
+ * Sem sessão nenhuma a RPC responde 42501 (o grant é para `authenticated`, não
+ * para `anon` — `20260903_memberships.sql:208`). Nenhum chamador de hoje cai
+ * nisso (os quatro fazem `getUser()` antes), e se cair, o caminho antigo
+ * devolve 'visitante' como sempre devolveu.
  */
 export async function getTier(): Promise<Tier> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("current_tier");
+
+  if (!error && ehTier(data)) return data;
+
+  console.error(
+    "[access] current_tier não respondeu, caindo no caminho antigo:",
+    error?.message ?? `valor inesperado ${JSON.stringify(data)}`
+  );
+  return tierPorConsulta();
+}
+
+/** O caminho antigo, de quatro idas. Fica como rede de segurança do `getTier`. */
+async function tierPorConsulta(): Promise<Tier> {
   const { userId, isAdmin } = await getViewer();
   if (!userId) return "visitante";
   if (isAdmin) return "admin";

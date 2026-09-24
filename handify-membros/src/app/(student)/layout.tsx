@@ -37,7 +37,10 @@ export default async function StudentLayout({
 
   if (!user && !isPublic) redirect("/login");
 
-  const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }, { data: promoRaw }] =
+  // O tier entra AQUI, junto com o resto, e não numa linha depois. Ele não
+  // depende de nada desta lista, e ficando de fora custava uma ida inteira ao
+  // banco antes do primeiro byte — em toda navegação, em toda tela.
+  const [{ data: profile }, initialNotifications, unreadCount, { data: menuItemsRaw }, { data: promoRaw }, tier] =
     await Promise.all([
       user
         ? supabase.from("profiles").select("full_name, avatar_url, role, terms_accepted_at, visited_sections, app_installed_at").eq("id", user.id).single()
@@ -54,6 +57,7 @@ export default async function StudentLayout({
         .select("active, badge_text, modal_title, modal_desc, button_text, link_url, subscription_product_codes")
         .eq("active", true)
         .maybeSingle(),
+      user ? getTier() : Promise.resolve("visitante" as Tier),
     ]);
 
   // Esconde a barra "Seja Premium" só de quem TEM o Handify Completo.
@@ -64,7 +68,7 @@ export default async function StudentLayout({
   // 03/09/2026: 30 de 3.387 alunas viam a oferta. Ver .claude/plans/tiers-handify.md.
   // Tier derivado (visitante · aluna · completo · admin) — decide a barra do
   // plano e quais itens de menu aparecem. Ver .claude/plans/tiers-handify.md.
-  const tier: Tier = user ? await getTier() : "visitante";
+  // Vem do Promise.all acima.
   let annualPromo: AnnualPromoData | null = promoRaw ? { ...promoRaw } : null;
   if (annualPromo && tier === "completo") {
     annualPromo = null;

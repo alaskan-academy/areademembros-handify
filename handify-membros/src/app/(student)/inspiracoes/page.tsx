@@ -21,10 +21,26 @@ export default async function InspiracoesPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // `/inspiracoes?post=<postId>&comentario=<commentId>` — contrato com a
+  // moderação e com a notificação de resposta, que geram este link.
+  const deepLink = lerDeepLink(await searchParams)
+
+  // Tudo de uma vez. O tier vinha numa linha antes, e aí a página esperava uma
+  // ida inteira ao banco só para saber se podia começar a buscar o resto.
+  //
+  // Para a visitante, as consultas abaixo rodam e voltam vazias — a RLS de
+  // `inspiration_posts` só abre para admin, plano ativo ou matrícula viva. Ela
+  // vê o mesmo muro de antes; o que muda é que as 4.538 alunas param de esperar.
+  const [tier, page, cursosRaw, { data: profileData }, postDoLink] = await Promise.all([
+    getTier(),
+    getInspiracoesFeed(user.id),
+    cursosComAcervo(user.id),
+    supabase.from('profiles').select('visited_sections').eq('id', user.id).single(),
+    deepLink ? getInspiracaoById(deepLink.postId, user.id) : Promise.resolve(null),
+  ])
+
   // Só para alunas: quem ainda não tem curso vê o que tem aqui dentro e o caminho.
   // O acervo (receitas, dicas, vídeos) acompanha o curso — quem publica é a equipe.
-  const tier = await getTier()
-
   if (tier === 'visitante') {
     return (
       <SoParaAlunas
@@ -41,23 +57,11 @@ export default async function InspiracoesPage({
     )
   }
 
-  // `/inspiracoes?post=<postId>&comentario=<commentId>` — contrato com a
-  // moderação e com a notificação de resposta, que geram este link.
-  //
-  // O post é buscado por id aqui no servidor, junto do resto da página: chega
-  // pronto no primeiro render, sem piscar, e sem depender de a rolagem
-  // infinita alcançar a página em que ele está. `getInspiracaoById` devolve
-  // null quando o post não existe, foi despublicado ou arquivado — aí a tela é
-  // o feed normal, com um aviso.
-  const deepLink = lerDeepLink(await searchParams)
-
-  const [page, cursosRaw, { data: profileData }, postDoLink] = await Promise.all([
-    getInspiracoesFeed(user.id),
-    cursosComAcervo(user.id),
-    supabase.from('profiles').select('visited_sections').eq('id', user.id).single(),
-    deepLink ? getInspiracaoById(deepLink.postId, user.id) : Promise.resolve(null),
-  ])
-
+  // O post do deep link é buscado por id no servidor, junto do resto da
+  // página: chega pronto no primeiro render, sem piscar, e sem depender de a
+  // rolagem infinita alcançar a página em que ele está. `getInspiracaoById`
+  // devolve null quando o post não existe, foi despublicado ou arquivado — aí a
+  // tela é o feed normal, com um aviso.
   const visitedSections = (profileData?.visited_sections as Record<string, boolean>) ?? {}
   const courses = cursosRaw
 
