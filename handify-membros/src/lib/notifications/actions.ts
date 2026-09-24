@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { dispararCampanha } from "./dispatch";
+import { contarNotificacoesDaCampanha, dispararCampanha } from "./dispatch";
 
 // ── Auth helpers ──────────────────────────────────────────────────
 
@@ -85,7 +85,13 @@ export async function getCampaigns() {
     .from("notification_campaigns")
     // target_count entra aqui porque sem ele o painel não sabe dizer "1.000 de
     // 4.557" — só o número solto, que a admin lê como se fosse a base inteira.
-    .select("id, title, body, link, target, scheduled_at, sent_at, sent_count, target_count, status, created_at")
+    // sending_since e sent_count_aproximado entram para o painel conseguir
+    // mostrar há quanto tempo a campanha está travada e avisar quando o número
+    // de enviadas é estimado — ver `destravarCampanha` logo abaixo.
+    // Uma string literal só: o supabase-js infere o tipo do retorno a partir do
+    // texto do select, e concatenar com `+` faz a inferência desabar em
+    // GenericStringError — o painel inteiro para de compilar.
+    .select("id, title, body, link, target, scheduled_at, sent_at, sent_count, target_count, sent_count_aproximado, sending_since, status, created_at")
     .order("created_at", { ascending: false });
   return data ?? [];
 }
@@ -161,6 +167,117 @@ export async function cancelCampaign(id: string) {
     .eq("id", id)
     .eq("status", "scheduled");
   revalidatePath("/admin/notificacoes");
+}
+
+export type ResultadoDestravar = {
+  error?: string;
+  success?: true;
+  /** Quantas notificações a campanha realmente inseriu antes de cair. */
+  total?: number;
+  /** true quando o total veio da contagem por título, não por campaign_id. */
+  aproximado?: boolean;
+  status?: "parcial" | "draft";
+};
+
+/**
+ * Tira a campanha de "enviando" sem mandar nada de novo.
+ *
+ * O QUE QUEBRAVA: disparo que morre no timeout da função da Vercel deixa a
+ * linha em status 'sending'. O cron procura só status='scheduled'
+ * (src/app/api/notifications/dispatch/route.ts) e o painel não tinha botão
+ * nenhum para 'sending' — a campanha ficava presa na tela para sempre, com
+ * `sent_count` 0, porque esse número só é gravado no UPDATE final do disparo,
+ * que naquela queda nunca rodou.
+ *
+ * POR QUE NÃO REDISPARA: a campanha que caiu no meio já inseriu parte das
+ * notificações e `notifications` não tem dedupe. Reenviar manda a mesma
+ * notificação e o mesmo push de novo para quem já recebeu, com a base em ~4.700
+ * alunas. Trocar "presa" por "duplicada" é pior. Por isso esta ação só conta e
+ * corrige o status — nada sai daqui.
+ *
+ * O status novo é decidido pela contagem real em `notifications`:
+ *   · alguém recebeu  -> 'parcial', com sent_count = o que realmente entrou;
+ *   · ninguém recebeu -> 'draft', e a admin decide se dispara de novo.
+ */
+export async function destravarCampanha(campaignId: string): Promise<ResultadoDestravar> {
+  const { userId } = await requireAdmin();
+  const service = createServiceClient();
+
+  const { data: campanha } = await service
+    .from("notification_campaigns")
+    .select("id, title, status, sending_since, sent_at, created_at")
+    .eq("id", campaignId)
+    .maybeSingle();
+
+  if (!campanha) return { error: "Campanha não encontrada." };
+
+  // Só 'sending'. Destravar uma campanha 'sent' sobrescreveria o sent_count
+  // verdadeiro por uma contagem feita fora do disparo.
+  if (campanha.status !== "sending") {
+    return { error: "Esta campanha não está travada em “Enviando”." };
+  }
+
+  let total: number;
+  let aproximado: boolean;
+  try {
+    ({ total, aproximado } = await contarNotificacoesDaCampanha(campanha));
+  } catch (e) {
+    // Preferir não mexer a gravar um número inventado: sent_count errado no
+    // painel é o defeito que esta mudança inteira existe para tirar do caminho.
+    console.error("[destravar] contagem falhou:", e);
+    return { error: "Não deu para contar quantas alunas já receberam. Nada foi alterado." };
+  }
+
+  const houveEnvio = total > 0;
+
+  const { data: atualizada, error } = await service
+    .from("notification_campaigns")
+    .update({
+      status: houveEnvio ? "parcial" : "draft",
+      sent_count: total,
+      sent_count_aproximado: aproximado,
+      // `sending_since` é o instante em que o disparo reivindicou a linha, ou
+      // seja, quando as notificações saíram de fato. Usar `now()` aqui marcaria
+      // a campanha com a hora do clique no botão, dias depois do que a aluna viu
+      // no sino. Só cai no agora quando nem isso existe (linha anterior a
+      // 22/09/2026).
+      sent_at: houveEnvio
+        ? campanha.sent_at ?? campanha.sending_since ?? new Date().toISOString()
+        : null,
+      sending_since: null,
+      // `target_count` fica como está, de propósito. O disparo caiu antes de
+      // montar o número — inventar um aqui faria o painel dizer "700 de 700",
+      // ou seja, que a campanha foi inteira. Sem alvo, ele mostra só o que saiu.
+    })
+    .eq("id", campaignId)
+    // Trava contra dois cliques e contra o disparo que, afinal, não estava
+    // morto: quem chegar depois já não encontra 'sending' e não faz nada.
+    .eq("status", "sending")
+    .select("id")
+    .maybeSingle();
+
+  if (error || !atualizada) {
+    return { error: "Não deu para destravar a campanha. Tente de novo." };
+  }
+
+  // Regra 12 do CLAUDE.md. O `meta` guarda de onde veio o número: sem isso,
+  // daqui a seis meses ninguém sabe se o sent_count foi contado ou estimado.
+  await service.from("audit_log").insert({
+    admin_id: userId,
+    action: "notification_campaign.unlocked",
+    target_type: "notification_campaign",
+    target_id: campaignId,
+    meta: {
+      status_novo: houveEnvio ? "parcial" : "draft",
+      notificacoes_contadas: total,
+      contagem_aproximada: aproximado,
+      travada_desde: campanha.sending_since,
+      enviou_alguma_coisa: false,
+    },
+  });
+
+  revalidatePath("/admin/notificacoes");
+  return { success: true, total, aproximado, status: houveEnvio ? "parcial" : "draft" };
 }
 
 // ── Disparo manual (Server Action pública — precisa de guarda) ────

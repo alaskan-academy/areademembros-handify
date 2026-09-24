@@ -26,19 +26,20 @@ vi.mock("@/lib/supabase/service", () => ({
   createServiceClient: () => (h.mundo as unknown as Mundo).cliente(),
 }));
 
-import { dispararCampanha } from "./dispatch";
+import { contarNotificacoesDaCampanha, dispararCampanha } from "./dispatch";
 
 // ── Dublê do supabase-js ──────────────────────────────────────────
 
-type Resultado = { data: unknown; error: unknown };
+type Resultado = { data: unknown; error: unknown; count?: number };
 
 type Consulta = {
   tabela: string;
   op: "select" | "update" | "insert";
   corpo?: Record<string, unknown>;
-  linhas?: unknown[];
+  linhas?: Record<string, unknown>[];
   filtros: string[];
   faixa?: [number, number];
+  contagem?: boolean;
 };
 
 type Config = {
@@ -48,9 +49,18 @@ type Config = {
   reivindicacaoGanha?: boolean;
   erroNaPaginaDePublico?: string;
   lotesQueFalham?: number[];
+  /** Quanto `count: exact` devolve para o filtro por campaign_id. */
+  contagemPorCampanha?: number;
+  /** Quanto `count: exact` devolve para o filtro por título. */
+  contagemPorTitulo?: number;
+  erroNaContagemPorCampanha?: string;
+  erroNaContagemPorTitulo?: string;
 };
 
 type Mundo = ReturnType<typeof criarMundo>;
+
+/** A reivindicação é o único UPDATE que filtra por uma lista de status. */
+const FILTRO_DA_REIVINDICACAO = "in:status=";
 
 function criarMundo(config: Config) {
   const chamadas: Consulta[] = [];
@@ -60,8 +70,7 @@ function criarMundo(config: Config) {
     if (q.tabela === "notification_campaigns") {
       if (q.op === "select") return { data: { status: config.status }, error: null };
 
-      // A reivindicação é o único UPDATE que carrega o filtro `or`.
-      const ehReivindicacao = q.filtros.some((f) => f.startsWith("or:"));
+      const ehReivindicacao = q.filtros.some((f) => f.startsWith(FILTRO_DA_REIVINDICACAO));
       if (!ehReivindicacao) return { data: null, error: null };
       if (config.reivindicacaoGanha === false) return { data: null, error: null };
       return {
@@ -92,6 +101,20 @@ function criarMundo(config: Config) {
     }
 
     if (q.tabela === "notifications") {
+      // Contagem do destravamento: `count: exact, head: true` não traz linha
+      // nenhuma — só o número.
+      if (q.contagem) {
+        const porCampanha = q.filtros.some((f) => f.startsWith("eq:campaign_id="));
+        const erro = porCampanha
+          ? config.erroNaContagemPorCampanha
+          : config.erroNaContagemPorTitulo;
+        if (erro) return { data: null, error: { message: erro } };
+        return {
+          data: null,
+          error: null,
+          count: porCampanha ? config.contagemPorCampanha ?? 0 : config.contagemPorTitulo ?? 0,
+        };
+      }
       const falhou = (config.lotesQueFalham ?? []).includes(loteAtual++);
       return { data: null, error: falhou ? { message: "lote recusado" } : null };
     }
@@ -106,19 +129,30 @@ function criarMundo(config: Config) {
       return Promise.resolve(responder(q));
     };
     const construtor = {
-      select: () => construtor,
+      select: (_colunas?: string, opcoes?: { count?: string; head?: boolean }) => {
+        if (opcoes?.count) q.contagem = true;
+        return construtor;
+      },
       update: (valores: Record<string, unknown>) => {
         q.op = "update";
         q.corpo = valores;
         return construtor;
       },
-      insert: (linhas: unknown[]) => {
+      insert: (linhas: Record<string, unknown>[]) => {
         q.op = "insert";
         q.linhas = linhas;
         return finalizar();
       },
       eq: (col: string, val: unknown) => {
         q.filtros.push(`eq:${col}=${String(val)}`);
+        return construtor;
+      },
+      gte: (col: string, val: unknown) => {
+        q.filtros.push(`gte:${col}=${String(val)}`);
+        return construtor;
+      },
+      in: (col: string, vals: readonly unknown[]) => {
+        q.filtros.push(`in:${col}=${vals.join(",")}`);
         return construtor;
       },
       or: (filtro: string) => {
@@ -141,15 +175,18 @@ function criarMundo(config: Config) {
     cliente: () => ({ from }),
     chamadas,
     reivindicacao: () =>
-      chamadas.find((c) => c.op === "update" && c.filtros.some((f) => f.startsWith("or:"))),
+      chamadas.find(
+        (c) => c.op === "update" && c.filtros.some((f) => f.startsWith(FILTRO_DA_REIVINDICACAO))
+      ),
     updatesSimples: () =>
       chamadas.filter(
         (c) =>
           c.tabela === "notification_campaigns" &&
           c.op === "update" &&
-          !c.filtros.some((f) => f.startsWith("or:"))
+          !c.filtros.some((f) => f.startsWith(FILTRO_DA_REIVINDICACAO))
       ),
     inserts: () => chamadas.filter((c) => c.tabela === "notifications" && c.op === "insert"),
+    contagens: () => chamadas.filter((c) => c.tabela === "notifications" && c.contagem),
   };
 }
 
@@ -165,7 +202,7 @@ beforeEach(() => {
 // ── Testes ────────────────────────────────────────────────────────
 
 describe("reivindicação da campanha", () => {
-  it("pede a linha só em status reivindicável e retoma 'sending' velho", async () => {
+  it("pede a linha só nos status reivindicáveis, e 'sending' não é um deles", async () => {
     const mundo = criarMundo({ status: "scheduled", target: "all", alunas: alunas(3) });
     h.mundo = mundo as never;
 
@@ -175,17 +212,16 @@ describe("reivindicação da campanha", () => {
     expect(claim.corpo?.status).toBe("sending");
     expect(typeof claim.corpo?.sending_since).toBe("string");
 
-    const filtro = claim.filtros.find((f) => f.startsWith("or:"))!;
-    expect(filtro).toContain("status.in.(draft,scheduled,parcial)");
-    expect(filtro).toContain("and(status.eq.sending,sending_since.is.null)");
+    const filtro = claim.filtros.find((f) => f.startsWith(FILTRO_DA_REIVINDICACAO))!;
+    expect(filtro).toBe("in:status=draft,scheduled,parcial");
 
-    // O ISO tem pontos, que o PostgREST lê como separador de operador: sem as
-    // aspas o filtro é recusado e a reivindicação nunca casa.
-    const comAspas = filtro.match(/sending_since\.lt\."([^"]+)"/);
-    expect(comAspas).not.toBeNull();
-    const limite = new Date(comAspas![1]).getTime();
-    expect(Date.now() - limite).toBeGreaterThanOrEqual(15 * 60_000 - 5_000);
-    expect(Date.now() - limite).toBeLessThan(16 * 60_000);
+    // 'sending' fora da lista é o ponto: a retomada automática de 15 minutos que
+    // existia aqui nunca rodava (o cron só procura 'scheduled', o painel não
+    // oferecia botão) e, se rodasse, reinseriria a notificação e o push para
+    // quem já tinha recebido — `notifications` não tem dedupe. A saída de
+    // 'sending' é o botão "Destravar", que não reenvia nada.
+    expect(filtro).not.toContain("sending");
+    expect(claim.filtros.some((f) => f.startsWith("or:"))).toBe(false);
   });
 
   it("quem perde a corrida sai sem inserir nada", async () => {
@@ -263,6 +299,22 @@ describe("contagem do que saiu", () => {
   });
 });
 
+describe("vínculo com a campanha", () => {
+  it("todo lote carrega campaign_id em todas as linhas", async () => {
+    // Sem esta coluna, campanha que morre no meio do disparo não deixa rastro
+    // de quantas alunas já receberam: `sent_count` só é gravado no UPDATE
+    // final, que nessa queda nunca roda.
+    const mundo = criarMundo({ status: "draft", target: "all", alunas: alunas(1200) });
+    h.mundo = mundo as never;
+
+    await dispararCampanha("camp-1");
+
+    const linhas = mundo.inserts().flatMap((c) => c.linhas ?? []);
+    expect(linhas).toHaveLength(1200);
+    expect(linhas.every((l) => l.campaign_id === "camp-1")).toBe(true);
+  });
+});
+
 describe("push", () => {
   it("vai em fatias de 500", async () => {
     // `.in("user_id", ids)` viaja na query string do GET: a base inteira de uma
@@ -281,7 +333,7 @@ describe("push", () => {
 describe("público que não pode ser montado", () => {
   it("devolve a campanha ao status anterior e propaga o erro", async () => {
     // fetchAll lança quando uma página falha. Sem isso a campanha ficava em
-    // "sending" para sempre: o cron só procura 'scheduled' e o painel não tem
+    // "sending" para sempre: o cron só procura 'scheduled' e o painel não tinha
     // botão para "enviando".
     const mundo = criarMundo({
       status: "scheduled",
@@ -299,5 +351,87 @@ describe("público que não pode ser montado", () => {
       status: "scheduled",
       sending_since: null,
     });
+  });
+});
+
+describe("contagem para destravar", () => {
+  const travada = {
+    id: "camp-1",
+    title: "Ferramentas novas",
+    sending_since: "2026-09-24T10:00:00.000Z",
+    created_at: "2026-09-23T08:00:00.000Z",
+  };
+
+  function mundoVazio(config: Partial<Config>) {
+    return criarMundo({ status: "sending", target: "all", alunas: [], ...config });
+  }
+
+  it("conta por campaign_id e não cai no título", async () => {
+    const mundo = mundoVazio({ contagemPorCampanha: 2310, contagemPorTitulo: 99999 });
+    h.mundo = mundo as never;
+
+    expect(await contarNotificacoesDaCampanha(travada)).toEqual({
+      total: 2310,
+      aproximado: false,
+    });
+
+    // Uma consulta só, e com head: nada de somar linhas recebidas — foi assim
+    // que a campanha de 05/09/2026 registrou 1.000 de 3.474.
+    const contagens = mundo.contagens();
+    expect(contagens).toHaveLength(1);
+    expect(contagens[0].filtros).toEqual(["eq:campaign_id=camp-1"]);
+  });
+
+  it("campanha antiga cai no título, dentro da janela do disparo, e avisa que é aproximado", async () => {
+    const mundo = mundoVazio({ contagemPorCampanha: 0, contagemPorTitulo: 1000 });
+    h.mundo = mundo as never;
+
+    expect(await contarNotificacoesDaCampanha(travada)).toEqual({
+      total: 1000,
+      aproximado: true,
+    });
+
+    // A janela começa em sending_since: campanha antiga de mesmo título ficou
+    // do lado de fora da conta.
+    const fallback = mundo.contagens().at(-1)!;
+    expect(fallback.filtros).toEqual([
+      "eq:type=admin_broadcast",
+      "eq:title=Ferramentas novas",
+      `gte:created_at=${travada.sending_since}`,
+    ]);
+  });
+
+  it("sem sending_since a janela começa na criação da campanha", async () => {
+    // Linha anterior a 22/09/2026 não tem sending_since. O começo da campanha é
+    // o melhor limite que existe — melhor do que contar o banco inteiro.
+    const mundo = mundoVazio({ contagemPorCampanha: 0, contagemPorTitulo: 7 });
+    h.mundo = mundo as never;
+
+    await contarNotificacoesDaCampanha({ ...travada, sending_since: null });
+
+    expect(mundo.contagens().at(-1)!.filtros).toContain(
+      `gte:created_at=${travada.created_at}`
+    );
+  });
+
+  it("zero pelos dois caminhos é zero de verdade, não aproximado", async () => {
+    // Disparo que caiu antes do primeiro lote. Duvidar de um número certo faria
+    // o painel avisar "aproximado" sem motivo.
+    const mundo = mundoVazio({ contagemPorCampanha: 0, contagemPorTitulo: 0 });
+    h.mundo = mundo as never;
+
+    expect(await contarNotificacoesDaCampanha(travada)).toEqual({
+      total: 0,
+      aproximado: false,
+    });
+  });
+
+  it("erro na contagem estoura em vez de devolver 0", async () => {
+    // Coluna ausente (migration não aplicada) ou consulta que falha: quem chama
+    // precisa recusar o destravamento, não gravar um sent_count inventado.
+    const mundo = mundoVazio({ erroNaContagemPorCampanha: "column campaign_id does not exist" });
+    h.mundo = mundo as never;
+
+    await expect(contarNotificacoesDaCampanha(travada)).rejects.toThrow(/campaign_id/);
   });
 });

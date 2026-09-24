@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Bell, Send, Clock, CheckCircle2, XCircle, Users, BookOpen, Loader2, AlertTriangle } from "lucide-react";
 import { getCampaigns } from "@/lib/notifications/actions";
 import NovaCampanhaForm from "./NovaCampanhaForm";
-import { DeleteButton, CancelButton, SendNowButton } from "./CampaignActions";
+import { DeleteButton, CancelButton, SendNowButton, DestravarButton } from "./CampaignActions";
 
 async function assertAdmin() {
   const supabase = await createClient();
@@ -119,17 +119,54 @@ export default async function NotificacoesAdminPage() {
                           {" "}(Brasília)
                         </span>
                       )}
+                      {/* Campanha travada: dizer desde quando, senão não há como
+                          saber se ela está enviando agora ou parada desde ontem
+                          — e é essa diferença que decide se vale destravar. */}
+                      {c.status === "sending" && c.sending_since && (
+                        <span className="flex items-center gap-1" style={{ color: "#6699F3" }}>
+                          <Loader2 className="w-3 h-3" />
+                          Enviando desde{" "}
+                          {new Date(c.sending_since).toLocaleString("pt-BR", {
+                            day: "2-digit", month: "2-digit",
+                            hour: "2-digit", minute: "2-digit",
+                            timeZone: "America/Sao_Paulo",
+                          })}
+                        </span>
+                      )}
                       {(c.status === "sent" || c.status === "parcial") && (
                         <span className="flex items-center gap-1">
                           <Send className="w-3 h-3" />
                           {/* "de quantas" é o que faltava: 1.000 sozinho parece
-                              a base inteira. Campanha antiga não tem alvo
-                              gravado, então cai no próprio sent_count. */}
-                          {c.sent_count} de {c.target_count ?? c.sent_count} enviadas ·{" "}
-                          {new Date(c.sent_at!).toLocaleString("pt-BR", {
-                            day: "2-digit", month: "2-digit",
-                            hour: "2-digit", minute: "2-digit",
-                          })}
+                              a base inteira. Mas repetir o sent_count no lugar
+                              do alvo ("700 de 700") é pior ainda: campanha que
+                              morreu no meio nunca grava target_count, e o painel
+                              diria que ela foi inteira. Sem alvo, só o que saiu. */}
+                          {c.target_count != null
+                            ? `${c.sent_count} de ${c.target_count} enviadas`
+                            : `${c.sent_count} enviadas`}
+                          {/* Número contado por título e janela de tempo, não
+                              pelo vínculo com a campanha. Acontece em campanha
+                              destravada cujas notificações são anteriores à
+                              coluna campaign_id. Um aproximado que se passa por
+                              exato é o mesmo mal do "1.000" de 05/09/2026. */}
+                          {c.sent_count_aproximado && (
+                            <span
+                              className="font-medium"
+                              style={{ color: "#FEC649" }}
+                              title="Contagem aproximada: feita por título e janela de tempo, porque estas notificações são anteriores ao vínculo por campanha."
+                            >
+                              (aproximado)
+                            </span>
+                          )}
+                          {c.sent_at && (
+                            <>
+                              {" · "}
+                              {new Date(c.sent_at).toLocaleString("pt-BR", {
+                                day: "2-digit", month: "2-digit",
+                                hour: "2-digit", minute: "2-digit",
+                              })}
+                            </>
+                          )}
                         </span>
                       )}
                     </div>
@@ -143,6 +180,11 @@ export default async function NotificacoesAdminPage() {
                         <CancelButton id={c.id} />
                       </>
                     )}
+                    {/* "Enviando" era o único status sem ação nenhuma: campanha
+                        que morre no timeout da Vercel fica aqui para sempre,
+                        porque o cron procura só as agendadas. Destravar conta o
+                        que já saiu e fecha a linha — não reenvia nada. */}
+                    {c.status === "sending" && <DestravarButton id={c.id} />}
                     {/* "parcial" também ganha o excluir — antes ela ficava sem
                         ação nenhuma. Sem "Enviar agora": reenviar insere a
                         notificação de novo para quem já recebeu, porque
