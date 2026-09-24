@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import type { InspiracaoPost, InspiracaoType } from '@/lib/inspiracoes/types'
 import { LikeButton } from './LikeButton'
 import { BookmarkButton } from './BookmarkButton'
+import { podeOtimizar, capaDoPanda } from '@/lib/inspiracoes/imagem'
 
 const TYPE_CONFIG: Record<InspiracaoType, { label: string; icon: React.ElementType; badge: string }> = {
   foto:      { label: 'Foto',      icon: ImageIcon,         badge: 'bg-blue-100 text-blue-700' },
@@ -45,7 +46,37 @@ function CardThumbnail({ post }: { post: InspiracaoPost }) {
   }
 
   const firstMedia = post.media[0]
-  if (firstMedia?.url) {
+  const ehVideo = firstMedia?.tipo === 'video'
+
+  // Carrossel que começa com vídeo do Panda. A URL guardada é a do player, e ela ia
+  // direto para o next/image, que respondia 400: o card mostrava imagem quebrada
+  // (há um post assim no acervo, salvo por 8 alunas). A capa do vídeo tem URL própria
+  // e pesa 17 KB.
+  const capaPanda = ehVideo ? capaDoPanda(firstMedia?.url) : null
+  if (capaPanda) {
+    return (
+      <div className="relative aspect-square bg-black overflow-hidden">
+        <Image
+          src={capaPanda}
+          alt={firstMedia.alt ?? post.title}
+          fill
+          sizes="(max-width: 640px) 45vw, 240px"
+          className="object-cover opacity-80"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow">
+            <PlayCircle className="w-5 h-5 text-[#6699F3]" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // `sizes` conferido contra o layout real: no celular de 375px o card mede 165px
+  // (grid de 2 colunas dentro de max-w-2xl px-4, gap-3), então 45vw = 169px.
+  // Com isso o aparelho de tela 2x baixa a versão de 384px: 6 KB numa foto que
+  // pesa 31 KB no original, e 23 KB numa que pesa 430 KB.
+  if (firstMedia?.url && !ehVideo && podeOtimizar(firstMedia.url)) {
     return (
       <div className="relative aspect-square overflow-hidden bg-muted">
         <Image
@@ -59,10 +90,38 @@ function CardThumbnail({ post }: { post: InspiracaoPost }) {
     )
   }
 
+  // Imagem de um host que não está em `images.remotePatterns`: o /_next/image
+  // devolve 400 e a aluna vê imagem quebrada. Serve o arquivo original direto —
+  // pesado, mas aparece. Não usa next/image de propósito.
+  if (firstMedia?.url && !ehVideo) {
+    return (
+      <div className="relative aspect-square overflow-hidden bg-muted">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={firstMedia.url}
+          alt={firstMedia.alt ?? post.title}
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+    )
+  }
+
+  // Último recurso: post sem mídia nenhuma, ou vídeo de um player do qual não dá para
+  // tirar capa. Nunca manda a URL para o next/image — é dela que vinha o 400 que
+  // aparecia como imagem quebrada. O play some a dúvida de que ali tem vídeo.
   const { icon: Icon } = TYPE_CONFIG[post.type]
   return (
-    <div className="aspect-square flex items-center justify-center bg-muted">
+    <div className="relative aspect-square flex items-center justify-center bg-muted">
       <Icon className="w-10 h-10 text-muted-foreground/25" />
+      {ehVideo && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow">
+            <PlayCircle className="w-5 h-5 text-[#6699F3]" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -9,7 +9,9 @@ import {
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import Link from 'next/link'
-import type { InspiracaoPost, InspiracaoType, CursoDoFiltro } from '@/lib/inspiracoes/types'
+import type { InspiracaoPost, InspiracaoType, CursoDoFiltro, ConteudoCompleto } from '@/lib/inspiracoes/types'
+import { getConteudoCompleto } from '@/lib/inspiracoes/actions'
+import { imgOtimizada } from '@/lib/inspiracoes/imagem'
 import { LikeButton } from './LikeButton'
 import { BookmarkButton } from './BookmarkButton'
 import { ComentariosPanel } from './ComentariosPanel'
@@ -86,8 +88,12 @@ function Carrossel({ images }: { images: { url: string; alt?: string; tipo?: str
           </div>
         ) : (
           <img
-            src={atual.url}
+            {...imgOtimizada(atual.url, LARGURA_NA_TELA)}
             alt={atual.alt ?? ''}
+            // A primeira do carrossel entra com a tela; as outras só quando ela
+            // passa para o lado, então não pesam na abertura da página.
+            loading={idx === 0 ? undefined : 'lazy'}
+            decoding="async"
             className="w-full max-h-[480px] object-contain"
           />
         )}
@@ -130,6 +136,14 @@ function Carrossel({ images }: { images: { url: string; alt?: string; tipo?: str
 // Altura máxima do conteúdo antes de mostrar "Ver mais"
 const MAX_CONTENT_H = 320
 
+/**
+ * Largura em CSS pixels que a imagem do post ocupa na tela. Medido no feed em
+ * celular (375px de viewport, menos as margens da coluna): 341px. No desktop a
+ * coluna é mais estreita ainda, então este é o pior caso — e o `srcSet` de 2x
+ * cuida da tela retina.
+ */
+const LARGURA_NA_TELA = 341
+
 interface Props {
   post: InspiracaoPost
   userId: string
@@ -139,7 +153,23 @@ interface Props {
   onCursoBloqueado?: (curso: CursoDoFiltro) => void
 }
 
-export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado }: Props) {
+export function InspiracaoFeedItem({ post: postDoServidor, userId, cursos = [], onCursoBloqueado }: Props) {
+  // O servidor manda só a prévia do texto: um post de dica chegava a 6.682
+  // caracteres e descia inteiro no HTML, escondido por CSS — a página toda
+  // pesava 261 KB e levava 1,3 s para abrir. A cauda vem por
+  // `getConteudoCompleto` quando ela toca em "Ver mais": uma ida ao banco por
+  // post que ela realmente abre, em vez de 13 textos completos toda vez.
+  const [conteudoCompleto, setConteudoCompleto] = useState<ConteudoCompleto | null>(null)
+  const [carregandoResto, setCarregandoResto] = useState(false)
+  const [falhouOResto, setFalhouOResto] = useState(false)
+
+  // Daqui para baixo o componente inteiro usa `post` como sempre usou. Trocar o
+  // objeto num lugar só é o que evita espalhar `conteudoCompleto ?? ...` por
+  // dezenas de linhas de render — e esquecer de uma delas.
+  const post = conteudoCompleto
+    ? { ...postDoServidor, blocks: conteudoCompleto.blocks, recipe_data: conteudoCompleto.recipe_data }
+    : postDoServidor
+
   // De quais cursos é este post. Sem isso o acervo é uma vitrine sem vitrine: a
   // aluna vê a receita bonita e não tem caminho nenhum para o curso.
   //
@@ -154,8 +184,13 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
   const outrosCursos = cursosDoPost.length - 1
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
-  const [needsExpand, setNeedsExpand] = useState(false)
+  const [alturaEstoura, setAlturaEstoura] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // O botão aparece por dois motivos independentes: ou o servidor avisou que
+  // guardou texto, ou o que veio já estoura a altura do corte. Olhar só a
+  // altura deixaria inalcançável o texto de um post cuja prévia coube nos 320px.
+  const needsExpand = postDoServidor.conteudo_truncado || alturaEstoura
 
   const { label, icon: Icon, badge } = TYPE_CONFIG[post.type]
   const ytId = post.type === 'video' && post.video_url ? getYouTubeId(post.video_url) : null
@@ -169,9 +204,34 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
   useEffect(() => {
     const el = contentRef.current
     if (el && el.scrollHeight > MAX_CONTENT_H + 24) {
-      setNeedsExpand(true)
+      setAlturaEstoura(true)
     }
   }, [])
+
+  // Busca a cauda do texto. Separada do botão de propósito: "Tentar de novo"
+  // precisa buscar sem fechar o post, e o toggle precisa fechar sem buscar.
+  async function buscarResto() {
+    if (!postDoServidor.conteudo_truncado || conteudoCompleto || carregandoResto) return
+    setCarregandoResto(true)
+    setFalhouOResto(false)
+    try {
+      const resto = await getConteudoCompleto(postDoServidor.id)
+      if (resto) setConteudoCompleto(resto)
+      else setFalhouOResto(true)
+    } catch {
+      setFalhouOResto(true)
+    } finally {
+      setCarregandoResto(false)
+    }
+  }
+
+  // "Ver mais" abre na hora com o que já está na tela e busca a cauda em
+  // paralelo. Fechar não descarta o que já veio — reabrir não volta ao banco.
+  function verMais() {
+    const abrindo = !expanded
+    setExpanded(abrindo)
+    if (abrindo) void buscarResto()
+  }
 
   return (
     <article className="bg-white rounded-2xl border border-border/60 shadow-sm overflow-hidden">
@@ -235,8 +295,10 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
       {post.type === 'foto' && post.media[0] && (
         <div className="bg-white">
           <img
-            src={post.media[0].url}
+            {...imgOtimizada(post.media[0].url, LARGURA_NA_TELA)}
             alt={post.media[0].alt ?? post.title}
+            loading="lazy"
+            decoding="async"
             className="w-full max-h-[480px] object-contain"
           />
         </div>
@@ -278,8 +340,10 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
       {post.type === 'dica' && post.media[0] && (
         <div className="bg-white">
           <img
-            src={post.media[0].url}
+            {...imgOtimizada(post.media[0].url, LARGURA_NA_TELA)}
             alt={post.media[0].alt ?? post.title}
+            loading="lazy"
+            decoding="async"
             className="w-full max-h-[480px] object-contain"
           />
         </div>
@@ -301,8 +365,10 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
             <div className="space-y-4">
               {post.media[0] && (
                 <img
-                  src={post.media[0].url}
+                  {...imgOtimizada(post.media[0].url, LARGURA_NA_TELA)}
                   alt={post.title}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full rounded-xl object-contain max-h-[400px] bg-muted/30"
                 />
               )}
@@ -471,8 +537,10 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
                 <div className="flex flex-col items-center text-center gap-3 py-2">
                   {post.featured_student.avatar_url ? (
                     <img
-                      src={post.featured_student.avatar_url}
+                      {...imgOtimizada(post.featured_student.avatar_url, 80)}
                       alt={post.featured_student.full_name ?? ''}
+                      loading="lazy"
+                      decoding="async"
                       className="w-20 h-20 rounded-full object-cover border-2 border-[#6699F3]/30"
                     />
                   ) : (
@@ -539,15 +607,29 @@ export function InspiracaoFeedItem({ post, userId, cursos = [], onCursoBloqueado
       {/* Botão Ver mais / Ver menos */}
       {needsExpand && (
         <button
-          onClick={() => setExpanded(v => !v)}
+          onClick={verMais}
+          aria-expanded={expanded}
           className="w-full py-2 text-sm text-[#6699F3] font-semibold flex items-center justify-center gap-1 hover:bg-[#6699F3]/5 transition-colors"
         >
-          {expanded ? (
+          {carregandoResto ? (
+            <>Carregando…</>
+          ) : expanded ? (
             <>Ver menos <ChevronUp className="w-4 h-4" /></>
           ) : (
             <>Ver mais <ChevronDown className="w-4 h-4" /></>
           )}
         </button>
+      )}
+
+      {/* Se a cauda do texto não veio, ela precisa saber — e poder tentar de novo.
+          Sem isto o post fica pela metade em silêncio, que é pior do que o lento. */}
+      {falhouOResto && expanded && (
+        <p className="px-4 pb-3 -mt-1 text-xs text-foreground/60">
+          Não consegui carregar o restante.{' '}
+          <button onClick={() => void buscarResto()} className="text-[#6699F3] font-semibold underline">
+            Tentar de novo
+          </button>
+        </p>
       )}
 
       {/* Ações */}

@@ -19,9 +19,137 @@ import type {
   InspiracaoPage,
   UpsertInspiracaoPayload,
   CursoDoFiltro,
+  ContentBlock,
+  ConteudoCompleto,
 } from './types'
 
-const PAGE_SIZE = 12
+/**
+ * Quantos posts o servidor monta por vez.
+ *
+ * Eram 12 (13 com o post-sonda da próxima página). Medido em 24/09: os 12 posts
+ * chegavam ao componente como um objeto de 83.638 bytes — e esse objeto desce
+ * DUAS vezes no HTML, porque o InspiracaoFeed é 'use client' e recebe os posts
+ * por prop (uma vez no DOM já renderizado, outra no payload que hidrata a tela).
+ * Era o grosso dos 261 KB da página.
+ *
+ * Só com as colunas explícitas e a prévia recortada, os mesmos 12 posts caem
+ * para 45.916 bytes; com 6, para 28.874. O acervo tem 20 posts publicados, e o
+ * "Carregar mais" é botão, não rolagem automática: ela toca três vezes em vez
+ * de uma para chegar ao fim — só que cada toque agora custa uma ida ao banco de
+ * ~58 ms, não três de ~172 ms. Nenhum post some da lista, e a ordem é a mesma.
+ */
+const PAGE_SIZE = 6
+
+/**
+ * Colunas que a lista realmente usa. Antes era `select("*")`.
+ *
+ * `blocks` continua aqui porque o corte da prévia é feito no servidor (ver
+ * `aliviarBlocos`) — o que não desce é o texto que ficava escondido atrás do
+ * "Ver mais". `recipe_data` também fica: medido, são 6.710 bytes nos 13 posts,
+ * e é justamente o que aparece ANTES do corte num post de receita (benefícios,
+ * ficha, ingredientes). Tirá-lo deixaria o card de receita em branco.
+ *
+ * `published` e `archived` vêm por fidelidade ao tipo da linha (a consulta já
+ * filtra os dois); custam 30 bytes por post.
+ */
+const COLUNAS_DO_FEED = `
+  id, author_id, type, title, body, media, video_url, blocks, recipe_data,
+  tags, course_id, course_ids, featured_student_id, published, archived,
+  pinned, created_at, updated_at
+`
+
+/**
+ * Quanto de texto de bloco desce no feed, em caracteres.
+ *
+ * O corte do "Ver mais" é por altura de CSS (320px no InspiracaoFeedItem), que
+ * num celular de 375px cabe em torno de 700 caracteres de texto corrido. 1.800
+ * dá folga para o HTML da dica (tags, classes) e ainda assim corta cedo: os
+ * blocos reais do acervo têm de 2.243 a 6.682 caracteres, sete deles acima de
+ * 3.000. Medido: 42.888 bytes de `blocks` nos 13 posts do feed.
+ */
+const PREVIA_DO_BLOCO = 1800
+
+/** Fechamentos onde é seguro cortar sem partir um parágrafo no meio da frase. */
+const FECHAMENTOS = [
+  '</p>', '</li>', '</ul>', '</ol>', '</h2>', '</h3>', '</h4>',
+  '</blockquote>', '</section>', '</div>', '</tr>', '</table>', '</details>',
+]
+
+/**
+ * Recorta HTML sem nunca partir uma tag ao meio.
+ *
+ * Procura o último fechamento de bloco dentro do orçamento; se não achar nenhum
+ * (ou achar cedo demais, o que deixaria um pedaço ridículo), volta para o
+ * último `>`, que é sempre um limite seguro. Tag de abertura que ficar sem par
+ * é fechada pelo próprio parser do navegador e pelo DOMPurify do cliente.
+ */
+function recortarHtml(html: string, orcamento: number): { conteudo: string; cortado: boolean } {
+  if (html.length <= orcamento) return { conteudo: html, cortado: false }
+
+  const janela = html.slice(0, orcamento)
+  let corte = -1
+  for (const tag of FECHAMENTOS) {
+    const i = janela.lastIndexOf(tag)
+    if (i >= 0) corte = Math.max(corte, i + tag.length)
+  }
+
+  if (corte < orcamento / 3) {
+    const ultimaTag = janela.lastIndexOf('>')
+    corte = ultimaTag >= 0 ? ultimaTag + 1 : orcamento
+  }
+
+  return { conteudo: html.slice(0, corte), cortado: true }
+}
+
+/**
+ * Deixa no post só o pedaço de conteúdo que a lista mostra antes do "Ver mais".
+ *
+ * O resto vem por `getConteudoCompleto` quando ela toca no botão. `cortado`
+ * avisa a tela que existe mais texto guardado — sem isso ela teria de adivinhar
+ * pela altura renderizada, e um post inteiramente truncado que não estoura os
+ * 320px nunca mostraria o botão.
+ *
+ * `video_meta` passa sempre: não é texto, é a proporção do vídeo (4 bytes), e o
+ * player fica ACIMA do corte — sem ele o vídeo 9/16 do tutorial abriria em 16/9.
+ */
+function aliviarBlocos(blocks: unknown): { blocks: ContentBlock[]; conteudo_truncado: boolean } {
+  const todos = Array.isArray(blocks) ? (blocks as ContentBlock[]) : []
+  const saida: ContentBlock[] = []
+  let conteudo_truncado = false
+  let orcamento = PREVIA_DO_BLOCO
+
+  for (const bloco of todos) {
+    if (bloco?.type === 'video_meta') {
+      saida.push(bloco)
+      continue
+    }
+    if (orcamento <= 0) {
+      conteudo_truncado = true
+      continue
+    }
+
+    const conteudo = typeof bloco?.content === 'string' ? bloco.content : ''
+    if (conteudo.length <= orcamento) {
+      saida.push(bloco)
+      orcamento -= conteudo.length
+      continue
+    }
+
+    const recorte = recortarHtml(conteudo, orcamento)
+    saida.push({ ...bloco, content: recorte.conteudo })
+    conteudo_truncado = conteudo_truncado || recorte.cortado
+    orcamento = 0
+  }
+
+  return { blocks: saida, conteudo_truncado }
+}
+
+/** Primeira (e única) linha do `count` agregado do PostgREST: `[{ count: n }]`. */
+function contagem(embed: unknown): number {
+  if (Array.isArray(embed)) return Number(embed[0]?.count ?? 0)
+  if (embed && typeof embed === 'object') return Number((embed as { count?: number }).count ?? 0)
+  return 0
+}
 
 /**
  * Prova que quem chamou é admin, antes de qualquer ação de admin deste arquivo.
@@ -107,17 +235,36 @@ export async function getInspiracoesFeed(
 ): Promise<InspiracaoPage> {
   const supabase = await createClient()
 
+  // Uma ida só ao PostgREST. Eram três: a dos posts e mais duas que traziam
+  // TODAS as linhas de curtida e de comentário desses posts só para contar o
+  // tamanho do array no TypeScript. Medido em 24/09 (melhor de três): 172 ms
+  // nas três idas (76 + 44 + 52) contra 58 ms nesta. Cada ida custa 35-100 ms
+  // de rede; a consulta em si leva 0,5 ms no banco, então o que pesava era o
+  // número de idas, não o banco.
+  //
+  // `total_curtidas` e `total_comentarios` são o `count` agregado do PostgREST:
+  // o Postgres conta e devolve o número. `minha_curtida` e `meu_salvo` são a
+  // MESMA tabela embutida de novo, agora filtrada pelo id dela — antes os
+  // embeds vinham sem filtro e desciam as 249 linhas de curtida e salvo dos 13
+  // posts, que o `...p` ainda copiava para dentro do objeto entregue à tela.
   let query = supabase
     .from('inspiration_posts')
     .select(`
-      *,
+      ${COLUNAS_DO_FEED},
       author:profiles!inspiration_posts_author_id_fkey(full_name, avatar_url),
       featured_student:profiles!inspiration_posts_featured_student_id_fkey(id, full_name, avatar_url, bio),
-      inspiration_likes(user_id),
-      inspiration_bookmarks(user_id)
+      minha_curtida:inspiration_likes(user_id),
+      meu_salvo:inspiration_bookmarks(user_id),
+      total_curtidas:inspiration_likes(count),
+      total_comentarios:inspiration_comments(count)
     `)
     .eq('published', true)
     .eq('archived', false)
+    // Filtros DENTRO dos embeds (o nome antes do ponto é o apelido do embed):
+    // não mexem em quais posts voltam, só em quais linhas filhas vêm junto.
+    .eq('minha_curtida.user_id', userId)
+    .eq('meu_salvo.user_id', userId)
+    .eq('total_comentarios.approved', true)
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(PAGE_SIZE + 1)
@@ -158,43 +305,24 @@ export async function getInspiracoesFeed(
   const has_more = rows.length > PAGE_SIZE
   const posts = rows.slice(0, PAGE_SIZE)
 
-  // Contagem de likes e comments por post (service client ignora RLS)
-  const postIds = posts.map(p => p.id)
+  const result: InspiracaoPost[] = posts.map((p: any) => {
+    // Os apelidos dos embeds ficam de fora do objeto entregue: viram número e
+    // booleano logo abaixo, e copiá-los junto só engordaria o HTML.
+    const { minha_curtida, meu_salvo, total_curtidas, total_comentarios, ...post } = p
+    const { blocks, conteudo_truncado } = aliviarBlocos(p.blocks)
 
-  const [likeCounts, commentCounts] = await Promise.all([
-    postIds.length > 0
-      ? supabase
-          .from('inspiration_likes')
-          .select('post_id')
-          .in('post_id', postIds)
-      : Promise.resolve({ data: [] }),
-    postIds.length > 0
-      ? supabase
-          .from('inspiration_comments')
-          .select('post_id')
-          .in('post_id', postIds)
-          .eq('approved', true)
-      : Promise.resolve({ data: [] }),
-  ])
-
-  const likeMap: Record<string, number> = {}
-  const commentMap: Record<string, number> = {}
-  for (const l of likeCounts.data ?? []) {
-    likeMap[l.post_id] = (likeMap[l.post_id] ?? 0) + 1
-  }
-  for (const c of commentCounts.data ?? []) {
-    commentMap[c.post_id] = (commentMap[c.post_id] ?? 0) + 1
-  }
-
-  const result: InspiracaoPost[] = posts.map((p: any) => ({
-    ...p,
-    author: p.author ?? null,
-    featured_student: p.featured_student ?? null,
-    like_count: likeMap[p.id] ?? 0,
-    comment_count: commentMap[p.id] ?? 0,
-    is_liked: (p.inspiration_likes ?? []).some((l: any) => l.user_id === userId),
-    is_bookmarked: (p.inspiration_bookmarks ?? []).some((b: any) => b.user_id === userId),
-  }))
+    return {
+      ...post,
+      blocks,
+      conteudo_truncado,
+      author: p.author ?? null,
+      featured_student: p.featured_student ?? null,
+      like_count: contagem(total_curtidas),
+      comment_count: contagem(total_comentarios),
+      is_liked: (minha_curtida ?? []).length > 0,
+      is_bookmarked: (meu_salvo ?? []).length > 0,
+    }
+  })
 
   const last = result[result.length - 1]
   const next_cursor: InspiracaoCursor | null = has_more && last
@@ -202,6 +330,37 @@ export async function getInspiracoesFeed(
     : null
 
   return { posts: result, next_cursor, has_more }
+}
+
+/**
+ * O conteúdo que o feed não manda de cara: o resto dos blocos e a receita.
+ *
+ * É o outro lado do `aliviarBlocos`. A lista desce com a prévia e o aviso
+ * `conteudo_truncado`; quando ela toca em "Ver mais", a tela pede o post
+ * inteiro aqui — um post, não treze.
+ *
+ * O acesso é o MESMO do feed, de propósito: client de sessão (a RLS de
+ * `inspiration_posts` só abre para admin, assinante do plano ou aluna com
+ * matrícula viva) e os mesmos `published`/`archived` da lista. Buscar por id
+ * não pode abrir o que a lista não abriria.
+ */
+export async function getConteudoCompleto(postId: string): Promise<ConteudoCompleto | null> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('inspiration_posts')
+    .select('blocks, recipe_data')
+    .eq('id', postId)
+    .eq('published', true)
+    .eq('archived', false)
+    .maybeSingle()
+
+  if (error || !data) return null
+
+  return {
+    blocks: Array.isArray(data.blocks) ? (data.blocks as ContentBlock[]) : [],
+    recipe_data: data.recipe_data ?? null,
+  }
 }
 
 export async function getInspiracaoById(postId: string, userId: string): Promise<InspiracaoPost | null> {
@@ -230,6 +389,9 @@ export async function getInspiracaoById(postId: string, userId: string): Promise
 
   return {
     ...data,
+    // Aqui vai tudo: é o link profundo, que abre o post inteiro. Nada a buscar
+    // depois — por isso o aviso de conteúdo cortado é false.
+    conteudo_truncado: false,
     author: (data as any).author ?? null,
     featured_student: (data as any).featured_student ?? null,
     like_count: likeCounts.data?.length ?? 0,
@@ -275,6 +437,9 @@ export async function getBookmarks(userId: string): Promise<InspiracaoPost[]> {
 
   return posts.map((p: any) => ({
     ...p,
+    // /salvos é grade de card e modal: o modal mostra o post inteiro, então o
+    // conteúdo desce completo e não há o que buscar depois.
+    conteudo_truncado: false,
     author: p.author ?? null,
     featured_student: null,
     like_count: likeMap[p.id] ?? 0,

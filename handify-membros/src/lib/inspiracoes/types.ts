@@ -70,6 +70,21 @@ export interface InspiracaoPost extends InspiracaoPostRow {
   comment_count: number
   is_liked: boolean       // pelo usuário atual
   is_bookmarked: boolean  // pelo usuário atual
+  /**
+   * `blocks` veio cortado: existe mais texto guardado no servidor.
+   *
+   * O feed manda só o pedaço que aparece antes do "Ver mais" — medido, eram
+   * 42.888 bytes de `blocks` nos 13 posts da primeira página, e esse objeto
+   * desce duas vezes no HTML (DOM + payload de hidratação). O resto vem de
+   * `getConteudoCompleto(postId)` quando a aluna toca no botão.
+   *
+   * A tela precisa deste aviso em vez de olhar a altura renderizada: um post
+   * cuja prévia não estoura os 320px do corte não mostraria botão nenhum, e o
+   * texto guardado ficaria inalcançável.
+   *
+   * false no link profundo e em /salvos, que já recebem o post inteiro.
+   */
+  conteudo_truncado: boolean
   author?: {
     full_name: string | null
     avatar_url: string | null
@@ -80,6 +95,15 @@ export interface InspiracaoPost extends InspiracaoPostRow {
     avatar_url: string | null
     bio: string | null
   } | null
+}
+
+/**
+ * O que `getConteudoCompleto(postId)` devolve: o conteúdo pesado de UM post,
+ * buscado sob demanda quando a aluna abre o "Ver mais".
+ */
+export interface ConteudoCompleto {
+  blocks: ContentBlock[]
+  recipe_data: ReceitaData | null
 }
 
 // ── Comentário ────────────────────────────────────────────────────────────────
