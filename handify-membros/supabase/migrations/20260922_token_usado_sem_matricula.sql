@@ -40,7 +40,28 @@
 --    aplicada, as 82 ficariam indistinguíveis das 2.247 que já estão
 --    `used = false`.
 --
--- ── O que sobra de verdade: 19 tokens, 4 endereços ─────────────────────────
+-- ── ATUALIZAÇÃO DE 24/09/2026: não sobra NADA. ─────────────────────────────
+--
+-- A revisão original disse que 19 tokens (4 endereços) estavam presos de
+-- verdade. Estava errado também — e pelo mesmo motivo, um caminho de concessão
+-- a menos. Ela cruzou e-mail e telefone+primeiro nome; faltou o **CPF**.
+--
+-- Conferido endereço por endereço, pelo `profiles.cpf_hash`:
+--
+--   bandalargadanadia@gmail.com   → conta nadia.oliveira67@yahoo.com.br : 6 de 6 entregues
+--   contatoleovinhedo@gmail.com   → conta itacolomicursos@gmail.com     : 6 de 6 entregues
+--   sandrajmeireles@yahoo.com.br  → conta sandrajmeireles@yahoo.com     : 2 de 2 entregues
+--   kate.sarto@gmail.com          → revogação deliberada da Jessica em 17/09
+--
+-- Ou seja: os 82 tokens estão TODOS corretamente queimados. Não há uma aluna
+-- sequer presa, e esta migration não tem nenhuma versão que valha a pena
+-- escrever.
+--
+-- A lição que fica, e que já custou três investigações: para perguntar "esta
+-- pessoa recebeu o que pagou?", são TRÊS caminhos de identidade — e-mail, CPF,
+-- telefone+primeiro nome. Perguntar por dois inventa vítima.
+--
+-- ── O que a revisão de 22/09 achava que sobrava ────────────────────────────
 --
 --    bandalargadanadia@gmail.com    6
 --    contatoleovinhedo@gmail.com    6
