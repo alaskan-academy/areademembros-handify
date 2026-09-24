@@ -5,6 +5,7 @@ import { sendAccessConfirmedEmail, sendRefundEmail } from "@/lib/email";
 import { contaDaMesmaPessoa } from "@/lib/auth/vincular-compra";
 import { escaparCuringas } from "@/lib/db/like";
 import { dinheiroVoltou, statusDaTransacao } from "./estorno";
+import { decidirPlanoAoPagar } from "./plano";
 
 /**
  * Evento de compra normalizado — qualquer plataforma (Payt, Kiwify) traduz seu
@@ -508,16 +509,23 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
   if (isPlanEvent) {
     const { data: current } = await supabase
       .from("memberships")
-      .select("id, expires_at")
+      // `granted_by` entra para o ramo de grant conseguir distinguir duas datas
+      // de fim que parecem iguais na coluna: a que o sistema agendou por
+      // cancelamento de assinatura (granted_by null) e a que a admin escolheu ao
+      // dar um plano temporário (granted_by preenchido).
+      .select("id, expires_at, granted_by")
       .eq("user_id", user.id)
       .eq("plan", "completo")
       .is("revoked_at", null)
       .maybeSingle();
 
     if (event.action === "grant") {
-      const stillActive =
-        current && (!current.expires_at || new Date(current.expires_at) > new Date());
-      if (!stillActive) {
+      // A decisão mora em `./plano.ts`, testada: são quatro casos e três deles
+      // são silenciosos — errar não dá erro, só tira os 23 cursos do plano da
+      // aluna na data errada, sem aparecer em alarme nenhum.
+      const decisao = decidirPlanoAoPagar(current, new Date());
+
+      if (decisao === "criar") {
         // Vencida mas não revogada: fecha antes de abrir a nova (índice único
         // permite uma ativa por plano).
         if (current) {
@@ -541,6 +549,69 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
           console.error(`${log} Erro ao registrar Handify Completo:`, error.message);
           falhasDoPlano.push(`membership do Completo não criada: ${error.message}`);
         } else console.info(`${log} Handify Completo concedido: user=${user.id}`);
+      } else if (decisao === "desfazer_agendamento" && current) {
+        // A aluna atrasou, o fim do plano foi agendado em `expires_at`, e agora
+        // ela pagou. Sem limpar essa data, `stillActive` é true — a membership
+        // ainda não venceu —, o `if` acima não faz nada, e o plano morre na data
+        // agendada mesmo ela tendo pago. Ela perderia os 23 cursos do plano sem
+        // que nada aparecesse em lugar nenhum: nem alarme, nem audit_log.
+        //
+        // O pagamento é a prova de que o agendamento não vale mais. Só isto
+        // fecha o ciclo `subscription_late` → agendamento → pagamento.
+        //
+        // Desfaz a data seja quem for que a tenha posto — ver o porquê longo em
+        // ./plano.ts. Resumo: `granted_by` diz quem criou a LINHA, e o ramo de
+        // revogação agenda `expires_at` em qualquer linha, então olhar para ele
+        // deixava o caso mais comum sem conserto.
+        const { data: limpas, error: erroLimpar } = await supabase
+          .from("memberships")
+          .update({ expires_at: null })
+          .eq("id", current.id)
+          // Compara-e-troca: só limpa a data que foi LIDA. Se outra entrega do
+          // webhook mexeu na linha no meio (não há dedupe em webhook nenhum),
+          // casa zero e a gente diz isso, em vez de sobrescrever a decisão que
+          // o outro acabou de tomar.
+          .eq("expires_at", current.expires_at)
+          .select("id");
+
+        if (erroLimpar) {
+          console.error(`${log} Erro ao desfazer o fim agendado do Completo:`, erroLimpar.message);
+          falhasDoPlano.push(
+            `fim agendado do Handify Completo não foi desfeito: ${erroLimpar.message}`
+          );
+        } else if (!limpas?.length) {
+          // O PostgREST NÃO devolve erro quando o filtro casa zero linhas. Sem
+          // esta conferência o console e o audit_log afirmariam um desfazimento
+          // que não aconteceu — exatamente o erro-que-não-dá-erro que este
+          // conserto existe para fechar, repetido um andar acima.
+          console.warn(
+            `${log} Fim agendado do Completo NÃO foi desfeito (a linha mudou no meio): user=${user.id} membership=${current.id}`
+          );
+          falhasDoPlano.push(
+            `fim do Handify Completo continua agendado para ${current.expires_at}: a linha mudou entre a leitura e a escrita`
+          );
+        } else {
+          console.info(
+            `${log} Fim agendado do Completo desfeito por pagamento novo: user=${user.id}`
+          );
+          await supabase.from("audit_log").insert({
+            admin_id: null,
+            // Ação própria, não "membership.revoked": o alarme de revogações
+            // filtra por aquele nome, e isto aqui é o contrário de uma revogação.
+            action: "membership.expiry_cleared",
+            target_type: "membership",
+            target_id: current.id,
+            meta: {
+              user_id: user.id,
+              fim_que_estava_agendado: current.expires_at,
+              // Quem tinha concedido a linha. Não decide nada — está aqui para
+              // a admin ver quando o pagamento sobrescreve um prazo que ela
+              // mesma tinha dado.
+              concedida_por: current.granted_by,
+              motivo: `pagamento novo via ${event.platform} (${event.transactionId})`,
+            },
+          });
+        }
       }
 
       // Todo curso marcado `in_plan` entra na compra do plano — inclusive os que
