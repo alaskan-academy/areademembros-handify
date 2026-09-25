@@ -79,10 +79,17 @@ export async function sendTestEmail(
         });
         break;
       case "refund":
+        // Três cursos de propósito: o texto de um curso só não mudou, quem
+        // precisa de olho é a lista — é ela que substitui os 23 e-mails que o
+        // reembolso do plano mandava, um por curso.
         await sendRefundEmail({
           to,
           studentName: "Ana Teste",
-          courseTitle: "Crochê para Iniciantes",
+          courseTitles: [
+            "Crochê para Iniciantes",
+            "Curso Saponaria Brasil",
+            "Livro Digital: Embalagens que Encantam",
+          ],
         });
         break;
       default:

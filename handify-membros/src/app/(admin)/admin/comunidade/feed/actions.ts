@@ -298,9 +298,36 @@ async function notifyNewsPost(postId: string): Promise<{ enviados: number; error
       .range(de, ate)
   );
 
+  // Só quem tem curso ativo. Esta checagem NÃO EXISTIA: a lista era o `profiles`
+  // inteiro, e isso inclui quem pediu reembolso e perdeu tudo. Medido em
+  // 25/09/2026: 4.735 na fila, 110 sem nenhum curso, e 58 dessas 110 eram
+  // estornadas. O e-mail as levaria a uma plataforma onde não têm mais nada.
+  //
+  // As outras 52 nunca compraram — cadastraram e não levaram. Saem junto, por
+  // decisão da Jessica em 25/09: aviso de post novo é para aluna, não é isca.
+  //
+  // O mesmo filtro que `matriculasPorAluna` (src/lib/campanhas/completo.ts) e
+  // `alunas_para_reengajar()` já usavam: matrícula sem data de fim ou com data
+  // no futuro. Paginado porque são ~12 mil linhas e o PostgREST corta em 1.000.
+  const agora = new Date().toISOString();
+  const matriculas = await fetchAll<{ user_id: string }>((de, ate) =>
+    service
+      .from("enrollments")
+      .select("user_id")
+      .or(`expires_at.is.null,expires_at.gt.${agora}`)
+      .order("user_id")
+      .order("course_id")
+      .range(de, ate)
+  );
+  const comAcesso = new Set(matriculas.map((m) => m.user_id));
+
   // Opt-OUT, igual a src/lib/campanhas/completo.ts: chave ausente conta como sim.
   const fila = perfis.filter(
-    (p) => !!p.email && p.email_prefs?.news_post !== false && !enviadas.has(p.id)
+    (p) =>
+      !!p.email &&
+      comAcesso.has(p.id) &&
+      p.email_prefs?.news_post !== false &&
+      !enviadas.has(p.id)
   );
   if (!fila.length) return { enviados: 0 };
 

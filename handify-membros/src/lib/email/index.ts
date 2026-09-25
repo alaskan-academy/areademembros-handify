@@ -760,17 +760,43 @@ export async function sendNewCourseEmailBatch(
 
 // ─── Reembolso / cancelamento ────────────────────────────────────────────────
 
+/**
+ * Recebe a LISTA de cursos do reembolso, nunca um curso só.
+ *
+ * Antes era `courseTitle: string` e a chamada ficava dentro do laço que percorre
+ * os cursos, no process-purchase. Como o código do Handify Completo está
+ * cadastrado nos 23 cursos, uma aluna que pedia reembolso do plano recebia 23
+ * e-mails "Seu reembolso foi processado" no mesmo segundo, cada um citando um
+ * curso diferente. Medido no audit_log: 6 pessoas levaram 23, uma levou 22,
+ * quatro levaram 6. Um reembolso, um e-mail.
+ */
 export async function sendRefundEmail({
   to,
   studentName,
-  courseTitle,
+  courseTitles,
 }: {
   to: string;
   studentName: string;
-  courseTitle: string;
+  courseTitles: string[];
 }): Promise<void> {
   const firstName = studentName.split(" ")[0];
   const vitrineUrl = `${appUrl()}/vitrine`;
+
+  // Um curso cabe na frase. Vários viram lista — enfiar 23 títulos separados por
+  // vírgula dentro do parágrafo não se lê.
+  const umSo = courseTitles.length === 1;
+  const abertura = umSo
+    ? `Confirmamos que o reembolso do curso <strong>${courseTitles[0]}</strong> foi processado com sucesso.`
+    : `Confirmamos que o seu reembolso foi processado com sucesso.`;
+  const lista = umSo
+    ? ""
+    : `
+      <p style="color:#2D2D2D;font-size:15px;line-height:1.65;margin:0 0 6px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
+        O acesso encerrado é destes materiais:
+      </p>
+      <ul style="color:#555555;font-size:15px;line-height:1.6;margin:0 0 14px;padding-left:20px;font-family:Arial,Helvetica,sans-serif;">
+        ${courseTitles.map((t) => `<li style="margin:0 0 4px;">${t}</li>`).join("")}
+      </ul>`;
 
   const { error } = await enviarEmail({
     from: FROM,
@@ -782,9 +808,10 @@ export async function sendRefundEmail({
         Olá, ${firstName}!
       </h1>
       <p style="color:#2D2D2D;font-size:16px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
-        Confirmamos que o reembolso do curso <strong>${courseTitle}</strong> foi processado com sucesso.
+        ${abertura}
         Entendemos que às vezes o momento não é o ideal — e tudo bem!
       </p>
+      ${lista}
       <p style="color:#555555;font-size:15px;line-height:1.65;margin:0 0 14px;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">
         Quando você se sentir pronta para aprender e criar, a Handify vai estar aqui esperando por você.
         Nossos cursos foram feitos com muito carinho para acompanhar o seu ritmo — seja ele qual for.

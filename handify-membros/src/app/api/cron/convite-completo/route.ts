@@ -118,11 +118,27 @@ export async function GET(req: NextRequest) {
     if (!alvos.length) return NextResponse.json({ enviados: 0, motivo: "ninguém na fila agora" });
 
     const ids = alvos.map((a) => a.id);
+    const agoraIso = new Date(agora).toISOString();
     const [{ data: perfis }, { data: minhas }, { data: cursos }] = await Promise.all([
       service.from("profiles").select("id, full_name, email, banned, email_prefs").in("id", ids),
-      service.from("enrollments").select("user_id, course_id").in("user_id", ids),
+      // `expires_at` ESTAVA FALTANDO AQUI. Sem ele, o e-mail listava como
+      // "cursos que você já tem" os cursos que a aluna tinha perdido no
+      // reembolso: uma estornada em 18/09/2026 recebeu o convite em 22/09 com
+      // os 23 cursos do plano listados, 22 deles revogados.
+      service
+        .from("enrollments")
+        .select("user_id, course_id")
+        .in("user_id", ids)
+        .or(`expires_at.is.null,expires_at.gt.${agoraIso}`),
       service.from("courses").select("id, title"),
     ]);
+
+    // Quem ainda tem ALGUM acesso vivo — em qualquer curso, do plano ou não.
+    // É a guarda que faltava: a sequência é disparada por `certificates` e
+    // continuada por `email_campaign_sends`, e nenhuma das três etapas
+    // perguntava se a aluna ainda era aluna. Quem pediu reembolso depois de
+    // concluir o curso seguia recebendo "parabéns, assine o Completo".
+    const temAcesso = new Set((minhas ?? []).map((m) => (m as { user_id: string }).user_id));
     const nomeCurso = new Map((cursos ?? []).map((c: { id: string; title: string }) => [c.id, c.title]));
     const porAluna = new Map<string, string[]>();
     for (const m of (minhas ?? []) as { user_id: string; course_id: string }[]) {
@@ -135,6 +151,9 @@ export async function GET(req: NextRequest) {
     for (const a of alvos) {
       const p = (perfis ?? []).find((x) => x.id === a.id) as { id: string; full_name: string | null; email: string | null; banned: boolean | null; email_prefs: Record<string, boolean> | null } | undefined;
       if (!p?.email || p.banned || p.email_prefs?.news_post === false) continue;
+      // Perdeu o acesso (reembolso, chargeback, matrícula vencida): sai da fila
+      // e não recebe a próxima etapa. Vale para entrar e para continuar.
+      if (!temAcesso.has(p.id)) continue;
       const concluido = a.proxima === 1 ? ((recentes ?? []).find((c) => c.user_id === p.id)?.course_id as string | undefined) : undefined;
       const item = {
         to: p.email,

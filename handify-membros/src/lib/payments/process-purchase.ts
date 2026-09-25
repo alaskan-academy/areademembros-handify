@@ -346,12 +346,12 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         );
         if (error) {
           console.error(`${log} Erro ao matricular em ${course.id}:`, error.message);
-          return false;
+          return { ok: false };
         }
         console.info(
           `${log} Matrícula concedida: user=${user.id} curso=${course.id} expires=${expiresAt ?? "vitalício"}`
         );
-        return true;
+        return { ok: true };
       }
 
       // revoke — marca matrícula como expirada agora.
@@ -384,14 +384,14 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
           `${log} não consegui checar outras compras de ${course.id}, revogação segurada:`,
           erroProtecao.message
         );
-        return true;
+        return { ok: true };
       }
 
       if (protegido === true) {
         console.info(
           `${log} Revoke ignorado (curso pago em outra compra que segue válida): user=${user.id} curso=${course.id}`
         );
-        return true;
+        return { ok: true };
       }
 
       // A assinatura cancelada continua paga até o fim do ciclo. Terminar em
@@ -409,7 +409,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         console.info(
           `${log} Revoke ignorado (sem matrícula): user=${user.id} curso=${course.id} motivo=${event.eventType}`
         );
-        return true;
+        return { ok: true };
       }
 
       // Nunca encurtar o que já está marcado para durar menos/igual.
@@ -417,7 +417,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         console.info(
           `${log} Agendamento dispensado (matrícula já termina em ${atual.expires_at}): user=${user.id} curso=${course.id}`
         );
-        return true;
+        return { ok: true };
       }
 
       const novoFim = fimPago ?? now;
@@ -430,7 +430,7 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
 
       if (error) {
         console.error(`${log} Erro ao revogar ${course.id}:`, error.message);
-        return false;
+        return { ok: false };
       }
 
       await supabase.from("audit_log").insert({
@@ -453,27 +453,41 @@ export async function processPurchaseEvent(event: PurchaseEvent): Promise<NextRe
         `${log} ${fimPago ? `Fim de acesso agendado para ${novoFim}` : "Matrícula revogada"}: user=${user.id} curso=${course.id} motivo=${event.eventType}`
       );
 
-      // E-mail de reembolso só para estorno real
-      // (não para PIX expirado/cancelado sem pagamento)
-      if (event.isRealRefund) {
-        ;(async () => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", user.id)
-            .maybeSingle();
-          await sendRefundEmail({
-            to: user.email ?? event.buyerEmail,
-            studentName: profile?.full_name ?? event.buyerName ?? event.buyerEmail,
-            courseTitle: course.title,
-          });
-        })().catch((e) => console.error(`${log} refund email:`, e));
-      }
-      return true;
+      // O e-mail de reembolso NÃO sai daqui. Ver o bloco logo abaixo do laço.
+      return { ok: true, revogado: course.title };
     })
   );
 
-  const processed = results.filter(Boolean).length;
+  const processed = results.filter((r) => r.ok).length;
+
+  // ─── E-mail de reembolso: UM por reembolso, não um por curso ───────────────
+  //
+  // Ficava dentro do laço acima. Como o código do Handify Completo está
+  // cadastrado nos 23 cursos, quem pedia reembolso do plano recebia 23 e-mails
+  // "Seu reembolso foi processado" no mesmo segundo, cada um citando um curso
+  // diferente. Medido no audit_log em 25/09/2026: 6 pessoas levaram 23, uma
+  // levou 22, quatro levaram 6 — 14 das 30 receberam o número certo, que é um.
+  //
+  // Só para estorno real: PIX expirado e cartão recusado revogam sem dinheiro
+  // ter voltado, e dizer "seu reembolso foi processado" nesse caso é mentira.
+  if (event.isRealRefund) {
+    const revogados = results.map((r) => r.revogado).filter((t): t is string => !!t);
+
+    if (revogados.length) {
+      ;(async () => {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        await sendRefundEmail({
+          to: user.email ?? event.buyerEmail,
+          studentName: profile?.full_name ?? event.buyerName ?? event.buyerEmail,
+          courseTitles: revogados,
+        });
+      })().catch((e) => console.error(`${log} refund email:`, e));
+    }
+  }
 
   // ─── Handify Completo ──────────────────────────────────────────────────────
   // O plano é uma entidade própria (`memberships`) — quem comprou os 23 itens
