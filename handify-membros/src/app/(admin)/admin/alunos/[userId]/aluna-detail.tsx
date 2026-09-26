@@ -229,7 +229,8 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
     });
   }
 
-  const cursosDaAluna = courses.filter(matriculaAtiva).length;
+  // `enrolledCount` (linha 216) já é exatamente isto — matrícula viva. Contar de
+  // novo aqui era o começo das duas réguas.
 
   return (
     <div className="space-y-6">
@@ -246,7 +247,7 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
           <p className="mt-1 text-sm text-muted-foreground">
             Provavelmente é a mesma aluna cadastrada duas vezes. Confira de que lado estão
             os cursos antes de liberar acesso — esta conta tem{" "}
-            <strong>{cursosDaAluna}</strong>.
+            <strong>{enrolledCount === 1 ? "1 curso ativo" : `${enrolledCount} cursos ativos`}</strong>.
           </p>
           <ul className="mt-3 space-y-1.5">
             {outrasContas.map((c) => (
@@ -257,8 +258,12 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
                 >
                   <span className="font-medium">{c.full_name ?? "Sem nome"}</span>
                   <span className="text-muted-foreground">{c.email ?? "sem e-mail"}</span>
+                  {/* "ativos" escrito por extenso nos dois lados: o número da
+                      outra conta também passou a contar só matrícula viva
+                      (page.tsx), e a frase precisa deixar isso claro — é ela
+                      que decide para que lado o acesso vai. */}
                   <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-[#2D2D2D]">
-                    {c.cursos === 1 ? "1 curso" : `${c.cursos} cursos`}
+                    {c.cursos === 1 ? "1 curso ativo" : `${c.cursos} cursos ativos`}
                   </span>
                 </Link>
               </li>

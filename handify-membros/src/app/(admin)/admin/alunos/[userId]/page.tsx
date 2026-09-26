@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import AlunaDetail from "./aluna-detail";
 import type { ActivityItem } from "@/components/admin/alunos/ActivityTab";
 import { decryptCpf, formatCpf } from "@/lib/cpf-crypto";
-import { telefoneComparavel } from "@/lib/auth/vincular-compra";
+import { telefoneComparavel, telefoneUtilizavel } from "@/lib/auth/vincular-compra";
 
 export default async function AlunaDetailPage({
   params,
@@ -350,20 +350,31 @@ export default async function AlunaDetailPage({
   const telefoneDela = (profile as { phone?: string | null }).phone;
   const outrasContas: { id: string; email: string | null; full_name: string | null; cursos: number }[] =
     [];
-  if (telefoneDela) {
+  // Telefone curto não identifica ninguém: `telefoneUtilizavel` exige DDD +
+  // número (10 dígitos). Sem esta guarda, um telefone truncado vira chave e o
+  // aviso junta pessoas DIFERENTES — e a tarja pede para mover acesso.
+  const telefoneDaBusca = telefoneComparavel(telefoneDela);
+  if (telefoneUtilizavel(telefoneDaBusca)) {
     const { data: mesmasPessoas } = await service
       .from("profiles")
       .select("id, email, full_name, phone_norm")
-      .eq("phone_norm", telefoneComparavel(telefoneDela) ?? "__sem__")
+      .eq("phone_norm", telefoneDaBusca)
       .neq("id", userId)
       .neq("role", "admin")
+      .order("created_at", { ascending: true })
       .limit(5);
 
     for (const outra of mesmasPessoas ?? []) {
+      // MESMA RÉGUA que o "esta conta tem N" da tarja (aluna-detail.tsx, helper
+      // `matriculaAtiva`): só matrícula viva. Antes este `count` não filtrava
+      // nada, então o crachá somava matrícula revogada — e a revogação por
+      // estorno agora EXPIRA a linha em vez de apagar. Duas réguas na mesma
+      // frase, numa tela cuja pergunta é exatamente "de que lado estão os cursos".
       const { count } = await service
         .from("enrollments")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", outra.id);
+        .eq("user_id", outra.id)
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
       outrasContas.push({
         id: outra.id,
         email: outra.email,
