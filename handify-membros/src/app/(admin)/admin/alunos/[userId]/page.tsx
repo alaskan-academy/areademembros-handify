@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import AlunaDetail from "./aluna-detail";
 import type { ActivityItem } from "@/components/admin/alunos/ActivityTab";
 import { decryptCpf, formatCpf } from "@/lib/cpf-crypto";
-import { telefoneComparavel, telefoneUtilizavel } from "@/lib/auth/vincular-compra";
+import { telefoneComparavel, telefoneUtilizavel, mesmoPrimeiroNome } from "@/lib/auth/vincular-compra";
 
 export default async function AlunaDetailPage({
   params,
@@ -348,8 +348,14 @@ export default async function AlunaDetailPage({
   // ruim: os cursos ficam de um lado e ela entra do outro. Sem este aviso, a
   // única forma de descobrir era ela reclamar.
   const telefoneDela = (profile as { phone?: string | null }).phone;
-  const outrasContas: { id: string; email: string | null; full_name: string | null; cursos: number }[] =
-    [];
+  const outrasContas: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    cursos: number;
+    ultimoAcesso: string | null | undefined;
+    mesmoNome: boolean;
+  }[] = [];
   // Telefone curto não identifica ninguém: `telefoneUtilizavel` exige DDD +
   // número (10 dígitos). Sem esta guarda, um telefone truncado vira chave e o
   // aviso junta pessoas DIFERENTES — e a tarja pede para mover acesso.
@@ -370,19 +376,39 @@ export default async function AlunaDetailPage({
       // nada, então o crachá somava matrícula revogada — e a revogação por
       // estorno agora EXPIRA a linha em vez de apagar. Duas réguas na mesma
       // frase, numa tela cuja pergunta é exatamente "de que lado estão os cursos".
-      const { count } = await service
-        .from("enrollments")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", outra.id)
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+      const [{ count }, { data: authUser }] = await Promise.all([
+        service
+          .from("enrollments")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", outra.id)
+          .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`),
+        // O último acesso é o dado que resolve a tela em dois segundos: no caso
+        // da Erika (26/09/2026) a conta com 0 cursos tinha entrado naquela manhã
+        // e a de 7 cursos não entrava desde 28/08 — ou seja, os cursos estavam de
+        // um lado e ela do outro. Só existe em `auth.users`, que o PostgREST não
+        // expõe; por isso a chamada da admin API. No máximo 5, e só nesta tela.
+        service.auth.admin.getUserById(outra.id),
+      ]);
       outrasContas.push({
         id: outra.id,
         email: outra.email,
         full_name: outra.full_name,
         cursos: count ?? 0,
+        ultimoAcesso: authUser ? (authUser.user?.last_sign_in_at ?? null) : undefined,
+        // A regra automática (`contaDaMesmaPessoa`) exige telefone E primeiro
+        // nome, e RECUSA quando são duas pessoas no mesmo número. A tarja tem só
+        // o telefone, então o que ela pode afirmar é menos — e agora diz isso,
+        // por linha. Dos 4 grupos com nome divergente, 1 é mesmo outra pessoa.
+        mesmoNome: mesmoPrimeiroNome(profile.full_name, outra.full_name),
       });
     }
   }
+
+  // Último acesso desta conta, para a comparação fazer sentido.
+  const { data: authDela } = outrasContas.length
+    ? await service.auth.admin.getUserById(userId)
+    : { data: undefined };
+  const ultimoAcessoDela = authDela ? (authDela.user?.last_sign_in_at ?? null) : undefined;
 
   const courseEntries: CourseEntry[] = coursesWithCodes.map((c) => ({
     id: c.id,
@@ -420,6 +446,7 @@ export default async function AlunaDetailPage({
           hasPushEnabled,
         }}
         outrasContas={outrasContas}
+        ultimoAcessoDela={ultimoAcessoDela}
         courses={courseEntries}
         paytEnrollments={paytEnrollments}
         certificates={(certificates ?? []) as unknown as {

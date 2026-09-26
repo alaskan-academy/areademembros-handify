@@ -97,6 +97,28 @@ function membershipAtiva(m: Membership): boolean {
   return !m.revoked_at && (!m.expires_at || new Date(m.expires_at) > new Date());
 }
 
+/**
+ * "entrou hoje", "entrou há 12 dias", "nunca entrou".
+ *
+ * Data crua não serve aqui: a pergunta da tarja é "de que lado está a aluna?", e
+ * quem lê precisa comparar duas contas de relance. No caso da Erika (26/09/2026)
+ * a diferença era "entrou hoje" contra "entrou há 29 dias" — com as duas datas
+ * escritas por extenso, a admin ainda teria que fazer a conta.
+ */
+function quandoEntrou(iso: string | null | undefined): string {
+  // `undefined` = não consegui ler (a chamada falhou); `null` = leu e ela nunca
+  // entrou mesmo. Misturar os dois faria a tarja afirmar "nunca entrou" sobre uma
+  // aluna que entra todo dia, e é justamente por esse número que a admin decide.
+  if (iso === undefined) return "último acesso desconhecido";
+  if (iso === null) return "nunca entrou";
+  const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (dias <= 0) return "entrou hoje";
+  if (dias === 1) return "entrou ontem";
+  if (dias < 30) return `entrou há ${dias} dias`;
+  const meses = Math.floor(dias / 30);
+  return meses === 1 ? "entrou há 1 mês" : `entrou há ${meses} meses`;
+}
+
 interface Props {
   profile: {
     id: string;
@@ -111,7 +133,18 @@ interface Props {
     hasPushEnabled: boolean;
   };
   /** Outras contas com o mesmo telefone — a aluna cadastrada duas vezes. */
-  outrasContas?: { id: string; email: string | null; full_name: string | null; cursos: number }[];
+  outrasContas?: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    cursos: number;
+    /** Último login (auth.users). É o que diz de que lado a aluna está. */
+    ultimoAcesso: string | null | undefined;
+    /** O primeiro nome bate? A regra automática exige isso; a tarja só tem o telefone. */
+    mesmoNome: boolean;
+  }[];
+  /** Último login desta conta, para a comparação fazer sentido. */
+  ultimoAcessoDela?: string | null | undefined;
   courses: CourseEntry[];
   certificates: Certificate[];
   auditLog: AuditEntry[];
@@ -140,7 +173,7 @@ const ACTION_LABELS: Record<string, string> = {
   delete_forum_post: "Post do fórum deletado",
 };
 
-export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, paytEnrollments, memberships, outrasContas = [], defaultTab = "perfil" }: Props) {
+export default function AlunaDetail({ profile, courses, certificates, auditLog, activity, paytEnrollments, memberships, outrasContas = [], ultimoAcessoDela, defaultTab = "perfil" }: Props) {
   const initial = profile.full_name?.charAt(0)?.toUpperCase() ?? "?";
   const temCompleto = memberships.some(membershipAtiva);
   const [activeTab, setActiveTab] = useState<"perfil" | "atividade">(defaultTab);
@@ -258,12 +291,19 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
               ? "Existe outra conta com este mesmo telefone"
               : `Existem ${outrasContas.length} outras contas com este mesmo telefone`}
           </p>
+          {/* "Pode ser", não "provavelmente é". A regra automática
+              (contaDaMesmaPessoa) exige telefone E primeiro nome e RECUSA quando
+              são duas pessoas no mesmo número; a tarja tem só o telefone. Dos 4
+              grupos da base em que o primeiro nome diverge, 1 é mesmo outra
+              pessoa — quem afirma mais do que apurou empurra a admin a mover
+              acesso entre gente diferente. A evidência de cada linha vai abaixo. */}
           <p className="mt-1 text-sm text-muted-foreground">
-            Provavelmente é a mesma aluna cadastrada duas vezes. Confira de que lado estão
+            Pode ser a mesma aluna cadastrada duas vezes. Confira de que lado estão
             os cursos antes de liberar acesso — esta conta tem{" "}
-            <strong>{enrolledCount === 1 ? "1 curso ativo" : `${enrolledCount} cursos ativos`}</strong>.
+            <strong>{enrolledCount === 1 ? "1 curso ativo" : `${enrolledCount} cursos ativos`}</strong>
+            , {quandoEntrou(ultimoAcessoDela)}.
           </p>
-          <ul className="mt-3 space-y-1.5">
+          <ul className="mt-3 space-y-2.5">
             {outrasContas.map((c) => (
               <li key={c.id}>
                 <Link
@@ -279,7 +319,18 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
                   <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-[#2D2D2D]">
                     {c.cursos === 1 ? "1 curso ativo" : `${c.cursos} cursos ativos`}
                   </span>
+                  {/* O último acesso é o que resolve a tela: no caso da Erika a
+                      conta com 0 cursos tinha entrado naquela manhã e a de 7 não
+                      entrava fazia um mês. Os cursos de um lado, a aluna do outro. */}
+                  <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs text-muted-foreground">
+                    {quandoEntrou(c.ultimoAcesso)}
+                  </span>
                 </Link>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {c.mesmoNome
+                    ? "Mesmo telefone e mesmo primeiro nome."
+                    : "Mesmo telefone, primeiro nome diferente — pode ser outra pessoa no mesmo número, ou o nome digitado de outro jeito. Confirme com ela antes de mexer nos cursos."}
+                </p>
               </li>
             ))}
           </ul>
