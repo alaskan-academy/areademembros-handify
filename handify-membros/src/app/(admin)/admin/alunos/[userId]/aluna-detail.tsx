@@ -189,7 +189,21 @@ export default function AlunaDetail({ profile, courses, certificates, auditLog, 
   const [resendEmailPending, startResendEmailTransition] = useTransition();
   const [resendEmailResult, setResendEmailResult] = useState<"sent" | "error" | null>(null);
 
+  // Este botão manda "seus cursos estão esperando por você" para o e-mail DESTA
+  // conta — e ele é o botão mais à mão quando a tarja de conta duplicada está na
+  // tela. Na conta vazia da Erika (26/09/2026) ele teria convidado a aluna a
+  // entrar justamente onde ela não tinha curso nenhum.
+  //
+  // A confirmação diz para ONDE vai e QUANTOS cursos essa conta tem. Quando são
+  // zero, o texto para a mão de quem ia clicar sem olhar.
   function handleResendAccessEmail() {
+    const paraOnde = profile.email ?? "(sem e-mail)";
+    const msg =
+      enrolledCount === 0
+        ? `ATENÇÃO: esta conta tem ZERO cursos ativos.\n\nO e-mail diz "seus cursos estão esperando por você" e vai para ${paraOnde}.\n\nSe a aluna comprou com outro e-mail, é na OUTRA conta que estão os cursos — mandar daqui manda ela para a conta vazia.\n\nMandar mesmo assim?`
+        : `Enviar o e-mail de acesso para ${paraOnde}?\n\nEsta conta tem ${enrolledCount === 1 ? "1 curso ativo" : `${enrolledCount} cursos ativos`}.`;
+    if (!confirm(msg)) return;
+
     startResendEmailTransition(async () => {
       setResendEmailResult(null);
       const res = await resendAccessEmailAction(profile.id);
