@@ -122,7 +122,10 @@ export default async function LessonPage({
         .from("lesson_materials")
         .select("id, name")
         .eq("lesson_id", id)
-        .order("id"),
+        // Por nome, não por id: `id` é uuid aleatório, então a aula que junta as
+        // apostilas do curso inteiro listava 28 arquivos fora de ordem. Os nomes
+        // começam com o número da aula ("07 - ..."), então nome = ordem do curso.
+        .order("name"),
     ]);
 
     const rawBlocks = (blocksData as ContentBlock[] | null) ?? [];

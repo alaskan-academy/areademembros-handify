@@ -47,7 +47,9 @@ export default async function AdminLessonPage({
         .from("lesson_materials")
         .select("id, name, file_path")
         .eq("lesson_id", lessonId)
-        .order("id"),
+        // Por nome, não por id: `id` é uuid aleatório, então a aula que junta as
+        // apostilas do curso inteiro listava 28 arquivos fora de ordem.
+        .order("name"),
       listAllMaterials(lessonId),
     ]);
 
