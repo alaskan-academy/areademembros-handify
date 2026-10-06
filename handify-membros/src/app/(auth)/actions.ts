@@ -1,6 +1,7 @@
 "use server";
 
 import { traduzErroAuth } from "@/lib/auth/mensagens-erro";
+import { destinoSeguro } from "@/lib/auth/destino-seguro";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -129,6 +130,7 @@ export type ActionResult = {
   fieldErrors?: Record<string, string>;
 };
 
+
 export async function loginAction(
   _prevState: ActionResult,
   formData: FormData
@@ -162,7 +164,7 @@ export async function loginAction(
     await grantPendingEnrollments(parsed.data.email.toLowerCase(), data.user.id);
   }
 
-  redirect("/cursos");
+  redirect(destinoSeguro(formData.get("redirect")));
 }
 
 export async function cadastroAction(

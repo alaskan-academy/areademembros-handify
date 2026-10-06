@@ -65,6 +65,10 @@ function LoginContent() {
       </CardHeader>
 
       <form action={formAction}>
+        {/* O proxy manda ?redirect=<caminho> ao barrar rota fechada (proxy.ts:109).
+            Sem este campo o destino se perdia e a aluna caía em /cursos depois de
+            entrar: quem clica no link da aula pelo e-mail nunca chegava na aula. */}
+        <input type="hidden" name="redirect" value={searchParams.get("redirect") ?? ""} />
         <CardContent className="space-y-4">
           {msgBanner && (
             <div
