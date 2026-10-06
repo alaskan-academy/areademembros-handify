@@ -591,8 +591,10 @@ function CertificatesSection({
   certificates: Certificate[];
   planoProgresso: PlanProgressData | null;
 }) {
+  // `certificados` é destino de link: o bloco "Parabéns" da última aula manda a
+  // aluna direto para cá, em vez de pedir que ela role a página procurando.
   return (
-    <section className="space-y-4">
+    <section id="certificados" className="space-y-4 scroll-mt-24">
       <h2 className="text-lg font-semibold flex items-center gap-2">
         <Award className="w-5 h-5 text-[#6699F3]" />
         Meus certificados
