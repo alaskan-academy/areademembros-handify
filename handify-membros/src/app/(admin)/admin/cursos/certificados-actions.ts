@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchAll } from "@/lib/supabase/fetch-all";
-import { issueCertificateIfComplete } from "@/lib/certificates/issue";
+import { issueCertificateIfComplete, aulasNecessarias } from "@/lib/certificates/issue";
 import { revalidatePath } from "next/cache";
 
 async function assertAdmin() {
@@ -65,7 +65,7 @@ export async function emitirCertificadosPendentes(
   return { emitidos, falharam };
 }
 
-/** Ids das alunas com o curso concluído (≥95%) e sem certificado emitido. */
+/** Ids das alunas que já cumpriram o requisito do curso e estão sem certificado. */
 async function alunasSemCertificado(courseId: string): Promise<string[]> {
   const service = createServiceClient();
 
@@ -91,7 +91,10 @@ async function alunasSemCertificado(courseId: string): Promise<string[]> {
 
   if (!lessonIds.length) return [];
 
-  const limiar = Math.ceil(lessonIds.length * 0.95);
+  // Mesma régua de `issueCertificateIfComplete`. Estava escrita à mão aqui, com
+  // 0.95 fixo: quando o limiar mudou para 0.90 esta lista continuaria no antigo,
+  // e a tela do admin mostraria menos pendentes do que a emissão de fato aceita.
+  const limiar = aulasNecessarias(lessonIds.length);
 
   // Ordem estável é obrigatória aqui: `fetchAll` pagina com LIMIT/OFFSET, e
   // OFFSET sem ORDER BY não garante ordem nenhuma no Postgres — a mesma linha

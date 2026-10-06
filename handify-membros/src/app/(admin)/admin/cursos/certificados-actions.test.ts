@@ -19,19 +19,29 @@ const estado = vi.hoisted(() => ({
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/certificates/issue", () => ({
+// Só a emissão é dublada: ela gera PDF, sobe para o Storage e manda e-mail.
+// `aulasNecessarias` passa de verdade, porque é a régua que este teste precisa
+// enxergar — dublar o limiar aqui seria testar o número errado.
+vi.mock("@/lib/certificates/issue", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/certificates/issue")>()),
   issueCertificateIfComplete: vi.fn(async () => false),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => estado.admin }));
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: () => estado.service }));
 
 import { contarCertificadosPendentes } from "./certificados-actions";
+import { aulasNecessarias } from "@/lib/certificates/issue";
 
 type Linha = Record<string, unknown>;
 type Pagina = { data: Linha[] | null; error: unknown };
 
 const CURSO = "curso-1";
-const TOTAL_AULAS = 20; // limiar = ceil(20 * 0,95) = 19
+const TOTAL_AULAS = 20;
+// Vem da mesma função que a produção usa. Escrito à mão, este número
+// envelhecia junto com o limiar: quando ele caiu de 0,95 para 0,90 a aluna
+// sentinela parou de ficar exatamente no limite, e o teste deixou de sentir o
+// defeito que existe para pegar.
+const LIMIAR = aulasNecessarias(TOTAL_AULAS);
 
 /** Ordena por qual coluna cada tabela foi consultada — null quando não pediu. */
 type Ordens = Record<string, string | null>;
@@ -117,13 +127,27 @@ function montarDados() {
     }
   };
 
-  empurrar("aluna-quase", 17); // índices 0..16
-  for (let i = 0; i < 50; i++) empurrar(`aluna-ok-${i}`, 19); // 17..966
-  empurrar("aluna-parcial", 15); // 967..981
-  empurrar("aluna-limiar", 19); // 982..1000 — a última é a do índice 1.000
-  empurrar("aluna-extra", 19); // 1001..1019
+  // A sentinela precisa ter a ÚLTIMA linha exatamente no índice 1.000, a
+  // primeira que a segunda página perde quando não há ordem. Antes isso era
+  // obtido com contas feitas à mão para um limiar de 19; o enchimento abaixo se
+  // posiciona sozinho, então mudar o limiar não desarma mais o teste.
+  const alvoAntesDaSentinela = 1001 - LIMIAR;
 
+  empurrar("aluna-quase", LIMIAR - 1); // uma aula abaixo: nunca entra
+  const cheias = Math.floor((alvoAntesDaSentinela - (LIMIAR - 1)) / LIMIAR);
+  for (let i = 0; i < cheias; i++) empurrar(`aluna-ok-${i}`, LIMIAR);
+  const resto = alvoAntesDaSentinela - progresso.length;
+  // `resto` é menor que LIMIAR por construção, então esta aluna nunca qualifica.
+  if (resto > 0) empurrar("aluna-parcial", resto);
+
+  // Exatamente no limite: perder UMA linha dela na paginação já a derruba.
+  // É o que faz o teste sentir a falta de ordem estável.
+  empurrar("aluna-limiar", LIMIAR);
+  empurrar("aluna-extra", LIMIAR);
+
+  expect(resto).toBeLessThan(LIMIAR);
   expect(progresso[1000]).toMatchObject({ user_id: "aluna-limiar" });
+  expect(progresso[1001]).toMatchObject({ user_id: "aluna-extra" });
 
   const matriculas: Linha[] = [...alunas].map((userId, i) => ({
     id: `mat-${i}`,
@@ -144,22 +168,27 @@ function montarDados() {
     enrollments: matriculas,
     lesson_progress: progresso,
     certificates: [] as Linha[],
+    // Quem de fato cumpre o requisito: as cheias + a sentinela + a extra.
+    esperadas: cheias + 2,
   };
 }
 
 describe("alunasSemCertificado", () => {
   let ordens: Ordens;
+  let esperadas: number;
 
   beforeEach(() => {
     ordens = {};
-    estado.service = criarServiceFake(montarDados(), ordens);
+    const dados = montarDados();
+    esperadas = dados.esperadas;
+    estado.service = criarServiceFake(dados, ordens);
     estado.admin = criarAdminFake();
   });
 
   it("não perde a aluna que concluiu quando o progresso passa de uma página", async () => {
-    // 50 alunas com 19 aulas + aluna-limiar + aluna-extra = 52.
-    // Sem ordem estável a aluna-limiar cai para 18 e o número vira 51.
-    expect(await contarCertificadosPendentes(CURSO)).toBe(52);
+    // Sem ordem estável a aluna-limiar perde uma linha, cai abaixo do limiar e
+    // o número vem um a menos.
+    expect(await contarCertificadosPendentes(CURSO)).toBe(esperadas);
   });
 
   it("ordena as três consultas paginadas por id", async () => {
