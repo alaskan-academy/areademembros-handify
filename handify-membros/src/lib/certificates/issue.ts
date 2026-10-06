@@ -5,8 +5,29 @@ import { generateCertificatePdf } from "@/lib/certificate";
 import { sendCertificateEmail } from "@/lib/email";
 import { decryptCpf, formatCpf } from "@/lib/cpf-crypto";
 
-/** Percentual de aulas concluídas que libera o certificado. */
-const LIMIAR = 0.95;
+/**
+ * Percentual de aulas concluídas que libera o certificado.
+ *
+ * Era 0.95, que com o arredondamento para cima virava "todas as aulas" em curso
+ * curto: 19 aulas pediam 19, 9 pediam 9. A aluna chegava no fim, lia "Parabéns!"
+ * e não tinha certificado nenhum.
+ *
+ * Cuidado com o arredondamento ao mexer aqui: `Math.ceil` faz o percentual valer
+ * menos do que parece em curso pequeno. Com 0.90, um curso de 9 aulas continua
+ * pedindo as 9 (ceil(8.1) = 9), e um de 8 continua pedindo as 8. O percentual só
+ * ganha folga de verdade a partir de ~10 aulas.
+ */
+const LIMIAR = 0.9;
+
+/**
+ * Quantas aulas concluídas o certificado exige, num curso com `total` aulas.
+ *
+ * Fica exportada e separada do resto porque é a regra que decide quem recebe um
+ * documento — e porque o arredondamento engana: ver o comentário de `LIMIAR`.
+ */
+export function aulasNecessarias(total: number): number {
+  return Math.ceil(total * LIMIAR);
+}
 
 /**
  * Emite o certificado de um curso para uma aluna, se ela já cumpriu o
@@ -61,7 +82,7 @@ export async function issueCertificateIfComplete(
     .eq("completed", true)
     .in("lesson_id", lessonIds);
 
-  const limiar = Math.ceil(lessonIds.length * LIMIAR);
+  const limiar = aulasNecessarias(lessonIds.length);
   if (!limiar || (completedCount ?? 0) < limiar) return false;
 
   const [{ data: profile }, { data: course }] = await Promise.all([
