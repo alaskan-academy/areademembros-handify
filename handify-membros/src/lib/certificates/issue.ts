@@ -114,6 +114,9 @@ export async function issueCertificateIfComplete(
     verify_hash: verifyHash,
     issued_at: issuedAt.toISOString(),
     pdf_path: pdfPath,
+    // O mesmo número que acabou de ser carimbado no PDF acima. Guardado aqui para a
+    // página de verificação nunca discordar do documento que a aluna tem na mão.
+    workload_hours: course.workload_hours ?? 0,
   });
 
   if (insertError) {

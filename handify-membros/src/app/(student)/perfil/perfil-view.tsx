@@ -48,6 +48,8 @@ type Certificate = {
   id: string;
   issued_at: string;
   verify_hash: string;
+  /** Carga congelada na emissão. O curso só entra como rede para certificado antigo. */
+  workload_hours: number | null;
   course: { title: string; workload_hours: number } | null;
 };
 
@@ -105,7 +107,7 @@ export default function PerfilView({
           .single(),
         supabase
           .from("certificates")
-          .select("id, issued_at, verify_hash, course:courses(title, workload_hours)")
+          .select("id, issued_at, verify_hash, workload_hours, course:courses(title, workload_hours)")
           .eq("user_id", user.id)
           .order("issued_at", { ascending: false }),
         supabase
@@ -670,7 +672,7 @@ function CertificateCard({ cert }: { cert: Certificate }) {
             {cert.course?.title ?? "Curso"}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {cert.course?.workload_hours ?? 0}h · Emitido em {formattedDate}
+            {cert.workload_hours ?? cert.course?.workload_hours ?? 0}h · Emitido em {formattedDate}
           </p>
           {error && (
             <p className="text-xs text-red-500 mt-1">Erro ao gerar link. Tente novamente.</p>

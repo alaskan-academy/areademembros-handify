@@ -49,7 +49,7 @@ export default async function VerificarPage({
   const { data: cert } = await supabase
     .from("certificates")
     .select(
-      "id, issued_at, verify_hash, profile:profiles(full_name), course:courses(title, workload_hours)"
+      "id, issued_at, verify_hash, workload_hours, profile:profiles(full_name), course:courses(title, workload_hours)"
     )
     .eq("verify_hash", hash)
     .maybeSingle();
@@ -61,6 +61,12 @@ export default async function VerificarPage({
 
   const profile = cert.profile as unknown as ProfileRef | null;
   const course = cert.course as unknown as CourseRef | null;
+
+  // A carga horária vem do CERTIFICADO, não do curso. O PDF que a aluna tem na mão
+  // carimbou esse número na emissão; se esta página lesse o curso, uma alteração de
+  // carga faria a verificação discordar do documento que ela está verificando.
+  // O curso só entra como rede para certificado antigo sem o campo preenchido.
+  const cargaHoraria = cert.workload_hours ?? course?.workload_hours ?? 0;
 
   const issuedAt = new Date(cert.issued_at);
   const formattedDate = issuedAt.toLocaleDateString("pt-BR", {
@@ -141,7 +147,7 @@ export default async function VerificarPage({
                     Carga horária
                   </p>
                   <p className="font-medium text-foreground">
-                    {course?.workload_hours ?? 0}h
+                    {cargaHoraria}h
                   </p>
                 </div>
                 <div>
