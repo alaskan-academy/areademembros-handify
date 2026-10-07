@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import { FileText, Code, Globe, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Download } from "lucide-react";
 
 const HtmlBlock = dynamic(() => import("./HtmlBlock"), { ssr: false });
 const EmbedBlock = dynamic(() => import("./EmbedBlock"), { ssr: false });
@@ -120,13 +120,7 @@ function DownloadBlock({ material }: { material?: LessonMaterial }) {
   );
 }
 
-const BLOCK_ICONS: Record<BlockType, React.ElementType> = {
-  text: FileText,
-  html: Code,
-  embed: Globe,
-  download: Download,
-  video: FileText,
-};
+
 
 interface ContentBlocksProps {
   blocks: ContentBlock[];
@@ -135,7 +129,6 @@ interface ContentBlocksProps {
 }
 
 export default function ContentBlocks({ blocks, materials, videoPlayerProps }: ContentBlocksProps) {
-  const [materialsOpen, setMaterialsOpen] = useState(false);
 
   const materialById = Object.fromEntries(materials.map((m) => [m.id, m]));
 
@@ -190,37 +183,30 @@ export default function ContentBlocks({ blocks, materials, videoPlayerProps }: C
         );
       })}
 
-      {/* Materiais da aula — botão toggle (apenas desktop; mobile usa LessonBottomSheet) */}
+      {/* Materiais da aula.
+          Antes era `hidden lg:block` e começava recolhido: no celular a apostila
+          que não está dentro de um bloco de download simplesmente não aparecia
+          aqui, só na gaveta do rodapé. Em Lembrancinhas isso valia para as 16
+          aulas com apostila, porque o curso não tem nenhum bloco de download.
+          Agora aparece sempre e já aberta, que é o que o bloco de boas-vindas
+          promete e o que esse público encontra. A gaveta continua existindo
+          como atalho. */}
       {orphanMaterials.length > 0 && (
-        <div className="hidden lg:block">
-          <button
-            onClick={() => setMaterialsOpen((v) => !v)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border hover:border-[#6699F3]/50 bg-white hover:bg-[#6699F3]/5 transition-all text-sm font-medium text-foreground"
-          >
-            <span className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#6699F3]/10 flex items-center justify-center shrink-0">
-                <Download className="w-4 h-4 text-[#6699F3]" />
-              </div>
-              <span>
-                Materiais da aula
-                <span className="ml-1.5 text-xs font-semibold text-[#6699F3] bg-[#6699F3]/10 px-1.5 py-0.5 rounded-full">
-                  {orphanMaterials.length}
-                </span>
-              </span>
+        <div>
+          <h3 className="flex items-center gap-2.5 mb-3 text-base font-semibold text-foreground">
+            <span className="w-8 h-8 rounded-lg bg-[#6699F3]/10 flex items-center justify-center shrink-0">
+              <Download className="w-4 h-4 text-[#6699F3]" />
             </span>
-            {materialsOpen
-              ? <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
-              : <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-            }
-          </button>
+            {orphanMaterials.length === 1
+              ? "Material desta aula"
+              : `Materiais desta aula (${orphanMaterials.length})`}
+          </h3>
 
-          {materialsOpen && (
-            <div className="mt-2 space-y-2">
-              {orphanMaterials.map((m) => (
-                <DownloadBlock key={m.id} material={m} />
-              ))}
-            </div>
-          )}
+          <div className="space-y-2">
+            {orphanMaterials.map((m) => (
+              <DownloadBlock key={m.id} material={m} />
+            ))}
+          </div>
         </div>
       )}
     </div>
