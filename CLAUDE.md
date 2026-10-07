@@ -305,7 +305,8 @@ audit_log (id, admin_id, action, target_type, target_id, meta, created_at)
 
 | Token CSS               | HEX       | Uso                                      |
 |-------------------------|-----------|------------------------------------------|
-| `--handify-blue`        | `#6699F3` | CTA principal, links, destaques, ring    |
+| `--handify-blue`        | `#6699F3` | Faixa, borda, fundo suave, ícone, ring   |
+| `--handify-blue-texto`  | `#1C68ED` | **Quando o azul carrega palavra**        |
 | `--handify-green`       | `#72CF92` | Sucesso, accent secundário               |
 | `--handify-yellow`      | `#FEC649` | Faixa decorativa tricolor, detalhe       |
 | `--handify-black`       | `#0F0F0F` | Fundos escuros, dark mode                |
@@ -313,6 +314,28 @@ audit_log (id, admin_id, action, target_type, target_id, meta, created_at)
 | `--handify-off-white`   | `#F5F5F0` | Fundo editorial, `--muted`, `--secondary`|
 
 Tailwind disponível: `bg-handify-blue`, `text-handify-green`, `bg-handify-muted`, etc.
+
+**Regra do azul (out/2026).** `#6699F3` sobre branco dá **2,83:1** — reprova o AA de
+4,5:1 e reprova até o mínimo de 3:1 de texto grande. Isso vale tanto para texto
+azul sobre branco quanto para texto branco sobre o azul, que é o botão primário.
+
+Então o azul se divide por função:
+
+- **`#6699F3` onde não há palavra:** faixa tricolor, borda, fundo suave
+  (`#6699F3/10`), ícone, anel de foco. A marca continua visível em tudo isso.
+- **`#1C68ED` onde há palavra:** cor de texto e fundo de botão com rótulo. Mesmo
+  matiz (218,3), mas **4,95:1** sobre branco e **4,53:1** sobre o off-white.
+
+Exceção que inverte a regra: **sobre fundo escuro** (`#0F0F0F`), quem passa é o
+azul da marca, com cerca de 7:1. O `#1C68ED` ali cai para 3,88:1. Escurecer é o
+conserto do fundo claro, não do escuro.
+
+Mesma lógica no verde: texto branco sobre `#72CF92` dá 1,9:1. Não se escurece o
+verde — troca-se o texto para `#0F0F0F`.
+
+Os 26 blocos HTML das aulas já seguem isso, medidos no navegador a 375px com o
+fundo real de cada texto: zero reprovação. O resto da aplicação ainda usa
+`#6699F3` em botão (387 ocorrências em 118 arquivos) e é uma varredura pendente.
 
 ### Tipografia
 
