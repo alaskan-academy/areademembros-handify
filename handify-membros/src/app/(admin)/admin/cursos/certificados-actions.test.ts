@@ -179,9 +179,11 @@ describe("alunasSemCertificado", () => {
 
   beforeEach(() => {
     ordens = {};
-    const dados = montarDados();
-    esperadas = dados.esperadas;
-    estado.service = criarServiceFake(dados, ordens);
+    // `esperadas` é a resposta certa, não uma tabela: sai daqui antes de virar
+    // banco falso.
+    const { esperadas: quantas, ...tabelas } = montarDados();
+    esperadas = quantas;
+    estado.service = criarServiceFake(tabelas, ordens);
     estado.admin = criarAdminFake();
   });
 

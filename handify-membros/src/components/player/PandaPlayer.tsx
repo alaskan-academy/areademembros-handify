@@ -38,6 +38,32 @@ function limparDoAparelho(lessonId: string) {
   try { localStorage.removeItem(CHAVE_POSICAO(lessonId)); } catch { /* modo privado */ }
 }
 
+/**
+ * Girar a tela sozinha quando a aula abre em tela cheia.
+ *
+ * A aluna segura o celular em pé, aperta o botão de expandir e o vídeo abre
+ * deitado dentro de uma tela em pé: sobra preto em cima e embaixo e a imagem
+ * fica do tamanho de um selo. Ela precisa virar o aparelho na mão, e quem está
+ * com a trava de rotação ligada nem consegue.
+ *
+ * O botão de expandir fica dentro do iframe do Panda, que é de outro domínio,
+ * então não dá para mexer nele. Mas quando o conteúdo de um iframe entra em
+ * tela cheia, é a NOSSA página que entra em tela cheia, com o iframe virando o
+ * `fullscreenElement`. O evento chega aqui, e a trava de orientação só é
+ * permitida justamente enquanto a página está em tela cheia.
+ *
+ * Não funciona no iPhone: o Safari abre o vídeo no player nativo do sistema, a
+ * nossa página nem fica sabendo, e a Apple não expõe trava de orientação. Lá o
+ * próprio iOS já deita o vídeo quando a aluna vira o aparelho.
+ *
+ * `lock`/`unlock` existem nos navegadores mas ainda não estão na tipagem padrão
+ * do TypeScript, daí a declaração abaixo.
+ */
+type TravaDeTela = ScreenOrientation & {
+  lock?: (orientacao: "landscape") => Promise<void>;
+  unlock?: () => void;
+};
+
 function isYouTube(value: string): boolean {
   return value.includes("youtube.com") || value.includes("youtu.be");
 }
@@ -78,6 +104,7 @@ export default function PandaPlayer({
   isCompleted = false,
 }: PandaPlayerProps) {
   const router = useRouter();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const positionRef = useRef(initialPosition);
   const autoMarkedRef = useRef(isCompleted);
   const durationRef = useRef(durationSeconds);
@@ -207,6 +234,44 @@ export default function PandaPlayer({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessonId, initialPosition]);
 
+  // Tela cheia abre deitada. Ver a explicação em TravaDeTela, lá em cima.
+  useEffect(() => {
+    const tela = screen.orientation as TravaDeTela | undefined;
+    if (!tela?.lock) return;
+
+    let travamos = false;
+
+    const soltar = () => {
+      if (!travamos) return;
+      travamos = false;
+      try { tela.unlock?.(); } catch { /* navegador sem suporte */ }
+    };
+
+    function aoMudarTelaCheia() {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      const emTelaCheia = document.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+      const ehONossoVideo =
+        emTelaCheia !== null &&
+        iframeRef.current !== null &&
+        (emTelaCheia === iframeRef.current || emTelaCheia.contains(iframeRef.current));
+
+      if (ehONossoVideo) {
+        // Promise recusada é o caso normal no computador, que não gira.
+        tela!.lock!("landscape").then(() => { travamos = true; }).catch(() => {});
+      } else {
+        soltar();
+      }
+    }
+
+    document.addEventListener("fullscreenchange", aoMudarTelaCheia);
+    document.addEventListener("webkitfullscreenchange", aoMudarTelaCheia);
+    return () => {
+      document.removeEventListener("fullscreenchange", aoMudarTelaCheia);
+      document.removeEventListener("webkitfullscreenchange", aoMudarTelaCheia);
+      soltar();
+    };
+  }, []);
+
   return (
     <>
       {precisaRecarregar && (
@@ -228,6 +293,7 @@ export default function PandaPlayer({
       )}
     <div className="w-full aspect-video rounded-xl overflow-hidden bg-black shadow-lg relative">
       <iframe
+        ref={iframeRef}
         src={embedUrl}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
